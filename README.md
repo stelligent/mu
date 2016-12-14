@@ -15,7 +15,8 @@ For more details on the intended architecture, see [Microservices Platform with 
 
 
 #Capabilities
-1. **Resource Declaration** - A YAML file will be used to declare microservice resources.  There are two types of resources defined in the YAML file, environments and applications.
+## Resource Declaration
+A YAML file will be used to declare microservice resources.  There are two types of resources defined in the YAML file, environments and applications.
 
 Environments contain an ECS cluster, ECS container instances (with ASG), and an ALB.  Additionally, environments contain (or reference) a VPC.  A sample environment resource may look like:
 
@@ -48,7 +49,8 @@ service:
     prodEnvironment: production
 ```
 
-2. **CLI** - The majority of code for this tool will be to provide a CLI to manage CloudFormation stacks based on the resources declared in the YAML file.  Some sample commands would include:
+## CLI
+The majority of code for this tool will be to provide a CLI to manage CloudFormation stacks based on the resources declared in the YAML file.  Some sample commands would include:
 
 ```
 # Upsert the dev environment
@@ -64,7 +66,8 @@ service:
 ```
 
 
-3. **Plugin** - A plugin framework should be available for developer to contribute extensions for specific languages.  For example, a Java developer using Spring Boot should be able to use a Spring Boot plugin to define the Eureka, ConfigServer and Zuul router for their environment as follows:
+## Plugin
+A plugin framework should be available for developer to contribute extensions for specific languages.  For example, a Java developer using Spring Boot should be able to use a Spring Boot plugin to define the Eureka, ConfigServer and Zuul router for their environment as follows:
 
 ```
 environments:
@@ -78,8 +81,9 @@ environments:
          sourceUrl: https://github.com/example/configrepo
 ```
 
-       
-4. **UI** -  A web based user interface will be created to provide visibility into the resources in the platform.   The UI will allow a view into the list of pipelines, services, and environments defined in a given AWS account.  It will only provide read only access to the resources and will not provide ability to change the resources.
+      
+## UI
+A web based user interface will be created to provide visibility into the resources in the platform.   The UI will allow a view into the list of pipelines, services, and environments defined in a given AWS account.  It will only provide read only access to the resources and will not provide ability to change the resources.
 
 The UI will consist of an Angular2 application hosted in S3 with APIs in Lambda/API Gateway.  The UI will be secured via AWS credentials and Cognito. 
 
