@@ -75,10 +75,10 @@ environments:
     loadbalancer:
       hostname: api-dev.example.com
     springboot:
-    eureka:
-      desiredCapacity: 1
-       configServer:
-         sourceUrl: https://github.com/example/configrepo
+      eureka:
+        desiredCapacity: 1
+      configServer:
+        sourceUrl: https://github.com/example/configrepo
 ```
 
       
