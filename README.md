@@ -16,7 +16,7 @@ For more details on the intended architecture, see [Microservices Platform with 
 
 #Capabilities
 ## Resource Declaration
-A YAML file will be used to declare microservice resources.  There are two types of resources defined in the YAML file, environments and applications.
+A YAML file will be used to declare microservice resources.  There are two types of resources defined in the YAML file, environments and services.
 
 Environments contain an ECS cluster, ECS container instances (with ASG), and an ALB.  Additionally, environments contain (or reference) a VPC.  A sample environment resource may look like:
 
