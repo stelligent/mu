@@ -84,7 +84,7 @@ The majority of code for this tool will be to provide a CLI to manage CloudForma
 > mu pipeline show <service_name>
 
 # Upsert the pipeline
-> mu pipeline up [-s <service_name>]
+> mu pipeline up [-s <service_name>] [-u <repo_url>] [-t <repo_token>]
 
 # Terminate the pipeline
 > mu pipeline terminate [-s <service_name>]
