@@ -50,19 +50,44 @@ service:
 ```
 
 ## CLI
-The majority of code for this tool will be to provide a CLI to manage CloudFormation stacks based on the resources declared in the YAML file.  Some sample commands would include:
+The majority of code for this tool will be to provide a CLI to manage CloudFormation stacks based on the resources declared in the YAML file.  The list of available commands are:
 
 ```
-# Upsert the dev environment
-> mu create dev 
+# List all environments
+> mu env list
 
+# Show details about a specific environment (ECS container instances, Running services, etc)
+> mu env show <environment_name>
 
-# Deploy service to dev environment
-> mu deploy dev
+# Upsert an environment
+> mu env up <environment_name>
 
+# Terminate an environment
+> mu env terminate <environment_name>
+
+# Show details about a specific service (Which versions in which environments, pipeline status)
+> mu service show [-s <service_name>]
+
+# Deploy the service to an environment
+> mu service deploy <environment_name> [-s <service_name>]
+
+# Set an environment variable(s) for a service
+> mu service setenv <environment_name> [-s <service_name>] key=value,...
+
+# Undeploy the service from an environment
+> mu service undeploy <environment_name> [-s <service_name>]
+
+# List the pipelines
+> mu pipeline list
+
+# Show the pipeline details for a specific service
+> mu pipeline show <service_name>
 
 # Upsert the pipeline
-> mu pipeline up
+> mu pipeline up [-s <service_name>]
+
+# Terminate the pipeline
+> mu pipeline terminate [-s <service_name>]
 ```
 
 
