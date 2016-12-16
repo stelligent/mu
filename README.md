@@ -72,7 +72,7 @@ The majority of code for this tool will be to provide a CLI to manage CloudForma
 > mu service deploy <environment_name> [-s <service_name>]
 
 # Set an environment variable(s) for a service
-> mu service setenv <environment_name> [-s <service_name>] key=value,...
+> mu service setenv <environment_name> [-s <service_name>] key=value[,...]
 
 # Undeploy the service from an environment
 > mu service undeploy <environment_name> [-s <service_name>]
