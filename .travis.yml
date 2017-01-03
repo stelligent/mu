@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - 1.7.x
+
+os:
+  - linux
+  - osx
+  - windows
+
+script:
+  - go build
