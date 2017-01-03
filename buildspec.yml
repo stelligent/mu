@@ -4,7 +4,8 @@ phases:
   build:
     commands:
       - go get -t -d -v ./...
-      - go build .
+      - go build
+      - ls
 artifacts:
   files:
     - mu
