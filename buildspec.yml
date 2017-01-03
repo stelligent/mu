@@ -1,0 +1,9 @@
+version: 0.1
+
+phases:
+  build:
+    commands:
+      - go build .
+artifacts:
+  files:
+    - mu
