@@ -6,7 +6,6 @@ go:
 os:
   - linux
   - osx
-  - windows
 
 script:
   - go build
