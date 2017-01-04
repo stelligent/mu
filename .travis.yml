@@ -5,7 +5,15 @@ go:
 
 os:
   - linux
-  - osx
 
 script:
   - go build
+
+deploy:
+  provider: releases
+  api_key:
+    secure: ac/LG46nz4CJRNo1hCH2No+Juv4qA3QLU/lLGc8Y8DgLr1Aui+a8GBsnHvuKqvwmr+6uKz3P2BFR5G/TOSB83HuUL5H1nSd2for8YR3kXroWQW7n+69DFk3lXCU6smlHUpjekh6nHQjPKdmSEaCwIHlOwRKmJgaeeue+aJQmJBuxWML6IYTOsEpCnK85pjfve6mUyT9Y3MqrUrNAffdt/8sBBFNT84d1BRvOV3K5BeJhVR41TLPg90mz54sS6HTXUUxuWmwaxQdCLdur4ZvVKoJw7ytmuGgKVlPd1kwrT+Dj8bNsjTQ9dwJnR8VVMZynVv2vYnHK4wLujmjEeMQQ9Os7E+duHa+y/BmwAx1lzw0LYnfnlVhPZjBjhfWSmuXiuJERvdn1KvWS6ZuPL6r7nHi1J3e1rmrOhjfq3L0XXDSA50tXQLRzGC8Hn00BTtWPvbBBLOAIMsCr1t6mnOcPRMUQMMnJUxqA1LcV3cRg5KiFAJlrqZLEGxDORojjj3itq+3GjMXs/EHFlvUSHLDJCeEhyF9YvzVnuVeeKgo0/NKR97YIDOwnvd9JY5b+EX3vZBvoUc9hD1OyLffITGMwIujcx45jINWg0mYN5158bMOF/Et1XuvBvaP1ejUMP7VvnssE2F4mdoH5adVQy6YPABHY3DCm8eK35OwAQIJxsv0=
+  file: mu
+  skip_cleanup: true
+  on:
+    tags: true
