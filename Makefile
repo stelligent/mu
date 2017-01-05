@@ -36,26 +36,26 @@ $(BUILD_FILES): setup
 	@echo "=== building $(VERSION) - $@ ==="
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
-pre-release-clean:
+release-clean:
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
 	github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
 	git push --delete origin $(TAG_VERSION)
 endif
 
-pre-release-create: pre-release-clean
+release-create: release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
 	github-release release -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -p
 
-$(TARGET_OS): pre-release-create
+$(TARGET_OS): release-create
 	@echo "=== uploading $@ ==="
 	github-release upload -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -n "$(PACKAGE)-$@-$(ARCH)" -f "release/$(PACKAGE)-$@-$(ARCH)"
 
-pre-release: $(TARGET_OS)
+dev-release: $(TARGET_OS)
 
-release: pre-release
+release: dev-release
 ifneq ($(IS_MASTER),)
     @echo "=== releasing $(VERSION) ==="
     github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
@@ -65,4 +65,4 @@ clean:
 	@echo "=== cleaning ==="
 	rm -rf release
 
-.PHONY: default lint test build setup clean pre-release-clean pre-release-create pre-release release $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default lint test build setup clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
