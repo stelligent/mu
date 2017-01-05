@@ -2,8 +2,8 @@ ORG := stelligent
 PACKAGE := mu
 TARGET_OS := linux windows darwin
 
-# don't change
-BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+###
+BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 ARCH := $(shell go env GOARCH)
@@ -15,7 +15,7 @@ TAG_VERSION = v$(VERSION)
 default: build
 
 setup:
-	@echo "=== preparing ==="
+	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
 	mkdir -p release
 	go get -u "github.com/golang/lint/golint"
 	go get -u "github.com/aktau/github-release"
@@ -33,7 +33,7 @@ test: lint
 build: test $(BUILD_FILES)
 
 $(BUILD_FILES): setup
-	@echo "=== building $@ ==="
+	@echo "=== building $(VERSION) - $@ ==="
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 pre-release-clean:
@@ -43,7 +43,7 @@ ifeq ($(IS_MASTER),)
 	git push --delete origin $(TAG_VERSION)
 endif
 
-pre-release-create: pre-release-clean #clean build
+pre-release-create: pre-release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
