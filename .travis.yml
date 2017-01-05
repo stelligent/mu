@@ -6,20 +6,29 @@ go:
 os:
   - linux
 
+## Encrypted GITHUB_TOKEN
 env:
   secure: Y2fHWCGvx3ngUdx2siNT55cQ6rJGjtwIQIvrfjtetaXUQw0D3WHc+7hU52horb7kutD1C2BG4OBPxMOl0PtS2+3fy0p2LSI6hy1UPoVs00YWkTIqlNzfdLv9ATi+xdF8VqpjgHB+bQRMohiBKdfN/oWcrszLdukAWwL4EsMinlRKol+RODduQruG9jXWBoQIyoiutargapyEaTLDxRcCsUome9LKlzwd+mQlpO1maQrvop/QYBinglkehJ1DSLtgzl7tdHm4tEix/4+7eGX8NL4dMiA6xxKQg4JT2kbRr5Tb35QEPonA9D1DJ9JPkX+KRiatGGw2FMBofMPBB/NkliRMg6nkqn2yPshXfvnin/RhyMbrlBLNRoeO0z3puyPdmy3whQMNqhnd0QC0y53t/MGNhhoPxJVrctljz9AyZ0WRGSdXW0oCGa91gnKUKobZs8foQA6LQXTCJzLUl5WP8iiWcXX8kWE8+XcO0NuD1Bo6i30HUTLk+H91b/pSK8ewvHfaXqsjNaMFdFvuFjfEGnm8O9II+Dvr2equo3TvhEY+TQ1EeUVeXR8tp33rSKhBeoaMNpTghmNueI0PzUyG/giqTVM81nysHTfe8lQE1bfTphu2mth4Zuq86jsPNorII2yAtlP6qvbV6uAGPvYJ5XYHG7OBeRIaeqRS480hbNg=
 
 
+## Don't buid when new release tags are pushed
+branches:
+  except:
+    - /^v[0-9]/
+
+## Setup GitHub credentials so we can push tags
 before_deploy:
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://${GITHUB_TOKEN}:@github.com" > .git/credentials
 
 deploy:
+  ## Create 'pre-release' from 'develop' branch
   - provider: script
     skip_cleanup: true
     script: make dev-release
     on:
       branch: develop
+  ## Create 'release' from 'master' branch
   - provider: script
     skip_cleanup: true
     script: make release
