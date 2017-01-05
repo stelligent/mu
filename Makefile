@@ -19,6 +19,7 @@ setup:
 	mkdir -p release
 	go get -u "github.com/golang/lint/golint"
 	go get -u "github.com/aktau/github-release"
+	go get -t -d -v ./...
 
 lint: setup
 	@echo "=== linting ==="
