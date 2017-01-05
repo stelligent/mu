@@ -47,6 +47,7 @@ release-create: release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
+	echo "waiting for dust to settle..." && sleep 5
 	github-release release -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -p
 
 $(TARGET_OS): release-create
