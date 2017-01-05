@@ -37,5 +37,7 @@ deploy:
 
 ## Send notifiations to 'builds' channel
 notifications:
+  email: false
   slack:
+    on_success: change
     secure: g7a0GZU36Ix+6IhwWoPZCTDIG4JrqQj4ZW5yYU+nIwLahrxWm2FknztNrNBS/akswVAZFfvgFRsPJWY2SdLcCYGWmVb62VRlKrKiiXUFjXG2/RXRRk3Ivmm7ZMEWe9xFbvK8OwwV6aVK/A+lepB0ory5EE5kwdYCvDj2OWj3Hjeoy7vVMrVcFn+MnUek81XWRzdN0aiTeGZrDA/eT1BNyytk90Mc7AYsAsuMlRelo9s3x9bk0dVqjIpVJZ13+R/Kdoc/N8q1GznwaXScTfhG0UW/aLYLhlWy76QISsQUqM1wOPtuuRmnkezR7NOyEh8Bdo4NfuYfDFWhDru9mHuNMMXJKdh6R51uWmiTNxflZ2la2IoONDsQ/5PAhyVBqGbc30vqVF3IkLNkI+w3rGxI6+1dcBB+otpvwm6e/dQ0azHT8t5bdT2XJXndsdbDeVyAr2XHG01tHRrxZFG2eeEXCqabvNPI0vRqdo193W0eP0fnUDHUMrx1wHbVSEDrbzwM3DcOE9ZYzVv0YByXf8HHsRHNDUj+WjeeGFbYcOaGw3XQYZZ4ooqa9ttvA6dKvbrS9+JeePgfT/vKhEdUqbRZtn8zUBbNiEmT0cIaiF73kmjZh3+kep66hTji/NchAroTD/VQzgTmj2+8/p/uqU/7jSMa0COevb+xx1rgMPpHLV0=
