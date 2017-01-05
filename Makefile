@@ -58,8 +58,8 @@ dev-release: $(TARGET_OS)
 
 release: dev-release
 ifneq ($(IS_MASTER),)
-    @echo "=== releasing $(VERSION) ==="
-    github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
+	@echo "=== releasing $(VERSION) ==="
+	github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
 endif
 
 clean:
