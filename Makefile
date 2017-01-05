@@ -60,6 +60,9 @@ release: dev-release
 ifneq ($(IS_MASTER),)
 	@echo "=== releasing $(VERSION) ==="
 	github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
+
+	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop || echo "No pre-release to cleanup"
+	git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
 endif
 
 clean:

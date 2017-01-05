@@ -14,7 +14,7 @@ For more details on the intended architecture, see [Microservices Platform with 
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 
 # Install v0.1.0 version to ~/bin
-curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_PATH=~/bin sh
+curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_DIR=~/bin sh
 ```
 
 ## Commands

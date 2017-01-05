@@ -4,7 +4,7 @@
 set -e
 
 REPO=stelligent/mu
-LATEST_VERSION=`curl -s https://raw.githubusercontent.com/$REPO/develop/VERSION`
+LATEST_VERSION=`curl -s https://raw.githubusercontent.com/$REPO/master/VERSION`
 INSTALL_VERSION=${INSTALL_VERSION:-$LATEST_VERSION}
 INSTALL_DIR=${INSTALL_DIR:-/usr/local/bin}
 INSTALL_PATH="${INSTALL_DIR%/}/mu"
