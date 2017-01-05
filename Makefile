@@ -39,8 +39,8 @@ $(BUILD_FILES): setup
 release-clean:
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
-	github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
-	git push --delete origin $(TAG_VERSION)
+	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) || echo "No release to cleanup"
+	git push --delete origin $(TAG_VERSION) || echo "No tag to delete"
 endif
 
 release-create: release-clean
