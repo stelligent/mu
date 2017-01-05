@@ -12,12 +12,12 @@ env:
 
 deploy:
   - provider: script
+    skip_cleanup: true
     script: make dev-release
     on:
-      condition: "$TRAVIS_EVENT_TYPE = push"
       branch: develop
   - provider: script
+    skip_cleanup: true
     script: make release
     on:
-      condition: "$TRAVIS_EVENT_TYPE = push"
       branch: master
