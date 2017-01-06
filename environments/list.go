@@ -6,8 +6,7 @@ import(
 	"github.com/urfave/cli"
 )
 
-// NewListCommand returns a cli.Command to list environments
-func NewListCommand(config *common.Config) *cli.Command {
+func newListCommand(config *common.Config) *cli.Command {
 	cmd := &cli.Command {
 		Name: "list",
 		Aliases: []string{"ls"},

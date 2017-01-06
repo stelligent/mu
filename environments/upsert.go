@@ -6,8 +6,7 @@ import(
 	"github.com/stelligent/mu/common"
 )
 
-// NewUpsertCommand returns a cli.Command to upsert environments
-func NewUpsertCommand(config *common.Config) *cli.Command {
+func newUpsertCommand(config *common.Config) *cli.Command {
 	cmd := &cli.Command {
 		Name: "upsert",
 		Aliases: []string{"up"},

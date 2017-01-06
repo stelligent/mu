@@ -6,8 +6,7 @@ import(
 	"github.com/stelligent/mu/common"
 )
 
-// NewShowCommand returns a cli.Command to show environments
-func NewShowCommand(config *common.Config) *cli.Command {
+func newShowCommand(config *common.Config) *cli.Command {
 	cmd := &cli.Command {
 		Name: "show",
 		Usage: "show environment details",

@@ -6,8 +6,7 @@ import(
 	"github.com/stelligent/mu/common"
 )
 
-// NewShowCommand returns a cli.Command to show environments
-func NewTerminateCommand(config *common.Config) *cli.Command {
+func newTerminateCommand(config *common.Config) *cli.Command {
 	cmd := &cli.Command {
 		Name: "terminate",
 		Aliases: []string{"term"},
