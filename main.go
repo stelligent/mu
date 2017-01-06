@@ -6,11 +6,14 @@ import (
     "github.com/stelligent/mu/environments"
     "github.com/stelligent/mu/services"
     "github.com/stelligent/mu/pipelines"
+    "github.com/stelligent/mu/common"
 )
 
 var version string
 
 func main() {
+    config := common.LoadConfig()
+
     app := cli.NewApp()
     app.Name = "mu"
     app.Usage = "Microservice Platform on AWS"
@@ -23,44 +26,10 @@ func main() {
             Aliases: []string{"env"},
             Usage: "options for managing environments",
             Subcommands: []cli.Command{
-                {
-                    Name: "list",
-                    Aliases: []string{"ls"},
-                    Usage: "list environments",
-                    Action: func(c *cli.Context) error {
-                        environments.List()
-                        return nil
-                    },
-                },
-                {
-                    Name: "show",
-                    Usage: "show environment details",
-                    ArgsUsage: "<environment>",
-                    Action: func(c *cli.Context) error {
-                        environments.Show(c.Args().First())
-                        return nil
-                    },
-                },
-                {
-                    Name: "upsert",
-                    Aliases: []string{"up"},
-                    Usage: "create/update an environment",
-                    ArgsUsage: "<environment>",
-                    Action: func(c *cli.Context) error {
-                        environments.Upsert(c.Args().First())
-                        return nil
-                    },
-                },
-                {
-                    Name: "terminate",
-                    Aliases: []string{"term"},
-                    Usage: "terminate an environment",
-                    ArgsUsage: "<environment>",
-                    Action: func(c *cli.Context) error {
-                        environments.Terminate(c.Args().First())
-                        return nil
-                    },
-                },
+                *environments.NewListCommand(config),
+                *environments.NewShowCommand(config),
+                *environments.NewUpsertCommand(config),
+                *environments.NewTerminateCommand(config),
             },
         },
         {
