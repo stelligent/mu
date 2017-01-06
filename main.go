@@ -12,12 +12,12 @@ import (
 var version string
 
 func main() {
-    config := common.LoadConfig()
-    app := newApp(config)
+    app := newApp()
     app.Run(os.Args)
 }
 
-func newApp(config *common.Config) *cli.App {
+func newApp() *cli.App {
+    config := common.NewConfig()
     app := cli.NewApp()
     app.Name = "mu"
     app.Usage = "Microservice Platform on AWS"
@@ -28,6 +28,19 @@ func newApp(config *common.Config) *cli.App {
         *environments.NewCommand(config),
         *services.NewCommand(config),
         *pipelines.NewCommand(config),
+    }
+
+    app.Before = func(c *cli.Context) error {
+        common.LoadConfig(config, c.String("config"))
+        return nil
+    }
+
+    app.Flags = []cli.Flag {
+        cli.StringFlag{
+            Name: "config, c",
+            Usage: "path to config file",
+            Value: "mu.yml",
+        },
     }
 
     return app
