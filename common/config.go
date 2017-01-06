@@ -13,26 +13,31 @@ type Config struct {
 	Service Service `yaml:"service,omitempty"`
 }
 
+// Environment defines the env that will be created
 type Environment struct {
 	Name string `yaml:"name"`
 	Loadbalancer EnvironmentLoadBalancer `yaml:"loadbalancer,omitempty"`
 	Cluster EnvironmentCluster `yaml:"cluster,omitempty"`
 }
 
+// EnvironmentLoadBalancer defines the env load balancer that will be created
 type EnvironmentLoadBalancer struct {
 	Hostname string `yaml:"hostname,omitempty"`
 }
 
+// EnvironmentCluster defines the env cluster that will be created
 type EnvironmentCluster struct {
 	DesiredCapacity int `yaml:"desiredCapacity,omitempty"`
 	MaxSize int `yaml:"maxSize,omitempty"`
 }
 
+// Service defines the service that will be created
 type Service struct {
 	DesiredCount int `yaml:"desiredCount,omitempty"`
 	Pipeline ServicePipeline `yaml:"pipeline,omitempty"`
 }
 
+// ServicePipeline defines the service pipeline that will be created
 type ServicePipeline struct {
 }
 
