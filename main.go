@@ -13,7 +13,11 @@ var version string
 
 func main() {
     config := common.LoadConfig()
+    app := newApp(config)
+    app.Run(os.Args)
+}
 
+func newApp(config *common.Config) *cli.App {
     app := cli.NewApp()
     app.Name = "mu"
     app.Usage = "Microservice Platform on AWS"
@@ -26,6 +30,6 @@ func main() {
         *pipelines.NewCommand(config),
     }
 
-    app.Run(os.Args)
+    return app
 }
 
