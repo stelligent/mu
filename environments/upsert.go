@@ -57,7 +57,6 @@ func runUpsert(config *common.Config, environmentName string) error {
 }
 
 //go:generate go-bindata -pkg $GOPACKAGE -o assets.go assets/
-
 func generateCFNTemplate(environment *common.Environment) (*cfnTemplate, error) {
 	stackName := fmt.Sprintf("mu-env-%s", environment.Name)
 	templatePath := fmt.Sprintf("%s%s.yml",os.TempDir(), stackName)
