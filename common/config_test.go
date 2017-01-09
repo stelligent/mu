@@ -74,3 +74,28 @@ func TestLoadConfig(t *testing.T) {
 	config := NewConfig()
 	LoadConfig(config, "foobarbaz.yml")
 }
+
+func TestGetEnvironment(t *testing.T) {
+	assert := assert.New(t)
+	config := NewConfig()
+
+	env1 := Environment{
+		Name: "foo",
+	}
+	env2 := Environment{
+		Name: "bar",
+	}
+	config.Environments = []Environment{env1, env2}
+
+	fooEnv, fooErr := GetEnvironment(config, "foo")
+	assert.Equal("foo", fooEnv.Name)
+	assert.Nil(fooErr)
+
+	barEnv, barErr := GetEnvironment(config, "BAR")
+	assert.Equal("bar", barEnv.Name)
+	assert.Nil(barErr)
+
+	bazEnv, bazErr := GetEnvironment(config, "baz")
+	assert.Nil(bazEnv)
+	assert.NotNil(bazErr)
+}

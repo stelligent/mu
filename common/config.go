@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"log"
+	"strings"
 )
 
 // Config defines the structure of the yml file for the mu config
@@ -64,4 +65,16 @@ func loadYamlConfig(config *Config, yamlConfig []byte)  *Config {
 	}
 
 	return config
+}
+
+func GetEnvironment(config *Config, environment string) (*Environment, error) {
+
+	for _, e := range config.Environments {
+		if(strings.EqualFold(environment, e.Name)) {
+			return &e, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml",environment)
+
 }
