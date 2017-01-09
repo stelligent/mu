@@ -22,7 +22,7 @@ func newUpsertCommand(config *common.Config) *cli.Command {
 			environmentName := c.Args().First()
 			if(len(environmentName) == 0) {
 				cli.ShowCommandHelp(c, "upsert")
-				return fmt.Errorf("ERROR: environment must be provided!")
+				return fmt.Errorf("environment must be provided")
 			}
 			return runUpsert(config, environmentName)
 		},

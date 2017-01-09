@@ -67,6 +67,7 @@ func loadYamlConfig(config *Config, yamlConfig []byte)  *Config {
 	return config
 }
 
+// GetEnvironment loads the environment by name from the config
 func GetEnvironment(config *Config, environment string) (*Environment, error) {
 
 	for _, e := range config.Environments {
