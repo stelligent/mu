@@ -16,7 +16,7 @@ type Stack struct {
 func NewStack(name string) *Stack {
 	return &Stack{
 		Name: name,
-		TemplatePath: fmt.Sprintf("%s%s.yml",os.TempDir(), name),
+		TemplatePath: fmt.Sprintf("%s/%s.yml",os.TempDir(), name),
 	}
 }
 
