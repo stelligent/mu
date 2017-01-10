@@ -8,9 +8,7 @@ import (
 
 func TestNewUpsertCommand(t *testing.T) {
 	assert := assert.New(t)
-
-	config := &common.Config {}
-
+	config := common.NewConfig()
 	command := newUpsertCommand(config)
 
 	assert.NotNil(command)

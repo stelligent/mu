@@ -14,24 +14,6 @@ type Config struct {
 	Service Service `yaml:"service,omitempty"`
 }
 
-// Environment defines the env that will be created
-type Environment struct {
-	Name string `yaml:"name"`
-	Loadbalancer EnvironmentLoadBalancer `yaml:"loadbalancer,omitempty"`
-	Cluster EnvironmentCluster `yaml:"cluster,omitempty"`
-}
-
-// EnvironmentLoadBalancer defines the env load balancer that will be created
-type EnvironmentLoadBalancer struct {
-	Hostname string `yaml:"hostname,omitempty"`
-}
-
-// EnvironmentCluster defines the env cluster that will be created
-type EnvironmentCluster struct {
-	DesiredCapacity int `yaml:"desiredCapacity,omitempty"`
-	MaxSize int `yaml:"maxSize,omitempty"`
-}
-
 // Service defines the service that will be created
 type Service struct {
 	DesiredCount int `yaml:"desiredCount,omitempty"`
@@ -47,18 +29,18 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
-// LoadConfig loads config object from local file
-func LoadConfig(config *Config, configFile string) {
+// LoadFromFile loads config object from local file
+func (config *Config) LoadFromFile(configFile string) {
 	yamlConfig, err := ioutil.ReadFile( configFile )
 	if err != nil {
 		fmt.Printf("WARN: Unable to find config file: %v\n", err)
 	} else {
-		loadYamlConfig(config, yamlConfig)
+		config.loadFromYaml(yamlConfig)
 	}
 
 }
 
-func loadYamlConfig(config *Config, yamlConfig []byte)  *Config {
+func (config *Config) loadFromYaml(yamlConfig []byte)  *Config {
 	err := yaml.Unmarshal(yamlConfig, config)
 	if err != nil {
 		log.Panicf("Invalid config file: %v", err)
@@ -68,14 +50,13 @@ func loadYamlConfig(config *Config, yamlConfig []byte)  *Config {
 }
 
 // GetEnvironment loads the environment by name from the config
-func GetEnvironment(config *Config, environment string) (*Environment, error) {
+func (config *Config) GetEnvironment(environmentName string) (*Environment, error) {
 
 	for _, e := range config.Environments {
-		if(strings.EqualFold(environment, e.Name)) {
+		if(strings.EqualFold(environmentName, e.Name)) {
 			return &e, nil
 		}
 	}
 
-	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml",environment)
-
+	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml",environmentName)
 }

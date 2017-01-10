@@ -39,7 +39,7 @@ service:
 
 
 	config := NewConfig()
-	loadYamlConfig(config, []byte(yamlConfig))
+	config.loadFromYaml([]byte(yamlConfig))
 
 	assert.NotNil(config)
 	assert.Equal(2,len(config.Environments))
@@ -66,13 +66,13 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	yamlConfig := `   blah blah blah   `
 
 	config := NewConfig()
-	loadYamlConfig(config, []byte(yamlConfig))
+	config.loadFromYaml([]byte(yamlConfig))
 }
 
 func TestLoadConfig(t *testing.T) {
 
 	config := NewConfig()
-	LoadConfig(config, "foobarbaz.yml")
+	config.LoadFromFile("foobarbaz.yml")
 }
 
 func TestGetEnvironment(t *testing.T) {
@@ -87,15 +87,15 @@ func TestGetEnvironment(t *testing.T) {
 	}
 	config.Environments = []Environment{env1, env2}
 
-	fooEnv, fooErr := GetEnvironment(config, "foo")
+	fooEnv, fooErr := config.GetEnvironment("foo")
 	assert.Equal("foo", fooEnv.Name)
 	assert.Nil(fooErr)
 
-	barEnv, barErr := GetEnvironment(config, "BAR")
+	barEnv, barErr := config.GetEnvironment("BAR")
 	assert.Equal("bar", barEnv.Name)
 	assert.Nil(barErr)
 
-	bazEnv, bazErr := GetEnvironment(config, "baz")
+	bazEnv, bazErr := config.GetEnvironment("baz")
 	assert.Nil(bazEnv)
 	assert.NotNil(bazErr)
 }

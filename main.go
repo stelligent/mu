@@ -31,7 +31,7 @@ func newApp() *cli.App {
     }
 
     app.Before = func(c *cli.Context) error {
-        common.LoadConfig(config, c.String("config"))
+        config.LoadFromFile(c.String("config"))
         return nil
     }
 
