@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 
+	"fmt"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -41,6 +42,8 @@ service:
 	config := NewConfig()
 	config.loadFromYaml([]byte(yamlConfig))
 
+	fmt.Println(config)
+
 	assert.NotNil(config)
 	assert.Equal(2,len(config.Environments))
 	assert.Equal("dev",config.Environments[0].Name)
@@ -75,27 +78,4 @@ func TestLoadConfig(t *testing.T) {
 	config.LoadFromFile("foobarbaz.yml")
 }
 
-func TestGetEnvironment(t *testing.T) {
-	assert := assert.New(t)
-	config := NewConfig()
 
-	env1 := Environment{
-		Name: "foo",
-	}
-	env2 := Environment{
-		Name: "bar",
-	}
-	config.Environments = []Environment{env1, env2}
-
-	fooEnv, fooErr := config.GetEnvironment("foo")
-	assert.Equal("foo", fooEnv.Name)
-	assert.Nil(fooErr)
-
-	barEnv, barErr := config.GetEnvironment("BAR")
-	assert.Equal("bar", barEnv.Name)
-	assert.Nil(barErr)
-
-	bazEnv, bazErr := config.GetEnvironment("baz")
-	assert.Nil(bazEnv)
-	assert.NotNil(bazErr)
-}

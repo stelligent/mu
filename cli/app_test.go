@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"testing"
@@ -7,10 +7,11 @@ import (
 
 func TestNewApp(t *testing.T) {
 	assert := assert.New(t)
-	app := newApp()
+	app := NewApp("1.2.3")
 
 	assert.NotNil(app)
 	assert.Equal("mu", app.Name, "Name should match")
+	assert.Equal("1.2.3", app.Version, "Version should match")
 	assert.Equal("Microservice Platform on AWS", app.Usage, "usage should match")
 	assert.Equal(true, app.EnableBashCompletion, "bash completion should match")
 	assert.Equal(1, len(app.Flags), "Flags len should match")

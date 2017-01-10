@@ -9,7 +9,7 @@ import (
 func TestNewStack(t *testing.T) {
 	assert := assert.New(t)
 
-	stack := NewStack("foo")
+	stack := NewStack("foo","us-west-2")
 
 	assert.NotNil(stack)
 	assert.Equal("foo",stack.Name)
