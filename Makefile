@@ -7,7 +7,7 @@ BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 ARCH := $(shell go env GOARCH)
-BUILD_FILES = $(foreach os, $(TARGET_OS), release/$(PACKAGE)-$(os)-$(ARCH))
+BUILD_FILES = $(foreach os, $(TARGET_OS), .release/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
@@ -16,10 +16,12 @@ default: build
 
 setup:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
-	mkdir -p release
+	mkdir -p .release
 	go get -u "github.com/golang/lint/golint"
 	go get -u "github.com/aktau/github-release"
+	go get -u "github.com/jteeuwen/go-bindata/..."
 	go get -t -d -v ./...
+	go generate ./...
 
 lint: setup
 	@echo "=== linting ==="
@@ -52,7 +54,7 @@ release-create: release-clean
 
 $(TARGET_OS): release-create
 	@echo "=== uploading $@ ==="
-	github-release upload -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -n "$(PACKAGE)-$@-$(ARCH)" -f "release/$(PACKAGE)-$@-$(ARCH)"
+	github-release upload -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -n "$(PACKAGE)-$@-$(ARCH)" -f ".release/$(PACKAGE)-$@-$(ARCH)"
 
 dev-release: $(TARGET_OS)
 
@@ -67,6 +69,6 @@ endif
 
 clean:
 	@echo "=== cleaning ==="
-	rm -rf release
+	rm -rf .release
 
 .PHONY: default lint test build setup clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)

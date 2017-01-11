@@ -3,13 +3,13 @@ package common
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-
+	"fmt"
 )
 
 func TestNewConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	config := NewConfig()
+	config := newConfig()
 
 	assert.NotNil(config)
 }
@@ -38,8 +38,10 @@ service:
 `
 
 
-	config := NewConfig()
-	loadYamlConfig(config, []byte(yamlConfig))
+	config := newConfig()
+	config.loadFromYaml([]byte(yamlConfig))
+
+	fmt.Println(config)
 
 	assert.NotNil(config)
 	assert.Equal(2,len(config.Environments))
@@ -65,12 +67,7 @@ func TestLoadBadYamlConfig(t *testing.T) {
 
 	yamlConfig := `   blah blah blah   `
 
-	config := NewConfig()
-	loadYamlConfig(config, []byte(yamlConfig))
+	config := newConfig()
+	config.loadFromYaml([]byte(yamlConfig))
 }
 
-func TestLoadConfig(t *testing.T) {
-
-	config := NewConfig()
-	LoadConfig(config, "foobarbaz.yml")
-}
