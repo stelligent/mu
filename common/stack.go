@@ -6,24 +6,29 @@ import (
 	"text/template"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"io/ioutil"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Stack contains the data about a CloudFormation stack
 type Stack struct {
 	Name string
 	TemplatePath string
-	Region string
 }
 
 // NewStack will create a new stack instance
-func NewStack(name string, region string) *Stack {
+func NewStack(name string) *Stack {
 	return &Stack{
 		Name: name,
-		Region: region,
 		TemplatePath: fmt.Sprintf("%s/%s.yml",os.TempDir(), name),
 	}
+}
+func newCloudFormation(region string) (*cloudformation.CloudFormation, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	return cloudformation.New(sess, &aws.Config{Region: aws.String(region)}), nil
 }
 
 // WriteTemplate will create a temp file with the template for a CFN stack
@@ -55,13 +60,7 @@ func (stack *Stack) WriteTemplate(assetName string, data interface{}) (error) {
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (stack *Stack) UpsertStack() (error) {
-	cfn, err := newCloudFormation(stack.Region)
-	if err != nil {
-		return err
-	}
-
-
+func (stack *Stack) UpsertStack(cfn *cloudformation.CloudFormation) (error) {
 	stackStatus := stack.AwaitFinalStatus(cfn)
 	if stackStatus == "" {
 		fmt.Printf("creating stack: %s\n", stack.Name)
@@ -105,14 +104,6 @@ func (stack *Stack) readTemplatePath() (string) {
 		return ""
 	}
 	return string(templateBytes)
-}
-
-func newCloudFormation(region string) (*cloudformation.CloudFormation, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	return cloudformation.New(sess, &aws.Config{Region: aws.String(region)}), nil
 }
 
 // AwaitFinalStatus waits for the stack to arrive in a final status

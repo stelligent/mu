@@ -1,5 +1,13 @@
 package common
 
+import "github.com/aws/aws-sdk-go/service/cloudformation"
+
+// Context defines the context object passed around
+type Context struct {
+	Config Config
+	CloudFormation *cloudformation.CloudFormation
+}
+
 // Config defines the structure of the yml file for the mu config
 type Config struct {
 	Region string

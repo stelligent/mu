@@ -6,23 +6,23 @@ import(
 	"github.com/stelligent/mu/common"
 )
 
-func newServicesCommand(config *common.Config) *cli.Command {
+func newServicesCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "service",
 		Aliases: []string{"svc"},
 		Usage: "options for managing services",
 		Subcommands: []cli.Command{
-			*newServicesShowCommand(config),
-			*newServicesDeployCommand(config),
-			*newServicesSetenvCommand(config),
-			*newServicesUndeployCommand(config),
+			*newServicesShowCommand(ctx),
+			*newServicesDeployCommand(ctx),
+			*newServicesSetenvCommand(ctx),
+			*newServicesUndeployCommand(ctx),
 		},
 	}
 
 	return cmd
 }
 
-func newServicesShowCommand(config *common.Config) *cli.Command {
+func newServicesShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "show",
 		Usage: "show service details",
@@ -42,7 +42,7 @@ func newServicesShowCommand(config *common.Config) *cli.Command {
 	return cmd
 }
 
-func newServicesDeployCommand(config *common.Config) *cli.Command {
+func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "deploy",
 		Usage: "deploy service to environment",
@@ -64,7 +64,7 @@ func newServicesDeployCommand(config *common.Config) *cli.Command {
 	return cmd
 }
 
-func newServicesSetenvCommand(config *common.Config) *cli.Command {
+func newServicesSetenvCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "setenv",
 		Usage: "set environment variable",
@@ -87,7 +87,7 @@ func newServicesSetenvCommand(config *common.Config) *cli.Command {
 	return cmd
 }
 
-func newServicesUndeployCommand(config *common.Config) *cli.Command {
+func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "undeploy",
 		Usage: "undeploy service from environment",

@@ -8,25 +8,28 @@ import(
 	"github.com/stelligent/mu/resources"
 )
 
-func newEnvironmentsCommand(config *common.Config) *cli.Command {
-	environmentManager := resources.NewEnvironmentManager(config)
+
+
+
+func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
 	cmd := &cli.Command {
 		Name: "environment",
 		Aliases: []string{"env"},
 		Usage: "options for managing environments",
 		Subcommands: []cli.Command{
-			*newEnvironmentsListCommand(environmentManager),
-			*newEnvironmentsShowCommand(environmentManager),
-			*newEnvironmentsUpsertCommand(environmentManager),
-			*newEnvironmentsTerminateCommand(environmentManager),
+			*newEnvironmentsListCommand(ctx),
+			*newEnvironmentsShowCommand(ctx),
+			*newEnvironmentsUpsertCommand(ctx),
+			*newEnvironmentsTerminateCommand(ctx),
 		},
 	}
 
 	return cmd
 }
 
-func newEnvironmentsUpsertCommand(environmentManager resources.EnvironmentManager) *cli.Command {
+func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
+	environmentManager := resources.NewEnvironmentManager(ctx)
 	cmd := &cli.Command{
 		Name:      "upsert",
 		Aliases:   []string{"up"},
@@ -46,7 +49,7 @@ func newEnvironmentsUpsertCommand(environmentManager resources.EnvironmentManage
 	return cmd
 }
 
-func newEnvironmentsListCommand(environmentManager resources.EnvironmentManager) *cli.Command {
+func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "list",
 		Aliases: []string{"ls"},
@@ -60,7 +63,7 @@ func newEnvironmentsListCommand(environmentManager resources.EnvironmentManager)
 	return cmd
 }
 
-func newEnvironmentsShowCommand(environmentManager resources.EnvironmentManager) *cli.Command {
+func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "show",
 		Usage: "show environment details",
@@ -78,7 +81,7 @@ func newEnvironmentsShowCommand(environmentManager resources.EnvironmentManager)
 
 	return cmd
 }
-func newEnvironmentsTerminateCommand(environmentManager resources.EnvironmentManager) *cli.Command {
+func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "terminate",
 		Aliases: []string{"term"},

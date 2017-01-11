@@ -6,20 +6,20 @@ import(
 	"github.com/stelligent/mu/common"
 )
 
-func newPipelinesCommand(config *common.Config) *cli.Command {
+func newPipelinesCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "pipeline",
 		Usage: "options for managing pipelines",
 		Subcommands: []cli.Command{
-			*newPipelinesListCommand(config),
-			*newPipelinesShowCommand(config),
+			*newPipelinesListCommand(ctx),
+			*newPipelinesShowCommand(ctx),
 		},
 	}
 
 	return cmd
 }
 
-func newPipelinesListCommand(config *common.Config) *cli.Command {
+func newPipelinesListCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "list",
 		Aliases: []string{"ls"},
@@ -33,7 +33,7 @@ func newPipelinesListCommand(config *common.Config) *cli.Command {
 	return cmd
 }
 
-func newPipelinesShowCommand(config *common.Config) *cli.Command {
+func newPipelinesShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command {
 		Name: "show",
 		Usage: "show pipeline details",

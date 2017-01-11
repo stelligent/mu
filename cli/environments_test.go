@@ -4,15 +4,14 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/resources"
 )
 
 func TestNewEnvironmentsCommand(t *testing.T) {
 	assert := assert.New(t)
 
-	config := common.NewConfig()
+	ctx := common.NewContext()
 
-	command := newEnvironmentsCommand(config)
+	command := newEnvironmentsCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("environment", command.Name, "Name should match")
@@ -24,9 +23,8 @@ func TestNewEnvironmentsCommand(t *testing.T) {
 
 func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
-	envMgr := resources.NewEnvironmentManager(config)
-	command := newEnvironmentsUpsertCommand(envMgr)
+	ctx := common.NewContext()
+	command := newEnvironmentsUpsertCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("upsert", command.Name, "Name should match")
@@ -38,9 +36,8 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 
 func TestNewEnvironmentsListCommand(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
-	envMgr := resources.NewEnvironmentManager(config)
-	command := newEnvironmentsListCommand(envMgr)
+	ctx := common.NewContext()
+	command := newEnvironmentsListCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("list", command.Name, "Name should match")
@@ -51,9 +48,8 @@ func TestNewEnvironmentsListCommand(t *testing.T) {
 }
 func TestNewEnvironmentsShowCommand(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
-	envMgr := resources.NewEnvironmentManager(config)
-	command := newEnvironmentsShowCommand(envMgr)
+	ctx := common.NewContext()
+	command := newEnvironmentsShowCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("show", command.Name, "Name should match")
@@ -62,9 +58,8 @@ func TestNewEnvironmentsShowCommand(t *testing.T) {
 }
 func TestNewEnvironmentsTerminateCommand(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
-	envMgr := resources.NewEnvironmentManager(config)
-	command := newEnvironmentsTerminateCommand(envMgr)
+	ctx := common.NewContext()
+	command := newEnvironmentsTerminateCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("terminate", command.Name, "Name should match")

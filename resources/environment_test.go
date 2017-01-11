@@ -9,8 +9,8 @@ import (
 
 func TestEnvironment_UpsertEnvironmentUnknown(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
-	envMgr := NewEnvironmentManager(config)
+	ctx := common.NewContext()
+	envMgr := NewEnvironmentManager(ctx)
 
 	err := envMgr.UpsertEnvironment("test-stack-that-is-fake")
 
@@ -19,7 +19,8 @@ func TestEnvironment_UpsertEnvironmentUnknown(t *testing.T) {
 
 func TestGetEnvironment(t *testing.T) {
 	assert := assert.New(t)
-	config := common.NewConfig()
+	envMgr := new(environmentManagerImpl)
+	envMgr.context = common.NewContext()
 
 	env1 := common.Environment{
 		Name: "foo",
@@ -27,10 +28,7 @@ func TestGetEnvironment(t *testing.T) {
 	env2 := common.Environment{
 		Name: "bar",
 	}
-	config.Environments = []common.Environment{env1, env2}
-	envMgr := &environmentManagerContext{
-		config: config,
-	}
+	envMgr.context.Config.Environments = []common.Environment{env1, env2}
 
 	fooEnv, fooErr := envMgr.getEnvironment("foo")
 	assert.Equal("foo", fooEnv.Name)

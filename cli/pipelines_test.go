@@ -9,9 +9,9 @@ import (
 func TestNewPipelinesCommand(t *testing.T) {
 	assert := assert.New(t)
 
-	config := common.NewConfig()
+	ctx := common.NewContext()
 
-	command := newPipelinesCommand(config)
+	command := newPipelinesCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("pipeline", command.Name, "Name should match")
@@ -21,9 +21,9 @@ func TestNewPipelinesCommand(t *testing.T) {
 func TestNewPipelinesListCommand(t *testing.T) {
 	assert := assert.New(t)
 
-	config := common.NewConfig()
+	ctx := common.NewContext()
 
-	command := newPipelinesListCommand(config)
+	command := newPipelinesListCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("list", command.Name, "Name should match")
@@ -35,9 +35,9 @@ func TestNewPipelinesListCommand(t *testing.T) {
 func TestNewPipelinesShowCommand(t *testing.T) {
 	assert := assert.New(t)
 
-	config := common.NewConfig()
+	ctx := common.NewContext()
 
-	command := newPipelinesShowCommand(config)
+	command := newPipelinesShowCommand(ctx)
 
 	assert.NotNil(command)
 	assert.Equal("show", command.Name, "Name should match")
