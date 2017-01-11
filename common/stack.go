@@ -5,9 +5,10 @@ import (
 	"os"
 	"text/template"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"io/ioutil"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 // Stack contains the data about a CloudFormation stack
@@ -23,7 +24,7 @@ func NewStack(name string) *Stack {
 		TemplatePath: fmt.Sprintf("%s/%s.yml",os.TempDir(), name),
 	}
 }
-func newCloudFormation(region string) (*cloudformation.CloudFormation, error) {
+func newCloudFormation(region string) (cloudformationiface.CloudFormationAPI, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func (stack *Stack) WriteTemplate(assetName string, data interface{}) (error) {
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (stack *Stack) UpsertStack(cfn *cloudformation.CloudFormation) (error) {
+func (stack *Stack) UpsertStack(cfn cloudformationiface.CloudFormationAPI) (error) {
 	stackStatus := stack.AwaitFinalStatus(cfn)
 	if stackStatus == "" {
 		fmt.Printf("creating stack: %s\n", stack.Name)
@@ -71,12 +72,16 @@ func (stack *Stack) UpsertStack(cfn *cloudformation.CloudFormation) (error) {
 			},
 			TemplateBody: aws.String(stack.readTemplatePath()),
 		}
-		resp, err := cfn.CreateStack(params)
+		_, err := cfn.CreateStack(params)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(resp)
+		waitParams := &cloudformation.DescribeStacksInput{
+			StackName: aws.String(stack.Name),
+		}
+		cfn.WaitUntilStackExists(waitParams)
+
 	} else {
 		fmt.Printf("updating stack: %s\n", stack.Name)
 		params := &cloudformation.UpdateStackInput{
@@ -87,12 +92,11 @@ func (stack *Stack) UpsertStack(cfn *cloudformation.CloudFormation) (error) {
 			TemplateBody: aws.String(stack.readTemplatePath()),
 		}
 
-		resp, err := cfn.UpdateStack(params)
+		_, err := cfn.UpdateStack(params)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(resp)
 	}
 	stack.AwaitFinalStatus(cfn)
 	return nil
@@ -107,7 +111,7 @@ func (stack *Stack) readTemplatePath() (string) {
 }
 
 // AwaitFinalStatus waits for the stack to arrive in a final status
-func (stack *Stack) AwaitFinalStatus(cfn *cloudformation.CloudFormation) (string) {
+func (stack *Stack) AwaitFinalStatus(cfn cloudformationiface.CloudFormationAPI) (string) {
 	params := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stack.Name),
 	}
@@ -115,37 +119,34 @@ func (stack *Stack) AwaitFinalStatus(cfn *cloudformation.CloudFormation) (string
 
 	if err == nil && resp != nil && len(resp.Stacks) == 1 {
 		switch *resp.Stacks[0].StackStatus {
-			case cloudformation.StackStatusCreateFailed:
-			case cloudformation.StackStatusCreateComplete:
-			case cloudformation.StackStatusRollbackFailed:
-			case cloudformation.StackStatusRollbackComplete:
-			case cloudformation.StackStatusDeleteFailed:
-			case cloudformation.StackStatusDeleteComplete:
-			case cloudformation.StackStatusUpdateComplete:
-			case cloudformation.StackStatusUpdateRollbackFailed:
-			case cloudformation.StackStatusUpdateRollbackComplete:
-				break;
+		case cloudformation.StackStatusReviewInProgress,
+		cloudformation.StackStatusCreateInProgress,
+		cloudformation.StackStatusRollbackInProgress:
+			// wait for create
+			cfn.WaitUntilStackCreateComplete(params)
+			resp, err = cfn.DescribeStacks(params)
+		case cloudformation.StackStatusDeleteInProgress:
+			// wait for delete
+			cfn.WaitUntilStackDeleteComplete(params)
+			resp, err = cfn.DescribeStacks(params)
+		case cloudformation.StackStatusUpdateInProgress,
+		cloudformation.StackStatusUpdateRollbackInProgress,
+		cloudformation.StackStatusUpdateCompleteCleanupInProgress,
+		cloudformation.StackStatusUpdateRollbackCompleteCleanupInProgress:
+			// wait for update
+			cfn.WaitUntilStackUpdateComplete(params)
+			resp, err = cfn.DescribeStacks(params)
+		case cloudformation.StackStatusCreateFailed,
+		cloudformation.StackStatusCreateComplete,
+		cloudformation.StackStatusRollbackFailed,
+		cloudformation.StackStatusRollbackComplete,
+		cloudformation.StackStatusDeleteFailed,
+		cloudformation.StackStatusDeleteComplete,
+		cloudformation.StackStatusUpdateComplete,
+		cloudformation.StackStatusUpdateRollbackFailed,
+		cloudformation.StackStatusUpdateRollbackComplete:
+			// no op
 
-			case cloudformation.StackStatusReviewInProgress:
-			case cloudformation.StackStatusCreateInProgress:
-			case cloudformation.StackStatusRollbackInProgress:
-				// wait for create
-				cfn.WaitUntilStackCreateComplete(params)
-				resp, err = cfn.DescribeStacks(params)
-				break;
-			case cloudformation.StackStatusDeleteInProgress:
-				// wait for delete
-				cfn.WaitUntilStackDeleteComplete(params)
-				resp, err = cfn.DescribeStacks(params)
-				break;
-			case cloudformation.StackStatusUpdateInProgress:
-			case cloudformation.StackStatusUpdateRollbackInProgress:
-			case cloudformation.StackStatusUpdateCompleteCleanupInProgress:
-			case cloudformation.StackStatusUpdateRollbackCompleteCleanupInProgress:
-				// wait for update
-				cfn.WaitUntilStackUpdateComplete(params)
-				resp, err = cfn.DescribeStacks(params)
-				break;
 		}
 		return *resp.Stacks[0].StackStatus
 	}

@@ -1,11 +1,13 @@
 package common
 
-import "github.com/aws/aws-sdk-go/service/cloudformation"
+import (
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+)
 
 // Context defines the context object passed around
 type Context struct {
 	Config Config
-	CloudFormation *cloudformation.CloudFormation
+	CloudFormation cloudformationiface.CloudFormationAPI
 }
 
 // Config defines the structure of the yml file for the mu config
