@@ -34,7 +34,6 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
 	command := newEnvironmentsUpsertCommand(ctx)
-	ctx.CloudFormation = new(mockedCloudFormation)
 
 	assert.NotNil(command)
 	assert.Equal("upsert", command.Name, "Name should match")

@@ -1,17 +1,17 @@
 package common
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
-func TestNewConfig(t *testing.T) {
+func TestNewContext(t *testing.T) {
 	assert := assert.New(t)
 
-	config := newConfig()
+	context := NewContext()
 
-	assert.NotNil(config)
+	assert.NotNil(context)
 }
 
 func TestLoadYamlConfig(t *testing.T) {
@@ -37,10 +37,11 @@ service:
   desiredCount: 2
 `
 
-	config := newConfig()
-	config.loadFromYaml([]byte(yamlConfig))
+	context := NewContext()
+	config := &context.Config
+	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
 
-	fmt.Println(config)
+	assert.Nil(err)
 
 	assert.NotNil(config)
 	assert.Equal(2, len(config.Environments))
@@ -58,14 +59,12 @@ service:
 }
 
 func TestLoadBadYamlConfig(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("The code did not panic")
-		}
-	}()
+	assert := assert.New(t)
 
 	yamlConfig := `   blah blah blah   `
 
-	config := newConfig()
-	config.loadFromYaml([]byte(yamlConfig))
+	context := NewContext()
+	config := &context.Config
+	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
+	assert.NotNil(err)
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/resources"
+	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
 )
 
@@ -26,7 +26,6 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 }
 
 func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
-	environmentManager := resources.NewEnvironmentManager(ctx)
 	cmd := &cli.Command{
 		Name:      "upsert",
 		Aliases:   []string{"up"},
@@ -39,7 +38,8 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 				return errors.New("environment must be provided")
 			}
 
-			return environmentManager.UpsertEnvironment(environmentName)
+			workflow := workflows.NewEnvironmentUpserter(ctx, environmentName)
+			return workflow()
 		},
 	}
 

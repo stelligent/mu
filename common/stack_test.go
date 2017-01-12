@@ -6,27 +6,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
 type mockedCloudFormation struct {
 	cloudformationiface.CloudFormationAPI
 	responses                    []*cloudformation.DescribeStacksOutput
-	responseIndex                int
-	createIndex                  int
-	updateIndex                  int
+	responseCount                int
+	createCount                  int
+	updateCount                  int
 	waitUntilStackExists         int
 	waitUntilStackCreateComplete int
 	waitUntilStackUpdateComplete int
 }
 
 func (c *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	if c.responseIndex >= len(c.responses) {
+	if c.responseCount >= len(c.responses) {
 		return nil, errors.New("stack not found")
 	}
 
-	resp := c.responses[c.responseIndex]
-	c.responseIndex = c.responseIndex + 1
+	resp := c.responses[c.responseCount]
+	c.responseCount = c.responseCount + 1
 	if resp == nil {
 		return nil, errors.New("stack not found")
 	}
@@ -46,37 +47,16 @@ func (c *mockedCloudFormation) WaitUntilStackExists(*cloudformation.DescribeStac
 	return nil
 }
 func (c *mockedCloudFormation) CreateStack(*cloudformation.CreateStackInput) (*cloudformation.CreateStackOutput, error) {
-	c.createIndex = c.createIndex + 1
+	c.createCount = c.createCount + 1
 	return nil, nil
 }
 func (c *mockedCloudFormation) UpdateStack(*cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
-	c.updateIndex = c.updateIndex + 1
+	c.updateCount = c.updateCount + 1
 	return nil, nil
-}
-
-func TestNewStack(t *testing.T) {
-	assert := assert.New(t)
-	stack := NewStack("foo")
-
-	assert.NotNil(stack)
-	assert.Equal("foo", stack.Name)
-}
-
-func TestStack_WriteTemplate(t *testing.T) {
-	assert := assert.New(t)
-
-	stack := NewStack("foo")
-	env := &Environment{}
-	err := stack.WriteTemplate("environment-template.yml", env)
-	assert.Nil(err)
-
-	template := stack.readTemplatePath()
-	assert.NotNil(template)
 }
 
 func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 	assert := assert.New(t)
-	stack := NewStack("foo")
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
@@ -89,15 +69,18 @@ func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 		},
 	}
 
-	finalStatus := stack.AwaitFinalStatus(cfn)
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+
+	finalStatus := stackManager.AwaitFinalStatus("foo")
 
 	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
-	assert.Equal(1, cfn.responseIndex)
+	assert.Equal(1, cfn.responseCount)
 }
 
 func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 	assert := assert.New(t)
-	stack := NewStack("foo")
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
@@ -117,48 +100,38 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 		},
 	}
 
-	finalStatus := stack.AwaitFinalStatus(cfn)
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+
+	finalStatus := stackManager.AwaitFinalStatus("foo")
 
 	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
-	assert.Equal(2, cfn.responseIndex)
+	assert.Equal(2, cfn.responseCount)
 	assert.Equal(1, cfn.waitUntilStackCreateComplete)
 }
 
 func TestStack_UpsertStack_Create(t *testing.T) {
 	assert := assert.New(t)
-	stack := NewStack("foo")
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
 		nil,
-		&cloudformation.DescribeStacksOutput{
-			Stacks: []*cloudformation.Stack{
-				&cloudformation.Stack{
-					StackStatus: aws.String(cloudformation.StackStatusCreateInProgress),
-				},
-			},
-		},
-		&cloudformation.DescribeStacksOutput{
-			Stacks: []*cloudformation.Stack{
-				&cloudformation.Stack{
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-				},
-			},
-		},
 	}
 
-	err := stack.UpsertStack(cfn)
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil)
 
 	assert.Nil(err)
 	assert.Equal(1, cfn.waitUntilStackExists)
-	assert.Equal(1, cfn.createIndex)
-	assert.Equal(1, cfn.waitUntilStackCreateComplete)
-	assert.Equal(3, cfn.responseIndex)
+	assert.Equal(1, cfn.createCount)
+	assert.Equal(1, cfn.responseCount)
 }
 
 func TestStack_UpsertStack_Update(t *testing.T) {
 	assert := assert.New(t)
-	stack := NewStack("foo")
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
@@ -169,41 +142,32 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 				},
 			},
 		},
-		&cloudformation.DescribeStacksOutput{
-			Stacks: []*cloudformation.Stack{
-				&cloudformation.Stack{
-					StackStatus: aws.String(cloudformation.StackStatusUpdateInProgress),
-				},
-			},
-		},
-		&cloudformation.DescribeStacksOutput{
-			Stacks: []*cloudformation.Stack{
-				&cloudformation.Stack{
-					StackStatus: aws.String(cloudformation.StackStatusUpdateComplete),
-				},
-			},
-		},
 	}
 
-	err := stack.UpsertStack(cfn)
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil)
 
 	assert.Nil(err)
 	assert.Equal(0, cfn.waitUntilStackExists)
-	assert.Equal(0, cfn.createIndex)
-	assert.Equal(1, cfn.updateIndex)
-	assert.Equal(1, cfn.waitUntilStackUpdateComplete)
-	assert.Equal(3, cfn.responseIndex)
+	assert.Equal(0, cfn.createCount)
+	assert.Equal(1, cfn.updateCount)
+	assert.Equal(0, cfn.waitUntilStackUpdateComplete)
+	assert.Equal(1, cfn.responseCount)
 }
 
-func TestStack_WithParameter(t *testing.T) {
+func TestBuildParameters(t *testing.T) {
 	assert := assert.New(t)
-	stack := NewStack("foo")
 
-	parameters := stack.buildParameters()
+	paramMap := make(map[string]string)
+
+	parameters := buildStackParameters(paramMap)
 	assert.Equal(0, len(parameters))
 
-	stack.WithParameter("p1", "value 1").WithParameter("p2", "value 2")
-	parameters = stack.buildParameters()
+	paramMap["p1"] = "value 1"
+	paramMap["p2"] = "value 2"
+	parameters = buildStackParameters(paramMap)
 	assert.Equal(2, len(parameters))
 	assert.Contains(*parameters[0].ParameterKey, "p")
 	assert.Contains(*parameters[0].ParameterValue, "value")
