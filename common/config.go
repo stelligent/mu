@@ -9,7 +9,7 @@ func newConfig() *Config {
 	return new(Config)
 }
 
-func (config *Config) loadFromYaml(yamlConfig []byte)  *Config {
+func (config *Config) loadFromYaml(yamlConfig []byte) *Config {
 	err := yaml.Unmarshal(yamlConfig, config)
 	if err != nil {
 		log.Panicf("Invalid config file: %v", err)

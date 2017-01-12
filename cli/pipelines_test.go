@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
 	"github.com/stelligent/mu/common"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestNewPipelinesCommand(t *testing.T) {
@@ -45,4 +45,3 @@ func TestNewPipelinesShowCommand(t *testing.T) {
 	assert.Equal("service, s", command.Flags[0].GetName(), "Flag should match")
 	assert.NotNil(command.Action)
 }
-

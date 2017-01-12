@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestNewApp(t *testing.T) {
@@ -21,4 +21,3 @@ func TestNewApp(t *testing.T) {
 	assert.Equal("service", app.Commands[1].Name, "Command[1].name should match")
 	assert.Equal("pipeline", app.Commands[2].Name, "Command[2].name should match")
 }
-

@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"github.com/urfave/cli"
 	"github.com/stelligent/mu/common"
+	"github.com/urfave/cli"
 )
 
 // NewApp creates a new CLI app
@@ -28,7 +28,7 @@ func NewApp(version string) *cli.App {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name: "config, c",
+			Name:  "config, c",
 			Usage: "path to config file",
 			Value: "mu.yml",
 		},
@@ -36,4 +36,3 @@ func NewApp(version string) *cli.App {
 
 	return app
 }
-

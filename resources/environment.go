@@ -6,22 +6,20 @@ import (
 	"strings"
 )
 
-
 // EnvironmentManager defines the env that will be created
 type EnvironmentManager interface {
-	UpsertEnvironment(environmentName string) (error)
+	UpsertEnvironment(environmentName string) error
 }
 
-
 // NewEnvironmentManager will construct a manager for environments
-func NewEnvironmentManager(ctx *common.Context) (EnvironmentManager) {
+func NewEnvironmentManager(ctx *common.Context) EnvironmentManager {
 	environmentManager := new(environmentManagerImpl)
 	environmentManager.context = ctx
 	return environmentManager
 }
 
 // UpsertEnvironment will create a new stack instance and write the template for the stack
-func (environmentManager *environmentManagerImpl) UpsertEnvironment(environmentName string) (error) {
+func (environmentManager *environmentManagerImpl) UpsertEnvironment(environmentName string) error {
 	env, err := environmentManager.getEnvironment(environmentName)
 	if err != nil {
 		return err
@@ -50,12 +48,12 @@ type environmentManagerImpl struct {
 func (environmentManager *environmentManagerImpl) getEnvironment(environmentName string) (*common.Environment, error) {
 	ctx := environmentManager.context
 	for _, e := range ctx.Config.Environments {
-		if(strings.EqualFold(environmentName, e.Name)) {
+		if strings.EqualFold(environmentName, e.Name) {
 			return &e, nil
 		}
 	}
 
-	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml",environmentName)
+	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml", environmentName)
 }
 
 func buildVpcStackName(env *common.Environment) string {
@@ -65,8 +63,7 @@ func buildEnvironmentStackName(env *common.Environment) string {
 	return fmt.Sprintf("mu-env-%s", env.Name)
 }
 
-
-func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environment) (error) {
+func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environment) error {
 	// generate the CFN template
 	stack := common.NewStack(buildVpcStackName(env))
 
@@ -76,7 +73,7 @@ func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environm
 	}
 
 	// create/update the stack
-	fmt.Printf("upserting VPC environment:%s stack:%s path:%s\n",env.Name, stack.Name, stack.TemplatePath)
+	fmt.Printf("upserting VPC environment:%s stack:%s path:%s\n", env.Name, stack.Name, stack.TemplatePath)
 	err = stack.UpsertStack(environmentManager.context.CloudFormation)
 	if err != nil {
 		return err
@@ -85,7 +82,7 @@ func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environm
 	return nil
 }
 
-func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.Environment) (error) {
+func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.Environment) error {
 	// generate the CFN template
 	stack := common.NewStack(buildEnvironmentStackName(env))
 
@@ -100,7 +97,7 @@ func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.E
 		// target VPC referenced from config
 		stack.WithParameter("VpcId", env.VpcTarget.VpcID)
 		for index, subnet := range env.VpcTarget.PublicSubnetIds {
-			stack.WithParameter(fmt.Sprintf("PublicSubnetAZ%dId",index+1), subnet)
+			stack.WithParameter(fmt.Sprintf("PublicSubnetAZ%dId", index+1), subnet)
 		}
 	}
 
@@ -110,7 +107,7 @@ func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.E
 	}
 
 	// create/update the stack
-	fmt.Printf("upserting environment:%s stack:%s path:%s\n",env.Name, stack.Name, stack.TemplatePath)
+	fmt.Printf("upserting environment:%s stack:%s path:%s\n", env.Name, stack.Name, stack.TemplatePath)
 	err = stack.UpsertStack(environmentManager.context.CloudFormation)
 	if err != nil {
 		return err
@@ -118,5 +115,3 @@ func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.E
 
 	return nil
 }
-
-

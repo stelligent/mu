@@ -1,27 +1,27 @@
 package common
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/aws"
 	"errors"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 type mockedCloudFormation struct {
 	cloudformationiface.CloudFormationAPI
-	responses []*cloudformation.DescribeStacksOutput
-	responseIndex int
-	createIndex int
-	updateIndex int
-	waitUntilStackExists int
+	responses                    []*cloudformation.DescribeStacksOutput
+	responseIndex                int
+	createIndex                  int
+	updateIndex                  int
+	waitUntilStackExists         int
 	waitUntilStackCreateComplete int
 	waitUntilStackUpdateComplete int
 }
 
 func (c *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
-	if(c.responseIndex >= len(c.responses)) {
+	if c.responseIndex >= len(c.responses) {
 		return nil, errors.New("stack not found")
 	}
 
@@ -59,7 +59,7 @@ func TestNewStack(t *testing.T) {
 	stack := NewStack("foo")
 
 	assert.NotNil(stack)
-	assert.Equal("foo",stack.Name)
+	assert.Equal("foo", stack.Name)
 }
 
 func TestStack_WriteTemplate(t *testing.T) {
@@ -77,7 +77,6 @@ func TestStack_WriteTemplate(t *testing.T) {
 func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 	assert := assert.New(t)
 	stack := NewStack("foo")
-
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
@@ -99,7 +98,6 @@ func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 	assert := assert.New(t)
 	stack := NewStack("foo")
-
 
 	cfn := new(mockedCloudFormation)
 	cfn.responses = []*cloudformation.DescribeStacksOutput{
@@ -197,7 +195,6 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	assert.Equal(3, cfn.responseIndex)
 }
 
-
 func TestStack_WithParameter(t *testing.T) {
 	assert := assert.New(t)
 	stack := NewStack("foo")
@@ -205,7 +202,7 @@ func TestStack_WithParameter(t *testing.T) {
 	parameters := stack.buildParameters()
 	assert.Equal(0, len(parameters))
 
-	stack.WithParameter("p1","value 1").WithParameter("p2", "value 2")
+	stack.WithParameter("p1", "value 1").WithParameter("p2", "value 2")
 	parameters = stack.buildParameters()
 	assert.Equal(2, len(parameters))
 	assert.Contains(*parameters[0].ParameterKey, "p")

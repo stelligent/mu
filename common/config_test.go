@@ -1,9 +1,9 @@
 package common
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -18,7 +18,7 @@ func TestLoadYamlConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	yamlConfig :=
-`
+		`
 ---
 environments:
   - name: dev
@@ -37,24 +37,23 @@ service:
   desiredCount: 2
 `
 
-
 	config := newConfig()
 	config.loadFromYaml([]byte(yamlConfig))
 
 	fmt.Println(config)
 
 	assert.NotNil(config)
-	assert.Equal(2,len(config.Environments))
-	assert.Equal("dev",config.Environments[0].Name)
-	assert.Equal("api-dev.example.com",config.Environments[0].Loadbalancer.Hostname)
-	assert.Equal(1,config.Environments[0].Cluster.DesiredCapacity)
-	assert.Equal(1,config.Environments[0].Cluster.MaxSize)
-	assert.Equal("production",config.Environments[1].Name)
-	assert.Equal("api.example.com",config.Environments[1].Loadbalancer.Hostname)
-	assert.Equal(2,config.Environments[1].Cluster.DesiredCapacity)
-	assert.Equal(5,config.Environments[1].Cluster.MaxSize)
+	assert.Equal(2, len(config.Environments))
+	assert.Equal("dev", config.Environments[0].Name)
+	assert.Equal("api-dev.example.com", config.Environments[0].Loadbalancer.Hostname)
+	assert.Equal(1, config.Environments[0].Cluster.DesiredCapacity)
+	assert.Equal(1, config.Environments[0].Cluster.MaxSize)
+	assert.Equal("production", config.Environments[1].Name)
+	assert.Equal("api.example.com", config.Environments[1].Loadbalancer.Hostname)
+	assert.Equal(2, config.Environments[1].Cluster.DesiredCapacity)
+	assert.Equal(5, config.Environments[1].Cluster.MaxSize)
 
-	assert.Equal(2,config.Service.DesiredCount)
+	assert.Equal(2, config.Service.DesiredCount)
 
 }
 
@@ -70,4 +69,3 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	config := newConfig()
 	config.loadFromYaml([]byte(yamlConfig))
 }
-
