@@ -27,9 +27,12 @@ func (environmentManager *environmentManagerImpl) UpsertEnvironment(environmentN
 		return err
 	}
 
-	err = environmentManager.upsertVpc(env)
-	if err != nil {
-		return err
+	if env.VpcTarget.VpcID == "" {
+		// no target VPC, we manage it
+		err = environmentManager.upsertVpc(env)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = environmentManager.upsertEcsCluster(env)
@@ -55,11 +58,17 @@ func (environmentManager *environmentManagerImpl) getEnvironment(environmentName
 	return nil, fmt.Errorf("Unable to find environment named '%s' in mu.yml",environmentName)
 }
 
+func buildVpcStackName(env *common.Environment) string {
+	return fmt.Sprintf("mu-vpc-%s", env.Name)
+}
+func buildEnvironmentStackName(env *common.Environment) string {
+	return fmt.Sprintf("mu-env-%s", env.Name)
+}
+
+
 func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environment) (error) {
-	cfn := environmentManager.context.CloudFormation
-	stackName := fmt.Sprintf("mu-vpc-%s", env.Name)
 	// generate the CFN template
-	stack := common.NewStack(stackName)
+	stack := common.NewStack(buildVpcStackName(env))
 
 	err := stack.WriteTemplate("vpc-template.yml", env)
 	if err != nil {
@@ -68,7 +77,7 @@ func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environm
 
 	// create/update the stack
 	fmt.Printf("upserting VPC environment:%s stack:%s path:%s\n",env.Name, stack.Name, stack.TemplatePath)
-	err = stack.UpsertStack(cfn)
+	err = stack.UpsertStack(environmentManager.context.CloudFormation)
 	if err != nil {
 		return err
 	}
@@ -77,10 +86,23 @@ func (environmentManager *environmentManagerImpl) upsertVpc(env *common.Environm
 }
 
 func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.Environment) (error) {
-	cfn := environmentManager.context.CloudFormation
-	stackName := fmt.Sprintf("mu-env-%s", env.Name)
 	// generate the CFN template
-	stack := common.NewStack(stackName)
+	stack := common.NewStack(buildEnvironmentStackName(env))
+
+	if env.VpcTarget.VpcID == "" {
+		// apply default parameters since we manage the VPC
+		vpcStackName := buildVpcStackName(env)
+		stack.WithParameter("VpcId", fmt.Sprintf("%s-VpcId", vpcStackName))
+		stack.WithParameter("PublicSubnetAZ1Id", fmt.Sprintf("%s-PublicSubnetAZ1Id", vpcStackName))
+		stack.WithParameter("PublicSubnetAZ2Id", fmt.Sprintf("%s-PublicSubnetAZ2Id", vpcStackName))
+		stack.WithParameter("PublicSubnetAZ3Id", fmt.Sprintf("%s-PublicSubnetAZ3Id", vpcStackName))
+	} else {
+		// target VPC referenced from config
+		stack.WithParameter("VpcId", env.VpcTarget.VpcID)
+		for index, subnet := range env.VpcTarget.PublicSubnetIds {
+			stack.WithParameter(fmt.Sprintf("PublicSubnetAZ%dId",index+1), subnet)
+		}
+	}
 
 	err := stack.WriteTemplate("environment-template.yml", env)
 	if err != nil {
@@ -89,7 +111,7 @@ func (environmentManager *environmentManagerImpl) upsertEcsCluster(env *common.E
 
 	// create/update the stack
 	fmt.Printf("upserting environment:%s stack:%s path:%s\n",env.Name, stack.Name, stack.TemplatePath)
-	err = stack.UpsertStack(cfn)
+	err = stack.UpsertStack(environmentManager.context.CloudFormation)
 	if err != nil {
 		return err
 	}

@@ -196,3 +196,20 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	assert.Equal(1, cfn.waitUntilStackUpdateComplete)
 	assert.Equal(3, cfn.responseIndex)
 }
+
+
+func TestStack_WithParameter(t *testing.T) {
+	assert := assert.New(t)
+	stack := NewStack("foo")
+
+	parameters := stack.buildParameters()
+	assert.Equal(0, len(parameters))
+
+	stack.WithParameter("p1","value 1").WithParameter("p2", "value 2")
+	parameters = stack.buildParameters()
+	assert.Equal(2, len(parameters))
+	assert.Contains(*parameters[0].ParameterKey, "p")
+	assert.Contains(*parameters[0].ParameterValue, "value")
+	assert.Contains(*parameters[1].ParameterKey, "p")
+	assert.Contains(*parameters[1].ParameterValue, "value")
+}

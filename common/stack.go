@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 // Stack contains the data about a CloudFormation stack
 type Stack struct {
 	Name string
+	Parameters map[string]string
 	TemplatePath string
 }
 
@@ -21,6 +23,7 @@ type Stack struct {
 func NewStack(name string) *Stack {
 	return &Stack{
 		Name: name,
+		Parameters: make(map[string]string),
 		TemplatePath: fmt.Sprintf("%s/%s.yml",os.TempDir(), name),
 	}
 }
@@ -30,6 +33,12 @@ func newCloudFormation(region string) (cloudformationiface.CloudFormationAPI, er
 		return nil, err
 	}
 	return cloudformation.New(sess, &aws.Config{Region: aws.String(region)}), nil
+}
+
+// WithParameter apply a parameter to the stack
+func (stack *Stack) WithParameter(key string, value string) (*Stack) {
+	stack.Parameters[key] = value
+	return stack
 }
 
 // WriteTemplate will create a temp file with the template for a CFN stack
@@ -60,6 +69,18 @@ func (stack *Stack) WriteTemplate(assetName string, data interface{}) (error) {
 	return nil
 }
 
+func (stack *Stack) buildParameters() ([]*cloudformation.Parameter) {
+	parameters := make([]*cloudformation.Parameter, 0, len(stack.Parameters))
+	for key, value := range stack.Parameters {
+		parameters = append(parameters,
+			&cloudformation.Parameter {
+				ParameterKey: aws.String(key),
+				ParameterValue: aws.String(value),
+			})
+	}
+	return parameters
+}
+
 // UpsertStack will create/update the cloudformation stack
 func (stack *Stack) UpsertStack(cfn cloudformationiface.CloudFormationAPI) (error) {
 	stackStatus := stack.AwaitFinalStatus(cfn)
@@ -70,6 +91,7 @@ func (stack *Stack) UpsertStack(cfn cloudformationiface.CloudFormationAPI) (erro
 			Capabilities: []*string{
 				aws.String(cloudformation.CapabilityCapabilityIam),
 			},
+			Parameters: stack.buildParameters(),
 			TemplateBody: aws.String(stack.readTemplatePath()),
 		}
 		_, err := cfn.CreateStack(params)
@@ -89,11 +111,19 @@ func (stack *Stack) UpsertStack(cfn cloudformationiface.CloudFormationAPI) (erro
 			Capabilities: []*string{
 				aws.String(cloudformation.CapabilityCapabilityIam),
 			},
+			Parameters: stack.buildParameters(),
 			TemplateBody: aws.String(stack.readTemplatePath()),
 		}
 
 		_, err := cfn.UpdateStack(params)
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
+					fmt.Printf("No changes for stack: %s\n", stack.Name)
+					return nil
+				}
+			}
+			fmt.Println(err)
 			return err
 		}
 

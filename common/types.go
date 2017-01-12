@@ -21,12 +21,16 @@ type Config struct {
 type Environment struct {
 	Name string
 	Loadbalancer struct {
-		     Hostname string
+		Hostname string
 	}
 	Cluster struct {
-		     DesiredCapacity int `yaml:"desiredCapacity"`
-		     MaxSize int `yaml:"maxSize"`
+		DesiredCapacity int `yaml:"desiredCapacity"`
+		MaxSize int `yaml:"maxSize"`
 	}
+	VpcTarget struct {
+		VpcID           string `yaml:"vpcId"`
+		PublicSubnetIds []string `yaml:"publicSubnetIds"`
+	} `yaml:"vpcTarget,omitempty"`
 }
 
 // Service defines the structure of the yml file for a service
