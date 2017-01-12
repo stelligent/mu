@@ -10,23 +10,27 @@ import (
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
-	var environment *common.Environment
-	var vpcImportParams = make(map[string]string)
+	workflow := new(environmentWorkflow)
+	vpcImportParams := make(map[string]string)
 
 	return newWorkflow(
-		environmentFinder(&environment, &ctx.Config, environmentName),
-		environmentVpcUpserter(environment, vpcImportParams, ctx.StackManager, ctx.StackManager),
-		environmentEcsUpserter(environment, vpcImportParams, ctx.StackManager, ctx.StackManager),
+		workflow.environmentFinder(&ctx.Config, environmentName),
+		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
+		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
 	)
 }
 
+type environmentWorkflow struct {
+	environment *common.Environment
+}
+
 // Find an environment in config, by name and set the reference
-func environmentFinder(environment **common.Environment, config *common.Config, environmentName string) Executor {
+func (workflow *environmentWorkflow) environmentFinder(config *common.Config, environmentName string) Executor {
 
 	return func() error {
 		for _, e := range config.Environments {
 			if strings.EqualFold(e.Name, environmentName) {
-				*environment = &e
+				workflow.environment = &e
 				return nil
 			}
 		}
@@ -34,14 +38,15 @@ func environmentFinder(environment **common.Environment, config *common.Config, 
 	}
 }
 
-func environmentVpcUpserter(environment *common.Environment, vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+		environment := workflow.environment
 		if environment.VpcTarget.VpcID == "" {
 			vpcStackName := fmt.Sprintf("mu-vpc-%s", environment.Name)
 
 			// no target VPC, we need to create/update the VPC stack
 			fmt.Printf("upserting VPC environment:%s stack:%s\n", environment.Name, vpcStackName)
-			template, err := templates.NewTemplate("cluster.yml", environment)
+			template, err := templates.NewTemplate("vpc.yml", environment)
 			if err != nil {
 				return err
 			}
@@ -69,8 +74,9 @@ func environmentVpcUpserter(environment *common.Environment, vpcImportParams map
 	}
 }
 
-func environmentEcsUpserter(environment *common.Environment, vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+		environment := workflow.environment
 		envStackName := fmt.Sprintf("mu-env-%s", environment.Name)
 
 		fmt.Printf("upserting ECS environment:%s stack:%s\n", environment.Name, envStackName)

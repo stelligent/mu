@@ -107,7 +107,6 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 					return nil
 				}
 			}
-			fmt.Println(err)
 			return err
 		}
 

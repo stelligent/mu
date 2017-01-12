@@ -30,7 +30,7 @@ lint: setup
 
 test: lint
 	@echo "=== testing ==="
-	go test ./...
+	go test -cover ./...
 
 build: test $(BUILD_FILES)
 

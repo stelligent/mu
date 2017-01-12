@@ -23,23 +23,23 @@ func TestEnvironmentFinder(t *testing.T) {
 	config := new(common.Config)
 	config.Environments = []common.Environment{env1, env2}
 
-	var environment *common.Environment
+	workflow := new(environmentWorkflow)
 
-	environment = nil
-	fooErr := environmentFinder(&environment, config, "foo")()
-	assert.NotNil(environment)
-	assert.Equal("foo", environment.Name)
+	workflow.environment = nil
+	fooErr := workflow.environmentFinder(config, "foo")()
+	assert.NotNil(workflow.environment)
+	assert.Equal("foo", workflow.environment.Name)
 	assert.Nil(fooErr)
 
-	environment = nil
-	barErr := environmentFinder(&environment, config, "bar")()
-	assert.NotNil(environment)
-	assert.Equal("bar", environment.Name)
+	workflow.environment = nil
+	barErr := workflow.environmentFinder(config, "bar")()
+	assert.NotNil(workflow.environment)
+	assert.Equal("bar", workflow.environment.Name)
 	assert.Nil(barErr)
 
-	environment = nil
-	bazErr := environmentFinder(&environment, config, "baz")()
-	assert.Nil(environment)
+	workflow.environment = nil
+	bazErr := workflow.environmentFinder(config, "baz")()
+	assert.Nil(workflow.environment)
 	assert.NotNil(bazErr)
 }
 
@@ -63,10 +63,33 @@ func (m *mockedStackManager) UpsertStack(stackName string, templateBodyReader io
 	return args.Error(0)
 }
 
+func TestEnvironmentEcsUpserter(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManager)
+	stackManager.On("AwaitFinalStatus", "mu-env-foo").Return(cloudformation.StackStatusCreateComplete)
+	stackManager.On("UpsertStack", "mu-env-foo").Return(nil)
+
+	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
 func TestEnvironmentVpcUpserter(t *testing.T) {
 	assert := assert.New(t)
 
-	environment := &common.Environment{
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
 		Name: "foo",
 	}
 
@@ -76,7 +99,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(cloudformation.StackStatusCreateComplete)
 	stackManager.On("UpsertStack", "mu-vpc-foo").Return(nil)
 
-	err := environmentVpcUpserter(environment, vpcInputParams, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-PublicSubnetAZ1Id", vpcInputParams["PublicSubnetAZ1Id"])
@@ -108,7 +131,10 @@ environments:
 
 	stackManager := new(mockedStackManager)
 
-	err = environmentVpcUpserter(&config.Environments[0], vpcInputParams, stackManager, stackManager)()
+	workflow := new(environmentWorkflow)
+	workflow.environment = &config.Environments[0]
+
+	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("myVpcId", vpcInputParams["VpcId"])
 	assert.Equal("mySubnetId1", vpcInputParams["PublicSubnetAZ1Id"])
