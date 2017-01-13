@@ -66,6 +66,9 @@ Resources:
       EnableDnsSupport: 'true'
       EnableDnsHostnames: 'true'
       InstanceTenancy: !Ref InstanceTenancy
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
   PublicSubnetAZ1:
     Type: AWS::EC2::Subnet
     Condition: HasPublicSubnetAZ1
@@ -77,6 +80,8 @@ Resources:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-1
   PublicSubnetAZ2:
     Type: AWS::EC2::Subnet
     Condition: HasPublicSubnetAZ2
@@ -88,6 +93,8 @@ Resources:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-2
   PublicSubnetAZ3:
     Type: AWS::EC2::Subnet
     Condition: HasPublicSubnetAZ3
@@ -99,12 +106,16 @@ Resources:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-3
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
   VPCInternetGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -117,6 +128,8 @@ Resources:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: VPCInternetGateway
@@ -149,6 +162,8 @@ Resources:
       Tags:
       - Key: Network
         Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public
   InboundEphemeralPortPublicNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
