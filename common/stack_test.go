@@ -122,7 +122,7 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil)
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil)
 
 	assert.Nil(err)
 	assert.Equal(1, cfn.waitUntilStackExists)
@@ -147,7 +147,7 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil)
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil)
 
 	assert.Nil(err)
 	assert.Equal(0, cfn.waitUntilStackExists)
@@ -173,4 +173,22 @@ func TestBuildParameters(t *testing.T) {
 	assert.Contains(*parameters[0].ParameterValue, "value")
 	assert.Contains(*parameters[1].ParameterKey, "p")
 	assert.Contains(*parameters[1].ParameterValue, "value")
+}
+
+func TestTagParameters(t *testing.T) {
+	assert := assert.New(t)
+
+	paramMap := make(map[string]string)
+
+	parameters := buildStackTags(paramMap)
+	assert.Equal(2, len(parameters))
+
+	paramMap["p1"] = "value 1"
+	paramMap["p2"] = "value 2"
+	parameters = buildStackTags(paramMap)
+	assert.Equal(4, len(parameters))
+	assert.Contains(*parameters[0].Key, "mu:")
+	assert.Contains(*parameters[1].Key, "mu:")
+	assert.Contains(*parameters[2].Key, "mu:")
+	assert.Contains(*parameters[3].Key, "mu:")
 }

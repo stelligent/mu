@@ -8,13 +8,13 @@ import (
 )
 
 // NewApp creates a new CLI app
-func NewApp(version string) *cli.App {
+func NewApp() *cli.App {
 	context := common.NewContext()
 
 	app := cli.NewApp()
 	app.Name = "mu"
 	app.Usage = "Microservice Platform on AWS"
-	app.Version = version
+	app.Version = common.GetVersion()
 	app.EnableBashCompletion = true
 
 	app.Commands = []cli.Command{

@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/op/go-logging"
 	"io"
+	"time"
 )
 
 var log = logging.MustGetLogger("stack")
@@ -20,7 +22,7 @@ type StackWaiter interface {
 
 // StackUpserter for applying changes to a stack
 type StackUpserter interface {
-	UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string) error
+	UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error
 }
 
 // StackManager composite of all stack capabilities
@@ -49,20 +51,43 @@ func newStackManager(region string) (StackManager, error) {
 	}, nil
 }
 
-func buildStackParameters(stackParameters map[string]string) []*cloudformation.Parameter {
-	parameters := make([]*cloudformation.Parameter, 0, len(stackParameters))
-	for key, value := range stackParameters {
-		parameters = append(parameters,
+func buildStackParameters(parameters map[string]string) []*cloudformation.Parameter {
+	stackParameters := make([]*cloudformation.Parameter, 0, len(parameters))
+	for key, value := range parameters {
+		stackParameters = append(stackParameters,
 			&cloudformation.Parameter{
 				ParameterKey:   aws.String(key),
 				ParameterValue: aws.String(value),
 			})
 	}
-	return parameters
+	return stackParameters
+}
+
+func buildStackTags(tags map[string]string) []*cloudformation.Tag {
+	stackTags := make([]*cloudformation.Tag, 0, len(tags)+2)
+
+	stackTags = append(stackTags,
+		&cloudformation.Tag{
+			Key:   aws.String("mu:version"),
+			Value: aws.String(GetVersion()),
+		},
+		&cloudformation.Tag{
+			Key:   aws.String("mu:lastupdate"),
+			Value: aws.String(fmt.Sprintf("%v", time.Now().Unix())),
+		})
+
+	for key, value := range tags {
+		stackTags = append(stackTags,
+			&cloudformation.Tag{
+				Key:   aws.String(fmt.Sprintf("mu:%s", key)),
+				Value: aws.String(value),
+			})
+	}
+	return stackTags
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string) error {
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error {
 	stackStatus := cfnMgr.AwaitFinalStatus(stackName)
 
 	// load the template
@@ -70,20 +95,26 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	templateBodyBytes.ReadFrom(templateBodyReader)
 	templateBody := aws.String(templateBodyBytes.String())
 
-	parameters := buildStackParameters(stackParameters)
+	// stack parameters
+	stackParameters := buildStackParameters(parameters)
+
+	// stack tags
+	stackTags := buildStackTags(tags)
 
 	cfnAPI := cfnMgr.cfnAPI
 	if stackStatus == "" {
 
 		log.Debugf("  Creating stack named '%s'", stackName)
-		log.Debugf("  Stack parameters:\n\t%s", parameters)
+		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.CreateStackInput{
 			StackName: aws.String(stackName),
 			Capabilities: []*string{
 				aws.String(cloudformation.CapabilityCapabilityIam),
 			},
-			Parameters:   parameters,
+			Parameters:   stackParameters,
 			TemplateBody: templateBody,
+			Tags:         stackTags,
 		}
 		_, err := cfnAPI.CreateStack(params)
 		log.Debug("  Create stack complete err=%s", err)
@@ -101,14 +132,16 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	} else {
 		log.Debugf("  Updating stack named '%s'", stackName)
 		log.Debugf("  Prior state: %s", stackStatus)
-		log.Debugf("  Stack parameters:\n\t%s", parameters)
+		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.UpdateStackInput{
 			StackName: aws.String(stackName),
 			Capabilities: []*string{
 				aws.String(cloudformation.CapabilityCapabilityIam),
 			},
-			Parameters:   parameters,
+			Parameters:   stackParameters,
 			TemplateBody: templateBody,
+			Tags:         stackTags,
 		}
 
 		_, err := cfnAPI.UpdateStack(params)

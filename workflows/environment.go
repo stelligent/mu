@@ -54,7 +54,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			if err != nil {
 				return err
 			}
-			err = stackUpserter.UpsertStack(vpcStackName, template, nil)
+			err = stackUpserter.UpsertStack(vpcStackName, template, nil, buildEnvironmentTags(environment.Name, "vpc"))
 			if err != nil {
 				return err
 			}
@@ -91,7 +91,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, vpcImportParams)
+		err = stackUpserter.UpsertStack(envStackName, template, vpcImportParams, buildEnvironmentTags(environment.Name, "cluster"))
 		if err != nil {
 			return err
 		}
@@ -99,5 +99,12 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		stackWaiter.AwaitFinalStatus(envStackName)
 
 		return nil
+	}
+}
+
+func buildEnvironmentTags(environmentName string, stackType string) map[string]string {
+	return map[string]string{
+		"type":        stackType,
+		"environment": environmentName,
 	}
 }

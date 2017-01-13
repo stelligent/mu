@@ -58,7 +58,7 @@ func (m *mockedStackManager) AwaitFinalStatus(stackName string) string {
 	args := m.Called(stackName)
 	return args.String(0)
 }
-func (m *mockedStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string) error {
+func (m *mockedStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
