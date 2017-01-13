@@ -2,10 +2,13 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/op/go-logging"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
 )
+
+var log = logging.MustGetLogger("environment")
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
@@ -42,10 +45,11 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 	return func() error {
 		environment := workflow.environment
 		if environment.VpcTarget.VpcID == "" {
+			log.Debugf("No VpcTarget, so we will upsert the VPC stack")
 			vpcStackName := fmt.Sprintf("mu-vpc-%s", environment.Name)
 
 			// no target VPC, we need to create/update the VPC stack
-			fmt.Printf("upserting VPC environment:%s stack:%s\n", environment.Name, vpcStackName)
+			log.Infof("Upserting VPC environment '%s' ...", environment.Name)
 			template, err := templates.NewTemplate("vpc.yml", environment)
 			if err != nil {
 				return err
@@ -55,6 +59,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 				return err
 			}
 
+			log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
 			stackWaiter.AwaitFinalStatus(vpcStackName)
 
 			// apply default parameters since we manage the VPC
@@ -63,6 +68,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			vpcImportParams["PublicSubnetAZ2Id"] = fmt.Sprintf("%s-PublicSubnetAZ2Id", vpcStackName)
 			vpcImportParams["PublicSubnetAZ3Id"] = fmt.Sprintf("%s-PublicSubnetAZ3Id", vpcStackName)
 		} else {
+			log.Debugf("VpcTarget exists, so we will reference the VPC stack")
 			// target VPC referenced from config
 			vpcImportParams["VpcId"] = environment.VpcTarget.VpcID
 			for index, subnet := range environment.VpcTarget.PublicSubnetIds {
@@ -79,7 +85,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		environment := workflow.environment
 		envStackName := fmt.Sprintf("mu-env-%s", environment.Name)
 
-		fmt.Printf("upserting ECS environment:%s stack:%s\n", environment.Name, envStackName)
+		log.Infof("Upserting ECS environment '%s' ...", environment.Name)
 		template, err := templates.NewTemplate("cluster.yml", environment)
 		if err != nil {
 			return err
@@ -89,6 +95,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		if err != nil {
 			return err
 		}
+		log.Debugf("Waiting for stack '%s' to complete", envStackName)
 		stackWaiter.AwaitFinalStatus(envStackName)
 
 		return nil
