@@ -1,12 +1,10 @@
 package main
 
 import (
-    "os"
-    "github.com/stelligent/mu/cli"
+	"github.com/stelligent/mu/cli"
+	"os"
 )
 
-var version string
-
 func main() {
-    cli.NewApp(version).Run(os.Args)
+	cli.NewApp().Run(os.Args)
 }

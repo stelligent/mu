@@ -1,14 +1,14 @@
 package cli
 
-import(
-	"github.com/urfave/cli"
+import (
 	"fmt"
 	"github.com/stelligent/mu/common"
+	"github.com/urfave/cli"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "pipeline",
+	cmd := &cli.Command{
+		Name:  "pipeline",
 		Usage: "options for managing pipelines",
 		Subcommands: []cli.Command{
 			*newPipelinesListCommand(ctx),
@@ -20,10 +20,10 @@ func newPipelinesCommand(ctx *common.Context) *cli.Command {
 }
 
 func newPipelinesListCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "list",
+	cmd := &cli.Command{
+		Name:    "list",
 		Aliases: []string{"ls"},
-		Usage: "list pipelines",
+		Usage:   "list pipelines",
 		Action: func(c *cli.Context) error {
 			fmt.Println("listing pipelines")
 			return nil
@@ -34,18 +34,18 @@ func newPipelinesListCommand(ctx *common.Context) *cli.Command {
 }
 
 func newPipelinesShowCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "show",
+	cmd := &cli.Command{
+		Name:  "show",
 		Usage: "show pipeline details",
-		Flags: []cli.Flag {
+		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "service, s",
+				Name:  "service, s",
 				Usage: "service to show",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			service := c.String("service")
-			fmt.Printf("showing pipeline: %s\n",service)
+			fmt.Printf("showing pipeline: %s\n", service)
 			return nil
 		},
 	}

@@ -1,22 +1,19 @@
 package cli
 
-import(
-	"github.com/urfave/cli"
-	"fmt"
+import (
 	"errors"
+	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/resources"
+	"github.com/stelligent/mu/workflows"
+	"github.com/urfave/cli"
 )
-
-
-
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
-	cmd := &cli.Command {
-		Name: "environment",
+	cmd := &cli.Command{
+		Name:    "environment",
 		Aliases: []string{"env"},
-		Usage: "options for managing environments",
+		Usage:   "options for managing environments",
 		Subcommands: []cli.Command{
 			*newEnvironmentsListCommand(ctx),
 			*newEnvironmentsShowCommand(ctx),
@@ -29,7 +26,6 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 }
 
 func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
-	environmentManager := resources.NewEnvironmentManager(ctx)
 	cmd := &cli.Command{
 		Name:      "upsert",
 		Aliases:   []string{"up"},
@@ -37,12 +33,13 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: "<environment>",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if(len(environmentName) == 0) {
+			if len(environmentName) == 0 {
 				cli.ShowCommandHelp(c, "upsert")
 				return errors.New("environment must be provided")
 			}
 
-			return environmentManager.UpsertEnvironment(environmentName)
+			workflow := workflows.NewEnvironmentUpserter(ctx, environmentName)
+			return workflow()
 		},
 	}
 
@@ -50,13 +47,13 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 }
 
 func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "list",
+	cmd := &cli.Command{
+		Name:    "list",
 		Aliases: []string{"ls"},
-		Usage: "list environments",
+		Usage:   "list environments",
 		Action: func(c *cli.Context) error {
-			fmt.Println("listing environments")
-			return nil
+			workflow := workflows.NewEnvironmentLister(ctx)
+			return workflow()
 		},
 	}
 
@@ -64,17 +61,17 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 }
 
 func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "show",
-		Usage: "show environment details",
+	cmd := &cli.Command{
+		Name:      "show",
+		Usage:     "show environment details",
 		ArgsUsage: "<environment>",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if(len(environmentName) == 0) {
+			if len(environmentName) == 0 {
 				cli.ShowCommandHelp(c, "show")
 				return errors.New("environment must be provided")
 			}
-			fmt.Printf("showing environment: %s\n",environmentName)
+			fmt.Printf("showing environment: %s\n", environmentName)
 			return nil
 		},
 	}
@@ -82,22 +79,21 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 	return cmd
 }
 func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command {
-		Name: "terminate",
-		Aliases: []string{"term"},
-		Usage: "terminate an environment",
+	cmd := &cli.Command{
+		Name:      "terminate",
+		Aliases:   []string{"term"},
+		Usage:     "terminate an environment",
 		ArgsUsage: "<environment>",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if(len(environmentName) == 0) {
+			if len(environmentName) == 0 {
 				cli.ShowCommandHelp(c, "terminate")
 				return errors.New("environment must be provided")
 			}
-			fmt.Printf("terminating environment: %s\n",environmentName)
+			fmt.Printf("terminating environment: %s\n", environmentName)
 			return nil
 		},
 	}
 
 	return cmd
 }
-

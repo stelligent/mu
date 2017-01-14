@@ -1,14 +1,14 @@
 package cli
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
+	"bytes"
+	"flag"
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stelligent/mu/common"
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 	"io/ioutil"
-	"flag"
-	"bytes"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"testing"
 )
 
 func TestNewEnvironmentsCommand(t *testing.T) {
@@ -25,17 +25,15 @@ func TestNewEnvironmentsCommand(t *testing.T) {
 	assert.Equal("options for managing environments", command.Usage, "Usage should match")
 	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
 
-	args := []string { "environment","help" }
+	args := []string{"environment", "help"}
 	err := runCommand(command, args)
 	assert.Nil(err)
 }
-
 
 func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
 	command := newEnvironmentsUpsertCommand(ctx)
-	ctx.CloudFormation = new(mockedCloudFormation)
 
 	assert.NotNil(command)
 	assert.Equal("upsert", command.Name, "Name should match")
@@ -44,15 +42,15 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assert.Equal("<environment>", command.ArgsUsage, "ArgsUsage should match")
 	assert.NotNil(command.Action)
 
-	args := []string { "upsert" }
+	args := []string{"upsert"}
 	err := runCommand(command, args)
 	assert.NotNil(err)
-	assert.Equal(1,lastExitCode)
+	assert.Equal(1, lastExitCode)
 
-	args = []string { "upsert","fooenv" }
+	args = []string{"upsert", "fooenv"}
 	err = runCommand(command, args)
 	assert.NotNil(err)
-	assert.Equal(1,lastExitCode)
+	assert.Equal(1, lastExitCode)
 }
 
 func TestNewEnvironmentsListCommand(t *testing.T) {
@@ -111,6 +109,7 @@ func init() {
 	cli.OsExiter = fakeOsExiter
 	cli.ErrWriter = fakeErrWriter
 }
+
 type mockedCloudFormation struct {
 	cloudformationiface.CloudFormationAPI
 }

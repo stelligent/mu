@@ -17,6 +17,14 @@ Parameters:
     Type: String
     Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
     Default: ''
+  SshAllow:
+    Description: Subnet from which to allow SSH access.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
@@ -39,7 +47,7 @@ Metadata:
         Parameters:
           - InstanceType
           - KeyName
-          - SSHAllow
+          - SshAllow
       - Label:
           default: "Auto Scaling Configuration"
         Parameters:
@@ -50,7 +58,7 @@ Metadata:
         default: "Instance type to launch?"
       KeyName:
         default: "Key to grant SSH access (blank for none)?"
-      SSHAllow:
+      SshAllow:
         default: "CIDR block to grant SSH access?"
       DesiredCapacity:
         default: "Desired ECS cluster instance count?"
@@ -97,15 +105,15 @@ Resources:
       VPCZoneIdentifier:
       - Fn::If:
         - HasPublicSubnetAZ1
-        - !ImportValue [!Ref PublicSubnetAZ1]
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ1Id}
         - !Ref AWS::NoValue
       - Fn::If:
         - HasPublicSubnetAZ2
-        - !ImportValue []!Ref PublicSubnetAZ2]
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ2Id}
         - !Ref AWS::NoValue
       - Fn::If:
         - HasPublicSubnetAZ3
-        - !ImportValue [!Ref PublicSubnetAZ3]
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ3Id}
         - !Ref AWS::NoValue
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: '1'
@@ -202,17 +210,19 @@ Resources:
   HostSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPC
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
       GroupDescription: ECS Host Security Group
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: '22'
         ToPort: '22'
-        CidrIp: !Ref SSHAllow
+        CidrIp: !Ref SshAllow
   ElbSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !ImportValue [!Ref VpcId]
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
       GroupDescription: ELB Security Group
       SecurityGroupIngress:
       - IpProtocol: tcp
@@ -241,15 +251,15 @@ Resources:
       Subnets:
       - Fn::If:
         - HasPublicSubnetAZ1
-        - !Ref PublicSubnetAZ1
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ1Id}
         - !Ref AWS::NoValue
       - Fn::If:
         - HasPublicSubnetAZ2
-        - !Ref PublicSubnetAZ2
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ2Id}
         - !Ref AWS::NoValue
       - Fn::If:
         - HasPublicSubnetAZ3
-        - !Ref PublicSubnetAZ3
+        - Fn::ImportValue: !Sub ${PublicSubnetAZ3Id}
         - !Ref AWS::NoValue
       SecurityGroups:
       - !Ref ElbSG
@@ -267,7 +277,8 @@ Resources:
     Properties:
       Port: '8080'
       Protocol: HTTP
-      VpcId: !Ref VPC
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
 Outputs:
   BaseUrl:
     Value: !Sub http://${EcsElb.DNSName}/

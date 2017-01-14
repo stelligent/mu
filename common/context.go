@@ -1,9 +1,17 @@
 package common
 
 import (
-	"io/ioutil"
-	"fmt"
+	"bytes"
+	"gopkg.in/yaml.v2"
+	"io"
 )
+
+var version = "0.0.0-local"
+
+// GetVersion returns the current version of the app
+func GetVersion() string {
+	return version
+}
 
 // NewContext create a new context object
 func NewContext() *Context {
@@ -11,27 +19,25 @@ func NewContext() *Context {
 	return ctx
 }
 
-
-
-// InitializeFromFile loads config object from local file
-func (ctx *Context) InitializeFromFile(configFile string) {
-	yamlConfig, err := ioutil.ReadFile( configFile )
-	if err != nil {
-		fmt.Printf("WARN: Unable to find config file: %v\n", err)
-	} else {
-		ctx.Config.loadFromYaml(yamlConfig)
-	}
-
-	ctx.Initialize()
-}
-
-// Initialize will create AWS services
-func (ctx *Context) Initialize() error {
-	cfn, err := newCloudFormation(ctx.Config.Region)
+// Initialize loads config object
+func (ctx *Context) Initialize(configReader io.Reader) error {
+	// load the configuration
+	err := loadYamlConfig(&ctx.Config, configReader)
 	if err != nil {
 		return err
 	}
 
-	ctx.CloudFormation = cfn
+	// initialize StackManager
+	ctx.StackManager, err = newStackManager(ctx.Config.Region)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func loadYamlConfig(config *Config, yamlReader io.Reader) error {
+	yamlBuffer := new(bytes.Buffer)
+	yamlBuffer.ReadFrom(yamlReader)
+	return yaml.Unmarshal(yamlBuffer.Bytes(), config)
 }
