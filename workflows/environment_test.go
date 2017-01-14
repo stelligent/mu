@@ -74,8 +74,8 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManager)
-	stackManager.On("AwaitFinalStatus", "mu-env-foo").Return(cloudformation.StackStatusCreateComplete)
-	stackManager.On("UpsertStack", "mu-env-foo").Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusCreateComplete)
+	stackManager.On("UpsertStack", "mu-cluster-foo").Return(nil)
 
 	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)

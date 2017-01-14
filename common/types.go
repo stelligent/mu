@@ -35,3 +35,23 @@ type Service struct {
 	Pipeline     struct {
 	}
 }
+
+// Stack summary
+type Stack struct {
+	ID           string
+	Name         string
+	Status       string
+	StatusReason string
+	Tags         map[string]string
+}
+
+// StackType describes supported stack types
+type StackType string
+
+// List of valid stack types
+const (
+	StackTypeVpc      StackType = "vpc"
+	StackTypeCluster            = "cluster"
+	StackTypeService            = "service"
+	StackTypePipeline           = "pipeline"
+)

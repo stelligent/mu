@@ -10,10 +10,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/op/go-logging"
 	"io"
+	"strings"
 	"time"
 )
 
 var log = logging.MustGetLogger("stack")
+
+// CreateStackName will create a name for a stack
+func CreateStackName(stackType StackType, name string) string {
+	return fmt.Sprintf("mu-%s-%s", stackType, name)
+}
 
 // StackWaiter for waiting on stack status to be final
 type StackWaiter interface {
@@ -25,10 +31,16 @@ type StackUpserter interface {
 	UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error
 }
 
+// StackLister for listing stacks
+type StackLister interface {
+	ListStacks(stackType StackType) ([]*Stack, error)
+}
+
 // StackManager composite of all stack capabilities
 type StackManager interface {
 	StackUpserter
 	StackWaiter
+	StackLister
 }
 
 type cloudformationStackManager struct {
@@ -209,4 +221,63 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 
 	log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
 	return ""
+}
+
+// ListStacks will find mu stacks
+func (cfnMgr *cloudformationStackManager) ListStacks(stackType StackType) ([]*Stack, error) {
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.ListStacksInput{
+		StackStatusFilter: []*string{
+			aws.String(cloudformation.StackStatusReviewInProgress),
+			aws.String(cloudformation.StackStatusCreateInProgress),
+			aws.String(cloudformation.StackStatusRollbackInProgress),
+			aws.String(cloudformation.StackStatusDeleteInProgress),
+			aws.String(cloudformation.StackStatusUpdateInProgress),
+			aws.String(cloudformation.StackStatusUpdateRollbackInProgress),
+			aws.String(cloudformation.StackStatusUpdateCompleteCleanupInProgress),
+			aws.String(cloudformation.StackStatusUpdateRollbackCompleteCleanupInProgress),
+			aws.String(cloudformation.StackStatusCreateFailed),
+			aws.String(cloudformation.StackStatusCreateComplete),
+			aws.String(cloudformation.StackStatusRollbackFailed),
+			aws.String(cloudformation.StackStatusRollbackComplete),
+			aws.String(cloudformation.StackStatusDeleteFailed),
+			aws.String(cloudformation.StackStatusUpdateComplete),
+			aws.String(cloudformation.StackStatusUpdateRollbackFailed),
+			aws.String(cloudformation.StackStatusUpdateRollbackComplete),
+		},
+	}
+
+	var stacks []*Stack
+
+	stackNamePrefix := "mu-"
+	if stackType != "" {
+		stackNamePrefix = fmt.Sprintf("%s%s-", stackNamePrefix, stackType)
+	}
+	log.Debugf("Searching for stacks with prefix '%s'", stackNamePrefix)
+
+	err := cfnAPI.ListStacksPages(params,
+		func(page *cloudformation.ListStacksOutput, lastPage bool) bool {
+			for _, stackSummary := range page.StackSummaries {
+				if !strings.HasPrefix(aws.StringValue(stackSummary.StackName), stackNamePrefix) {
+					continue
+				}
+				if strings.HasPrefix(aws.StringValue(stackSummary.StackStatus), "DELETE_") {
+					continue
+				}
+				stack := new(Stack)
+				stack.ID = aws.StringValue(stackSummary.StackId)
+				stack.Name = aws.StringValue(stackSummary.StackName)
+				stack.Status = aws.StringValue(stackSummary.StackStatus)
+				stack.StatusReason = aws.StringValue(stackSummary.StackStatusReason)
+
+				stacks = append(stacks, stack)
+			}
+			return true
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	return stacks, nil
 }

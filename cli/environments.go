@@ -52,8 +52,8 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 		Aliases: []string{"ls"},
 		Usage:   "list environments",
 		Action: func(c *cli.Context) error {
-			fmt.Println("listing environments")
-			return nil
+			workflow := workflows.NewEnvironmentLister(ctx)
+			return workflow()
 		},
 	}
 
