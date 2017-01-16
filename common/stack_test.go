@@ -20,8 +20,8 @@ func (m *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStac
 	args := m.Called()
 	return args.Get(0).(*cloudformation.DescribeStacksOutput), args.Error(1)
 }
-func (m *mockedCloudFormation) ListStacksPages(input *cloudformation.ListStacksInput, callback func(page *cloudformation.ListStacksOutput, lastPage bool) bool) error {
-	args := m.Called()
+func (m *mockedCloudFormation) DescribeStacksPages(input *cloudformation.DescribeStacksInput, cb func(*cloudformation.DescribeStacksOutput, bool) bool) error {
+	args := m.Called(input, cb)
 	return args.Error(0)
 }
 
@@ -151,6 +151,112 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	cfn.AssertNumberOfCalls(t, "UpdateStack", 1)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackUpdateComplete", 0)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 0)
+}
+
+func TestCloudformationStackManager_ListStacks(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := new(mockedCloudFormation)
+	cfn.On("DescribeStacksPages", mock.AnythingOfType("*cloudformation.DescribeStacksInput"), mock.AnythingOfType("func(*cloudformation.DescribeStacksOutput, bool) bool")).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			cb := args.Get(1).(func(*cloudformation.DescribeStacksOutput, bool) bool)
+			cb(&cloudformation.DescribeStacksOutput{
+				Stacks: []*cloudformation.Stack{
+					{
+						StackName:   aws.String("mu-cluster-dev"),
+						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("cluster"),
+							},
+						},
+					},
+					{
+						StackName:   aws.String("mu-vpc-dev"),
+						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("vpc"),
+							},
+						},
+					},
+					{
+						StackName:   aws.String("deleted-stack"),
+						StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("cluster"),
+							},
+						},
+					},
+				},
+			}, true)
+		})
+
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+	stacks, err := stackManager.ListStacks(StackTypeCluster)
+
+	assert.Nil(err)
+	assert.NotNil(stacks)
+	assert.Equal(1, len(stacks))
+	assert.Equal("mu-cluster-dev", stacks[0].Name)
+	assert.Equal("cluster", stacks[0].Tags["type"])
+	assert.Equal(cloudformation.StackStatusCreateComplete, stacks[0].Status)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DescribeStacksPages", 1)
+}
+
+func TestStack_GetStack(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := new(mockedCloudFormation)
+	cfn.On("DescribeStacks").Return(
+		&cloudformation.DescribeStacksOutput{
+			Stacks: []*cloudformation.Stack{
+				{
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+		}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+
+	stack, err := stackManager.GetStack("foo")
+
+	assert.Nil(err)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+}
+
+func TestBuildStack(t *testing.T) {
+	assert := assert.New(t)
+
+	stackDetails := cloudformation.Stack{
+		StackName:   aws.String("mu-cluster-dev"),
+		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+		Tags: []*cloudformation.Tag{
+			{
+				Key:   aws.String("mu:type"),
+				Value: aws.String("cluster"),
+			},
+		},
+	}
+
+	stack := buildStack(&stackDetails)
+
+	assert.NotNil(stack)
+	assert.Equal("mu-cluster-dev", stack.Name)
+	assert.Equal("cluster", stack.Tags["type"])
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 }
 
 func TestBuildParameters(t *testing.T) {

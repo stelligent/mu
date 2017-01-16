@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
+	"os"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
@@ -52,7 +53,7 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 		Aliases: []string{"ls"},
 		Usage:   "list environments",
 		Action: func(c *cli.Context) error {
-			workflow := workflows.NewEnvironmentLister(ctx)
+			workflow := workflows.NewEnvironmentLister(ctx, os.Stdout)
 			return workflow()
 		},
 	}
@@ -71,8 +72,8 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				cli.ShowCommandHelp(c, "show")
 				return errors.New("environment must be provided")
 			}
-			fmt.Printf("showing environment: %s\n", environmentName)
-			return nil
+			workflow := workflows.NewEnvironmentViewer(ctx, environmentName, os.Stdout)
+			return workflow()
 		},
 	}
 
