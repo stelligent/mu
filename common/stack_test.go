@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"strings"
 	"testing"
-	"fmt"
 )
 
 type mockedCloudFormation struct {
@@ -160,44 +159,43 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 	cfn := new(mockedCloudFormation)
 	cfn.On("DescribeStacksPages", mock.AnythingOfType("*cloudformation.DescribeStacksInput"), mock.AnythingOfType("func(*cloudformation.DescribeStacksOutput, bool) bool")).
 		Return(nil).
-		Run(func (args mock.Arguments) {
-		fmt.Println(args)
-		cb := args.Get(1).(func(*cloudformation.DescribeStacksOutput, bool) bool)
-		cb(&cloudformation.DescribeStacksOutput{
-			Stacks: []*cloudformation.Stack{
-				{
-					StackName: aws.String("mu-cluster-dev"),
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-					Tags: []*cloudformation.Tag{
-						{
-							Key: aws.String("mu:type"),
-							Value: aws.String("cluster"),
+		Run(func(args mock.Arguments) {
+			cb := args.Get(1).(func(*cloudformation.DescribeStacksOutput, bool) bool)
+			cb(&cloudformation.DescribeStacksOutput{
+				Stacks: []*cloudformation.Stack{
+					{
+						StackName:   aws.String("mu-cluster-dev"),
+						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("cluster"),
+							},
+						},
+					},
+					{
+						StackName:   aws.String("mu-vpc-dev"),
+						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("vpc"),
+							},
+						},
+					},
+					{
+						StackName:   aws.String("deleted-stack"),
+						StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
+						Tags: []*cloudformation.Tag{
+							{
+								Key:   aws.String("mu:type"),
+								Value: aws.String("cluster"),
+							},
 						},
 					},
 				},
-				{
-					StackName: aws.String("mu-vpc-dev"),
-					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-					Tags: []*cloudformation.Tag{
-						{
-							Key: aws.String("mu:type"),
-							Value: aws.String("vpc"),
-						},
-					},
-				},
-				{
-					StackName: aws.String("deleted-stack"),
-					StackStatus: aws.String(cloudformation.StackStatusDeleteComplete),
-					Tags: []*cloudformation.Tag{
-						{
-							Key: aws.String("mu:type"),
-							Value: aws.String("cluster"),
-						},
-					},
-				},
-			},
-		},true)
-	})
+			}, true)
+		})
 
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
@@ -206,12 +204,59 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 
 	assert.Nil(err)
 	assert.NotNil(stacks)
-	assert.Equal(1,len(stacks))
+	assert.Equal(1, len(stacks))
 	assert.Equal("mu-cluster-dev", stacks[0].Name)
 	assert.Equal("cluster", stacks[0].Tags["type"])
 	assert.Equal(cloudformation.StackStatusCreateComplete, stacks[0].Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacksPages", 1)
+}
+
+func TestStack_GetStack(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := new(mockedCloudFormation)
+	cfn.On("DescribeStacks").Return(
+		&cloudformation.DescribeStacksOutput{
+			Stacks: []*cloudformation.Stack{
+				{
+					StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+				},
+			},
+		}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+
+	stack, err := stackManager.GetStack("foo")
+
+	assert.Nil(err)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+}
+
+func TestBuildStack(t *testing.T) {
+	assert := assert.New(t)
+
+	stackDetails := cloudformation.Stack{
+		StackName:   aws.String("mu-cluster-dev"),
+		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+		Tags: []*cloudformation.Tag{
+			{
+				Key:   aws.String("mu:type"),
+				Value: aws.String("cluster"),
+			},
+		},
+	}
+
+	stack := buildStack(&stackDetails)
+
+	assert.NotNil(stack)
+	assert.Equal("mu-cluster-dev", stack.Name)
+	assert.Equal("cluster", stack.Tags["type"])
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 }
 
 func TestBuildParameters(t *testing.T) {

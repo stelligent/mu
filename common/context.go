@@ -33,6 +33,12 @@ func (ctx *Context) Initialize(configReader io.Reader) error {
 		return err
 	}
 
+	// initialize ClusterManager
+	ctx.ClusterManager, err = newClusterManager(ctx.Config.Region)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -2,8 +2,9 @@ package common
 
 // Context defines the context object passed around
 type Context struct {
-	Config       Config
-	StackManager StackManager
+	Config         Config
+	StackManager   StackManager
+	ClusterManager ClusterManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -43,6 +44,7 @@ type Stack struct {
 	Status       string
 	StatusReason string
 	Tags         map[string]string
+	Outputs      map[string]string
 }
 
 // StackType describes supported stack types

@@ -8,13 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
-	"github.com/op/go-logging"
 	"io"
 	"strings"
 	"time"
 )
-
-var log = logging.MustGetLogger("stack")
 
 // CreateStackName will create a name for a stack
 func CreateStackName(stackType StackType, name string) string {
@@ -36,11 +33,17 @@ type StackLister interface {
 	ListStacks(stackType StackType) ([]*Stack, error)
 }
 
+// StackGetter for getting stacks
+type StackGetter interface {
+	GetStack(stackName string) (*Stack, error)
+}
+
 // StackManager composite of all stack capabilities
 type StackManager interface {
 	StackUpserter
 	StackWaiter
 	StackLister
+	StackGetter
 }
 
 type cloudformationStackManager struct {
@@ -223,11 +226,34 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 	return ""
 }
 
+func buildStack(stackDetails *cloudformation.Stack) *Stack {
+	stack := new(Stack)
+	stack.ID = aws.StringValue(stackDetails.StackId)
+	stack.Name = aws.StringValue(stackDetails.StackName)
+	stack.Status = aws.StringValue(stackDetails.StackStatus)
+	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
+	stack.Tags = make(map[string]string)
+	stack.Outputs = make(map[string]string)
+
+	for _, tag := range stackDetails.Tags {
+		key := aws.StringValue(tag.Key)
+		if strings.HasPrefix(key, "mu:") {
+			stack.Tags[key[3:]] = aws.StringValue(tag.Value)
+		}
+	}
+
+	for _, output := range stackDetails.Outputs {
+		stack.Outputs[aws.StringValue(output.OutputKey)] = aws.StringValue(output.OutputValue)
+	}
+
+	return stack
+}
+
 // ListStacks will find mu stacks
 func (cfnMgr *cloudformationStackManager) ListStacks(stackType StackType) ([]*Stack, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
-	params := &cloudformation.DescribeStacksInput{ }
+	params := &cloudformation.DescribeStacksInput{}
 
 	var stacks []*Stack
 
@@ -236,28 +262,17 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType StackType) ([]*St
 	err := cfnAPI.DescribeStacksPages(params,
 		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
 			for _, stackDetails := range page.Stacks {
-				if strings.HasPrefix(aws.StringValue(stackDetails.StackStatus), "DELETE_") {
+				if cloudformation.StackStatusDeleteComplete == aws.StringValue(stackDetails.StackStatus) {
 					continue
 				}
 
-				stack := new(Stack)
-				stack.ID = aws.StringValue(stackDetails.StackId)
-				stack.Name = aws.StringValue(stackDetails.StackName)
-				stack.Status = aws.StringValue(stackDetails.StackStatus)
-				stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
-				stack.Tags = make(map[string]string)
-
-				for _, tag :=  range stackDetails.Tags {
-					key := aws.StringValue(tag.Key)
-					if strings.HasPrefix(key, "mu:") {
-						stack.Tags[key[3:]] = aws.StringValue(tag.Value)
-					}
-				}
+				stack := buildStack(stackDetails)
 
 				if stack.Tags["type"] == string(stackType) {
 					stacks = append(stacks, stack)
 				}
 			}
+
 			return true
 		})
 
@@ -265,4 +280,21 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType StackType) ([]*St
 		return nil, err
 	}
 	return stacks, nil
+}
+
+// GetStack get a specific stack
+func (cfnMgr *cloudformationStackManager) GetStack(stackName string) (*Stack, error) {
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.DescribeStacksInput{StackName: aws.String(stackName)}
+
+	log.Debugf("Searching for stack named '%s'", stackName)
+
+	resp, err := cfnAPI.DescribeStacks(params)
+	if err != nil {
+		return nil, err
+	}
+	stack := buildStack(resp.Stacks[0])
+
+	return stack, nil
 }
