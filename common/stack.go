@@ -227,51 +227,36 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 func (cfnMgr *cloudformationStackManager) ListStacks(stackType StackType) ([]*Stack, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
-	params := &cloudformation.ListStacksInput{
-		StackStatusFilter: []*string{
-			aws.String(cloudformation.StackStatusReviewInProgress),
-			aws.String(cloudformation.StackStatusCreateInProgress),
-			aws.String(cloudformation.StackStatusRollbackInProgress),
-			aws.String(cloudformation.StackStatusDeleteInProgress),
-			aws.String(cloudformation.StackStatusUpdateInProgress),
-			aws.String(cloudformation.StackStatusUpdateRollbackInProgress),
-			aws.String(cloudformation.StackStatusUpdateCompleteCleanupInProgress),
-			aws.String(cloudformation.StackStatusUpdateRollbackCompleteCleanupInProgress),
-			aws.String(cloudformation.StackStatusCreateFailed),
-			aws.String(cloudformation.StackStatusCreateComplete),
-			aws.String(cloudformation.StackStatusRollbackFailed),
-			aws.String(cloudformation.StackStatusRollbackComplete),
-			aws.String(cloudformation.StackStatusDeleteFailed),
-			aws.String(cloudformation.StackStatusUpdateComplete),
-			aws.String(cloudformation.StackStatusUpdateRollbackFailed),
-			aws.String(cloudformation.StackStatusUpdateRollbackComplete),
-		},
-	}
+	params := &cloudformation.DescribeStacksInput{ }
 
 	var stacks []*Stack
 
-	stackNamePrefix := "mu-"
-	if stackType != "" {
-		stackNamePrefix = fmt.Sprintf("%s%s-", stackNamePrefix, stackType)
-	}
-	log.Debugf("Searching for stacks with prefix '%s'", stackNamePrefix)
+	log.Debugf("Searching for stacks of type '%s'", stackType)
 
-	err := cfnAPI.ListStacksPages(params,
-		func(page *cloudformation.ListStacksOutput, lastPage bool) bool {
-			for _, stackSummary := range page.StackSummaries {
-				if !strings.HasPrefix(aws.StringValue(stackSummary.StackName), stackNamePrefix) {
+	err := cfnAPI.DescribeStacksPages(params,
+		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+			for _, stackDetails := range page.Stacks {
+				if strings.HasPrefix(aws.StringValue(stackDetails.StackStatus), "DELETE_") {
 					continue
 				}
-				if strings.HasPrefix(aws.StringValue(stackSummary.StackStatus), "DELETE_") {
-					continue
-				}
+
 				stack := new(Stack)
-				stack.ID = aws.StringValue(stackSummary.StackId)
-				stack.Name = aws.StringValue(stackSummary.StackName)
-				stack.Status = aws.StringValue(stackSummary.StackStatus)
-				stack.StatusReason = aws.StringValue(stackSummary.StackStatusReason)
+				stack.ID = aws.StringValue(stackDetails.StackId)
+				stack.Name = aws.StringValue(stackDetails.StackName)
+				stack.Status = aws.StringValue(stackDetails.StackStatus)
+				stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
+				stack.Tags = make(map[string]string)
 
-				stacks = append(stacks, stack)
+				for _, tag :=  range stackDetails.Tags {
+					key := aws.StringValue(tag.Key)
+					if strings.HasPrefix(key, "mu:") {
+						stack.Tags[key[3:]] = aws.StringValue(tag.Value)
+					}
+				}
+
+				if stack.Tags["type"] == string(stackType) {
+					stacks = append(stacks, stack)
+				}
 			}
 			return true
 		})

@@ -2,11 +2,15 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/op/go-logging"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
+	"os"
+	"strconv"
+	"time"
 )
 
 var log = logging.MustGetLogger("environment")
@@ -125,12 +129,17 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 	red := color.New(color.FgRed).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()
+
 	return func() error {
 		stacks, err := stackLister.ListStacks(common.StackTypeCluster)
 
 		if err != nil {
 			return err
 		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetHeader([]string{"Environment","Stack","Status","Last Update","Mu Version"})
+		table.SetBorder(false)
 
 		for _, stack := range stacks {
 			var color func(a ...interface{}) string
@@ -141,9 +150,22 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 			} else {
 				color = blue
 			}
-			log.Infof("%8s - %8s %s", bold(stack.Name), color(stack.Status), stack.StatusReason)
+
+			lastUpdate,_ := strconv.ParseInt(stack.Tags["lastupdate"], 10, 64)
+			tm := time.Unix(lastUpdate, 0)
+
+			table.Append([]string{
+				bold(stack.Tags["environment"]),
+				stack.Name,
+				fmt.Sprintf("%s %s",color(stack.Status),stack.StatusReason),
+				tm.String(),
+				stack.Tags["version"],
+			})
 
 		}
+
+		table.Render()
+
 
 		return nil
 	}
