@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
@@ -91,8 +90,8 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 				cli.ShowCommandHelp(c, "terminate")
 				return errors.New("environment must be provided")
 			}
-			fmt.Printf("terminating environment: %s\n", environmentName)
-			return nil
+			workflow := workflows.NewEnvironmentTerminator(ctx, environmentName)
+			return workflow()
 		},
 	}
 

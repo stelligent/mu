@@ -25,6 +25,18 @@ Parameters:
     Default: 0.0.0.0/0
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  ScaleOutThreshold:
+    Description: Threshold at which a scale out event will be initiated
+    Type: Number
+    Default: '80'
+  ScaleInThreshold:
+    Description: Threshold at which a scale in event will be initiated
+    Type: Number
+    Default: '30'
+  ImageId:
+    Description: ECS AMI to launch
+    Type: String
+    Default: ''
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
@@ -77,24 +89,6 @@ Conditions:
   HasPublicSubnetAZ3:
     "Fn::Not":
       - "Fn::Equals": [!Ref PublicSubnetAZ3Id, '']
-Mappings:
-  AWSRegionToAMI:
-    us-east-1:
-      AMIID: ami-2b3b6041
-    us-west-2:
-      AMIID: ami-ac6872cd
-    eu-west-1:
-      AMIID: ami-03238b70
-    ap-northeast-1:
-      AMIID: ami-fb2f1295
-    ap-southeast-2:
-      AMIID: ami-43547120
-    us-west-1:
-      AMIID: ami-bfe095df
-    ap-southeast-1:
-      AMIID: ami-c78f43a4
-    eu-central-1:
-      AMIID: ami-e1e6f88d
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -128,6 +122,52 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
+  ScaleOutPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: 1
+  ScaleInPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: -1
+  MemoryAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub Scale-out if Memory > ${ScaleOutThreshold}% for 5 minutes
+      MetricName: MemoryReservation
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref ScaleOutThreshold
+      AlarmActions:
+      - !Ref ScaleOutPolicy
+      Dimensions:
+      - Name: ClusterName
+        Value: !Ref EcsCluster
+      ComparisonOperator: GreaterThanThreshold
+  MemoryAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub Scale-in if Memory < ${ScaleInThreshold}% for 5 minutes
+      MetricName: MemoryReservation
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref ScaleInThreshold
+      AlarmActions:
+      - !Ref ScaleInPolicy
+      Dimensions:
+      - Name: ClusterName
+        Value: !Ref EcsCluster
+      ComparisonOperator: LessThanThreshold
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -163,7 +203,7 @@ Resources:
                 - "/etc/cfn/cfn-hup.conf"
                 - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
     Properties:
-      ImageId: !FindInMap [ AWSRegionToAMI, !Ref "AWS::Region", AMIID ]
+      ImageId: !Ref ImageId
       SecurityGroups: [ !Ref HostSG ]
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfile

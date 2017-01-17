@@ -50,6 +50,27 @@ func TestNewEnvironmentUpserter(t *testing.T) {
 	assert.NotNil(upserter)
 }
 
+func TestNewEnvironmentViewer(t *testing.T) {
+	assert := assert.New(t)
+	ctx := common.NewContext()
+	viewer := NewEnvironmentViewer(ctx, "foo", nil)
+	assert.NotNil(viewer)
+}
+
+func TestNewEnvironmentLister(t *testing.T) {
+	assert := assert.New(t)
+	ctx := common.NewContext()
+	lister := NewEnvironmentLister(ctx, nil)
+	assert.NotNil(lister)
+}
+
+func TestNewEnvironmentTerminator(t *testing.T) {
+	assert := assert.New(t)
+	ctx := common.NewContext()
+	terminator := NewEnvironmentTerminator(ctx, "foo")
+	assert.NotNil(terminator)
+}
+
 type mockedStackManager struct {
 	mock.Mock
 }
@@ -61,6 +82,14 @@ func (m *mockedStackManager) AwaitFinalStatus(stackName string) string {
 func (m *mockedStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
+}
+func (m *mockedStackManager) DeleteStack(stackName string) error {
+	args := m.Called(stackName)
+	return args.Error(0)
+}
+func (m *mockedStackManager) FindLatestImageID(pattern string) (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
 }
 
 func TestEnvironmentEcsUpserter(t *testing.T) {
@@ -76,8 +105,9 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager := new(mockedStackManager)
 	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusCreateComplete)
 	stackManager.On("UpsertStack", "mu-cluster-foo").Return(nil)
+	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager)()
+	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -155,4 +185,44 @@ func loadYamlConfig(yamlString string) (*common.Config, error) {
 	}
 
 	return config, nil
+}
+
+func TestNewEnvironmentEcsTerminator(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	stackManager := new(mockedStackManager)
+	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusDeleteComplete)
+	stackManager.On("DeleteStack", "mu-cluster-foo").Return(nil)
+
+	err := workflow.environmentEcsTerminator("foo", stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
+}
+
+func TestNewEnvironmentVpcTerminator(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	stackManager := new(mockedStackManager)
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(cloudformation.StackStatusDeleteComplete)
+	stackManager.On("DeleteStack", "mu-vpc-foo").Return(nil)
+
+	err := workflow.environmentVpcTerminator("foo", stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
 }

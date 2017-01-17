@@ -21,8 +21,14 @@ type Environment struct {
 		Hostname string
 	}
 	Cluster struct {
-		DesiredCapacity int `yaml:"desiredCapacity"`
-		MaxSize         int `yaml:"maxSize"`
+		ImageID           string `yaml:"imageId"`
+		InstanceTenancy   string `yaml:"instanceTenancy"`
+		DesiredCapacity   int    `yaml:"desiredCapacity"`
+		MaxSize           int    `yaml:"maxSize"`
+		KeyName           string `yaml:"keyName"`
+		SSHAllow          string `yaml:"sshAllow"`
+		ScaleOutThreshold int    `yaml:"scaleOutThreshold"`
+		ScaleInThreshold  int    `yaml:"scaleInThreshold"`
 	}
 	VpcTarget struct {
 		VpcID           string   `yaml:"vpcId"`
