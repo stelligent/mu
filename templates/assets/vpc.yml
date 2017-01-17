@@ -1,0 +1,265 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  InstanceTenancy:
+    Description: Instance tenancy to use for VPC
+    Type: String
+    AllowedValues:
+    - default
+    - dedicated
+    Default: default
+  SshAllow:
+    Description: Subnet from which to allow SSH access.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  VpcCidrBlock:
+    Description: Subnet block for VPC
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 10.0.0.0/16
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  PublicSubnetAZ1CidrBlock:
+    Description: Subnet block for AZ1
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 10.0.0.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  PublicSubnetAZ2CidrBlock:
+    Description: Subnet block for AZ2
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 10.0.1.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  PublicSubnetAZ3CidrBlock:
+    Description: Subnet block for AZ3
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 10.0.2.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+Conditions:
+  HasPublicSubnetAZ1:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref PublicSubnetAZ1CidrBlock, '']
+  HasPublicSubnetAZ2:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref PublicSubnetAZ2CidrBlock, '']
+  HasPublicSubnetAZ3:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref PublicSubnetAZ3CidrBlock, '']
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: !Ref InstanceTenancy
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
+  PublicSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Condition: HasPublicSubnetAZ1
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetAZ1CidrBlock
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 0, !GetAZs '']
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-1
+  PublicSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Condition: HasPublicSubnetAZ2
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetAZ2CidrBlock
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 1, !GetAZs '']
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-2
+  PublicSubnetAZ3:
+    Type: AWS::EC2::Subnet
+    Condition: HasPublicSubnetAZ3
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetAZ3CidrBlock
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 2, !GetAZs '']
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-3
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
+  VPCInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetAZ1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasPublicSubnetAZ1
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetAZ2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasPublicSubnetAZ2
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ2
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetAZ3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasPublicSubnetAZ3
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ3
+      RouteTableId: !Ref PublicRouteTable
+  PublicNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Network
+        Value: Public
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public
+  InboundEphemeralPortPublicNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PublicNetworkAcl
+      RuleNumber: '103'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '1024'
+        To: '65535'
+  InboundSSHPublicNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PublicNetworkAcl
+      RuleNumber: '104'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: !Ref SshAllow
+      PortRange:
+        From: '22'
+        To: '22'
+  InboundHttpPublicNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PublicNetworkAcl
+      RuleNumber: '105'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '80'
+        To: '80'
+  OutboundPublicNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PublicNetworkAcl
+      RuleNumber: '100'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'true'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '0'
+        To: '65535'
+  PublicSubnetAZ1PublicNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Condition: HasPublicSubnetAZ1
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ1
+      NetworkAclId: !Ref PublicNetworkAcl
+  PublicSubnetAZ2PublicNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Condition: HasPublicSubnetAZ2
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ2
+      NetworkAclId: !Ref PublicNetworkAcl
+  PublicSubnetAZ3PublicNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Condition: HasPublicSubnetAZ3
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ3
+      NetworkAclId: !Ref PublicNetworkAcl
+Outputs:
+  VpcId:
+    Description: The id of the vpc
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  PublicSubnetAZ1Id:
+    Description: The public subnetid for AZ1
+    Value:
+      Fn::If:
+      - HasPublicSubnetAZ1
+      - !Ref PublicSubnetAZ1
+      - !Ref AWS::NoValue
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetAZ1Id
+  PublicSubnetAZ2Id:
+    Description: The public subnetid for AZ2
+    Value:
+      Fn::If:
+      - HasPublicSubnetAZ2
+      - !Ref PublicSubnetAZ2
+      - !Ref AWS::NoValue
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetAZ2Id
+  PublicSubnetAZ3Id:
+    Description: The public subnetid for AZ3
+    Value:
+      Fn::If:
+      - HasPublicSubnetAZ3
+      - !Ref PublicSubnetAZ3
+      - !Ref AWS::NoValue
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetAZ3Id

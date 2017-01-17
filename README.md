@@ -57,5 +57,37 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu pipeline terminate [-s <service_name>]
 ```
 
+## Configuration
+The definition of your environments, services and pipelines is done via a YAML file (default `./mu.yml`).
 
+```
+---
+### Region to utilize
+region: us-west-2
+
+### Define a list of environments
+environments:
+
+  # The unique name of the environment  (required)
+  - name: dev
+
+    ### Attributes for the ECS container instances
+    cluster:
+      imageId: ami-xxxxxx           # The AMI to use for the ECS container instances (default: latest ECS optimized AMI)
+      instanceTenancy: default      # Whether to use default or dedicated tenancy (default: default)
+      desiredCapacity: 1            # Desired number of ECS container instances (default 1)
+      maxSize: 2                    # Max size to scale the ECS ASG to (default: 2)
+      keyName: my-keypair           # name of EC2 keypair to associate with ECS container instances (default: none)
+      sshAllow: 0.0.0.0/0           # CIDR block to allow SSH access from (default: 0.0.0.0/0)
+      scaleOutThreshold: 80         # Threshold for % memory utilization to scale out ECS container instances (default: 80)
+      scaleInThreshold: 30          # Threshold for % memory utilization to scale in ECS container instances (default: 30)
+
+    ### attributes for the VPC to target.  If not defined, a VPC will be created. (default: none)
+    vpcTarget:
+        vpcId: vpc-xxxxx            # The id of the VPC to launch ECS container instances into
+        publicSubnetIds:            # The list of subnets to use for ECS container instances
+          - sg-xxxxx
+          - sg-xxxxy
+          - sg-xxxxz
+```
 
