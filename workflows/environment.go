@@ -21,6 +21,8 @@ type environmentWorkflow struct {
 	environment *common.Environment
 }
 
+var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
@@ -30,7 +32,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),
 		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
+		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -61,7 +63,15 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			if err != nil {
 				return err
 			}
-			err = stackUpserter.UpsertStack(vpcStackName, template, nil, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
+
+			vpcStackParams := make(map[string]string)
+			if environment.Cluster.InstanceTenancy != ""{
+				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
+			}
+			if environment.Cluster.SSHAllow != ""{
+				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
+			}
+			err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
 			if err != nil {
 				return err
 			}
@@ -87,7 +97,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 	}
 }
 
-func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
@@ -98,7 +108,37 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, vpcImportParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
+		stackParams := vpcImportParams
+
+		if environment.Cluster.SSHAllow != ""{
+			stackParams["SshAllow"] = environment.Cluster.SSHAllow
+		}
+		if environment.Cluster.ImageID != ""{
+			stackParams["ImageId"] = environment.Cluster.ImageID
+		} else {
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
+			if(err != nil) {
+				return err
+			}
+
+		}
+		if environment.Cluster.DesiredCapacity != 0{
+			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
+		}
+		if environment.Cluster.MaxSize != 0{
+			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
+		}
+		if environment.Cluster.KeyName != ""{
+			stackParams["Keyname"] = environment.Cluster.KeyName
+		}
+		if environment.Cluster.ScaleInThreshold != 0{
+			stackParams["ScaleInThreshold"] = strconv.Itoa(environment.Cluster.ScaleInThreshold)
+		}
+		if environment.Cluster.ScaleOutThreshold != 0{
+			stackParams["ScaleOutThreshold"] = strconv.Itoa(environment.Cluster.ScaleOutThreshold)
+		}
+
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
 		if err != nil {
 			return err
 		}

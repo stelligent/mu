@@ -11,6 +11,9 @@ import (
 	"io"
 	"strings"
 	"time"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"errors"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
 // CreateStackName will create a name for a stack
@@ -38,16 +41,23 @@ type StackGetter interface {
 	GetStack(stackName string) (*Stack, error)
 }
 
+// ImageFinder for finding latest image
+type ImageFinder interface {
+	FindLatestImageID(namePattern string) (string, error)
+}
+
 // StackManager composite of all stack capabilities
 type StackManager interface {
 	StackUpserter
 	StackWaiter
 	StackLister
 	StackGetter
+	ImageFinder
 }
 
 type cloudformationStackManager struct {
 	cfnAPI cloudformationiface.CloudFormationAPI
+	ec2API ec2iface.EC2API
 }
 
 // TODO: support "dry-run" and write the template to a file
@@ -60,10 +70,16 @@ func newStackManager(region string) (StackManager, error) {
 		return nil, err
 	}
 	log.Debugf("Connecting to CloudFormation service in region:%s", region)
-	cfn := cloudformation.New(sess, &aws.Config{Region: aws.String(region)})
+	cfnAPI := cloudformation.New(sess, &aws.Config{Region: aws.String(region)})
+
+	log.Debugf("Connecting to EC2 service in region:%s", region)
+	ec2API := ec2.New(sess, &aws.Config{Region: aws.String(region)})
+
 	return &cloudformationStackManager{
-		cfnAPI: cfn,
+		cfnAPI: cfnAPI,
+		ec2API: ec2API,
 	}, nil
+
 }
 
 func buildStackParameters(parameters map[string]string) []*cloudformation.Parameter {
@@ -298,3 +314,43 @@ func (cfnMgr *cloudformationStackManager) GetStack(stackName string) (*Stack, er
 
 	return stack, nil
 }
+
+// FindLatestImageID for a given
+func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) (string, error) {
+	ec2Api := cfnMgr.ec2API
+	resp, err := ec2Api.DescribeImages(&ec2.DescribeImagesInput{
+		Owners: []*string {aws.String("amazon")},
+		Filters: []*ec2.Filter {
+			{
+				Name: aws.String("name"),
+				Values: []*string {
+					aws.String(namePattern),
+				},
+			},
+		},
+	})
+
+	if(err != nil) {
+		return "", err
+	}
+
+	var imageID string
+	var imageCreateDate time.Time
+	for _, image := range resp.Images {
+		createDate, err := time.Parse(time.RFC3339, aws.StringValue(image.CreationDate))
+		if err != nil {
+			return "", err
+		}
+		if imageCreateDate.Before(createDate) {
+			imageCreateDate = createDate
+			imageID = aws.StringValue(image.ImageId)
+		}
+	}
+
+	if imageID == "" {
+		return "", errors.New("Unable to find image")
+	}
+	log.Debugf("Found latest imageId %s for pattern %s", imageID, namePattern)
+	return imageID, nil
+}
+

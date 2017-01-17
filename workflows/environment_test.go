@@ -62,6 +62,10 @@ func (m *mockedStackManager) UpsertStack(stackName string, templateBodyReader io
 	args := m.Called(stackName)
 	return args.Error(0)
 }
+func (m *mockedStackManager) FindLatestImageID(pattern string) (string,error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
 
 func TestEnvironmentEcsUpserter(t *testing.T) {
 	assert := assert.New(t)
@@ -76,8 +80,9 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager := new(mockedStackManager)
 	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusCreateComplete)
 	stackManager.On("UpsertStack", "mu-cluster-foo").Return(nil)
+	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager)()
+	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
