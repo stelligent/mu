@@ -16,6 +16,10 @@ type mockedCloudFormation struct {
 	cloudformationiface.CloudFormationAPI
 }
 
+func (m *mockedCloudFormation) DeleteStack(input *cloudformation.DeleteStackInput) (*cloudformation.DeleteStackOutput, error) {
+	args := m.Called()
+	return args.Get(0).(*cloudformation.DeleteStackOutput), args.Error(1)
+}
 func (m *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStacksInput) (*cloudformation.DescribeStacksOutput, error) {
 	args := m.Called()
 	return args.Get(0).(*cloudformation.DescribeStacksOutput), args.Error(1)
@@ -235,6 +239,22 @@ func TestStack_GetStack(t *testing.T) {
 	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+}
+func TestStack_DeleteStack(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := new(mockedCloudFormation)
+	cfn.On("DeleteStack").Return(&cloudformation.DeleteStackOutput{}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI: cfn,
+	}
+
+	err := stackManager.DeleteStack("foo")
+
+	assert.Nil(err)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DeleteStack", 1)
 }
 
 func TestBuildStack(t *testing.T) {

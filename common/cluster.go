@@ -33,7 +33,6 @@ func newClusterManager(region string) (ClusterManager, error) {
 	}, nil
 }
 
-
 // ListInstances get the instances for a specific cluster
 func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]*ecs.ContainerInstance, error) {
 	ecsAPI := ecsMgr.ecsAPI

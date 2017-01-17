@@ -65,10 +65,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			}
 
 			vpcStackParams := make(map[string]string)
-			if environment.Cluster.InstanceTenancy != ""{
+			if environment.Cluster.InstanceTenancy != "" {
 				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
 			}
-			if environment.Cluster.SSHAllow != ""{
+			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
 			}
 			err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
@@ -110,31 +110,31 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 
 		stackParams := vpcImportParams
 
-		if environment.Cluster.SSHAllow != ""{
+		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
 		}
-		if environment.Cluster.ImageID != ""{
+		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
 			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
-			if(err != nil) {
+			if err != nil {
 				return err
 			}
 
 		}
-		if environment.Cluster.DesiredCapacity != 0{
+		if environment.Cluster.DesiredCapacity != 0 {
 			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
 		}
-		if environment.Cluster.MaxSize != 0{
+		if environment.Cluster.MaxSize != 0 {
 			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
 		}
-		if environment.Cluster.KeyName != ""{
+		if environment.Cluster.KeyName != "" {
 			stackParams["Keyname"] = environment.Cluster.KeyName
 		}
-		if environment.Cluster.ScaleInThreshold != 0{
+		if environment.Cluster.ScaleInThreshold != 0 {
 			stackParams["ScaleInThreshold"] = strconv.Itoa(environment.Cluster.ScaleInThreshold)
 		}
-		if environment.Cluster.ScaleOutThreshold != 0{
+		if environment.Cluster.ScaleOutThreshold != 0 {
 			stackParams["ScaleOutThreshold"] = strconv.Itoa(environment.Cluster.ScaleOutThreshold)
 		}
 
@@ -222,26 +222,23 @@ func NewEnvironmentViewer(ctx *common.Context, environmentName string, writer io
 	workflow := new(environmentWorkflow)
 
 	return newWorkflow(
-		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentViewer(ctx.StackManager, ctx.ClusterManager, writer),
+		workflow.environmentViewer(environmentName, ctx.StackManager, ctx.ClusterManager, writer),
 	)
 }
 
-func (workflow *environmentWorkflow) environmentViewer(stackGetter common.StackGetter, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewer(environmentName string, stackGetter common.StackGetter, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	bold := color.New(color.Bold).SprintFunc()
 	return func() error {
-		environment := workflow.environment
-
-		clusterStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
+		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 		if err != nil {
 			return err
 		}
 
-		vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
+		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
 		vpcStack, _ := stackGetter.GetStack(vpcStackName)
 
-		fmt.Fprintf(writer, "%s:\t%s\n", bold("Environment"), environment.Name)
+		fmt.Fprintf(writer, "%s:\t%s\n", bold("Environment"), environmentName)
 		fmt.Fprintf(writer, "%s:\t%s (%s)\n", bold("Cluster Stack"), clusterStack.Name, colorizeStatus(clusterStack.Status))
 		if vpcStack == nil {
 			fmt.Fprintf(writer, "%s:\tunmanaged\n", bold("VPC Stack"))
@@ -322,4 +319,40 @@ func buildInstanceTable(writer io.Writer, instances []*ecs.ContainerInstance) *t
 	}
 
 	return table
+}
+
+// NewEnvironmentTerminator create a new workflow for terminating an environment
+func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Executor {
+
+	workflow := new(environmentWorkflow)
+
+	return newWorkflow(
+		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+	)
+}
+
+func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		envStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		err := stackDeleter.DeleteStack(envStackName)
+		if err != nil {
+			return err
+		}
+
+		stackWaiter.AwaitFinalStatus(envStackName)
+		return nil
+	}
+}
+func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
+		err := stackDeleter.DeleteStack(vpcStackName)
+		if err != nil {
+			log.Debugf("Unable to delete VPC, but ignoring error: %v", err)
+		}
+
+		stackWaiter.AwaitFinalStatus(vpcStackName)
+		return nil
+	}
 }

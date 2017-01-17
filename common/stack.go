@@ -2,18 +2,18 @@ package common
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"io"
 	"strings"
 	"time"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"errors"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
 // CreateStackName will create a name for a stack
@@ -41,6 +41,11 @@ type StackGetter interface {
 	GetStack(stackName string) (*Stack, error)
 }
 
+// StackDeleter for deleting stacks
+type StackDeleter interface {
+	DeleteStack(stackName string) error
+}
+
 // ImageFinder for finding latest image
 type ImageFinder interface {
 	FindLatestImageID(namePattern string) (string, error)
@@ -52,6 +57,7 @@ type StackManager interface {
 	StackWaiter
 	StackLister
 	StackGetter
+	StackDeleter
 	ImageFinder
 }
 
@@ -234,8 +240,11 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 			// no op
 
 		}
-		log.Debugf("  Returning final status for stack:%s ... status=%s", stackName, *resp.Stacks[0].StackStatus)
-		return *resp.Stacks[0].StackStatus
+
+		if len(resp.Stacks) > 0 {
+			log.Debugf("  Returning final status for stack:%s ... status=%s", stackName, *resp.Stacks[0].StackStatus)
+			return *resp.Stacks[0].StackStatus
+		}
 	}
 
 	log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
@@ -319,18 +328,18 @@ func (cfnMgr *cloudformationStackManager) GetStack(stackName string) (*Stack, er
 func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) (string, error) {
 	ec2Api := cfnMgr.ec2API
 	resp, err := ec2Api.DescribeImages(&ec2.DescribeImagesInput{
-		Owners: []*string {aws.String("amazon")},
-		Filters: []*ec2.Filter {
+		Owners: []*string{aws.String("amazon")},
+		Filters: []*ec2.Filter{
 			{
 				Name: aws.String("name"),
-				Values: []*string {
+				Values: []*string{
 					aws.String(namePattern),
 				},
 			},
 		},
 	})
 
-	if(err != nil) {
+	if err != nil {
 		return "", err
 	}
 
@@ -354,3 +363,14 @@ func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) 
 	return imageID, nil
 }
 
+// DeleteStack delete a specific stack
+func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
+
+	log.Debugf("Deleting stack named '%s'", stackName)
+
+	_, err := cfnAPI.DeleteStack(params)
+	return err
+}
