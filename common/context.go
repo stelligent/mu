@@ -6,11 +6,19 @@ import (
 	"io"
 )
 
-var version = "0.0.0-local"
+var version string
 
 // GetVersion returns the current version of the app
 func GetVersion() string {
+	if version == "" {
+		return "0.0.0-local"
+	}
 	return version
+}
+
+// SetVersion returns the current version of the app
+func SetVersion(v string) {
+	version = v
 }
 
 // NewContext create a new context object

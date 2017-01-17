@@ -84,7 +84,7 @@ func assetsClusterYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/cluster.yml", size: 10012, mode: os.FileMode(420), modTime: time.Unix(1484636245, 0)}
+	info := bindataFileInfo{name: "assets/cluster.yml", size: 10012, mode: os.FileMode(420), modTime: time.Unix(1484640981, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
