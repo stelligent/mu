@@ -113,6 +113,10 @@ Resources:
       MinSize: '1'
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+        PropagateAtLaunch: true
     CreationPolicy:
       ResourceSignal:
         Timeout: PT15M
