@@ -1,10 +1,8 @@
 package cli
 
 import (
-	"bufio"
 	"github.com/stelligent/mu/common"
 	"github.com/urfave/cli"
-	"os"
 )
 
 // NewApp creates a new CLI app
@@ -34,17 +32,8 @@ func NewApp() *cli.App {
 
 		}
 
-		// load yaml config
-		yamlFile, err := os.Open(c.String("config"))
-		if err != nil {
-			return err
-		}
-		defer func() {
-			yamlFile.Close()
-		}()
-
 		// initialize context
-		context.Initialize(bufio.NewReader(yamlFile))
+		context.InitializeFromFile(c.String("config"))
 		return nil
 	}
 

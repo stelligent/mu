@@ -107,10 +107,6 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 		&cloudformation.Tag{
 			Key:   aws.String("mu:version"),
 			Value: aws.String(GetVersion()),
-		},
-		&cloudformation.Tag{
-			Key:   aws.String("mu:lastupdate"),
-			Value: aws.String(fmt.Sprintf("%v", time.Now().Unix())),
 		})
 
 	for key, value := range tags {
@@ -257,6 +253,7 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 	stack.Name = aws.StringValue(stackDetails.StackName)
 	stack.Status = aws.StringValue(stackDetails.StackStatus)
 	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
+	stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
 

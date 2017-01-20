@@ -243,7 +243,6 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - ecs:CreateCluster
             - ecs:RegisterContainerInstance
             - ecs:DeregisterContainerInstance
             - ecs:DiscoverPollEndpoint

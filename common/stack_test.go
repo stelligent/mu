@@ -303,14 +303,13 @@ func TestTagParameters(t *testing.T) {
 	paramMap := make(map[string]string)
 
 	parameters := buildStackTags(paramMap)
-	assert.Equal(2, len(parameters))
+	assert.Equal(1, len(parameters))
 
 	paramMap["p1"] = "value 1"
 	paramMap["p2"] = "value 2"
 	parameters = buildStackTags(paramMap)
-	assert.Equal(4, len(parameters))
+	assert.Equal(3, len(parameters))
 	assert.Contains(*parameters[0].Key, "mu:")
 	assert.Contains(*parameters[1].Key, "mu:")
 	assert.Contains(*parameters[2].Key, "mu:")
-	assert.Contains(*parameters[3].Key, "mu:")
 }

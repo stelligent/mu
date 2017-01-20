@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
 )
 
@@ -13,6 +15,7 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 		Usage:   "options for managing services",
 		Subcommands: []cli.Command{
 			*newServicesShowCommand(ctx),
+			*newServicesPushCommand(ctx),
 			*newServicesDeployCommand(ctx),
 			*newServicesSetenvCommand(ctx),
 			*newServicesUndeployCommand(ctx),
@@ -42,6 +45,26 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 	return cmd
 }
 
+func newServicesPushCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:  "push",
+		Usage: "push service to repository",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "tag, t",
+				Usage: "tag to push",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			tag := c.String("tag")
+			workflow := workflows.NewServicePusher(ctx, tag)
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+
 func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
 		Name:      "deploy",
@@ -49,15 +72,19 @@ func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: "<environment>",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to deploy",
+				Name:  "tag, t",
+				Usage: "tag to push",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			serviceName := c.String("service")
-			fmt.Printf("deploying service: %s to environment: %s\n", serviceName, environmentName)
-			return nil
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "terminate")
+				return errors.New("environment must be provided")
+			}
+			tag := c.String("tag")
+			workflow := workflows.NewServiceDeployer(ctx, environmentName, tag)
+			return workflow()
 		},
 	}
 

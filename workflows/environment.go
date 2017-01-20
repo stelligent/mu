@@ -6,16 +6,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
-	"github.com/op/go-logging"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"io"
 	"strconv"
 	"strings"
-	"time"
 )
-
-var log = logging.MustGetLogger("environment")
 
 type environmentWorkflow struct {
 	environment *common.Environment
@@ -197,14 +193,11 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 
 		for _, stack := range stacks {
 
-			lastUpdate, _ := strconv.ParseInt(stack.Tags["lastupdate"], 10, 64)
-			tm := time.Unix(lastUpdate, 0)
-
 			table.Append([]string{
 				bold(stack.Tags["environment"]),
 				stack.Name,
 				fmt.Sprintf("%s %s", colorizeStatus(stack.Status), stack.StatusReason),
-				tm.String(),
+				stack.LastUpdateTime.String(),
 				stack.Tags["version"],
 			})
 
