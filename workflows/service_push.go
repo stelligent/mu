@@ -18,7 +18,7 @@ func NewServicePusher(ctx *common.Context, tag string) Executor {
 	)
 }
 
-func (workflow *serviceWorkflow) serviceRepoUpserter(stackUpserter common.StackUpserter, stackWaiter common.StackManager) Executor {
+func (workflow *serviceWorkflow) serviceRepoUpserter(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		service := workflow.service
 		log.Debugf("Upsert repo for service '%s' version '%s'", service.Name, service.Revision)
