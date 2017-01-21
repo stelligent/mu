@@ -3,17 +3,18 @@ package workflows
 import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"io"
 )
 
 // NewServicePusher create a new workflow for pushing a service to a repo
-func NewServicePusher(ctx *common.Context, tag string) Executor {
+func NewServicePusher(ctx *common.Context, tag string, dockerWriter io.Writer) Executor {
 
 	workflow := new(serviceWorkflow)
 
 	return newWorkflow(
 		workflow.serviceLoader(&ctx.Config),
 		workflow.serviceRepoUpserter(ctx.StackManager, ctx.StackManager),
-		workflow.serviceBuilder(tag),
+		workflow.serviceBuilder(ctx.DockerManager, &ctx.Config, tag, dockerWriter),
 		workflow.servicePusher(tag),
 	)
 }
@@ -21,7 +22,7 @@ func NewServicePusher(ctx *common.Context, tag string) Executor {
 func (workflow *serviceWorkflow) serviceRepoUpserter(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		service := workflow.service
-		log.Debugf("Upsert repo for service '%s' version '%s'", service.Name, service.Revision)
+		log.Noticef("Upsert repo for service '%s'", service.Name)
 
 		template, err := templates.NewTemplate("repo.yml", service)
 		if err != nil {
@@ -43,17 +44,24 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(stackUpserter common.StackU
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceBuilder(tag string) Executor {
+func (workflow *serviceWorkflow) serviceBuilder(imageBuilder common.DockerImageBuilder, config *common.Config, tag string, dockerWriter io.Writer) Executor {
 	return func() error {
 		service := workflow.service
-		log.Debugf("Building service '%s' version '%s' tag '%s'", service.Name, service.Revision, tag)
+
+		if tag == "" {
+			tag = service.Revision
+		}
+		log.Noticef("Building service '%s' tag '%s'", service.Name, tag)
+
+		imageBuilder.ImageBuild(config.Basedir, service.Dockerfile, []string{tag}, dockerWriter)
+
 		return nil
 	}
 }
 func (workflow *serviceWorkflow) servicePusher(tag string) Executor {
 	return func() error {
 		service := workflow.service
-		log.Debugf("Pushing service '%s' version '%s' tag '%s'", service.Name, service.Revision, tag)
+		log.Noticef("Pushing service '%s' tag '%s'", service.Name, tag)
 		return nil
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
+	"os"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -57,7 +58,7 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			tag := c.String("tag")
-			workflow := workflows.NewServicePusher(ctx, tag)
+			workflow := workflows.NewServicePusher(ctx, tag, os.Stdout)
 			return workflow()
 		},
 	}

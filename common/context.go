@@ -42,21 +42,20 @@ func (ctx *Context) InitializeFromFile(muFile string) error {
 		yamlFile.Close()
 	}()
 
-	repoName := path.Base(path.Dir(muFile))
-	repoRevision := time.Now().Format("20060102150405")
+	// set the basedir
+	ctx.Config.Basedir = path.Dir(muFile)
+	ctx.Repo.Name = path.Base(ctx.Config.Basedir)
+	ctx.Repo.Revision = time.Now().Format("20060102150405")
 	gitRevision, err := findGitRevision(muFile)
 	if err == nil {
-		repoRevision = gitRevision
+		ctx.Repo.Revision = gitRevision
 	}
 
-	return ctx.Initialize(bufio.NewReader(yamlFile), repoName, repoRevision)
+	return ctx.Initialize(bufio.NewReader(yamlFile))
 }
 
 // Initialize loads config object
-func (ctx *Context) Initialize(configReader io.Reader, repoName string, repoRevision string) error {
-	// initialize the repo
-	ctx.Repo.Name = repoName
-	ctx.Repo.Revision = repoRevision
+func (ctx *Context) Initialize(configReader io.Reader) error {
 
 	// load the configuration
 	err := loadYamlConfig(&ctx.Config, configReader)
@@ -66,10 +65,10 @@ func (ctx *Context) Initialize(configReader io.Reader, repoName string, repoRevi
 
 	// service defaults
 	if ctx.Config.Service.Name == "" {
-		ctx.Config.Service.Name = repoName
+		ctx.Config.Service.Name = ctx.Repo.Name
 	}
 	if ctx.Config.Service.Revision == "" {
-		ctx.Config.Service.Revision = repoRevision
+		ctx.Config.Service.Revision = ctx.Repo.Revision
 	}
 
 	// initialize StackManager
@@ -80,6 +79,12 @@ func (ctx *Context) Initialize(configReader io.Reader, repoName string, repoRevi
 
 	// initialize ClusterManager
 	ctx.ClusterManager, err = newClusterManager(ctx.Config.Region)
+	if err != nil {
+		return err
+	}
+
+	// initialize DockerManager
+	ctx.DockerManager, err = newClientDockerManager()
 	if err != nil {
 		return err
 	}

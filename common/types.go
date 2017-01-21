@@ -11,10 +11,12 @@ type Context struct {
 	}
 	StackManager   StackManager
 	ClusterManager ClusterManager
+	DockerManager  DockerManager
 }
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
+	Basedir      string
 	Region       string
 	Environments []Environment
 	Service      Service
@@ -47,6 +49,7 @@ type Service struct {
 	Name         string
 	Revision     string
 	DesiredCount int `yaml:"desiredCount"`
+	Dockerfile   string
 	Pipeline     struct {
 	}
 }

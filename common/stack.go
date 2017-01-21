@@ -182,7 +182,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
-					log.Noticef("  No changes for stack '%s'", stackName)
+					log.Infof("  No changes for stack '%s'", stackName)
 					return nil
 				}
 			}

@@ -17,6 +17,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 
 func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+		log.Noticef("Terminating ECS environment '%s' ...", environmentName)
 		envStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {
@@ -29,6 +30,7 @@ func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName st
 }
 func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+		log.Noticef("Terminating VPC environment '%s' ...", environmentName)
 		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
 		err := stackDeleter.DeleteStack(vpcStackName)
 		if err != nil {

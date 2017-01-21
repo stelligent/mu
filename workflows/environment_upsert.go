@@ -45,7 +45,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
 
 			// no target VPC, we need to create/update the VPC stack
-			log.Infof("Upserting VPC environment '%s' ...", environment.Name)
+			log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 			template, err := templates.NewTemplate("vpc.yml", environment)
 			if err != nil {
 				return err
@@ -89,7 +89,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		environment := workflow.environment
 		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
 
-		log.Infof("Upserting ECS environment '%s' ...", environment.Name)
+		log.Noticef("Upserting ECS environment '%s' ...", environment.Name)
 		template, err := templates.NewTemplate("cluster.yml", environment)
 		if err != nil {
 			return err
