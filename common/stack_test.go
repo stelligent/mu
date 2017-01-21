@@ -67,9 +67,9 @@ func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 		cfnAPI: cfn,
 	}
 
-	finalStatus := stackManager.AwaitFinalStatus("foo")
+	stack := stackManager.AwaitFinalStatus("foo")
 
-	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
 }
@@ -101,9 +101,9 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 		cfnAPI: cfn,
 	}
 
-	finalStatus := stackManager.AwaitFinalStatus("foo")
+	stack := stackManager.AwaitFinalStatus("foo")
 
-	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 2)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackCreateComplete", 1)

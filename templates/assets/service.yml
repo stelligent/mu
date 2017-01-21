@@ -1,0 +1,110 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ImageUrl:
+    Type: String
+    Description: Docker Image URL
+  ServiceDesiredCount:
+    Type: Number
+    Default: '2'
+    Description: Number of containers to launch in your ECS service.
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to configure the target group in.
+  EcsCluster:
+    Type: String
+    Description: Name of the Ecs Cluster to deploy to.
+  EcsElbListenerArn:
+    Type: String
+    Description: Arn of the ELB listener to attach the target group to.
+  PathPattern:
+    Type: CommaDelimitedList
+    Description: List of paths to route to the service.
+  ListenerRulePriority:
+    Type: Number
+    Description: The priority of the rule being added to the listener
+    Default: 1
+Resources:
+  EcsService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref EcsCluster
+      DesiredCount: !Ref ServiceDesiredCount
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      LoadBalancers:
+      - ContainerName: microservice-exemplar-container
+        ContainerPort: '8080'
+        TargetGroupArn: !Ref EcsElbTargetGroup
+      Role: !Ref EcsServiceRole
+      TaskDefinition: !Ref MicroserviceTaskDefinition
+  EcsServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:AuthorizeSecurityGroupIngress
+            - ec2:Describe*
+            - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+            - elasticloadbalancing:Describe*
+            - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+            - elasticloadbalancing:DeregisterTargets
+            - elasticloadbalancing:DescribeTargetGroups
+            - elasticloadbalancing:DescribeTargetHealth
+            - elasticloadbalancing:RegisterTargets
+            Resource: "*"
+  MicroserviceTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+      - Name: microservice-exemplar-container
+        Cpu: '10'
+        Essential: 'true'
+        Image: !Ref ImageUrl
+        Memory: '300'
+        PortMappings:
+        - HostPort: 0
+          ContainerPort: 8080
+      Volumes: []
+  EcsElbListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref EcsElbTargetGroup
+      Conditions:
+      - Field: path-pattern
+        Values: !Ref PathPattern
+      ListenerArn: !Ref EcsElbListenerArn
+      Priority: !Ref ListenerRulePriority
+  EcsElbTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 5
+      HealthCheckPath: "/health"
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 3
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-299
+      Port: '8080'
+      Protocol: HTTP
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 60
+      UnhealthyThresholdCount: 5
+      VpcId: !Ref VPCId

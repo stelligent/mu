@@ -17,10 +17,8 @@ func TestServiceDeploy(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(serviceWorkflow)
-	workflow.service = &common.Service{
-		Name: "foo",
-	}
+	workflow.serviceName = "foo"
 
-	err := workflow.serviceDeployer("dev", "foo")()
+	err := workflow.serviceDeployer("dev")()
 	assert.Nil(err)
 }

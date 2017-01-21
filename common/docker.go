@@ -20,9 +20,15 @@ type DockerImageBuilder interface {
 	ImageBuild(contextDir string, relDockerfile string, tags []string, dockerOut io.Writer) error
 }
 
+// DockerImagePusher for pushing docker images
+type DockerImagePusher interface {
+	ImagePush(image string, registryAuth string, dockerOut io.Writer) error
+}
+
 // DockerManager composite of all cluster capabilities
 type DockerManager interface {
 	DockerImageBuilder
+	DockerImagePusher
 }
 
 type clientDockerManager struct {
@@ -125,4 +131,41 @@ func createBuildContext(contextDir string, relDockerfile string) (io.ReadCloser,
 	}
 
 	return buildCtx, nil
+}
+
+func (d *clientDockerManager) ImagePush(image string, registryAuth string, dockerOut io.Writer) error {
+
+	log.Debugf("Pushing image '%s' auth '%s'", image, registryAuth)
+
+	pushOptions := types.ImagePushOptions{
+		RegistryAuth: registryAuth,
+	}
+
+	resp, err := d.dockerClient.ImagePush(context.Background(), image, pushOptions)
+	if err != nil {
+		return err
+	}
+
+	if dockerOut != nil {
+		scanner := bufio.NewScanner(resp)
+		type dockerMessage struct {
+			Status string `json:"status"`
+			ID string `json:"id"`
+			Error string `json:"error"`
+		}
+		msg := dockerMessage{}
+		for scanner.Scan() {
+			line := scanner.Bytes()
+			msg.Status = ""
+			msg.Error = ""
+			if err := json.Unmarshal(line, &msg); err == nil {
+				if msg.Error != "" {
+					dockerOut.Write([]byte(fmt.Sprintf("Error: %s\n",msg.Error)))
+				} else if msg.Status != "" {
+					dockerOut.Write([]byte(fmt.Sprintf("%s :: %s\n",msg.Status,msg.ID)))
+				}
+			}
+		}
+	}
+	return resp.Close()
 }

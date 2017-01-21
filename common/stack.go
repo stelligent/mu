@@ -23,7 +23,7 @@ func CreateStackName(stackType StackType, name string) string {
 
 // StackWaiter for waiting on stack status to be final
 type StackWaiter interface {
-	AwaitFinalStatus(stackName string) string
+	AwaitFinalStatus(stackName string) *Stack
 }
 
 // StackUpserter for applying changes to a stack
@@ -121,7 +121,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 
 // UpsertStack will create/update the cloudformation stack
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error {
-	stackStatus := cfnMgr.AwaitFinalStatus(stackName)
+	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	// load the template
 	templateBodyBytes := new(bytes.Buffer)
@@ -135,7 +135,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	stackTags := buildStackTags(tags)
 
 	cfnAPI := cfnMgr.cfnAPI
-	if stackStatus == "" {
+	if stack == nil || stack.Status == "" {
 
 		log.Debugf("  Creating stack named '%s'", stackName)
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
@@ -164,7 +164,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 	} else {
 		log.Debugf("  Updating stack named '%s'", stackName)
-		log.Debugf("  Prior state: %s", stackStatus)
+		log.Debugf("  Prior state: %s", stack.Status)
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.UpdateStackInput{
@@ -195,7 +195,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 // AwaitFinalStatus waits for the stack to arrive in a final status
 //  returns: final status, or empty string if stack doesn't exist
-func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) string {
+func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *Stack {
 	cfnAPI := cfnMgr.cfnAPI
 	params := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -239,12 +239,12 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 
 		if len(resp.Stacks) > 0 {
 			log.Debugf("  Returning final status for stack:%s ... status=%s", stackName, *resp.Stacks[0].StackStatus)
-			return *resp.Stacks[0].StackStatus
+			return buildStack(resp.Stacks[0])
 		}
 	}
 
 	log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
-	return ""
+	return nil
 }
 
 func buildStack(stackDetails *cloudformation.Stack) *Stack {

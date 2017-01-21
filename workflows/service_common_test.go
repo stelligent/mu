@@ -13,7 +13,7 @@ func TestServiceLoader(t *testing.T) {
 	config.Service.Name = "myservice"
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceLoader(config)()
+	err := workflow.serviceLoader(config, "foo")()
 	assert.Nil(err)
-	assert.Equal("myservice", workflow.service.Name)
+	assert.Equal("myservice", workflow.serviceName)
 }

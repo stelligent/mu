@@ -54,9 +54,9 @@ type mockedStackManagerForUpsert struct {
 	mock.Mock
 }
 
-func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) string {
+func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common.Stack {
 	args := m.Called(stackName)
-	return args.String(0)
+	return args.Get(0).(*common.Stack)
 }
 func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
 	args := m.Called(stackName)
@@ -78,7 +78,7 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusCreateComplete)
+	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-cluster-foo").Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
@@ -101,7 +101,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(cloudformation.StackStatusCreateComplete)
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo").Return(nil)
 
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()

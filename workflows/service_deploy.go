@@ -10,15 +10,14 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	workflow := new(serviceWorkflow)
 
 	return newWorkflow(
-		workflow.serviceLoader(&ctx.Config),
-		workflow.serviceDeployer(environmentName, tag),
+		workflow.serviceLoader(&ctx.Config, tag),
+		workflow.serviceDeployer(environmentName),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceDeployer(environmentName string, tag string) Executor {
+func (workflow *serviceWorkflow) serviceDeployer(environmentName string) Executor {
 	return func() error {
-		service := workflow.service
-		log.Debugf("Deploying service '%s' version '%s' tag '%s' to environment '%s'", service.Name, service.Revision, tag, environmentName)
+		log.Debugf("Deploying service '%s' image '%s' to environment '%s'", workflow.serviceName, workflow.serviceImage, environmentName)
 		return nil
 	}
 }

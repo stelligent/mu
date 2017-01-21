@@ -19,9 +19,9 @@ type mockedStackManagerForTerminate struct {
 	mock.Mock
 }
 
-func (m *mockedStackManagerForTerminate) AwaitFinalStatus(stackName string) string {
+func (m *mockedStackManagerForTerminate) AwaitFinalStatus(stackName string) *common.Stack {
 	args := m.Called(stackName)
-	return args.String(0)
+	return args.Get(0).(*common.Stack)
 }
 func (m *mockedStackManagerForTerminate) DeleteStack(stackName string) error {
 	args := m.Called(stackName)
@@ -41,7 +41,7 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(cloudformation.StackStatusDeleteComplete)
+	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-cluster-foo").Return(nil)
 
 	err := workflow.environmentEcsTerminator("foo", stackManager, stackManager)()
@@ -61,7 +61,7 @@ func TestNewEnvironmentVpcTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(cloudformation.StackStatusDeleteComplete)
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-vpc-foo").Return(nil)
 
 	err := workflow.environmentVpcTerminator("foo", stackManager, stackManager)()

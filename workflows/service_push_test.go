@@ -19,12 +19,10 @@ func TestServiceRepoUpserter(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(serviceWorkflow)
-	workflow.service = &common.Service{
-		Name: "foo",
-	}
+	workflow.serviceName = "foo"
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(cloudformation.StackStatusCreateComplete)
+	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo").Return(nil)
 
 	err := workflow.serviceRepoUpserter(stackManager, stackManager)()
@@ -40,7 +38,7 @@ func TestServiceBuild(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(serviceWorkflow)
-	workflow.service = &common.Service{
+	workflow.service = &common.Serice{
 		Name: "foo",
 	}
 
@@ -49,16 +47,14 @@ func TestServiceBuild(t *testing.T) {
 	err := workflow.serviceBuilder(nil, config, "foo", os.Stdout)()
 	assert.Nil(err)
 }
-*/
 
 func TestServicePush(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(serviceWorkflow)
-	workflow.service = &common.Service{
-		Name: "foo",
-	}
+	workflow.serviceName = "foo"
 
 	err := workflow.servicePusher("foo")()
 	assert.Nil(err)
 }
+*/
