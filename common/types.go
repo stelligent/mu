@@ -46,11 +46,11 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name         string
-	Revision     string
-	DesiredCount int `yaml:"desiredCount"`
-	Dockerfile   string
-	Pipeline     struct {
+	Name            string
+	DesiredCount    int `yaml:"desiredCount"`
+	Dockerfile      string
+	ImageRepository string
+	Pipeline        struct {
 	}
 }
 

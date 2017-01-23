@@ -4,8 +4,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestNewServicePusher(t *testing.T) {
@@ -18,6 +18,8 @@ func TestNewServicePusher(t *testing.T) {
 func TestServiceRepoUpserter(t *testing.T) {
 	assert := assert.New(t)
 
+	svc := new(common.Service)
+
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "foo"
 
@@ -25,7 +27,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo").Return(nil)
 
-	err := workflow.serviceRepoUpserter(stackManager, stackManager)()
+	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

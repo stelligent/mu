@@ -74,14 +74,13 @@ func (d *clientDockerManager) ImageBuild(contextDir string, relDockerfile string
 		for scanner.Scan() {
 			line := scanner.Bytes()
 			if err := json.Unmarshal(line, &msg); err == nil {
-				dockerOut.Write([]byte(fmt.Sprintf("  %s",msg.Stream)))
+				dockerOut.Write([]byte(fmt.Sprintf("  %s", msg.Stream)))
 			}
 		}
 	}
 
 	return resp.Body.Close()
 }
-
 
 func createBuildContext(contextDir string, relDockerfile string) (io.ReadCloser, error) {
 	log.Debugf("Creating archive for build context dir '%s' with relative dockerfile '%s'", contextDir, relDockerfile)
@@ -149,20 +148,26 @@ func (d *clientDockerManager) ImagePush(image string, registryAuth string, docke
 	if dockerOut != nil {
 		scanner := bufio.NewScanner(resp)
 		type dockerMessage struct {
-			Status string `json:"status"`
-			ID string `json:"id"`
-			Error string `json:"error"`
+			Status   string `json:"status"`
+			ID       string `json:"id"`
+			Error    string `json:"error"`
+			Progress string `json:"progress"`
 		}
 		msg := dockerMessage{}
 		for scanner.Scan() {
 			line := scanner.Bytes()
 			msg.Status = ""
 			msg.Error = ""
+			log.Debugf("-->%s", line)
 			if err := json.Unmarshal(line, &msg); err == nil {
 				if msg.Error != "" {
-					dockerOut.Write([]byte(fmt.Sprintf("Error: %s\n",msg.Error)))
+					dockerOut.Write([]byte(fmt.Sprintf("Error: %s\n", msg.Error)))
 				} else if msg.Status != "" {
-					dockerOut.Write([]byte(fmt.Sprintf("%s :: %s\n",msg.Status,msg.ID)))
+					if msg.Progress != "" {
+						dockerOut.Write([]byte(fmt.Sprintf("%s :: %s :: %s\n", msg.Status, msg.ID, msg.Progress)))
+					} else {
+						dockerOut.Write([]byte(fmt.Sprintf("%s :: %s\n", msg.Status, msg.ID)))
+					}
 				}
 			}
 		}

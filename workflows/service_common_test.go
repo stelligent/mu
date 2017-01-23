@@ -9,11 +9,11 @@ import (
 func TestServiceLoader(t *testing.T) {
 	assert := assert.New(t)
 
-	config := new(common.Config)
-	config.Service.Name = "myservice"
+	ctx := new(common.Context)
+	ctx.Config.Service.Name = "myservice"
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceLoader(config, "foo")()
+	err := workflow.serviceLoader(ctx, "foo")()
 	assert.Nil(err)
 	assert.Equal("myservice", workflow.serviceName)
 }

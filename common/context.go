@@ -63,14 +63,6 @@ func (ctx *Context) Initialize(configReader io.Reader) error {
 		return err
 	}
 
-	// service defaults
-	if ctx.Config.Service.Name == "" {
-		ctx.Config.Service.Name = ctx.Repo.Name
-	}
-	if ctx.Config.Service.Revision == "" {
-		ctx.Config.Service.Revision = ctx.Repo.Revision
-	}
-
 	// initialize StackManager
 	ctx.StackManager, err = newStackManager(ctx.Config.Region)
 	if err != nil {

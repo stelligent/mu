@@ -10,7 +10,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	workflow := new(serviceWorkflow)
 
 	return newWorkflow(
-		workflow.serviceLoader(&ctx.Config, tag),
+		workflow.serviceLoader(ctx, tag),
 		workflow.serviceDeployer(environmentName),
 	)
 }

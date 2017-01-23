@@ -1,14 +1,14 @@
 package common
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
-	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
-	"github.com/aws/aws-sdk-go/service/ecr"
 	"strings"
-	"fmt"
 )
 
 // ClusterInstanceLister for getting cluster instances
@@ -92,10 +92,10 @@ func (ecsMgr *ecsClusterManager) AuthenticateRepository(repoURL string) (string,
 	}
 
 	for _, authData := range resp.AuthorizationData {
-		if strings.HasPrefix(fmt.Sprintf("https://%s",repoURL), aws.StringValue(authData.ProxyEndpoint)) {
+		if strings.HasPrefix(fmt.Sprintf("https://%s", repoURL), aws.StringValue(authData.ProxyEndpoint)) {
 			return aws.StringValue(authData.AuthorizationToken), nil
 		}
 	}
 
-	return "", fmt.Errorf("unable to find token for repo url:%s",repoURL)
+	return "", fmt.Errorf("unable to find token for repo url:%s", repoURL)
 }
