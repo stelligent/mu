@@ -17,8 +17,8 @@ import (
 )
 
 // CreateStackName will create a name for a stack
-func CreateStackName(stackType StackType, name string) string {
-	return fmt.Sprintf("mu-%s-%s", stackType, name)
+func CreateStackName(stackType StackType, names ...string) string {
+	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names,"-"))
 }
 
 // StackWaiter for waiting on stack status to be final

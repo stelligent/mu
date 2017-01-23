@@ -1,46 +1,81 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
+  ServiceName:
+    Type: String
+    Description: Name of service
   ImageUrl:
     Type: String
     Description: Docker Image URL
+  ServicePort:
+    Type: String
+    Description: Port exposed in service
+    Default: '8080'
+  ServiceHealthEndpoint:
+    Type: String
+    Description: Endpoint to test service health
+    Default: '/health'
+  ServiceCpu:
+    Type: String
+    Description: CPU units to reserve for container
+    Default: '10'
+  ServiceMemory:
+    Type: String
+    Description: Memory to allocate to contianer (in MiB)
+    Default: '300'
   ServiceDesiredCount:
     Type: Number
     Default: '2'
     Description: Number of containers to launch in your ECS service.
-  VPCId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC to configure the target group in.
-  EcsCluster:
-    Type: String
-    Description: Name of the Ecs Cluster to deploy to.
-  EcsElbListenerArn:
-    Type: String
-    Description: Arn of the ELB listener to attach the target group to.
   PathPattern:
     Type: CommaDelimitedList
     Description: List of paths to route to the service.
+    Default: ''
   ListenerRulePriority:
     Type: Number
     Description: The priority of the rule being added to the listener
     Default: 1
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  EcsCluster:
+    Type: String
+    Description: Name of the value to import for Ecs Cluster to deploy to.
+  EcsElbListenerArn:
+    Type: String
+    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+Conditions:
+  HasPathPattern:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join": [ "", !Ref PathPattern]
+        - ""
 Resources:
   EcsService:
     Type: AWS::ECS::Service
     Properties:
-      Cluster: !Ref EcsCluster
+      Cluster:
+        Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
       DeploymentConfiguration:
         MaximumPercent: 100
         MinimumHealthyPercent: 0
       LoadBalancers:
-      - ContainerName: microservice-exemplar-container
-        ContainerPort: '8080'
-        TargetGroupArn: !Ref EcsElbTargetGroup
-      Role: !Ref EcsServiceRole
+        - Fn::If:
+          - HasPathPattern
+          - ContainerName: !Ref ServiceName
+            ContainerPort: !Ref ServicePort
+            TargetGroupArn: !Ref EcsElbTargetGroup
+          - !Ref AWS::NoValue
+      Role:
+        Fn::If:
+          - HasPathPattern
+          - !Ref EcsServiceRole
+          - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
   EcsServiceRole:
     Type: AWS::IAM::Role
+    Condition: HasPathPattern
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -71,17 +106,18 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-      - Name: microservice-exemplar-container
-        Cpu: '10'
+      - Name: !Ref ServiceName
+        Cpu: !Ref ServiceCpu
         Essential: 'true'
         Image: !Ref ImageUrl
-        Memory: '300'
+        Memory: !Ref ServiceMemory
         PortMappings:
         - HostPort: 0
-          ContainerPort: 8080
+          ContainerPort: !Ref ServicePort
       Volumes: []
   EcsElbListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasPathPattern
     Properties:
       Actions:
       - Type: forward
@@ -89,22 +125,25 @@ Resources:
       Conditions:
       - Field: path-pattern
         Values: !Ref PathPattern
-      ListenerArn: !Ref EcsElbListenerArn
+      ListenerArn:
+        Fn::ImportValue: !Sub ${EcsElbListenerArn}
       Priority: !Ref ListenerRulePriority
   EcsElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: HasPathPattern
     Properties:
       HealthCheckIntervalSeconds: 5
-      HealthCheckPath: "/health"
+      HealthCheckPath: !Ref ServiceHealthEndpoint
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 3
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: 200-299
-      Port: '8080'
+      Port: !Ref ServicePort
       Protocol: HTTP
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 60
       UnhealthyThresholdCount: 5
-      VpcId: !Ref VPCId
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
