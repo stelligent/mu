@@ -74,13 +74,13 @@ func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "tag, t",
-				Usage: "tag to push",
+				Usage: "tag to deploy",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "terminate")
+				cli.ShowCommandHelp(c, "deploy")
 				return errors.New("environment must be provided")
 			}
 			tag := c.String("tag")
@@ -128,9 +128,13 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "undeploy")
+				return errors.New("environment must be provided")
+			}
 			serviceName := c.String("service")
-			fmt.Printf("undeploying service: %s to environment: %s\n", serviceName, environmentName)
-			return nil
+			workflow := workflows.NewServiceUndeployer(ctx, serviceName, environmentName)
+			return workflow()
 		},
 	}
 
