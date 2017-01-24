@@ -16,11 +16,11 @@ func NewEnvironmentViewer(ctx *common.Context, environmentName string, writer io
 	workflow := new(environmentWorkflow)
 
 	return newWorkflow(
-		workflow.environmentViewer(environmentName, ctx.StackManager, ctx.ClusterManager, writer),
+		workflow.environmentViewer(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer),
 	)
 }
 
-func (workflow *environmentWorkflow) environmentViewer(environmentName string, stackGetter common.StackGetter, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewer(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	bold := color.New(color.Bold).SprintFunc()
 	return func() error {
 		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
@@ -55,7 +55,11 @@ func (workflow *environmentWorkflow) environmentViewer(environmentName string, s
 
 		fmt.Fprintf(writer, "%s:\n", bold("Services"))
 		fmt.Fprint(writer, "\n")
-		table = buildServiceTable(writer)
+		stacks, err := stackLister.ListStacks(common.StackTypeService)
+		if err != nil {
+			return err
+		}
+		table = buildServiceTable(stacks, environmentName, writer)
 		table.Render()
 
 		fmt.Fprint(writer, "\n")
@@ -64,10 +68,28 @@ func (workflow *environmentWorkflow) environmentViewer(environmentName string, s
 	}
 }
 
-func buildServiceTable(writer io.Writer) *tablewriter.Table {
+func buildServiceTable(stacks []*common.Stack, environmentName string, writer io.Writer) *tablewriter.Table {
+	bold := color.New(color.Bold).SprintFunc()
+
 	table := tablewriter.NewWriter(writer)
-	table.SetHeader([]string{"Name", "Status"})
+	table.SetHeader([]string{"Service", "Image", "Status", "Last Update", "Mu Version"})
 	table.SetBorder(false)
+
+	for _, stack := range stacks {
+		if stack.Tags["environment"] != environmentName {
+			continue
+		}
+
+		table.Append([]string{
+			bold(stack.Tags["service"]),
+			stack.Parameters["ImageUrl"],
+			fmt.Sprintf("%s %s", colorizeStackStatus(stack.Status), stack.StatusReason),
+			stack.LastUpdateTime.Local().Format("2006-01-02 15:04:05"),
+			stack.Tags["version"],
+		})
+
+	}
+
 	return table
 }
 
