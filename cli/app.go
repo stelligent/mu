@@ -33,8 +33,7 @@ func NewApp() *cli.App {
 		}
 
 		// initialize context
-		context.InitializeFromFile(c.String("config"))
-		return nil
+		return context.InitializeFromFile(c.String("config"))
 	}
 
 	app.Flags = []cli.Flag{

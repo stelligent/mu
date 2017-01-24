@@ -253,6 +253,7 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 	stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
+	stack.Parameters = make(map[string]string)
 
 	for _, tag := range stackDetails.Tags {
 		key := aws.StringValue(tag.Key)
@@ -263,6 +264,10 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 
 	for _, output := range stackDetails.Outputs {
 		stack.Outputs[aws.StringValue(output.OutputKey)] = aws.StringValue(output.OutputValue)
+	}
+
+	for _, param := range stackDetails.Parameters {
+		stack.Parameters[aws.StringValue(param.ParameterKey)] = aws.StringValue(param.ParameterValue)
 	}
 
 	return stack
