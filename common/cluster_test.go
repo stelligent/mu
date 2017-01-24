@@ -2,6 +2,8 @@ package common
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/stretchr/testify/assert"
@@ -53,4 +55,56 @@ func TestEcsClusterManager_ListInstances(t *testing.T) {
 	m.AssertExpectations(t)
 	m.AssertNumberOfCalls(t, "DescribeContainerInstances", 1)
 	m.AssertNumberOfCalls(t, "ListContainerInstancesPages", 1)
+}
+
+type mockedECR struct {
+	mock.Mock
+	ecriface.ECRAPI
+}
+
+func (m *mockedECR) GetAuthorizationToken(input *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
+	args := m.Called()
+	return args.Get(0).(*ecr.GetAuthorizationTokenOutput), args.Error(1)
+}
+func TestEcsClusterManager_AuthenticateRepository(t *testing.T) {
+	assert := assert.New(t)
+
+	m := new(mockedECR)
+	m.On("GetAuthorizationToken").Return(
+		&ecr.GetAuthorizationTokenOutput{
+			AuthorizationData: []*ecr.AuthorizationData{
+				{
+					ProxyEndpoint:      aws.String("https://foo"),
+					AuthorizationToken: aws.String("foo"),
+				},
+				{
+					ProxyEndpoint:      aws.String("https://bar"),
+					AuthorizationToken: aws.String("bar"),
+				},
+			},
+		}, nil)
+
+	clusterManager := ecsClusterManager{
+		ecrAPI: m,
+	}
+
+	barTok1, err := clusterManager.AuthenticateRepository("bar")
+	assert.Nil(err)
+	assert.Equal("bar", barTok1)
+
+	barTok2, err := clusterManager.AuthenticateRepository("bar:latest")
+	assert.Nil(err)
+	assert.Equal("bar", barTok2)
+
+	fooTok1, err := clusterManager.AuthenticateRepository("foo")
+	assert.Nil(err)
+	assert.Equal("foo", fooTok1)
+
+	fooTok2, err := clusterManager.AuthenticateRepository("foo:latest")
+	assert.Nil(err)
+	assert.Equal("foo", fooTok2)
+
+	m.AssertExpectations(t)
+	m.AssertNumberOfCalls(t, "GetAuthorizationToken", 4)
+
 }

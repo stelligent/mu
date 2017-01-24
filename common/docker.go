@@ -158,7 +158,6 @@ func (d *clientDockerManager) ImagePush(image string, registryAuth string, docke
 			line := scanner.Bytes()
 			msg.Status = ""
 			msg.Error = ""
-			log.Debugf("-->%s", line)
 			if err := json.Unmarshal(line, &msg); err == nil {
 				if msg.Error != "" {
 					dockerOut.Write([]byte(fmt.Sprintf("Error: %s\n", msg.Error)))

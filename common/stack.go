@@ -18,7 +18,7 @@ import (
 
 // CreateStackName will create a name for a stack
 func CreateStackName(stackType StackType, names ...string) string {
-	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names,"-"))
+	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names, "-"))
 }
 
 // StackWaiter for waiting on stack status to be final
@@ -65,9 +65,6 @@ type cloudformationStackManager struct {
 	cfnAPI cloudformationiface.CloudFormationAPI
 	ec2API ec2iface.EC2API
 }
-
-// TODO: support "dry-run" and write the template to a file
-// fmt.Sprintf("%s/%s.yml", os.TempDir(), name),
 
 // NewStackManager creates a new StackManager backed by cloudformation
 func newStackManager(region string) (StackManager, error) {

@@ -1,9 +1,10 @@
 package workflows
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"io"
 	"os"
 	"testing"
 )
@@ -15,48 +16,53 @@ func TestNewServicePusher(t *testing.T) {
 	assert.NotNil(upserter)
 }
 
-func TestServiceRepoUpserter(t *testing.T) {
-	assert := assert.New(t)
-
-	svc := new(common.Service)
-
-	workflow := new(serviceWorkflow)
-	workflow.serviceName = "foo"
-
-	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-repo-foo").Return(nil)
-
-	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
-	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+type mockServiceBuilder struct {
+	mock.Mock
+	common.DockerImageBuilder
 }
 
-/*
-func TestServiceBuild(t *testing.T) {
-	assert := assert.New(t)
-
-	workflow := new(serviceWorkflow)
-	workflow.service = &common.Serice{
-		Name: "foo",
-	}
-
-	config := &common.Config{}
-
-	err := workflow.serviceBuilder(nil, config, "foo", os.Stdout)()
-	assert.Nil(err)
+func (m *mockServiceBuilder) ImageBuild(basedir string, dockerfile string, tags []string, dockerWriter io.Writer) error {
+	args := m.Called()
+	return args.Error(0)
 }
 
-func TestServicePush(t *testing.T) {
+type mockServicePusher struct {
+	mock.Mock
+	common.DockerImagePusher
+}
+
+func (m *mockServicePusher) ImagePush(image string, registryAuth string, dockerWriter io.Writer) error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func TestServiceBuilder(t *testing.T) {
 	assert := assert.New(t)
 
-	workflow := new(serviceWorkflow)
-	workflow.serviceName = "foo"
+	builder := new(mockServiceBuilder)
+	builder.On("ImageBuild").Return(nil)
 
-	err := workflow.servicePusher("foo")()
+	config := new(common.Config)
+
+	workflow := new(serviceWorkflow)
+	err := workflow.serviceBuilder(builder, config, os.Stdout)()
 	assert.Nil(err)
+
+	builder.AssertExpectations(t)
+	builder.AssertNumberOfCalls(t, "ImageBuild", 1)
+
 }
-*/
+
+func TestServicePusher(t *testing.T) {
+	assert := assert.New(t)
+
+	pusher := new(mockServicePusher)
+	pusher.On("ImagePush").Return(nil)
+
+	workflow := new(serviceWorkflow)
+	err := workflow.servicePusher(pusher, os.Stdout)()
+	assert.Nil(err)
+
+	pusher.AssertExpectations(t)
+	pusher.AssertNumberOfCalls(t, "ImagePush", 1)
+}

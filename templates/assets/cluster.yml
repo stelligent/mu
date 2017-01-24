@@ -246,6 +246,7 @@ Resources:
             - ecs:RegisterContainerInstance
             - ecs:DeregisterContainerInstance
             - ecs:DiscoverPollEndpoint
+            - ecs:StartTelemetrySession
             - ecs:Submit*
             - ecr:*
             - ecs:Poll
