@@ -243,10 +243,10 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - ecs:CreateCluster
             - ecs:RegisterContainerInstance
             - ecs:DeregisterContainerInstance
             - ecs:DiscoverPollEndpoint
+            - ecs:StartTelemetrySession
             - ecs:Submit*
             - ecr:*
             - ecs:Poll
@@ -327,6 +327,12 @@ Outputs:
   BaseUrl:
     Value: !Sub http://${EcsElb.DNSName}/
     Description: ELB URL
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: VPC ID for the ECS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
   EcsElbListenerArn:
     Value: !Ref EcsElbListener
     Description: Arn of the ELB Listener.
