@@ -29,5 +29,7 @@ func NewTemplate(assetName string, data interface{}) (io.Reader, error) {
 		return nil, err
 	}
 
+	bufWriter.Flush()
+
 	return buf, nil
 }

@@ -36,7 +36,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu service show [-s <service_name>]
 
 # Deploy the service to an environment
-> mu service deploy <environment_name> [-s <service_name>]
+> mu service deploy <environment_name>
 
 # Set an environment variable(s) for a service
 > mu service setenv <environment_name> [-s <service_name>] key=value[,...]
@@ -89,5 +89,20 @@ environments:
           - sg-xxxxx
           - sg-xxxxy
           - sg-xxxxz
-```
 
+### Define the service for this repo
+service:
+  name: my-service                   # The unique name of the service (default: the name of the directory that mu.yml was in)
+  desiredCount: 4                    # The desired number of tasks to run for the service (default: 2)
+  dockerfile: ./Dockerfile           # The relative path to the Dockerfile to build images (default: ./Dockerfile)
+  imageRepository: tutum/hello-world # The repository to push images to and deploy services from.  Leave unset to have mu manage an ECR repository (default: none)
+  port: 80                           # The port to expose from the container (default: 8080)
+  healthEndpoint: /health            # The endpoint inside the container to determine if the task is healthy (default: /health)
+  cpu: 20                            # The number of CPU units to allocate to each task (default: 10)
+  memory: 400                        # The amount of memory in MiB to allocate to each task (default: 300)
+
+  # The paths to match on in the ALB and route to this service.  Leave blank to not create an ALB target group for this service (default: none)
+  pathPatterns:
+    - /bananas
+    - /apples
+```

@@ -67,9 +67,9 @@ func TestStack_AwaitFinalStatus_CreateComplete(t *testing.T) {
 		cfnAPI: cfn,
 	}
 
-	finalStatus := stackManager.AwaitFinalStatus("foo")
+	stack := stackManager.AwaitFinalStatus("foo")
 
-	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
 }
@@ -101,9 +101,9 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 		cfnAPI: cfn,
 	}
 
-	finalStatus := stackManager.AwaitFinalStatus("foo")
+	stack := stackManager.AwaitFinalStatus("foo")
 
-	assert.Equal(cloudformation.StackStatusCreateComplete, finalStatus)
+	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 2)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackCreateComplete", 1)
@@ -303,14 +303,13 @@ func TestTagParameters(t *testing.T) {
 	paramMap := make(map[string]string)
 
 	parameters := buildStackTags(paramMap)
-	assert.Equal(2, len(parameters))
+	assert.Equal(1, len(parameters))
 
 	paramMap["p1"] = "value 1"
 	paramMap["p2"] = "value 2"
 	parameters = buildStackTags(paramMap)
-	assert.Equal(4, len(parameters))
+	assert.Equal(3, len(parameters))
 	assert.Contains(*parameters[0].Key, "mu:")
 	assert.Contains(*parameters[1].Key, "mu:")
 	assert.Contains(*parameters[2].Key, "mu:")
-	assert.Contains(*parameters[3].Key, "mu:")
 }

@@ -1,14 +1,22 @@
 package common
 
+import "time"
+
 // Context defines the context object passed around
 type Context struct {
-	Config         Config
+	Config Config
+	Repo   struct {
+		Name     string
+		Revision string
+	}
 	StackManager   StackManager
 	ClusterManager ClusterManager
+	DockerManager  DockerManager
 }
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
+	Basedir      string
 	Region       string
 	Environments []Environment
 	Service      Service
@@ -38,19 +46,29 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	DesiredCount int `yaml:"desiredCount"`
-	Pipeline     struct {
+	Name            string   `yaml:"name"`
+	DesiredCount    int      `yaml:"desiredCount"`
+	Dockerfile      string   `yaml:"dockerfile"`
+	ImageRepository string   `yaml:"imageRepository"`
+	Port            int      `yaml:"port"`
+	HealthEndpoint  string   `yaml:"healthEndpoint"`
+	CPU             int      `yaml:"cpu"`
+	Memory          int      `yaml:"memory"`
+	PathPatterns    []string `yaml:"pathPatterns"`
+	Pipeline        struct {
 	}
 }
 
 // Stack summary
 type Stack struct {
-	ID           string
-	Name         string
-	Status       string
-	StatusReason string
-	Tags         map[string]string
-	Outputs      map[string]string
+	ID             string
+	Name           string
+	Status         string
+	StatusReason   string
+	LastUpdateTime time.Time
+	Tags           map[string]string
+	Outputs        map[string]string
+	Parameters     map[string]string
 }
 
 // StackType describes supported stack types
@@ -60,6 +78,7 @@ type StackType string
 const (
 	StackTypeVpc      StackType = "vpc"
 	StackTypeCluster            = "cluster"
+	StackTypeRepo               = "repo"
 	StackTypeService            = "service"
 	StackTypePipeline           = "pipeline"
 )

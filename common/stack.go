@@ -17,13 +17,13 @@ import (
 )
 
 // CreateStackName will create a name for a stack
-func CreateStackName(stackType StackType, name string) string {
-	return fmt.Sprintf("mu-%s-%s", stackType, name)
+func CreateStackName(stackType StackType, names ...string) string {
+	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names, "-"))
 }
 
 // StackWaiter for waiting on stack status to be final
 type StackWaiter interface {
-	AwaitFinalStatus(stackName string) string
+	AwaitFinalStatus(stackName string) *Stack
 }
 
 // StackUpserter for applying changes to a stack
@@ -66,9 +66,6 @@ type cloudformationStackManager struct {
 	ec2API ec2iface.EC2API
 }
 
-// TODO: support "dry-run" and write the template to a file
-// fmt.Sprintf("%s/%s.yml", os.TempDir(), name),
-
 // NewStackManager creates a new StackManager backed by cloudformation
 func newStackManager(region string) (StackManager, error) {
 	sess, err := session.NewSession()
@@ -107,10 +104,6 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 		&cloudformation.Tag{
 			Key:   aws.String("mu:version"),
 			Value: aws.String(GetVersion()),
-		},
-		&cloudformation.Tag{
-			Key:   aws.String("mu:lastupdate"),
-			Value: aws.String(fmt.Sprintf("%v", time.Now().Unix())),
 		})
 
 	for key, value := range tags {
@@ -125,7 +118,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 
 // UpsertStack will create/update the cloudformation stack
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error {
-	stackStatus := cfnMgr.AwaitFinalStatus(stackName)
+	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	// load the template
 	templateBodyBytes := new(bytes.Buffer)
@@ -139,7 +132,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	stackTags := buildStackTags(tags)
 
 	cfnAPI := cfnMgr.cfnAPI
-	if stackStatus == "" {
+	if stack == nil || stack.Status == "" {
 
 		log.Debugf("  Creating stack named '%s'", stackName)
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
@@ -168,7 +161,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 	} else {
 		log.Debugf("  Updating stack named '%s'", stackName)
-		log.Debugf("  Prior state: %s", stackStatus)
+		log.Debugf("  Prior state: %s", stack.Status)
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.UpdateStackInput{
@@ -186,7 +179,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
-					log.Noticef("  No changes for stack '%s'", stackName)
+					log.Infof("  No changes for stack '%s'", stackName)
 					return nil
 				}
 			}
@@ -199,7 +192,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 // AwaitFinalStatus waits for the stack to arrive in a final status
 //  returns: final status, or empty string if stack doesn't exist
-func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) string {
+func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *Stack {
 	cfnAPI := cfnMgr.cfnAPI
 	params := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -243,12 +236,12 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) str
 
 		if len(resp.Stacks) > 0 {
 			log.Debugf("  Returning final status for stack:%s ... status=%s", stackName, *resp.Stacks[0].StackStatus)
-			return *resp.Stacks[0].StackStatus
+			return buildStack(resp.Stacks[0])
 		}
 	}
 
 	log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
-	return ""
+	return nil
 }
 
 func buildStack(stackDetails *cloudformation.Stack) *Stack {
@@ -257,8 +250,10 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 	stack.Name = aws.StringValue(stackDetails.StackName)
 	stack.Status = aws.StringValue(stackDetails.StackStatus)
 	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
+	stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
+	stack.Parameters = make(map[string]string)
 
 	for _, tag := range stackDetails.Tags {
 		key := aws.StringValue(tag.Key)
@@ -269,6 +264,10 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 
 	for _, output := range stackDetails.Outputs {
 		stack.Outputs[aws.StringValue(output.OutputKey)] = aws.StringValue(output.OutputValue)
+	}
+
+	for _, param := range stackDetails.Parameters {
+		stack.Parameters[aws.StringValue(param.ParameterKey)] = aws.StringValue(param.ParameterValue)
 	}
 
 	return stack

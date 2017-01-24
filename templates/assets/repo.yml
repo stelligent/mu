@@ -1,0 +1,33 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  RepoName:
+    Type: String
+    Description: Repo name
+Resources:
+  EcsRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RepoName
+      RepositoryPolicyText:
+        Version: '2008-10-17'
+        Statement:
+        - Sid: AllowPushPull
+          Effect: Allow
+          Principal:
+            AWS: "*"
+          Condition:
+            ArnLike:
+              aws:SourceArn: !Sub arn:aws:iam:${AWS::AccountId}:user/*
+          Action:
+          - ecr:GetDownloadUrlForLayer
+          - ecr:BatchGetImage
+          - ecr:BatchCheckLayerAvailability
+          - ecr:PutImage
+          - ecr:InitiateLayerUpload
+          - ecr:UploadLayerPart
+          - ecr:CompleteLayerUpload
+Outputs:
+  RepoUrl:
+    Description: Url of the repo
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepoName}
