@@ -68,6 +68,7 @@ type Stack struct {
 	LastUpdateTime time.Time
 	Tags           map[string]string
 	Outputs        map[string]string
+	Parameters     map[string]string
 }
 
 // StackType describes supported stack types

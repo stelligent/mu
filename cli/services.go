@@ -38,8 +38,8 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			service := c.String("service")
-			fmt.Printf("showing service: %s\n", service)
-			return nil
+			workflow := workflows.NewServiceViewer(ctx, service, os.Stdout)
+			return workflow()
 		},
 	}
 

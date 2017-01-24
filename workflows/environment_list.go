@@ -38,7 +38,7 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 				bold(stack.Tags["environment"]),
 				stack.Name,
 				fmt.Sprintf("%s %s", colorizeStackStatus(stack.Status), stack.StatusReason),
-				stack.LastUpdateTime.String(),
+				stack.LastUpdateTime.Local().Format("2006-01-02 15:04:05"),
 				stack.Tags["version"],
 			})
 
