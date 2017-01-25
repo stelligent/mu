@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/stelligent/mu.svg?branch=develop)](https://travis-ci.org/stelligent/mu)
+[![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=svg)](https://circleci.com/gh/stelligent/mu)
 
 # Why?
 Amazon ECS (EC2 Container Service) provides an excellent platform for deploying microservices as containers.  The challenge however is that there is a significant learning curve for microservice developers to deploy their applications in an efficient manner.  Specifically, they must learn to use CloudFormation to orchestrate the management of ECS, ECR, EC2, ELB, VPC, and IAM resources.  Additionally, tools like CodeBuild and CodePipeline must be mastered to create a continuous delivery pipeline for their microservices.
