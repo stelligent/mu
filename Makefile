@@ -47,7 +47,8 @@ endif
 
 release-create: release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
-	git remote get-url origin
+	git --version
+	git remote show origin
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
 	echo "waiting for dust to settle..." && sleep 5
