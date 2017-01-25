@@ -9,7 +9,7 @@ VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 ARCH := $(shell go env GOARCH)
 BUILD_FILES = $(foreach os, $(TARGET_OS), .release/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
-GOLDFLAGS = "-X common.version=$(VERSION)"
+GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
 
 default: build
