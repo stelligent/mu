@@ -14,35 +14,37 @@ TAG_VERSION = v$(VERSION)
 
 default: build
 
-setup:
+deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
-	mkdir -p .release
-	go get -u "github.com/golang/lint/golint"
-	go get -u "github.com/aktau/github-release"
-	go get -u "github.com/jteeuwen/go-bindata/..."
+	go get "github.com/jteeuwen/go-bindata/..."
 	go get -t -d -v ./...
 	go generate ./...
 
-lint: setup
+lint:
 	@echo "=== linting ==="
 	go vet ./...
+	go get "github.com/golang/lint/golint"
 	golint -set_exit_status ./...
 
 test: lint
 	@echo "=== testing ==="
 	go test -cover ./...
 
-build: test $(BUILD_FILES)
+build: $(BUILD_FILES)
 
-$(BUILD_FILES): setup
+$(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
+	mkdir -p .release
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
-release-clean:
+release-setup:
 ifneq ($(GITHUB_TOKEN),)
 	git config credential.helper "store --file=.git/credentials"
 	echo "https://${GITHUB_TOKEN}:@github.com" > .git/credentials
 endif
+	go get "github.com/aktau/github-release"
+
+release-clean:
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
 	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) || echo "No release to cleanup"
@@ -75,4 +77,4 @@ clean:
 	@echo "=== cleaning ==="
 	rm -rf .release
 
-.PHONY: default lint test build setup clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)

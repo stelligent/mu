@@ -1,18 +1,20 @@
-language: go
-
-go:
-  - 1.7.x
-
 ## Don't build when new release tags are pushed
 general:
   branches:
     ignore:
       - /^v[0-9]/
 
+## Run 'make deps' for resolving dependencies
+dependencies:
+  override:
+    - make deps
+
+## Run 'make' for compile
 compile:
   override:
     - make
 
+## Run 'make test' to test
 test:
   override:
     - make test
