@@ -1,0 +1,8 @@
+---
+region: us-west-2
+
+environments:
+  - name: sample-dev
+    cluster:
+      desiredCapacity: 1
+      maxSize: 2
