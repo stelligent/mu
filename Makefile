@@ -39,6 +39,10 @@ $(BUILD_FILES): setup
 	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 release-clean:
+ifneq ($(GITHUB_TOKEN),)
+	git config credential.helper "store --file=.git/credentials"
+	echo "https://${GITHUB_TOKEN}:@github.com" > .git/credentials
+endif
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
 	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) || echo "No release to cleanup"
@@ -47,8 +51,6 @@ endif
 
 release-create: release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
-	git --version
-	git remote show -n origin
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
 	echo "waiting for dust to settle..." && sleep 5

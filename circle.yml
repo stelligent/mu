@@ -1,0 +1,23 @@
+language: go
+
+go:
+  - 1.7.x
+
+## Don't build when new release tags are pushed
+general:
+  branches:
+    ignore:
+      - /^v[0-9]/
+
+deployment:
+  ## Create 'pre-release' from 'develop' branch
+  pre-release:
+    branch: develop
+    commands:
+      - make dev-release
+
+  ## Create 'release' from 'master' branch
+  release:
+    branch: master
+    commands:
+      - make release
