@@ -43,7 +43,7 @@ build: $(BUILD_FILES)
 $(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
 	mkdir -p $(BUILD_DIR)
-	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
+	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 release-setup:
 ifneq ($(GITHUB_TOKEN),)
