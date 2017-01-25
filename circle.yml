@@ -9,6 +9,14 @@ general:
     ignore:
       - /^v[0-9]/
 
+compile:
+  override:
+    - make
+
+test:
+  override:
+    - make test
+
 deployment:
   ## Create 'pre-release' from 'develop' branch
   pre-release:
