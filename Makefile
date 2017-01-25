@@ -47,8 +47,7 @@ endif
 
 release-create: release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
-	shasum .git/credentials
-	wc .git/credentials
+	git remote get-url origin
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
 	echo "waiting for dust to settle..." && sleep 5
