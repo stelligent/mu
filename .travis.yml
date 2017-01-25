@@ -22,7 +22,6 @@ before_deploy:
   - yes y | gem uninstall gems
   - gem install gems -v 0.8.3
   - gem install dpl -v 1.8.30
-  - dpl --provider=rubygems --api-key=$RUBY_GEMS_API_KEY --gemspec=./my-new-gem.gemspec
   - git config credential.helper "store --file=.git/credentials"
   - echo "https://${GITHUB_TOKEN}:@github.com" > .git/credentials
 
