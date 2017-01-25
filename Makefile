@@ -31,8 +31,9 @@ lint:
 
 test: lint
 	@echo "=== testing ==="
-ifneq ($(CIRCLE_TEST_REPORT),)
-	go test -v -cover ./... | go-junit-report > ${CIRCLE_TEST_REPORT}/report.xml
+ifneq ($(CIRCLE_TEST_REPORTS),)
+    mkdir -p $(CIRCLE_TEST_REPORTS)/unit
+	go test -v -cover ./... | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
 else
 	go test -cover ./...
 endif
