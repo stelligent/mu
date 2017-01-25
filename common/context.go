@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"time"
+	"path/filepath"
 )
 
 var version string
@@ -33,8 +34,13 @@ func NewContext() *Context {
 
 // InitializeFromFile loads config from file
 func (ctx *Context) InitializeFromFile(muFile string) error {
+	absMuFile,err := filepath.Abs(muFile)
+	if err != nil {
+		return err
+	}
+
 	// load yaml config
-	yamlFile, err := os.Open(muFile)
+	yamlFile, err := os.Open(absMuFile)
 	if err != nil {
 		return err
 	}
@@ -43,10 +49,10 @@ func (ctx *Context) InitializeFromFile(muFile string) error {
 	}()
 
 	// set the basedir
-	ctx.Config.Basedir = path.Dir(muFile)
+	ctx.Config.Basedir = path.Dir(absMuFile)
 	ctx.Repo.Name = path.Base(ctx.Config.Basedir)
 	ctx.Repo.Revision = time.Now().Format("20060102150405")
-	gitRevision, err := findGitRevision(muFile)
+	gitRevision, err := findGitRevision(absMuFile)
 	if err == nil {
 		ctx.Repo.Revision = gitRevision
 	}

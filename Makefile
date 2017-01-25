@@ -7,36 +7,44 @@ BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 ARCH := $(shell go env GOARCH)
-BUILD_FILES = $(foreach os, $(TARGET_OS), .release/$(PACKAGE)-$(os)-$(ARCH))
+BUILD_DIR = $(if $(CIRCLE_ARTIFACTS),$(CIRCLE_ARTIFACTS),.release)
+BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
-GOLDFLAGS = "-X common.version=$(VERSION)"
+GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
 
 default: build
 
-setup:
+deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
-	mkdir -p .release
-	go get -u "github.com/golang/lint/golint"
-	go get -u "github.com/aktau/github-release"
-	go get -u "github.com/jteeuwen/go-bindata/..."
+	go get "github.com/jteeuwen/go-bindata/..."
+	go get "github.com/golang/lint/golint"
+	go get "github.com/jstemmer/go-junit-report"
+	go get "github.com/aktau/github-release"
 	go get -t -d -v ./...
 	go generate ./...
 
-lint: setup
+lint:
 	@echo "=== linting ==="
 	go vet ./...
 	golint -set_exit_status ./...
 
 test: lint
 	@echo "=== testing ==="
+ifneq ($(CIRCLE_TEST_REPORTS),)
+	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
+	go test -v -cover ./... | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+else
 	go test -cover ./...
+endif
 
-build: test $(BUILD_FILES)
 
-$(BUILD_FILES): setup
+build: $(BUILD_FILES)
+
+$(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
-	GOOS=$(word 2,$(subst -, ,$@)) GOARCH=$(word 3,$(subst -, ,$@)) go build -ldflags=$(GOLDFLAGS) -o '$@'
+	mkdir -p $(BUILD_DIR)
+	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 release-clean:
 ifeq ($(IS_MASTER),)
@@ -54,7 +62,7 @@ release-create: release-clean
 
 $(TARGET_OS): release-create
 	@echo "=== uploading $@ ==="
-	github-release upload -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -n "$(PACKAGE)-$@-$(ARCH)" -f ".release/$(PACKAGE)-$@-$(ARCH)"
+	github-release upload -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -n "$(PACKAGE)-$@-$(ARCH)" -f "$(BUILD_DIR)/$(PACKAGE)-$@-$(ARCH)"
 
 dev-release: $(TARGET_OS)
 
@@ -69,6 +77,6 @@ endif
 
 clean:
 	@echo "=== cleaning ==="
-	rm -rf .release
+	rm -rf $(BUILD_DIR)
 
-.PHONY: default lint test build setup clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
