@@ -1,0 +1,42 @@
+## Don't build when new release tags are pushed
+general:
+  branches:
+    ignore:
+      - /^v[0-9]/
+
+## Run 'make deps' for resolving dependencies
+dependencies:
+  override:
+    - make deps
+
+## Run 'make' for compile
+compile:
+  override:
+    - make
+
+## Run 'make test' to test
+test:
+  override:
+    - make test
+
+
+## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
+##  a token created from https://github.com/settings/tokens
+##
+## Also, an read/write SSH key needs to be created and private key added to circle ci
+##    as per https://circleci.com/docs/adding-read-write-deployment-key/
+##
+## Suggest creating a machine user for the token and ssh key to limit access
+##
+deployment:
+  ## Create 'pre-release' from 'develop' branch
+  pre-release:
+    branch: circleci
+    commands:
+      - make dev-release
+
+  ## Create 'release' from 'master' branch
+  release:
+    branch: master
+    commands:
+      - make release
