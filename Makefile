@@ -46,12 +46,6 @@ $(BUILD_FILES):
 	mkdir -p $(BUILD_DIR)
 	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
-release-setup:
-ifneq ($(GITHUB_TOKEN),)
-	git config credential.helper "store --file=.git/credentials"
-	echo "https://${GITHUB_TOKEN}:@github.com" > .git/credentials
-endif
-
 release-clean:
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
