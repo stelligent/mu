@@ -6,6 +6,8 @@ general:
 
 ## Run 'make deps' for resolving dependencies
 dependencies:
+  cache_directories:
+    - "vendor"
   override:
     - sudo add-apt-repository ppa:masterminds/glide -y
     - sudo apt-get update
@@ -15,7 +17,7 @@ dependencies:
 ## Run 'make' for compile
 compile:
   override:
-    - make
+    - make build
 
 ## Run 'make test' to test
 test:
