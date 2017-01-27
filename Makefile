@@ -13,7 +13,7 @@ UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
 
-default: build
+default: all
 
 deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
@@ -53,7 +53,7 @@ ifeq ($(IS_MASTER),)
 	git push --delete origin $(TAG_VERSION) || echo "No tag to delete"
 endif
 
-release-create: release-clean
+release-create: build release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
@@ -79,4 +79,7 @@ clean:
 	@echo "=== cleaning ==="
 	rm -rf $(BUILD_DIR)
 
-.PHONY: default lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
+all: clean test build
+
+
+.PHONY: default all lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
