@@ -52,6 +52,14 @@ When submitting code, please make every effort to follow existing conventions an
 * All dependencies must be defined in the `glide.yaml` file and pinned to a patch range.  This is accomplished via a command like `glide get github.com/depuser/deprepo`
 * For details on the approved style, check out [Effective Go](https://golang.org/doc/effective_go.html).
 
+Also, consider the original design principles:
+
+* **Polyglot** - There will be no prescribed language or framework for developing the microservices.  The only requirement will be that the service will be run inside a container and exposed via an HTTP endpoint.
+* **Cloud Provider** - At this point, the tool will assume AWS for the cloud provider and will not be written in a cloud agnostic manner.  However, this does not preclude refactoring to add support for other providers at a later time.
+* **Declarative** - All resource administration will be handled in a declarative vs. imperative manner.  A file will be used to declared the desired state of the resources and the tool will simply assert the actual state matches the desired state.  The tool will accomplish this by generating CloudFormation templates.
+* **Stateless** - The tool will not maintain its own state.  Rather, it will rely on the CloudFormation stacks to determine the state of the platform.
+* **Secure** - All security will be managed by AWS IAM credentials.  No additional authentication or authorization mechanisms will be introduced.
+
 ### License
 
 By contributing your code, you agree to license your contribution under the terms of the [MIT License](LICENSE.md).

@@ -110,7 +110,7 @@ service:
 
 # Contributing
 
-Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CONTRIBUTING.MD) to get involved.
+Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.
 
 ## Building from source
 
