@@ -1,4 +1,4 @@
-[![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=svg)](https://circleci.com/gh/stelligent/mu)
+[![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=svg)](https://circleci.com/gh/stelligent/mu) [![Join the chat at https://gitter.im/stelligent/mu](https://badges.gitter.im/stelligent/mu.svg)](https://gitter.im/stelligent/mu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # Why?
 Amazon ECS (EC2 Container Service) provides an excellent platform for deploying microservices as containers.  The challenge however is that there is a significant learning curve for microservice developers to deploy their applications in an efficient manner.  Specifically, they must learn to use CloudFormation to orchestrate the management of ECS, ECR, EC2, ELB, VPC, and IAM resources.  Additionally, tools like CodeBuild and CodePipeline must be mastered to create a continuous delivery pipeline for their microservices.
@@ -17,15 +17,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_DIR=~/bin sh
 ```
 
-# Building from source
-
-* Install Go tools 1.7+ - (https://golang.org/doc/install)
-* Install [Glide](https://github.com/Masterminds/glide) via `curl https://glide.sh/get | sh`
-* Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
-* Go to src `cd $GOPATH/src/github.com/stelligent/mu`
-* Build with `make`
-
-## Commands
+# Commands
 
 ```
 # List all environments
@@ -65,7 +57,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu pipeline terminate [-s <service_name>]
 ```
 
-## Configuration
+# Configuration
 The definition of your environments, services and pipelines is done via a YAML file (default `./mu.yml`).
 
 ```
@@ -114,3 +106,16 @@ service:
     - /bananas
     - /apples
 ```
+
+
+# Contributing
+
+Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.
+
+## Building from source
+
+* Install Go tools 1.7+ - (https://golang.org/doc/install)
+* Install [Glide](https://github.com/Masterminds/glide) via `curl https://glide.sh/get | sh`
+* Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
+* Go to src `cd $GOPATH/src/github.com/stelligent/mu`
+* Build with `make`
