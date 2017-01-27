@@ -6,7 +6,7 @@ general:
 
 machine:
   environment:
-    IMPORT_PATH: "github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+    IMPORT_PATH: "/home/ubuntu/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
 
 ## Run 'make deps' for resolving dependencies
 dependencies:
@@ -15,8 +15,8 @@ dependencies:
     - sudo apt-get update
     - sudo apt-get install glide -y
   override:
-    - mkdir -p "$GOPATH/src/$IMPORT_PATH"
-    - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"
+    - mkdir -p "$IMPORT_PATH"
+    - rsync -azC --delete ./ "$IMPORT_PATH/"
     - make deps
 
 ## Run 'make' for compile
