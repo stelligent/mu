@@ -6,6 +6,7 @@ TARGET_OS := linux windows darwin
 BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
+SRC_FILES = $(shell glide nv)
 ARCH := $(shell go env GOARCH)
 BUILD_DIR = $(if $(CIRCLE_ARTIFACTS),$(CIRCLE_ARTIFACTS),.release)
 BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
@@ -21,21 +22,22 @@ deps:
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
-	go get -t -d -v ./...
-	go generate ./...
+	#go get -t -d -v $(SRC_FILES)
+	glide install
+	go generate $(SRC_FILES)
 
 lint:
 	@echo "=== linting ==="
-	go vet ./...
-	golint -set_exit_status ./...
+	go vet $(SRC_FILES)
+	glide novendor | xargs -n1 golint -set_exit_status
 
 test: lint
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
-	go test -v -cover ./... | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
 else
-	go test -cover ./...
+	go test -cover $(SRC_FILES)
 endif
 
 
