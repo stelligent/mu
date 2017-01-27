@@ -17,6 +17,14 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_DIR=~/bin sh
 ```
 
+# Building from source
+
+* Install Go tools 1.7+ - (https://golang.org/doc/install)
+* Install [Glide](https://github.com/Masterminds/glide) via `curl https://glide.sh/get | sh`
+* Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
+* Go to src `cd $GOPATH/src/github.com/stelligent/mu`
+* Build with `make`
+
 ## Commands
 
 ```

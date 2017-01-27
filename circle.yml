@@ -4,20 +4,31 @@ general:
     ignore:
       - /^v[0-9]/
 
+machine:
+  environment:
+    IMPORT_PATH: "/home/ubuntu/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME"
+    APP_PATH: "$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME"
+
 ## Run 'make deps' for resolving dependencies
 dependencies:
+  pre:
+    - sudo add-apt-repository ppa:masterminds/glide -y
+    - sudo apt-get update
+    - sudo apt-get install glide -y
   override:
-    - make deps
+    - mkdir -p "$IMPORT_PATH"
+    - ln -sf "$(pwd)" "$APP_PATH"
+    - cd "$APP_PATH" && make deps
 
 ## Run 'make' for compile
 compile:
   override:
-    - make
+    - cd "$APP_PATH" && make build
 
 ## Run 'make test' to test
 test:
   override:
-    - make test
+    - cd "$APP_PATH" && make test
 
 
 ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
@@ -33,10 +44,10 @@ deployment:
   pre-release:
     branch: develop
     commands:
-      - make dev-release
+      - cd "$APP_PATH" && make dev-release
 
   ## Create 'release' from 'master' branch
   release:
     branch: master
     commands:
-      - make release
+      - cd "$APP_PATH" && make release
