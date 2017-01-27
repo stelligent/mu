@@ -1,0 +1,40 @@
+package: github.com/stelligent/mu
+import:
+- package: github.com/aws/aws-sdk-go
+  version: ~1.6.18
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/session
+  - service/cloudformation
+  - service/cloudformation/cloudformationiface
+  - service/ec2
+  - service/ec2/ec2iface
+  - service/ecr
+  - service/ecr/ecriface
+  - service/ecs
+  - service/ecs/ecsiface
+- package: github.com/docker/docker
+  version: ~1.13.0
+  subpackages:
+  - api/types
+  - builder/dockerignore
+  - client
+  - pkg/archive
+  - pkg/fileutils
+- package: github.com/fatih/color
+  version: ~1.2.0
+- package: github.com/olekukonko/tablewriter
+- package: github.com/op/go-logging
+  version: ~1.0.0
+- package: github.com/urfave/cli
+  version: ~1.19.1
+- package: gopkg.in/src-d/go-git.v4
+  version: ~4.0.0-rc7
+- package: gopkg.in/yaml.v2
+testImport:
+- package: github.com/stretchr/testify
+  version: ~1.1.4
+  subpackages:
+  - assert
+  - mock

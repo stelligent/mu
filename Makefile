@@ -81,7 +81,7 @@ clean:
 	@echo "=== cleaning ==="
 	rm -rf $(BUILD_DIR)
 
-all: clean test build
+all: clean deps test build
 
 
 .PHONY: default all lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
