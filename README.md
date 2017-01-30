@@ -88,9 +88,9 @@ environments:
     vpcTarget:
         vpcId: vpc-xxxxx            # The id of the VPC to launch ECS container instances into
         publicSubnetIds:            # The list of subnets to use for ECS container instances
-          - sg-xxxxx
-          - sg-xxxxy
-          - sg-xxxxz
+          - subnet-xxxxx
+          - subnet-xxxxy
+          - subnet-xxxxz
 
 ### Define the service for this repo
 service:

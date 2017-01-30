@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 	"path"
-	"time"
 	"path/filepath"
+	"time"
 )
 
 var version string
@@ -34,7 +34,7 @@ func NewContext() *Context {
 
 // InitializeFromFile loads config from file
 func (ctx *Context) InitializeFromFile(muFile string) error {
-	absMuFile,err := filepath.Abs(muFile)
+	absMuFile, err := filepath.Abs(muFile)
 	if err != nil {
 		return err
 	}
