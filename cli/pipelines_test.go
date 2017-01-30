@@ -16,7 +16,7 @@ func TestNewPipelinesCommand(t *testing.T) {
 	assert.NotNil(command)
 	assert.Equal("pipeline", command.Name, "Name should match")
 	assert.Equal("options for managing pipelines", command.Usage, "Usage should match")
-	assert.Equal(2, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
 }
 func TestNewPipelinesListCommand(t *testing.T) {
 	assert := assert.New(t)
@@ -43,5 +43,31 @@ func TestNewPipelinesShowCommand(t *testing.T) {
 	assert.Equal("show", command.Name, "Name should match")
 	assert.Equal(1, len(command.Flags), "Flag len should match")
 	assert.Equal("service, s", command.Flags[0].GetName(), "Flag should match")
+	assert.NotNil(command.Action)
+}
+func TestNewPipelinesTerminateCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newPipelinesTerminateCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("terminate", command.Name, "Name should match")
+	assert.Equal(1, len(command.Flags), "Flag len should match")
+	assert.Equal("service, s", command.Flags[0].GetName(), "Flag should match")
+	assert.NotNil(command.Action)
+}
+func TestNewPipelinesUpsertCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newPipelinesUpsertCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("upsert", command.Name, "Name should match")
+	assert.Equal(1, len(command.Flags), "Flag len should match")
+	assert.Equal("token, t", command.Flags[0].GetName(), "Flag should match")
 	assert.NotNil(command.Action)
 }

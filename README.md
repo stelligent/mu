@@ -50,10 +50,10 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu pipeline list
 
 # Show the pipeline details for a specific service
-> mu pipeline show <service_name>
+> mu pipeline show [-s <service_name>]
 
 # Upsert the pipeline
-> mu pipeline up [-s <service_name>] [-u <repo_url>] [-t <repo_token>]
+> mu pipeline up [-t <repo_token>]
 
 # Terminate the pipeline
 > mu pipeline terminate [-s <service_name>]
