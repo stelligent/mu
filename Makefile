@@ -83,5 +83,9 @@ clean:
 
 all: clean deps test build
 
+fmt:
+	@echo "=== cleaning ==="
+	go fmt $(SRC_FILES)
+
 
 .PHONY: default all lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -40,13 +41,15 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
+		vpcStackParams := make(map[string]string)
+		var template io.Reader
+		var err error
+
 		if environment.VpcTarget.VpcID == "" {
-			log.Debugf("No VpcTarget, so we will upsert the VPC stack")
-			vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
+			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
 
 			// no target VPC, we need to create/update the VPC stack
-			log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-			template, err := templates.NewTemplate("vpc.yml", environment)
+			template, err = templates.NewTemplate("vpc.yml", environment)
 			if err != nil {
 				return err
 			}
@@ -58,27 +61,31 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
 			}
-			err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
+		} else {
+			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
+
+			template, err = templates.NewTemplate("vpc-target.yml", environment)
 			if err != nil {
 				return err
 			}
 
-			log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
-			stackWaiter.AwaitFinalStatus(vpcStackName)
-
-			// apply default parameters since we manage the VPC
-			vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-			vpcImportParams["PublicSubnetAZ1Id"] = fmt.Sprintf("%s-PublicSubnetAZ1Id", vpcStackName)
-			vpcImportParams["PublicSubnetAZ2Id"] = fmt.Sprintf("%s-PublicSubnetAZ2Id", vpcStackName)
-			vpcImportParams["PublicSubnetAZ3Id"] = fmt.Sprintf("%s-PublicSubnetAZ3Id", vpcStackName)
-		} else {
-			log.Debugf("VpcTarget exists, so we will reference the VPC stack")
 			// target VPC referenced from config
-			vpcImportParams["VpcId"] = environment.VpcTarget.VpcID
-			for index, subnet := range environment.VpcTarget.PublicSubnetIds {
-				vpcImportParams[fmt.Sprintf("PublicSubnetAZ%dId", index+1)] = subnet
-			}
+			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
+			vpcStackParams["PublicSubnetIds"] = strings.Join(environment.VpcTarget.PublicSubnetIds, ",")
 		}
+
+		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
+		vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
+		stackWaiter.AwaitFinalStatus(vpcStackName)
+
+		vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		vpcImportParams["PublicSubnetIds"] = fmt.Sprintf("%s-PublicSubnetIds", vpcStackName)
 
 		return nil
 	}

@@ -26,7 +26,7 @@ func findGitRevision(file string) (string, error) {
 }
 
 func findGitDirectory(fromFile string) (string, error) {
-	log.Debugf("Searching for git directory in %s",fromFile)
+	log.Debugf("Searching for git directory in %s", fromFile)
 	fi, err := os.Stat(fromFile)
 	if err != nil {
 		return "", err
