@@ -12,7 +12,7 @@ func newWorkflow(executors ...Executor) Executor {
 		for _, executor := range executors {
 			err := executor()
 			if err != nil {
-				log.Errorf("%v",err)
+				log.Errorf("%v", err)
 				return errors.New("")
 			}
 		}
