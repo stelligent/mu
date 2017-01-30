@@ -107,9 +107,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-PublicSubnetAZ1Id", vpcInputParams["PublicSubnetAZ1Id"])
-	assert.Equal("mu-vpc-foo-PublicSubnetAZ2Id", vpcInputParams["PublicSubnetAZ2Id"])
-	assert.Equal("mu-vpc-foo-PublicSubnetAZ3Id", vpcInputParams["PublicSubnetAZ3Id"])
+	assert.Equal("mu-vpc-foo-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -135,19 +133,20 @@ environments:
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("UpsertStack", "mu-vpc-dev").Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-vpc-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
 	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
-	assert.Equal("myVpcId", vpcInputParams["VpcId"])
-	assert.Equal("mySubnetId1", vpcInputParams["PublicSubnetAZ1Id"])
-	assert.Equal("mySubnetId2", vpcInputParams["PublicSubnetAZ2Id"])
+	assert.Equal("mu-vpc-dev-VpcId", vpcInputParams["VpcId"])
+	assert.Equal("mu-vpc-dev-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
 func loadYamlConfig(yamlString string) (*common.Config, error) {
