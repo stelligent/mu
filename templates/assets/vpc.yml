@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU VPC with network resources managed by mu
 Parameters:
   InstanceTenancy:
     Description: Instance tenancy to use for VPC

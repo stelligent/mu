@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU VPC targeting an existing VPC and subnets that are not managed by mu
 Parameters:
   VpcId:
     Description: VPC to target

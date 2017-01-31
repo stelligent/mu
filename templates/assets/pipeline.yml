@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU pipeline using CodePipeline and CodeBuild for continuous delivery
 Parameters:
   GitHubUser:
     Type: String
@@ -24,6 +25,15 @@ Parameters:
   BuildImage:
     Type: String
     Default: "aws/codebuild/java:openjdk-8"
+  MuType:
+    Type: String
+    Default: "linuxContainer"
+  MuComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+  MuImage:
+    Type: String
+    Default: "aws/codebuild/docker:1.12.1"
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -84,12 +94,12 @@ Resources:
             Resource: "*"
             Effect: Allow
           Version: '2012-10-17'
-  BuildProject:
+  CodeBuildArtifact:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
     Properties:
-      Name: !Ref AWS::StackName
-      Description: Build application
+      Name: !Sub ${AWS::StackName}-artifact
+      Description: Build artifact from source
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
         Type: CODEPIPELINE
@@ -100,9 +110,89 @@ Resources:
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 10
+  CodeBuildImage:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-image
+      Description: Build image from artifact
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Ref MuImage
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
+                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc push -t latest
+          artifacts:
+            type: zip
+            files:
+              - banana-service/mu.yml
+      TimeoutInMinutes: 10
+  DeployTest:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-test
+      Description: Deploy image to test environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Ref MuImage
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
+                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc deploy dev -t latest
+          artifacts:
+            type: zip
+            files:
+              - banana-service/mu.yml
+      TimeoutInMinutes: 10
+  DeployProd:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-prod
+      Description: Deploy image to prod environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Ref MuImage
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
+                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc deploy production -t latest
+          artifacts:
+            type: zip
+            files:
+              - banana-service/mu.yml
+      TimeoutInMinutes: 10
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
-    DependsOn: BuildProject
     Properties:
       RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
@@ -123,9 +213,9 @@ Resources:
             Branch: !Ref GitHubBranch
             OAuthToken: !Ref GitHubToken
           RunOrder: 1
-      - Name: Compile
+      - Name: Build
         Actions:
-        - Name: CompileSource
+        - Name: Artifact
           ActionTypeId:
             Category: Build
             Owner: AWS
@@ -134,17 +224,66 @@ Resources:
           InputArtifacts:
           - Name: SourceOutput
           OutputArtifacts:
-          - Name: CompileOutput
+          - Name: ArtifactOutput
           Configuration:
-            ProjectName: !Ref BuildProject
+            ProjectName: !Ref CodeBuildArtifact
           RunOrder: 1
+        - Name: Image
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: ImageOutput
+          Configuration:
+            ProjectName: !Ref CodeBuildImage
+          RunOrder: 2
+      - Name: Acceptance
+        Actions:
+        - Name: Deploy
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: AcceptanceOutput
+          Configuration:
+            ProjectName: !Ref DeployTest
+          RunOrder: 1
+      - Name: Production
+        Actions:
+        - Name: Approve
+          ActionTypeId:
+            Category: Approval
+            Owner: AWS
+            Version: '1'
+            Provider: Manual
+          Configuration:
+            CustomData: Approve deployment to production
+          RunOrder: 1
+        - Name: Deploy
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: ProductionOutput
+          Configuration:
+            ProjectName: !Ref DeployProd
+          RunOrder: 2
       ArtifactStore:
         Type: S3
         Location: !ImportValue mu-bucket-codepipeline
 Outputs:
-  CodeBuildUrl:
-    Value: !Sub https://console.aws.amazon.com/codebuild/home?region=${AWS::Region}#/projects/${BuildProject}/view
-    Description: CodeBuild URL
   CodePipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
     Description: CodePipeline URL
