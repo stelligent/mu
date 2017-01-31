@@ -46,6 +46,7 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, i
 		table := tablewriter.NewWriter(writer)
 		table.SetHeader([]string{"Environment", "Stack", "Image", "Status", "Last Update", "Mu Version"})
 		table.SetBorder(false)
+		table.SetAutoWrapText(false)
 
 		for _, stack := range stacks {
 			if stack.Tags["service"] != workflow.serviceName {

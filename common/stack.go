@@ -250,7 +250,11 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 	stack.Name = aws.StringValue(stackDetails.StackName)
 	stack.Status = aws.StringValue(stackDetails.StackStatus)
 	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
-	stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
+	if aws.TimeValue(stackDetails.LastUpdatedTime).Unix() > 0 {
+		stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
+	} else {
+		stack.LastUpdateTime = aws.TimeValue(stackDetails.CreationTime)
+	}
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
 	stack.Parameters = make(map[string]string)
