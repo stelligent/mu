@@ -1,5 +1,5 @@
-hash: 8d1ad263d4344238503fae2802be02ddfe6a4db1d0e53705b55223de33645ad8
-updated: 2017-01-31T10:40:33.840528979-08:00
+hash: fdf6aec9a3747b3ba7145af44d2a840e6bb2cce2ece6a8554b7364c436d17e0e
+updated: 2017-01-31T11:14:43.508254901-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
@@ -112,12 +112,6 @@ imports:
   - diffmatchpatch
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
-- name: github.com/src-d/gcfg
-  version: f187355171c936ac84a82793659ebb4936bc1c23
-  subpackages:
-  - scanner
-  - token
-  - types
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: golang.org/x/crypto
@@ -127,7 +121,6 @@ imports:
   - ed25519
   - ed25519/internal/edwards25519
   - ssh
-  - ssh/agent
   - ssh/terminal
 - name: golang.org/x/net
   version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
@@ -140,46 +133,27 @@ imports:
   subpackages:
   - unix
   - windows
-- name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
+- name: gopkg.in/sourcegraph/go-vcsurl.v1
+  version: 6b12603ea6fd7f84b8c90118face09df39ea10c6
+- name: gopkg.in/src-d/go-git.v3
+  version: 02c228585e543413479ea36d3a2bbc80a070eb93
+  subpackages:
+  - clients
+  - clients/common
+  - clients/http
+  - clients/ssh
+  - core
+  - diff
+  - formats/idxfile
+  - formats/packfile
+  - formats/pktline
+  - storage/memory
+  - storage/seekable
+  - storage/seekable/internal/gitdir
+  - storage/seekable/internal/index
+  - utils/fs
 - name: gopkg.in/yaml.v2
   version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
-- name: srcd.works/go-billy.v1
-  version: 1dfacf9a4b2ac372f16acd6b1aab9a50df955a2a
-  subpackages:
-  - osfs
-- name: srcd.works/go-git.v4
-  version: 09ac55657efcc3bb40db780ce9441095aea0d64c
-  subpackages:
-  - cache
-  - config
-  - plumbing
-  - plumbing/format/config
-  - plumbing/format/idxfile
-  - plumbing/format/index
-  - plumbing/format/objfile
-  - plumbing/format/packfile
-  - plumbing/format/pktline
-  - plumbing/object
-  - plumbing/protocol/packp
-  - plumbing/protocol/packp/capability
-  - plumbing/protocol/packp/sideband
-  - plumbing/revlist
-  - plumbing/storer
-  - plumbing/transport
-  - plumbing/transport/client
-  - plumbing/transport/file
-  - plumbing/transport/git
-  - plumbing/transport/http
-  - plumbing/transport/internal/common
-  - plumbing/transport/server
-  - plumbing/transport/ssh
-  - storage/filesystem
-  - storage/filesystem/internal/dotgit
-  - storage/memory
-  - utils/binary
-  - utils/diff
-  - utils/ioutil
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
