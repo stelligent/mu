@@ -1,0 +1,17 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  BucketPrefix:
+    Type: String
+    Description: Prefix to use for the bucket name
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${BucketPrefix}-${AWS::Region}-${AWS::AccountId}
+Outputs:
+  Bucket:
+    Description: Name of the pipeline bucket
+    Value: !Ref Bucket
+    Export:
+      Name: !Sub mu-bucket-${BucketPrefix}

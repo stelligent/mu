@@ -24,9 +24,6 @@ Parameters:
   BuildImage:
     Type: String
     Default: "aws/codebuild/java:openjdk-8"
-  CodePipelineBucket:
-    Type: String
-    Description: Bucket to use for CodePipeline artifacts
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -143,7 +140,7 @@ Resources:
           RunOrder: 1
       ArtifactStore:
         Type: S3
-        Location: !Ref CodePipelineBucket
+        Location: !ImportValue mu-bucket-codepipeline
 Outputs:
   CodeBuildUrl:
     Value: !Sub https://console.aws.amazon.com/codebuild/home?region=${AWS::Region}#/projects/${BuildProject}/view

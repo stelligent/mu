@@ -1,9 +1,9 @@
 package workflows
 
 import (
-	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"strings"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -13,7 +13,7 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	return newWorkflow(
 		workflow.serviceFinder(ctx),
-		workflow.pipelineBucket(ctx.Config.Region),
+		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
 		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -28,19 +28,30 @@ func (workflow *pipelineWorkflow) serviceFinder(ctx *common.Context) Executor {
 		} else {
 			workflow.serviceName = ctx.Config.Service.Name
 		}
+
+		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
 		return nil
 	}
 }
 
 // Setup the artifact bucket
-func (workflow *pipelineWorkflow) pipelineBucket(region string) Executor {
+func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		// TODO: determine accountid
-		accountID := "324320755747"
-		workflow.pipelineBucketName = fmt.Sprintf("codepipeline-%s-%s", region, accountID)
+		template, err := templates.NewTemplate("bucket.yml", nil)
+		if err != nil {
+			return err
+		}
+		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		bucketParams := make(map[string]string)
+		bucketParams["BucketPrefix"] = "codepipeline"
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
+		if err != nil {
+			return err
+		}
 
-		// TODO: ensure bucket exists
+		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+		stackWaiter.AwaitFinalStatus(bucketStackName)
 
 		return nil
 	}
@@ -51,24 +62,22 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 
-		// no target VPC, we need to create/update the VPC stack
 		log.Noticef("Upserting Pipeline for service'%s' ...", workflow.serviceName)
 		template, err := templates.NewTemplate("pipeline.yml", nil)
 		if err != nil {
 			return err
 		}
 		pipelineParams := make(map[string]string)
-		pipelineParams["CodePipelineBucket"] = workflow.pipelineBucketName
-		// TODO: replace with real values
-		pipelineParams["GitHubUser"] = "stelligent"
-		pipelineParams["GitHubRepo"] = "microservice-exemplar"
-		pipelineParams["GitHubBranch"] = "mu"
-		// TODO: Don't set if not provided...allow for UsePrevious on upsert
+
+		sourceRepo := strings.Split(workflow.pipelineConfig.SourceRepo, "/")
+		pipelineParams["GitHubUser"] = sourceRepo[0]
+		pipelineParams["GitHubRepo"] = sourceRepo[1]
+		pipelineParams["GitHubBranch"] = workflow.pipelineConfig.SourceBranch
 		pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
-		// TODO: add params for build attributes
-		//pipelineParams["BuildType"] = ""
-		//pipelineParams["BuildComputeType"] = ""
-		//pipelineParams["BuildImage"] = ""
+
+		pipelineParams["BuildType"] = workflow.pipelineConfig.BuildType
+		pipelineParams["BuildComputeType"] = workflow.pipelineConfig.BuildComputeType
+		pipelineParams["BuildImage"] = workflow.pipelineConfig.BuildImage
 
 		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
 		if err != nil {
