@@ -80,6 +80,7 @@ endif
 clean:
 	@echo "=== cleaning ==="
 	rm -rf $(BUILD_DIR)
+	rm -rf vendor
 
 all: clean deps test build
 

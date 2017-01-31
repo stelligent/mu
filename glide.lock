@@ -1,5 +1,5 @@
-hash: 887c63c3f63378a0f6a63dd6542bd8d6f385956cdc82cba87adf04888c1f2a49
-updated: 2017-01-30T22:33:06.976534196-08:00
+hash: 8d1ad263d4344238503fae2802be02ddfe6a4db1d0e53705b55223de33645ad8
+updated: 2017-01-31T10:40:33.840528979-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
@@ -39,7 +39,7 @@ imports:
   - service/ecs/ecsiface
   - service/sts
 - name: github.com/docker/distribution
-  version: 545102ea07aa9796f189d82f606b7c27d7aa3ed3
+  version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
   subpackages:
   - digestset
   - reference
@@ -72,13 +72,13 @@ imports:
   - pkg/system
   - pkg/tlsconfig
 - name: github.com/docker/go-connections
-  version: eb315e36415380e7c2fdee175262560ff42359da
+  version: 9670439d95da2651d9dfc7acc5d2ed92d3f25ee6
   subpackages:
   - nat
   - sockets
   - tlsconfig
 - name: github.com/docker/go-units
-  version: e30f1e79f3cd72542f2026ceec18d3bd67ab859c
+  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/fatih/color
   version: 34e4ee095d12986a2cef5ddb9aeb3b8cfcfea17c
 - name: github.com/go-ini/ini
@@ -94,13 +94,13 @@ imports:
 - name: github.com/Microsoft/go-winio
   version: 307e919c663683a9000576fdc855acaf9534c165
 - name: github.com/olekukonko/tablewriter
-  version: a0225b3f23b5ce0cbec6d7a66a968f8a59eca9c4
+  version: febf2d34b54a69ce7530036c7503b1c9fbfdf0bb
 - name: github.com/op/go-logging
   version: b2cb9fa56473e98db8caba80237377e83fe44db5
 - name: github.com/opencontainers/go-digest
-  version: 21dfd564fd89c944783d00d069f33e3e7123c448
+  version: aa2ec055abd10d26d539eb630a92241b781ce4bc
 - name: github.com/opencontainers/runc
-  version: c139a7c76178b9065d9ab299e6a59b0442a53b6d
+  version: 510879e31fd5e7b8f2588ed09471fe62a368f24e
   subpackages:
   - libcontainer/system
   - libcontainer/user
@@ -121,13 +121,14 @@ imports:
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: golang.org/x/crypto
-  version: 854ae91cdcbf914b499b1d7641d07859f3653481
+  version: dc137beb6cce2043eb6b5f223ab8bf51c32459f4
   subpackages:
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
   - ssh
   - ssh/agent
+  - ssh/terminal
 - name: golang.org/x/net
   version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
@@ -139,9 +140,18 @@ imports:
   subpackages:
   - unix
   - windows
-- name: gopkg.in/src-d/go-git.v4
-  version: 51e9a9cc224605572bdc69402827ce560fda855d
+- name: gopkg.in/warnings.v0
+  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
+- name: gopkg.in/yaml.v2
+  version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
+- name: srcd.works/go-billy.v1
+  version: 1dfacf9a4b2ac372f16acd6b1aab9a50df955a2a
   subpackages:
+  - osfs
+- name: srcd.works/go-git.v4
+  version: 09ac55657efcc3bb40db780ce9441095aea0d64c
+  subpackages:
+  - cache
   - config
   - plumbing
   - plumbing/format/config
@@ -170,14 +180,6 @@ imports:
   - utils/binary
   - utils/diff
   - utils/ioutil
-- name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
-- name: gopkg.in/yaml.v2
-  version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
-- name: srcd.works/go-billy.v1
-  version: 6ca1fd6ba86f5929a23633719f5fd413a0046998
-  subpackages:
-  - os
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9

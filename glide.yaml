@@ -29,8 +29,6 @@ import:
   version: ~1.0.0
 - package: github.com/urfave/cli
   version: ~1.19.1
-- package: gopkg.in/src-d/go-git.v4
-  version: ~4.0.0-rc7
 - package: gopkg.in/yaml.v2
 - package: golang.org/x/crypto
   subpackages:
