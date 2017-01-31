@@ -1,5 +1,5 @@
-hash: 804e59d69f1cdb5ee5907883d1dc1cd9413e74bb710ae8eddcf39953103cf345
-updated: 2017-01-26T22:30:50.211570558-08:00
+hash: 887c63c3f63378a0f6a63dd6542bd8d6f385956cdc82cba87adf04888c1f2a49
+updated: 2017-01-30T22:33:06.976534196-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
@@ -44,7 +44,7 @@ imports:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 49bf474f9ed7ce7143a59d1964ff7b7fd9b52178
+  version: 2527cfcc49744f56a8d31c420a3ca4657f9fec2e
   subpackages:
   - api/types
   - api/types/blkiodev

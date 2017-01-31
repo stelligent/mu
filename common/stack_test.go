@@ -262,8 +262,8 @@ func TestBuildStack(t *testing.T) {
 	assert := assert.New(t)
 
 	stackDetails := cloudformation.Stack{
-		StackName:   aws.String("mu-cluster-dev"),
-		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+		StackName:       aws.String("mu-cluster-dev"),
+		StackStatus:     aws.String(cloudformation.StackStatusCreateComplete),
 		LastUpdatedTime: aws.Time(time.Now()),
 		Tags: []*cloudformation.Tag{
 			{
@@ -286,10 +286,9 @@ func TestBuildStack_NoUpdateTime(t *testing.T) {
 	assert := assert.New(t)
 
 	stackDetails := cloudformation.Stack{
-		StackName:   aws.String("mu-cluster-dev"),
+		StackName:    aws.String("mu-cluster-dev"),
 		CreationTime: aws.Time(time.Now()),
-		Tags: []*cloudformation.Tag{
-		},
+		Tags:         []*cloudformation.Tag{},
 	}
 
 	stack := buildStack(&stackDetails)

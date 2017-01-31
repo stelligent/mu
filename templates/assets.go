@@ -88,7 +88,7 @@ func assetsClusterYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/cluster.yml", size: 9172, mode: os.FileMode(420), modTime: time.Unix(1485814197, 0)}
+	info := bindataFileInfo{name: "assets/cluster.yml", size: 9172, mode: os.FileMode(420), modTime: time.Unix(1485843799, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -108,7 +108,7 @@ func assetsPipelineYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline.yml", size: 4195, mode: os.FileMode(420), modTime: time.Unix(1485758542, 0)}
+	info := bindataFileInfo{name: "assets/pipeline.yml", size: 4195, mode: os.FileMode(420), modTime: time.Unix(1485843791, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -168,7 +168,7 @@ func assetsVpcTargetYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/vpc-target.yml", size: 582, mode: os.FileMode(420), modTime: time.Unix(1485817201, 0)}
+	info := bindataFileInfo{name: "assets/vpc-target.yml", size: 582, mode: os.FileMode(420), modTime: time.Unix(1485843799, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -188,7 +188,7 @@ func assetsVpcYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/vpc.yml", size: 7497, mode: os.FileMode(420), modTime: time.Unix(1485817399, 0)}
+	info := bindataFileInfo{name: "assets/vpc.yml", size: 7497, mode: os.FileMode(420), modTime: time.Unix(1485843799, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -245,12 +245,12 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"assets/cluster.yml": assetsClusterYml,
-	"assets/pipeline.yml": assetsPipelineYml,
-	"assets/repo.yml": assetsRepoYml,
-	"assets/service.yml": assetsServiceYml,
+	"assets/cluster.yml":    assetsClusterYml,
+	"assets/pipeline.yml":   assetsPipelineYml,
+	"assets/repo.yml":       assetsRepoYml,
+	"assets/service.yml":    assetsServiceYml,
 	"assets/vpc-target.yml": assetsVpcTargetYml,
-	"assets/vpc.yml": assetsVpcYml,
+	"assets/vpc.yml":        assetsVpcYml,
 }
 
 // AssetDir returns the file names below a certain
@@ -292,14 +292,15 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"assets": &bintree{nil, map[string]*bintree{
-		"cluster.yml": &bintree{assetsClusterYml, map[string]*bintree{}},
-		"pipeline.yml": &bintree{assetsPipelineYml, map[string]*bintree{}},
-		"repo.yml": &bintree{assetsRepoYml, map[string]*bintree{}},
-		"service.yml": &bintree{assetsServiceYml, map[string]*bintree{}},
+		"cluster.yml":    &bintree{assetsClusterYml, map[string]*bintree{}},
+		"pipeline.yml":   &bintree{assetsPipelineYml, map[string]*bintree{}},
+		"repo.yml":       &bintree{assetsRepoYml, map[string]*bintree{}},
+		"service.yml":    &bintree{assetsServiceYml, map[string]*bintree{}},
 		"vpc-target.yml": &bintree{assetsVpcTargetYml, map[string]*bintree{}},
-		"vpc.yml": &bintree{assetsVpcYml, map[string]*bintree{}},
+		"vpc.yml":        &bintree{assetsVpcYml, map[string]*bintree{}},
 	}},
 }}
 
@@ -349,4 +350,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

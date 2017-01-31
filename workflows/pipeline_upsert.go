@@ -1,13 +1,13 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
-	"fmt"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
-func NewPipelineUpserter(ctx *common.Context, tokenProvider func() string) Executor {
+func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) Executor {
 
 	workflow := new(pipelineWorkflow)
 
@@ -46,9 +46,10 @@ func (workflow *pipelineWorkflow) pipelineBucket(region string) Executor {
 	}
 }
 
-func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func() string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
+		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 
 		// no target VPC, we need to create/update the VPC stack
 		log.Noticef("Upserting Pipeline for service'%s' ...", workflow.serviceName)
@@ -63,7 +64,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func() string, 
 		pipelineParams["GitHubRepo"] = "microservice-exemplar"
 		pipelineParams["GitHubBranch"] = "mu"
 		// TODO: Don't set if not provided...allow for UsePrevious on upsert
-		pipelineParams["GitHubToken"] = tokenProvider()
+		pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		// TODO: add params for build attributes
 		//pipelineParams["BuildType"] = ""
 		//pipelineParams["BuildComputeType"] = ""
@@ -81,10 +82,9 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func() string, 
 	}
 }
 
-
 func buildPipelineTags(serviceName string, stackType common.StackType) map[string]string {
 	return map[string]string{
-		"type":        string(stackType),
-		"service":     serviceName,
+		"type":    string(stackType),
+		"service": serviceName,
 	}
 }

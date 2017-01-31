@@ -1,9 +1,6 @@
 package workflows
 
-
 type pipelineWorkflow struct {
-	serviceName string
+	serviceName        string
 	pipelineBucketName string
 }
-
-

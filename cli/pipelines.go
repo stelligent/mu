@@ -3,8 +3,11 @@ package cli
 import (
 	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/urfave/cli"
 	"github.com/stelligent/mu/workflows"
+	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
+	"strings"
+	"syscall"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {
@@ -58,9 +61,9 @@ func newPipelinesShowCommand(ctx *common.Context) *cli.Command {
 
 func newPipelinesTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "terminate",
-		Aliases:   []string{"term"},
-		Usage: "terminate pipeline",
+		Name:    "terminate",
+		Aliases: []string{"term"},
+		Usage:   "terminate pipeline",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "service, s",
@@ -79,9 +82,9 @@ func newPipelinesTerminateCommand(ctx *common.Context) *cli.Command {
 
 func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "upsert",
-		Aliases:   []string{"up"},
-		Usage: "upsert pipeline",
+		Name:    "upsert",
+		Aliases: []string{"up"},
+		Usage:   "upsert pipeline",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "token, t",
@@ -90,8 +93,15 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			token := c.String("token")
-			workflow := workflows.NewPipelineUpserter(ctx, func () string {
-				// TODO: prompt for STDIN if not provided via a flag
+			workflow := workflows.NewPipelineUpserter(ctx, func(required bool) string {
+				if required && token == "" {
+					fmt.Print("  GitHub token: ")
+					byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
+					if err == nil {
+						token = strings.TrimSpace(string(byteToken))
+					}
+				}
+
 				return token
 			})
 			return workflow()
