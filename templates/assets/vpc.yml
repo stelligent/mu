@@ -236,30 +236,24 @@ Outputs:
     Value: !Ref VPC
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  PublicSubnetAZ1Id:
-    Description: The public subnetid for AZ1
+  PublicSubnetIds:
+    Description: The public subnetids
     Value:
-      Fn::If:
-      - HasPublicSubnetAZ1
-      - !Ref PublicSubnetAZ1
-      - !Ref AWS::NoValue
+      Fn::Join:
+        - ','
+        -
+          - Fn::If:
+            - HasPublicSubnetAZ1
+            - !Ref PublicSubnetAZ1
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - HasPublicSubnetAZ2
+            - !Ref PublicSubnetAZ2
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - HasPublicSubnetAZ3
+            - !Ref PublicSubnetAZ3
+            - !Ref AWS::NoValue
     Export:
-      Name: !Sub ${AWS::StackName}-PublicSubnetAZ1Id
-  PublicSubnetAZ2Id:
-    Description: The public subnetid for AZ2
-    Value:
-      Fn::If:
-      - HasPublicSubnetAZ2
-      - !Ref PublicSubnetAZ2
-      - !Ref AWS::NoValue
-    Export:
-      Name: !Sub ${AWS::StackName}-PublicSubnetAZ2Id
-  PublicSubnetAZ3Id:
-    Description: The public subnetid for AZ3
-    Value:
-      Fn::If:
-      - HasPublicSubnetAZ3
-      - !Ref PublicSubnetAZ3
-      - !Ref AWS::NoValue
-    Export:
-      Name: !Sub ${AWS::StackName}-PublicSubnetAZ3Id
+      Name: !Sub ${AWS::StackName}-PublicSubnetIds
+

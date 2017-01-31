@@ -31,6 +31,7 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 		table := tablewriter.NewWriter(writer)
 		table.SetHeader([]string{"Environment", "Stack", "Status", "Last Update", "Mu Version"})
 		table.SetBorder(false)
+		table.SetAutoWrapText(false)
 
 		for _, stack := range stacks {
 
@@ -41,7 +42,6 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 				stack.LastUpdateTime.Local().Format("2006-01-02 15:04:05"),
 				stack.Tags["version"],
 			})
-
 		}
 
 		table.Render()

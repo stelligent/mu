@@ -1,0 +1,26 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VpcId:
+    Description: VPC to target
+    Type: String
+  PublicSubnetIds:
+    Description: Subnet ids
+    Type: CommaDelimitedList
+Resources:
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+Outputs:
+  VpcId:
+    Description: The id of the vpc
+    Value: !Ref VpcId
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  PublicSubnetIds:
+    Description: The public subnetids
+    Value:
+      Fn::Join:
+      - ','
+      - !Ref PublicSubnetIds
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetIds

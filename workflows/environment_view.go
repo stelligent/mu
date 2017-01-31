@@ -74,6 +74,7 @@ func buildServiceTable(stacks []*common.Stack, environmentName string, writer io
 	table := tablewriter.NewWriter(writer)
 	table.SetHeader([]string{"Service", "Image", "Status", "Last Update", "Mu Version"})
 	table.SetBorder(false)
+	table.SetAutoWrapText(false)
 
 	for _, stack := range stacks {
 		if stack.Tags["environment"] != environmentName {
@@ -97,6 +98,7 @@ func buildInstanceTable(writer io.Writer, instances []*ecs.ContainerInstance) *t
 	table := tablewriter.NewWriter(writer)
 	table.SetHeader([]string{"EC2 Instance", "Type", "AMI", "AZ", "Connected", "Status", "# Tasks", "CPU Avail", "Mem Avail"})
 	table.SetBorder(false)
+	table.SetAutoWrapText(false)
 	for _, instance := range instances {
 		instanceType := "???"
 		availZone := "???"

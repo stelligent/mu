@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"strings"
 	"testing"
+	"time"
 )
 
 type mockedCloudFormation struct {
@@ -263,6 +264,7 @@ func TestBuildStack(t *testing.T) {
 	stackDetails := cloudformation.Stack{
 		StackName:   aws.String("mu-cluster-dev"),
 		StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+		LastUpdatedTime: aws.Time(time.Now()),
 		Tags: []*cloudformation.Tag{
 			{
 				Key:   aws.String("mu:type"),
@@ -277,6 +279,23 @@ func TestBuildStack(t *testing.T) {
 	assert.Equal("mu-cluster-dev", stack.Name)
 	assert.Equal("cluster", stack.Tags["type"])
 	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
+	assert.Equal(aws.TimeValue(stackDetails.LastUpdatedTime), stack.LastUpdateTime)
+}
+
+func TestBuildStack_NoUpdateTime(t *testing.T) {
+	assert := assert.New(t)
+
+	stackDetails := cloudformation.Stack{
+		StackName:   aws.String("mu-cluster-dev"),
+		CreationTime: aws.Time(time.Now()),
+		Tags: []*cloudformation.Tag{
+		},
+	}
+
+	stack := buildStack(&stackDetails)
+
+	assert.NotNil(stack)
+	assert.Equal(aws.TimeValue(stackDetails.CreationTime), stack.LastUpdateTime)
 }
 
 func TestBuildParameters(t *testing.T) {
