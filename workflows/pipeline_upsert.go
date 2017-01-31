@@ -77,7 +77,28 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 
 		pipelineParams["BuildType"] = workflow.pipelineConfig.BuildType
 		pipelineParams["BuildComputeType"] = workflow.pipelineConfig.BuildComputeType
-		pipelineParams["BuildImage"] = workflow.pipelineConfig.BuildImage
+
+		if workflow.pipelineConfig.BuildImage != "" {
+			pipelineParams["BuildImage"] = workflow.pipelineConfig.BuildImage
+		}
+		if workflow.pipelineConfig.BuildImageVersion != "" {
+			pipelineParams["BuildImageVersion"] = workflow.pipelineConfig.BuildImageVersion
+		}
+
+		if workflow.pipelineConfig.MuBaseurl != "" {
+			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
+		}
+
+		version := workflow.pipelineConfig.MuVersion
+		if version == "" {
+			version = common.GetVersion()
+			if version == "0.0.0-local" {
+				version = ""
+			}
+		}
+		if version != "" {
+			pipelineParams["MuDownloadVersion"] = version
+		}
 
 		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
 		if err != nil {

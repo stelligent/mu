@@ -24,7 +24,10 @@ Parameters:
     Default: "BUILD_GENERAL1_SMALL"
   BuildImage:
     Type: String
-    Default: "aws/codebuild/java:openjdk-8"
+    Default: "aws/codebuild/ubuntu-base"
+  BuildImageVersion:
+    Type: String
+    Default: "latest"
   MuType:
     Type: String
     Default: "linuxContainer"
@@ -33,7 +36,25 @@ Parameters:
     Default: "BUILD_GENERAL1_SMALL"
   MuImage:
     Type: String
-    Default: "aws/codebuild/docker:1.12.1"
+    Default: "aws/codebuild/docker"
+  MuImageVersion:
+    Type: String
+    Default: "1.12.1"
+  MuImage:
+    Type: String
+    Default: "aws/codebuild/docker"
+  MuDownloadBaseurl:
+    Type: String
+    Default: "https://github.com/stelligent/mu/releases/download"
+  MuDownloadVersion:
+    Type: String
+  MuDownloadFile:
+    Type: String
+    Default: "mu-linux-amd64"
+  MuFile:
+    Type: String
+    Description: Path to mu.yml, relative to GitHubRepo
+    Default: "mu.yml"
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -106,7 +127,7 @@ Resources:
       Environment:
         Type: !Ref BuildType
         ComputeType: !Ref BuildComputeType
-        Image: !Ref BuildImage
+        Image: !Sub ${BuildImage}:${BuildImageVersion}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 10
@@ -122,7 +143,10 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Ref MuImage
+        Image: !Sub ${MuImage}:${MuImageVersion}
+        EnvironmentVariables:
+         - Name: DOCKER_API_VERSION
+           Value: 1.24
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -130,12 +154,13 @@ Resources:
           phases:
             build:
               commands:
-                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
-                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc push -t latest
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc push -t latest
           artifacts:
             type: zip
             files:
-              - banana-service/mu.yml
+              - ${MuFile}
       TimeoutInMinutes: 10
   DeployTest:
     Type: AWS::CodeBuild::Project
@@ -149,7 +174,7 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Ref MuImage
+        Image: !Sub ${MuImage}:${MuImageVersion}
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -157,12 +182,13 @@ Resources:
           phases:
             build:
               commands:
-                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
-                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc deploy dev -t latest
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc deploy dev -t latest
           artifacts:
             type: zip
             files:
-              - banana-service/mu.yml
+              - ${MuFile}
       TimeoutInMinutes: 10
   DeployProd:
     Type: AWS::CodeBuild::Project
@@ -176,7 +202,7 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Ref MuImage
+        Image: !Sub ${MuImage}:${MuImageVersion}
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -184,12 +210,13 @@ Resources:
           phases:
             build:
               commands:
-                - curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
-                - DOCKER_API_VERSION=1.24 mu -c banana-service/mu.yml svc deploy production -t latest
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc deploy production -t latest
           artifacts:
             type: zip
             files:
-              - banana-service/mu.yml
+              - ${MuFile}
       TimeoutInMinutes: 10
   Pipeline:
     Type: AWS::CodePipeline::Pipeline

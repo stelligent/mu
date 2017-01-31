@@ -173,7 +173,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
 
-			Tags:         stackTags,
+			Tags: stackTags,
 		}
 
 		_, err := cfnAPI.UpdateStack(params)
