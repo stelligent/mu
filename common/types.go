@@ -55,8 +55,28 @@ type Service struct {
 	CPU             int      `yaml:"cpu"`
 	Memory          int      `yaml:"memory"`
 	PathPatterns    []string `yaml:"pathPatterns"`
-	Pipeline        struct {
+	Pipeline        Pipeline
+}
+
+// Pipeline definition
+type Pipeline struct {
+	Source struct {
+		Repo   string `yaml:"repo"`
+		Branch string `yaml:"branch"`
 	}
+	Build struct {
+		Type        string `yaml:"type"`
+		ComputeType string `yaml:"computeType"`
+		Image       string `yaml:"image"`
+	}
+	Acceptance struct {
+		Environment string `yaml:"environment"`
+	}
+	Production struct {
+		Environment string `yaml:"environment"`
+	}
+	MuBaseurl string `yaml:"muBaseurl"`
+	MuVersion string `yaml:"muVersion"`
 }
 
 // Stack summary
@@ -81,4 +101,5 @@ const (
 	StackTypeRepo               = "repo"
 	StackTypeService            = "service"
 	StackTypePipeline           = "pipeline"
+	StackTypeBucket             = "bucket"
 )

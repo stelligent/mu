@@ -2,7 +2,8 @@ package common
 
 import (
 	"errors"
-	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v3"
+	"gopkg.in/src-d/go-git.v3/utils/fs"
 	"os"
 	"path"
 )
@@ -13,16 +14,16 @@ func findGitRevision(file string) (string, error) {
 		return "", err
 	}
 	log.Debugf("Loading revision from git directory '%s'", gitDir)
-	repo, err := git.NewFilesystemRepository(gitDir)
+	repo, err := git.NewRepositoryFromFS(fs.NewOS(), gitDir)
 	if err != nil {
 		return "", err
 	}
 
-	ref, err := repo.Head()
+	hash, err := repo.Head("")
 	if err != nil {
 		return "", err
 	}
-	return string(ref.Hash().String()[:7]), nil
+	return string(hash.String()[:7]), nil
 }
 
 func findGitDirectory(fromFile string) (string, error) {

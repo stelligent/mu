@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU environment containing an ECS cluster and instances for running containers
 Parameters:
   InstanceType:
     Type: String

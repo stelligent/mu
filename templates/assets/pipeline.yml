@@ -1,0 +1,325 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU pipeline using CodePipeline and CodeBuild for continuous delivery
+Parameters:
+  GitHubUser:
+    Type: String
+    Description: GitHub User
+  GitHubRepo:
+    Type: String
+    Description: GitHub Repo to pull from. Only the Name. not the URL
+  GitHubBranch:
+    Type: String
+    Description: GitHub Branch
+    Default: "master"
+  GitHubToken:
+    NoEcho: true
+    Type: String
+    Description: Secret. It might look something like 9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo. Go to https://github.com/settings/tokens
+  BuildType:
+    Type: String
+    Default: "linuxContainer"
+    Description: The build container type to use for building the app
+  BuildComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for building the app
+  BuildImage:
+    Type: String
+    Default: "aws/codebuild/ubuntu-base:latest"
+    Description: The build image to use for building the app
+  MuType:
+    Type: String
+    Default: "linuxContainer"
+    Description: The build container type to use for mu commands
+  MuComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for mu commands
+  MuImage:
+    Type: String
+    Default: "aws/codebuild/docker:1.12.1"
+    Description: The build image to use for mu commands
+  MuDownloadBaseurl:
+    Type: String
+    Default: "https://github.com/stelligent/mu/releases/download"
+    Description: The base url to install mu from
+  MuDownloadVersion:
+    Type: String
+    Description: The version of mu to install in CodeBuild
+  MuDownloadFile:
+    Type: String
+    Default: "mu-linux-amd64"
+    Description: The name of the mu file to download to install
+  MuFile:
+    Type: String
+    Description: Path to mu.yml, relative to GitHubRepo
+    Default: "mu.yml"
+  TestEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for testing
+    Default: "dev"
+  ProdEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for production
+    Default: "production"
+Resources:
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: codebuild-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: "*"
+            Resource: "*"
+          Version: '2012-10-17'
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: codepipeline-service
+        PolicyDocument:
+          Statement:
+          - Action:
+            - codebuild:*
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:GetBucketVersioning
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - s3:PutObject
+            Resource:
+            - arn:aws:s3:::codepipeline*
+            Effect: Allow
+          - Action:
+            - s3:*
+            - cloudformation:*
+            - ecs:*
+            - iam:PassRole
+            Resource: "*"
+            Effect: Allow
+          Version: '2012-10-17'
+  CodeBuildArtifact:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-artifact
+      Description: Build artifact from source
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref BuildType
+        ComputeType: !Ref BuildComputeType
+        Image: !Sub ${BuildImage}
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 10
+  CodeBuildImage:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-image
+      Description: Build image from artifact
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Sub ${MuImage}
+        EnvironmentVariables:
+         - Name: DOCKER_API_VERSION
+           Value: 1.24
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc push -t latest
+          artifacts:
+            type: zip
+            files:
+              - ${MuFile}
+      TimeoutInMinutes: 10
+  DeployTest:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-test
+      Description: Deploy image to test environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Sub ${MuImage}
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
+          artifacts:
+            type: zip
+            files:
+              - ${MuFile}
+      TimeoutInMinutes: 10
+  DeployProd:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-prod
+      Description: Deploy image to prod environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref MuType
+        ComputeType: !Ref MuComputeType
+        Image: !Sub ${MuImage}
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub |
+          version: 0.1
+          phases:
+            build:
+              commands:
+                - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
+                - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
+          artifacts:
+            type: zip
+            files:
+              - ${MuFile}
+      TimeoutInMinutes: 10
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+      - Name: Source
+        Actions:
+        - InputArtifacts: []
+          Name: Source
+          ActionTypeId:
+            Category: Source
+            Owner: ThirdParty
+            Version: '1'
+            Provider: GitHub
+          OutputArtifacts:
+          - Name: SourceOutput
+          Configuration:
+            Owner: !Ref GitHubUser
+            Repo: !Ref GitHubRepo
+            Branch: !Ref GitHubBranch
+            OAuthToken: !Ref GitHubToken
+          RunOrder: 1
+      - Name: Build
+        Actions:
+        - Name: Artifact
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: SourceOutput
+          OutputArtifacts:
+          - Name: ArtifactOutput
+          Configuration:
+            ProjectName: !Ref CodeBuildArtifact
+          RunOrder: 1
+        - Name: Image
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: ImageOutput
+          Configuration:
+            ProjectName: !Ref CodeBuildImage
+          RunOrder: 2
+      - Name: Acceptance
+        Actions:
+        - Name: Deploy
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: AcceptanceOutput
+          Configuration:
+            ProjectName: !Ref DeployTest
+          RunOrder: 1
+      - Name: Production
+        Actions:
+        - Name: Approve
+          ActionTypeId:
+            Category: Approval
+            Owner: AWS
+            Version: '1'
+            Provider: Manual
+          Configuration:
+            CustomData: Approve deployment to production
+          RunOrder: 1
+        - Name: Deploy
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: ArtifactOutput
+          OutputArtifacts:
+          - Name: ProductionOutput
+          Configuration:
+            ProjectName: !Ref DeployProd
+          RunOrder: 2
+      ArtifactStore:
+        Type: S3
+        Location: !ImportValue mu-bucket-codepipeline
+Outputs:
+  CodePipelineUrl:
+    Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+    Description: CodePipeline URL
+

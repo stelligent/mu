@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service in a specific environment containing an ALB target group with ECS service and task definition
 Parameters:
   ServiceName:
     Type: String
