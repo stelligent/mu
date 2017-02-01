@@ -54,6 +54,22 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 
 # Terminate the pipeline
 > mu pipeline terminate [<service_name>]
+
+```
+
+# Common flags
+```
+# Path to mu config
+> mu -c path/to/mu.yml ...
+
+# AWS region
+> mu -r us-west-2 ...
+> AWS_REGION=us-west-2 mu ...
+
+# AWS profile
+> mu -p my-profile ...
+> AWS_PROFILE=my-profie mu ...
+
 ```
 
 # Configuration
@@ -61,8 +77,6 @@ The definition of your environments, services and pipelines is done via a YAML f
 
 ```
 ---
-### Region to utilize
-region: us-west-2
 
 ### Define a list of environments
 environments:

@@ -1,5 +1,4 @@
 ---
-region: us-west-2
 
 environments:
   - name: sample-dev
