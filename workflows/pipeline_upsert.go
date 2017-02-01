@@ -60,11 +60,18 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		}
 		pipelineParams["GitHubUser"] = sourceRepo[0]
 		pipelineParams["GitHubRepo"] = sourceRepo[1]
-		pipelineParams["GitHubBranch"] = workflow.pipelineConfig.Source.Branch
 		pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 
-		pipelineParams["BuildType"] = workflow.pipelineConfig.Build.Type
-		pipelineParams["BuildComputeType"] = workflow.pipelineConfig.Build.ComputeType
+		if workflow.pipelineConfig.Source.Branch != "" {
+			pipelineParams["GitHubBranch"] = workflow.pipelineConfig.Source.Branch
+		}
+
+		if workflow.pipelineConfig.Build.Type != "" {
+			pipelineParams["BuildType"] = workflow.pipelineConfig.Build.Type
+		}
+		if workflow.pipelineConfig.Build.ComputeType != "" {
+			pipelineParams["BuildComputeType"] = workflow.pipelineConfig.Build.ComputeType
+		}
 
 		if workflow.pipelineConfig.Build.Image != "" {
 			pipelineParams["BuildImage"] = workflow.pipelineConfig.Build.Image
