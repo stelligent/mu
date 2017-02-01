@@ -37,11 +37,11 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 # Show details about a specific service (Which versions in which environments, pipeline status)
 > mu service show [-s <service_name>]
 
+# Build docker image and push to ECR
+> mu service push
+
 # Deploy the service to an environment
 > mu service deploy <environment_name>
-
-# Set an environment variable(s) for a service
-> mu service setenv <environment_name> [-s <service_name>] key=value[,...]
 
 # Undeploy the service from an environment
 > mu service undeploy <environment_name> [-s <service_name>]
