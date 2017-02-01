@@ -18,7 +18,7 @@ func TestNewServicesCommand(t *testing.T) {
 	assert.Equal(1, len(command.Aliases), "Aliases len should match")
 	assert.Equal("svc", command.Aliases[0], "Aliases should match")
 	assert.Equal("options for managing services", command.Usage, "Usage should match")
-	assert.Equal(5, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
 }
 
 func TestNewServicesShowCommand(t *testing.T) {
@@ -30,8 +30,8 @@ func TestNewServicesShowCommand(t *testing.T) {
 
 	assert.NotNil(command)
 	assert.Equal("show", command.Name, "Name should match")
-	assert.Equal(1, len(command.Flags), "Flags length")
-	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
+	assert.Equal(0, len(command.Flags), "Flags length")
+	assert.Equal("[<service>]", command.ArgsUsage, "ArgsUsage should match")
 	assert.NotNil(command.Action)
 }
 
@@ -64,21 +64,6 @@ func TestNewServicesDeployCommand(t *testing.T) {
 	assert.NotNil(command.Action)
 }
 
-func TestNewSetenvCommand(t *testing.T) {
-	assert := assert.New(t)
-
-	ctx := common.NewContext()
-
-	command := newServicesSetenvCommand(ctx)
-
-	assert.NotNil(command)
-	assert.Equal("setenv", command.Name, "Name should match")
-	assert.Equal("<environment> <key1>=<value1>...", command.ArgsUsage, "ArgsUsage should match")
-	assert.Equal(1, len(command.Flags), "Flags length")
-	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
-	assert.NotNil(command.Action)
-}
-
 func TestNewUndeployCommand(t *testing.T) {
 	assert := assert.New(t)
 
@@ -88,8 +73,7 @@ func TestNewUndeployCommand(t *testing.T) {
 
 	assert.NotNil(command)
 	assert.Equal("undeploy", command.Name, "Name should match")
-	assert.Equal("<environment>", command.ArgsUsage, "ArgsUsage should match")
-	assert.Equal(1, len(command.Flags), "Flags length")
-	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
+	assert.Equal("<environment> [<service>]", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(0, len(command.Flags), "Flags length")
 	assert.NotNil(command.Action)
 }

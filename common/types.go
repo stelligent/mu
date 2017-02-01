@@ -4,11 +4,7 @@ import "time"
 
 // Context defines the context object passed around
 type Context struct {
-	Config Config
-	Repo   struct {
-		Name     string
-		Revision string
-	}
+	Config          Config
 	StackManager    StackManager
 	ClusterManager  ClusterManager
 	PipelineManager PipelineManager
@@ -17,10 +13,13 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
-	Basedir      string
-	Region       string
 	Environments []Environment
 	Service      Service
+	Basedir      string
+	Repo         struct {
+		Name     string
+		Revision string
+	}
 }
 
 // Environment defines the structure of the yml file for an environment

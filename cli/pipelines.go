@@ -41,17 +41,12 @@ func newPipelinesListCommand(ctx *common.Context) *cli.Command {
 
 func newPipelinesTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:    "terminate",
-		Aliases: []string{"term"},
-		Usage:   "terminate pipeline",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to terminate pipeline",
-			},
-		},
+		Name:      "terminate",
+		Aliases:   []string{"term"},
+		Usage:     "terminate pipeline",
+		ArgsUsage: "[<service>]",
 		Action: func(c *cli.Context) error {
-			service := c.String("service")
+			service := c.Args().First()
 			workflow := workflows.NewPipelineTerminator(ctx, service)
 			return workflow()
 		},

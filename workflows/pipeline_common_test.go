@@ -12,7 +12,7 @@ func TestServiceFinder(t *testing.T) {
 	workflow := new(pipelineWorkflow)
 
 	ctx := new(common.Context)
-	ctx.Repo.Name = "my-repo"
+	ctx.Config.Repo.Name = "my-repo"
 
 	err := workflow.serviceFinder("", ctx)()
 	assert.Nil(err)

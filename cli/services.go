@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
@@ -18,7 +17,6 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 			*newServicesShowCommand(ctx),
 			*newServicesPushCommand(ctx),
 			*newServicesDeployCommand(ctx),
-			*newServicesSetenvCommand(ctx),
 			*newServicesUndeployCommand(ctx),
 		},
 	}
@@ -28,16 +26,11 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 
 func newServicesShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "show",
-		Usage: "show service details",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to show",
-			},
-		},
+		Name:      "show",
+		Usage:     "show service details",
+		ArgsUsage: "[<service>]",
 		Action: func(c *cli.Context) error {
-			service := c.String("service")
+			service := c.Args().First()
 			workflow := workflows.NewServiceViewer(ctx, service, os.Stdout)
 			return workflow()
 		},
@@ -92,47 +85,18 @@ func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 	return cmd
 }
 
-func newServicesSetenvCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command{
-		Name:      "setenv",
-		Usage:     "set environment variable",
-		ArgsUsage: "<environment> <key1>=<value1>...",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to deploy",
-			},
-		},
-		Action: func(c *cli.Context) error {
-			environmentName := c.Args().First()
-			serviceName := c.String("service")
-			keyvals := c.Args().Tail()
-			fmt.Printf("setenv service: %s to environment: %s with vals: %s\n", serviceName, environmentName, keyvals)
-			return nil
-		},
-	}
-
-	return cmd
-}
-
 func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
 		Name:      "undeploy",
 		Usage:     "undeploy service from environment",
-		ArgsUsage: "<environment>",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to undeploy",
-			},
-		},
+		ArgsUsage: "<environment> [<service>]",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
 				cli.ShowCommandHelp(c, "undeploy")
 				return errors.New("environment must be provided")
 			}
-			serviceName := c.String("service")
+			serviceName := c.Args().Get(1)
 			workflow := workflows.NewServiceUndeployer(ctx, serviceName, environmentName)
 			return workflow()
 		},

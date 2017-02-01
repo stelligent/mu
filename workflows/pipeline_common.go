@@ -33,7 +33,7 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		if serviceName != "" {
 			workflow.serviceName = serviceName
 		} else if ctx.Config.Service.Name == "" {
-			workflow.serviceName = ctx.Repo.Name
+			workflow.serviceName = ctx.Config.Repo.Name
 		} else {
 			workflow.serviceName = ctx.Config.Service.Name
 		}

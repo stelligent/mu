@@ -21,22 +21,6 @@ func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer)
 	)
 }
 
-func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName string) Executor {
-	return func() error {
-		// Repo Name
-		if serviceName == "" {
-			if ctx.Config.Service.Name == "" {
-				workflow.serviceName = ctx.Repo.Name
-			} else {
-				workflow.serviceName = ctx.Config.Service.Name
-			}
-		} else {
-			workflow.serviceName = serviceName
-		}
-		return nil
-	}
-}
-
 func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, writer io.Writer) Executor {
 	bold := color.New(color.Bold).SprintFunc()
 	return func() error {

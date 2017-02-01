@@ -41,8 +41,7 @@ func TestNewPipelinesTerminateCommand(t *testing.T) {
 
 	assert.NotNil(command)
 	assert.Equal("terminate", command.Name, "Name should match")
-	assert.Equal(1, len(command.Flags), "Flag len should match")
-	assert.Equal("service, s", command.Flags[0].GetName(), "Flag should match")
+	assert.Equal("[<service>]", command.ArgsUsage, "ArgsUsage should match")
 	assert.NotNil(command.Action)
 }
 func TestNewPipelinesUpsertCommand(t *testing.T) {

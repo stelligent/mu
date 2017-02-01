@@ -30,7 +30,7 @@ func (workflow *pipelineWorkflow) pipelineLister(stackLister common.StackLister,
 
 		table := tablewriter.NewWriter(writer)
 		table.SetHeader([]string{"Service", "Stack", "Status", "Last Update", "Mu Version"})
-		table.SetBorder(false)
+		table.SetBorder(true)
 		table.SetAutoWrapText(false)
 
 		for _, stack := range stacks {
