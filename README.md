@@ -49,9 +49,6 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 # List the pipelines
 > mu pipeline list
 
-# Show the pipeline details for a specific service
-> mu pipeline show [-s <service_name>]
-
 # Upsert the pipeline
 > mu pipeline up [-t <repo_token>]
 
@@ -107,7 +104,22 @@ service:
   pathPatterns:
     - /bananas
     - /apples
+
+  # Define the behavior of the pipeline
+  pipeline:
+      source:
+        repo: stelligent/microservice-exemplar  # The GitHub repo slug to build (default: none)
+        branch: mu                              # The branch to build from (default: master)
+      build:
+        image: aws/codebuild/java:openjdk-8     # The image to use for CodeBuild job (default: aws/codebuild/ubuntu-base:latest)
+        type: linuxContainer
+        computeType: BUILD_GENERAL1_SMALL       # The type of compute instance for builds (default: BUILD_GENERAL1_SMALL)
+      acceptance:
+        environment: dev                        # The environment name to deploy to for testing (default: dev)
+      production:
+        environment: production                 # The environment name to deploy to for production (default: production)
 ```
+
 
 
 # Contributing
