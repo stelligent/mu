@@ -35,7 +35,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu env terminate <environment_name>
 
 # Show details about a specific service (Which versions in which environments, pipeline status)
-> mu service show [-s <service_name>]
+> mu service show [<service_name>]
 
 # Build docker image and push to ECR
 > mu service push
@@ -44,7 +44,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu service deploy <environment_name>
 
 # Undeploy the service from an environment
-> mu service undeploy <environment_name> [-s <service_name>]
+> mu service undeploy <environment_name> [<service_name>]
 
 # List the pipelines
 > mu pipeline list
@@ -53,7 +53,27 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 > mu pipeline up [-t <repo_token>]
 
 # Terminate the pipeline
-> mu pipeline terminate [-s <service_name>]
+> mu pipeline terminate [<service_name>]
+
+```
+
+# Common flags
+```
+# Path to mu config
+> mu -c path/to/mu.yml ...
+
+# AWS region
+> mu -r us-west-2 ...
+
+# or via environment variable
+> AWS_REGION=us-west-2 mu ...
+
+# AWS profile
+> mu -p my-profile ...
+
+# or via environment variable
+> AWS_PROFILE=my-profie mu ...
+
 ```
 
 # Configuration
@@ -61,8 +81,6 @@ The definition of your environments, services and pipelines is done via a YAML f
 
 ```
 ---
-### Region to utilize
-region: us-west-2
 
 ### Define a list of environments
 environments:

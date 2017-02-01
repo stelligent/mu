@@ -14,8 +14,8 @@ func TestServiceLoader_FromConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
-	ctx.Repo.Name = "myrepo"
-	ctx.Repo.Revision = "1.0.0"
+	ctx.Config.Repo.Name = "myrepo"
+	ctx.Config.Repo.Revision = "1.0.0"
 	ctx.Config.Service.Name = "myservice"
 
 	workflow := new(serviceWorkflow)
@@ -29,8 +29,8 @@ func TestServiceLoader_FromRepo(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
-	ctx.Repo.Name = "myrepo"
-	ctx.Repo.Revision = "1.0.0"
+	ctx.Config.Repo.Name = "myrepo"
+	ctx.Config.Repo.Revision = "1.0.0"
 
 	workflow := new(serviceWorkflow)
 	err := workflow.serviceLoader(ctx, "")()

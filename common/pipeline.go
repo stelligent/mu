@@ -21,13 +21,9 @@ type codePipelineManager struct {
 	codePipelineAPI codepipelineiface.CodePipelineAPI
 }
 
-func newPipelineManager(region string) (PipelineManager, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("Connecting to CodePipeline service in region:%s", region)
-	codePipelineAPI := codepipeline.New(sess, &aws.Config{Region: aws.String(region)})
+func newPipelineManager(sess *session.Session) (PipelineManager, error) {
+	log.Debug("Connecting to CodePipeline service")
+	codePipelineAPI := codepipeline.New(sess)
 
 	return &codePipelineManager{
 		codePipelineAPI: codePipelineAPI,
