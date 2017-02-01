@@ -26,7 +26,7 @@ deps:
 	glide install
 	go generate $(SRC_FILES)
 
-lint:
+lint: fmt
 	@echo "=== linting ==="
 	go vet $(SRC_FILES)
 	glide novendor | xargs -n1 golint -set_exit_status
@@ -85,7 +85,7 @@ clean:
 all: clean deps test build
 
 fmt:
-	@echo "=== cleaning ==="
+	@echo "=== formatting ==="
 	go fmt $(SRC_FILES)
 
 
