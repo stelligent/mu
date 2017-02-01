@@ -19,42 +19,50 @@ Parameters:
   BuildType:
     Type: String
     Default: "linuxContainer"
+    Description: The build container type to use for building the app
   BuildComputeType:
     Type: String
     Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for building the app
   BuildImage:
     Type: String
-    Default: "aws/codebuild/ubuntu-base"
-  BuildImageVersion:
-    Type: String
-    Default: "latest"
+    Default: "aws/codebuild/ubuntu-base:latest"
+    Description: The build image to use for building the app
   MuType:
     Type: String
     Default: "linuxContainer"
+    Description: The build container type to use for mu commands
   MuComputeType:
     Type: String
     Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for mu commands
   MuImage:
     Type: String
-    Default: "aws/codebuild/docker"
-  MuImageVersion:
-    Type: String
-    Default: "1.12.1"
-  MuImage:
-    Type: String
-    Default: "aws/codebuild/docker"
+    Default: "aws/codebuild/docker:1.12.1"
+    Description: The build image to use for mu commands
   MuDownloadBaseurl:
     Type: String
     Default: "https://github.com/stelligent/mu/releases/download"
+    Description: The base url to install mu from
   MuDownloadVersion:
     Type: String
+    Description: The version of mu to install in CodeBuild
   MuDownloadFile:
     Type: String
     Default: "mu-linux-amd64"
+    Description: The name of the mu file to download to install
   MuFile:
     Type: String
     Description: Path to mu.yml, relative to GitHubRepo
     Default: "mu.yml"
+  TestEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for testing
+    Default: "dev"
+  ProdEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for production
+    Default: "production"
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -127,7 +135,7 @@ Resources:
       Environment:
         Type: !Ref BuildType
         ComputeType: !Ref BuildComputeType
-        Image: !Sub ${BuildImage}:${BuildImageVersion}
+        Image: !Sub ${BuildImage}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 10
@@ -143,7 +151,7 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Sub ${MuImage}:${MuImageVersion}
+        Image: !Sub ${MuImage}
         EnvironmentVariables:
          - Name: DOCKER_API_VERSION
            Value: 1.24
@@ -174,7 +182,7 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Sub ${MuImage}:${MuImageVersion}
+        Image: !Sub ${MuImage}
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -184,7 +192,7 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} svc deploy dev -t latest
+                - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
           artifacts:
             type: zip
             files:
@@ -202,7 +210,7 @@ Resources:
       Environment:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
-        Image: !Sub ${MuImage}:${MuImageVersion}
+        Image: !Sub ${MuImage}
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -212,7 +220,7 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} svc deploy production -t latest
+                - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
           artifacts:
             type: zip
             files:

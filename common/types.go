@@ -60,15 +60,25 @@ type Service struct {
 
 // Pipeline definition
 type Pipeline struct {
-	SourceRepo        string `yaml:"sourceRepo"`
-	SourceBranch      string `yaml:"sourceBranch"`
-	BuildType         string `yaml:"buildType"`
-	BuildComputeType  string `yaml:"buildComputeType"`
-	BuildImage        string `yaml:"buildImage"`
-	BuildImageVersion string `yaml:"buildImageVersion"`
+	Source struct {
+	       Repo        string `yaml:"repo"`
+	       Branch      string `yaml:"branch"`
+	}
+	Build struct {
+	      Type         string `yaml:"type"`
+	      ComputeType  string `yaml:"computeType"`
+	      Image        string `yaml:"image"`
+	}
+	Acceptance struct {
+	      Environment  string `yaml:"environment"`
+	}
+	Production struct {
+	      Environment  string `yaml:"environment"`
+	}
 	MuBaseurl         string `yaml:"muBaseurl"`
 	MuVersion    	  string `yaml:"muVersion"`
 }
+
 
 // Stack summary
 type Stack struct {
