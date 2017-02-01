@@ -9,9 +9,10 @@ type Context struct {
 		Name     string
 		Revision string
 	}
-	StackManager   StackManager
-	ClusterManager ClusterManager
-	DockerManager  DockerManager
+	StackManager    StackManager
+	ClusterManager  ClusterManager
+	PipelineManager PipelineManager
+	DockerManager   DockerManager
 }
 
 // Config defines the structure of the yml file for the mu config

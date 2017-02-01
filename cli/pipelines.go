@@ -6,9 +6,9 @@ import (
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
+	"os"
 	"strings"
 	"syscall"
-	"os"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {

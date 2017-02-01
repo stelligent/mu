@@ -40,7 +40,7 @@ func (workflow *environmentWorkflow) environmentViewer(environmentName string, s
 			fmt.Fprintf(writer, "%s:\t%s (%s)\n", bold("VPC Stack"), vpcStack.Name, colorizeStackStatus(vpcStack.Status))
 		}
 
-		fmt.Fprintf(writer, "%s:\t%s\n", bold("Base URL"), clusterStack.Outputs["BaseUrl"])
+		fmt.Fprintf(writer, "%s:\t\t%s\n", bold("Base URL"), clusterStack.Outputs["BaseUrl"])
 
 		fmt.Fprintf(writer, "%s:\n", bold("Container Instances"))
 		fmt.Fprint(writer, "\n")
