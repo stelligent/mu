@@ -4,29 +4,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"github.com/stretchr/testify/mock"
+	"testing"
 )
-
-func TestServiceFinder(t *testing.T) {
-	assert := assert.New(t)
-
-	workflow := new(pipelineWorkflow)
-
-	ctx := new(common.Context)
-	ctx.Repo.Name = "my-repo"
-
-	err := workflow.serviceFinder(ctx)()
-	assert.Nil(err)
-	assert.NotNil(workflow.pipelineConfig)
-	assert.Equal("my-repo", workflow.serviceName)
-
-	ctx.Config.Service.Name = "my-service"
-	err = workflow.serviceFinder(ctx)()
-	assert.Nil(err)
-	assert.NotNil(workflow.pipelineConfig)
-	assert.Equal("my-service", workflow.serviceName)
-}
 
 func TestNewPipelineUpserter(t *testing.T) {
 	assert := assert.New(t)
@@ -54,7 +34,7 @@ func TestPipelineBucket(t *testing.T) {
 
 	stackParams := stackManager.Calls[0].Arguments.Get(1).(map[string]string)
 	assert.NotNil(stackParams)
-	assert.Equal("codepipeline",stackParams["BucketPrefix"])
+	assert.Equal("codepipeline", stackParams["BucketPrefix"])
 }
 
 func TestPipelineUpserter(t *testing.T) {
@@ -82,9 +62,8 @@ func TestPipelineUpserter(t *testing.T) {
 
 	stackParams := stackManager.Calls[1].Arguments.Get(1).(map[string]string)
 	assert.NotNil(stackParams)
-	assert.Equal("foo",stackParams["GitHubUser"])
-	assert.Equal("bar",stackParams["GitHubRepo"])
-	assert.Equal("",stackParams["GitHubBranch"])
-	assert.Equal("my-token",stackParams["GitHubToken"])
+	assert.Equal("foo", stackParams["GitHubUser"])
+	assert.Equal("bar", stackParams["GitHubRepo"])
+	assert.Equal("", stackParams["GitHubBranch"])
+	assert.Equal("my-token", stackParams["GitHubToken"])
 }
-

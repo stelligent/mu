@@ -81,6 +81,12 @@ func (ctx *Context) Initialize(configReader io.Reader) error {
 		return err
 	}
 
+	// initialize CodePipelineManager
+	ctx.PipelineManager, err = newPipelineManager(ctx.Config.Region)
+	if err != nil {
+		return err
+	}
+
 	// initialize DockerManager
 	ctx.DockerManager, err = newClientDockerManager()
 	if err != nil {

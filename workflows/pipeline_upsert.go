@@ -1,10 +1,10 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
-	"fmt"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -13,26 +13,10 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	workflow := new(pipelineWorkflow)
 
 	return newWorkflow(
-		workflow.serviceFinder(ctx),
+		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
 		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),
 	)
-}
-
-// Find the service in config
-func (workflow *pipelineWorkflow) serviceFinder(ctx *common.Context) Executor {
-
-	return func() error {
-		// Repo Name
-		if ctx.Config.Service.Name == "" {
-			workflow.serviceName = ctx.Repo.Name
-		} else {
-			workflow.serviceName = ctx.Config.Service.Name
-		}
-
-		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
-		return nil
-	}
 }
 
 // Setup the artifact bucket
@@ -46,7 +30,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
 		if err != nil {
 			return err
 		}
@@ -72,7 +56,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 
 		sourceRepo := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
 		if sourceRepo == nil || len(sourceRepo) != 2 {
-			return fmt.Errorf("Invalid source repo %v",workflow.pipelineConfig.Source.Repo)
+			return fmt.Errorf("Invalid source repo %v", workflow.pipelineConfig.Source.Repo)
 		}
 		pipelineParams["GitHubUser"] = sourceRepo[0]
 		pipelineParams["GitHubRepo"] = sourceRepo[1]

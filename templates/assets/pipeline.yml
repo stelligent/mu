@@ -322,4 +322,7 @@ Outputs:
   CodePipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
     Description: CodePipeline URL
+  PipelineName:
+    Value: !Sub ${Pipeline}
+    Description: Pipeline Name
 
