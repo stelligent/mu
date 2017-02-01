@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"strings"
 	"syscall"
+	"os"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {
@@ -31,8 +32,8 @@ func newPipelinesListCommand(ctx *common.Context) *cli.Command {
 		Aliases: []string{"ls"},
 		Usage:   "list pipelines",
 		Action: func(c *cli.Context) error {
-			fmt.Println("listing pipelines")
-			return nil
+			workflow := workflows.NewPipelineLister(ctx, os.Stdout)
+			return workflow()
 		},
 	}
 
