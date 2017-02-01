@@ -64,10 +64,14 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INST
 
 # AWS region
 > mu -r us-west-2 ...
+
+# or via environment variable
 > AWS_REGION=us-west-2 mu ...
 
 # AWS profile
 > mu -p my-profile ...
+
+# or via environment variable
 > AWS_PROFILE=my-profie mu ...
 
 ```
