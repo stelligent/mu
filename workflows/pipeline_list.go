@@ -8,35 +8,35 @@ import (
 	"io"
 )
 
-// NewEnvironmentLister create a new workflow for listing environments
-func NewEnvironmentLister(ctx *common.Context, writer io.Writer) Executor {
+// NewPipelineLister create a new workflow for listing environments
+func NewPipelineLister(ctx *common.Context, writer io.Writer) Executor {
 
-	workflow := new(environmentWorkflow)
+	workflow := new(pipelineWorkflow)
 
 	return newWorkflow(
-		workflow.environmentLister(ctx.StackManager, writer),
+		workflow.pipelineLister(ctx.StackManager, writer),
 	)
 }
 
-func (workflow *environmentWorkflow) environmentLister(stackLister common.StackLister, writer io.Writer) Executor {
+func (workflow *pipelineWorkflow) pipelineLister(stackLister common.StackLister, writer io.Writer) Executor {
 	bold := color.New(color.Bold).SprintFunc()
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypeCluster)
+		stacks, err := stackLister.ListStacks(common.StackTypePipeline)
 
 		if err != nil {
 			return err
 		}
 
 		table := tablewriter.NewWriter(writer)
-		table.SetHeader([]string{"Environment", "Stack", "Status", "Last Update", "Mu Version"})
+		table.SetHeader([]string{"Service", "Stack", "Status", "Last Update", "Mu Version"})
 		table.SetBorder(false)
 		table.SetAutoWrapText(false)
 
 		for _, stack := range stacks {
 
 			table.Append([]string{
-				bold(stack.Tags["environment"]),
+				bold(stack.Tags["service"]),
 				stack.Name,
 				fmt.Sprintf("%s %s", colorizeStackStatus(stack.Status), stack.StatusReason),
 				stack.LastUpdateTime.Local().Format("2006-01-02 15:04:05"),

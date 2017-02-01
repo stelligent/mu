@@ -1,0 +1,172 @@
+hash: fdf6aec9a3747b3ba7145af44d2a840e6bb2cce2ece6a8554b7364c436d17e0e
+updated: 2017-01-31T11:14:43.508254901-08:00
+imports:
+- name: github.com/aws/aws-sdk-go
+  version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - private/protocol
+  - private/protocol/ec2query
+  - private/protocol/json/jsonutil
+  - private/protocol/jsonrpc
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/xml/xmlutil
+  - private/waiter
+  - service/cloudformation
+  - service/cloudformation/cloudformationiface
+  - service/ec2
+  - service/ec2/ec2iface
+  - service/ecr
+  - service/ecr/ecriface
+  - service/ecs
+  - service/ecs/ecsiface
+  - service/sts
+- name: github.com/docker/distribution
+  version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
+  subpackages:
+  - digestset
+  - reference
+- name: github.com/docker/docker
+  version: 2527cfcc49744f56a8d31c420a3ca4657f9fec2e
+  subpackages:
+  - api/types
+  - api/types/blkiodev
+  - api/types/container
+  - api/types/events
+  - api/types/filters
+  - api/types/mount
+  - api/types/network
+  - api/types/reference
+  - api/types/registry
+  - api/types/strslice
+  - api/types/swarm
+  - api/types/time
+  - api/types/versions
+  - api/types/volume
+  - builder/dockerignore
+  - client
+  - pkg/archive
+  - pkg/fileutils
+  - pkg/idtools
+  - pkg/ioutils
+  - pkg/longpath
+  - pkg/pools
+  - pkg/promise
+  - pkg/system
+  - pkg/tlsconfig
+- name: github.com/docker/go-connections
+  version: 9670439d95da2651d9dfc7acc5d2ed92d3f25ee6
+  subpackages:
+  - nat
+  - sockets
+  - tlsconfig
+- name: github.com/docker/go-units
+  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
+- name: github.com/fatih/color
+  version: 34e4ee095d12986a2cef5ddb9aeb3b8cfcfea17c
+- name: github.com/go-ini/ini
+  version: e3c2d47c61e5333f9aa2974695dd94396eb69c75
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+- name: github.com/mattn/go-colorable
+  version: d228849504861217f796da67fae4f6e347643f15
+- name: github.com/mattn/go-isatty
+  version: 30a891c33c7cde7b02a981314b4228ec99380cca
+- name: github.com/mattn/go-runewidth
+  version: 737072b4e32b7a5018b4a7125da8d12de90e8045
+- name: github.com/Microsoft/go-winio
+  version: 307e919c663683a9000576fdc855acaf9534c165
+- name: github.com/olekukonko/tablewriter
+  version: febf2d34b54a69ce7530036c7503b1c9fbfdf0bb
+- name: github.com/op/go-logging
+  version: b2cb9fa56473e98db8caba80237377e83fe44db5
+- name: github.com/opencontainers/go-digest
+  version: aa2ec055abd10d26d539eb630a92241b781ce4bc
+- name: github.com/opencontainers/runc
+  version: 510879e31fd5e7b8f2588ed09471fe62a368f24e
+  subpackages:
+  - libcontainer/system
+  - libcontainer/user
+- name: github.com/pkg/errors
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+- name: github.com/sergi/go-diff
+  version: 24e2351369ec4949b2ed0dc5c477afdd4c4034e8
+  subpackages:
+  - diffmatchpatch
+- name: github.com/Sirupsen/logrus
+  version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
+- name: github.com/urfave/cli
+  version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
+- name: golang.org/x/crypto
+  version: dc137beb6cce2043eb6b5f223ab8bf51c32459f4
+  subpackages:
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - ssh
+  - ssh/terminal
+- name: golang.org/x/net
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  subpackages:
+  - context
+  - context/ctxhttp
+  - proxy
+- name: golang.org/x/sys
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  subpackages:
+  - unix
+  - windows
+- name: gopkg.in/sourcegraph/go-vcsurl.v1
+  version: 6b12603ea6fd7f84b8c90118face09df39ea10c6
+- name: gopkg.in/src-d/go-git.v3
+  version: 02c228585e543413479ea36d3a2bbc80a070eb93
+  subpackages:
+  - clients
+  - clients/common
+  - clients/http
+  - clients/ssh
+  - core
+  - diff
+  - formats/idxfile
+  - formats/packfile
+  - formats/pktline
+  - storage/memory
+  - storage/seekable
+  - storage/seekable/internal/gitdir
+  - storage/seekable/internal/index
+  - utils/fs
+- name: gopkg.in/yaml.v2
+  version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
+- name: github.com/stretchr/objx
+  version: cbeaeb16a013161a98496fad62933b1d21786672
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+  subpackages:
+  - assert
+  - mock

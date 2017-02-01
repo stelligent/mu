@@ -6,6 +6,7 @@ TARGET_OS := linux windows darwin
 BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
+SRC_FILES = $(shell glide nv)
 ARCH := $(shell go env GOARCH)
 BUILD_DIR = $(if $(CIRCLE_ARTIFACTS),$(CIRCLE_ARTIFACTS),.release)
 BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
@@ -13,7 +14,7 @@ UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
 
-default: build
+default: all
 
 deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
@@ -21,21 +22,22 @@ deps:
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
-	go get -t -d -v ./...
-	go generate ./...
+	#go get -t -d -v $(SRC_FILES)
+	glide install
+	go generate $(SRC_FILES)
 
 lint:
 	@echo "=== linting ==="
-	go vet ./...
-	golint -set_exit_status ./...
+	go vet $(SRC_FILES)
+	glide novendor | xargs -n1 golint -set_exit_status
 
 test: lint
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
-	go test -v -cover ./... | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
 else
-	go test -cover ./...
+	go test -cover $(SRC_FILES)
 endif
 
 
@@ -53,7 +55,7 @@ ifeq ($(IS_MASTER),)
 	git push --delete origin $(TAG_VERSION) || echo "No tag to delete"
 endif
 
-release-create: release-clean
+release-create: build release-clean
 	@echo "=== creating pre-release $(VERSION) ==="
 	git tag -f $(TAG_VERSION)
 	git push origin $(TAG_VERSION)
@@ -78,5 +80,13 @@ endif
 clean:
 	@echo "=== cleaning ==="
 	rm -rf $(BUILD_DIR)
+	rm -rf vendor
 
-.PHONY: default lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
+all: clean deps test build
+
+fmt:
+	@echo "=== cleaning ==="
+	go fmt $(SRC_FILES)
+
+
+.PHONY: default all lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)

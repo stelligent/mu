@@ -90,8 +90,9 @@ func buildStackParameters(parameters map[string]string) []*cloudformation.Parame
 	for key, value := range parameters {
 		stackParameters = append(stackParameters,
 			&cloudformation.Parameter{
-				ParameterKey:   aws.String(key),
-				ParameterValue: aws.String(value),
+				ParameterKey:     aws.String(key),
+				ParameterValue:   aws.String(value),
+				UsePreviousValue: aws.Bool(value == ""),
 			})
 	}
 	return stackParameters
@@ -171,7 +172,8 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			},
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
-			Tags:         stackTags,
+
+			Tags: stackTags,
 		}
 
 		_, err := cfnAPI.UpdateStack(params)
@@ -250,7 +252,11 @@ func buildStack(stackDetails *cloudformation.Stack) *Stack {
 	stack.Name = aws.StringValue(stackDetails.StackName)
 	stack.Status = aws.StringValue(stackDetails.StackStatus)
 	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
-	stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
+	if aws.TimeValue(stackDetails.LastUpdatedTime).Unix() > 0 {
+		stack.LastUpdateTime = aws.TimeValue(stackDetails.LastUpdatedTime)
+	} else {
+		stack.LastUpdateTime = aws.TimeValue(stackDetails.CreationTime)
+	}
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
 	stack.Parameters = make(map[string]string)

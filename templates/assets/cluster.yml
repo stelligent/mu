@@ -1,5 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Description: MU environment containing an ECS cluster and instances for running containers
 Parameters:
   InstanceType:
     Type: String
@@ -40,17 +41,9 @@ Parameters:
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  PublicSubnetAZ1Id:
+  PublicSubnetIds:
     Type: String
-    Description: Name of the value to import for the AZ1 subnet id
-  PublicSubnetAZ2Id:
-    Type: String
-    Description: Name of the value to import for the AZ2 subnet id
-    Default: ''
-  PublicSubnetAZ3Id:
-    Type: String
-    Description: Name of the value to import for the AZ3 subnet id
-    Default: ''
+    Description: Name of the value to import for the subnet ids
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -80,15 +73,6 @@ Conditions:
   HasKeyName:
     "Fn::Not":
       - "Fn::Equals": [!Ref KeyName, '']
-  HasPublicSubnetAZ1:
-    "Fn::Not":
-      - "Fn::Equals": [!Ref PublicSubnetAZ1Id, '']
-  HasPublicSubnetAZ2:
-    "Fn::Not":
-      - "Fn::Equals": [!Ref PublicSubnetAZ2Id, '']
-  HasPublicSubnetAZ3:
-    "Fn::Not":
-      - "Fn::Equals": [!Ref PublicSubnetAZ3Id, '']
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -97,18 +81,9 @@ Resources:
     DependsOn: []
     Properties:
       VPCZoneIdentifier:
-      - Fn::If:
-        - HasPublicSubnetAZ1
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ1Id}
-        - !Ref AWS::NoValue
-      - Fn::If:
-        - HasPublicSubnetAZ2
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ2Id}
-        - !Ref AWS::NoValue
-      - Fn::If:
-        - HasPublicSubnetAZ3
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ3Id}
-        - !Ref AWS::NoValue
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${PublicSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: '1'
       MaxSize: !Ref MaxSize
@@ -293,18 +268,9 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Subnets:
-      - Fn::If:
-        - HasPublicSubnetAZ1
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ1Id}
-        - !Ref AWS::NoValue
-      - Fn::If:
-        - HasPublicSubnetAZ2
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ2Id}
-        - !Ref AWS::NoValue
-      - Fn::If:
-        - HasPublicSubnetAZ3
-        - Fn::ImportValue: !Sub ${PublicSubnetAZ3Id}
-        - !Ref AWS::NoValue
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${PublicSubnetIds}
       SecurityGroups:
       - !Ref ElbSG
   EcsElbListener:
