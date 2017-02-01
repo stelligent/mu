@@ -59,7 +59,7 @@ func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common
 	return args.Get(0).(*common.Stack)
 }
 func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
-	args := m.Called(stackName)
+	args := m.Called(stackName, stackParameters)
 	return args.Error(0)
 }
 func (m *mockedStackManagerForUpsert) FindLatestImageID(pattern string) (string, error) {
@@ -79,7 +79,7 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-cluster-foo").Return(nil)
+	stackManager.On("UpsertStack", "mu-cluster-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
 	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
@@ -102,7 +102,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-vpc-foo").Return(nil)
+	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
@@ -133,7 +133,7 @@ environments:
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("UpsertStack", "mu-vpc-dev").Return(nil)
+	stackManager.On("UpsertStack", "mu-vpc-dev", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("AwaitFinalStatus", "mu-vpc-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)

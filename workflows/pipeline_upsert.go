@@ -4,6 +4,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
+	"fmt"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -70,6 +71,9 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		pipelineParams := make(map[string]string)
 
 		sourceRepo := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
+		if sourceRepo == nil || len(sourceRepo) != 2 {
+			return fmt.Errorf("Invalid source repo %v",workflow.pipelineConfig.Source.Repo)
+		}
 		pipelineParams["GitHubUser"] = sourceRepo[0]
 		pipelineParams["GitHubRepo"] = sourceRepo[1]
 		pipelineParams["GitHubBranch"] = workflow.pipelineConfig.Source.Branch

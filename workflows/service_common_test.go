@@ -99,7 +99,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-repo-foo").Return(nil)
+	stackManager.On("UpsertStack", "mu-repo-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
 	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
 	assert.Nil(err)
