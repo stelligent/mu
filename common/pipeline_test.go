@@ -1,11 +1,11 @@
 package common
 
 import (
+	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
-	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
-	"github.com/aws/aws-sdk-go/service/codepipeline"
 )
 
 type mockedCPL struct {

@@ -266,13 +266,13 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"assets/bucket.yml":     assetsBucketYml,
-	"assets/cluster.yml":    assetsClusterYml,
-	"assets/pipeline.yml":   assetsPipelineYml,
-	"assets/repo.yml":       assetsRepoYml,
-	"assets/service.yml":    assetsServiceYml,
+	"assets/bucket.yml": assetsBucketYml,
+	"assets/cluster.yml": assetsClusterYml,
+	"assets/pipeline.yml": assetsPipelineYml,
+	"assets/repo.yml": assetsRepoYml,
+	"assets/service.yml": assetsServiceYml,
 	"assets/vpc-target.yml": assetsVpcTargetYml,
-	"assets/vpc.yml":        assetsVpcYml,
+	"assets/vpc.yml": assetsVpcYml,
 }
 
 // AssetDir returns the file names below a certain
@@ -314,16 +314,15 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
 	"assets": &bintree{nil, map[string]*bintree{
-		"bucket.yml":     &bintree{assetsBucketYml, map[string]*bintree{}},
-		"cluster.yml":    &bintree{assetsClusterYml, map[string]*bintree{}},
-		"pipeline.yml":   &bintree{assetsPipelineYml, map[string]*bintree{}},
-		"repo.yml":       &bintree{assetsRepoYml, map[string]*bintree{}},
-		"service.yml":    &bintree{assetsServiceYml, map[string]*bintree{}},
+		"bucket.yml": &bintree{assetsBucketYml, map[string]*bintree{}},
+		"cluster.yml": &bintree{assetsClusterYml, map[string]*bintree{}},
+		"pipeline.yml": &bintree{assetsPipelineYml, map[string]*bintree{}},
+		"repo.yml": &bintree{assetsRepoYml, map[string]*bintree{}},
+		"service.yml": &bintree{assetsServiceYml, map[string]*bintree{}},
 		"vpc-target.yml": &bintree{assetsVpcTargetYml, map[string]*bintree{}},
-		"vpc.yml":        &bintree{assetsVpcYml, map[string]*bintree{}},
+		"vpc.yml": &bintree{assetsVpcYml, map[string]*bintree{}},
 	}},
 }}
 
@@ -373,3 +372,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+

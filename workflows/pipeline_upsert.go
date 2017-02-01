@@ -13,26 +13,10 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	workflow := new(pipelineWorkflow)
 
 	return newWorkflow(
-		workflow.serviceFinder(ctx),
+		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
 		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),
 	)
-}
-
-// Find the service in config
-func (workflow *pipelineWorkflow) serviceFinder(ctx *common.Context) Executor {
-
-	return func() error {
-		// Repo Name
-		if ctx.Config.Service.Name == "" {
-			workflow.serviceName = ctx.Repo.Name
-		} else {
-			workflow.serviceName = ctx.Config.Service.Name
-		}
-
-		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
-		return nil
-	}
 }
 
 // Setup the artifact bucket

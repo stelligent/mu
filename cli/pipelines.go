@@ -17,7 +17,6 @@ func newPipelinesCommand(ctx *common.Context) *cli.Command {
 		Usage: "options for managing pipelines",
 		Subcommands: []cli.Command{
 			*newPipelinesListCommand(ctx),
-			*newPipelinesShowCommand(ctx),
 			*newPipelinesUpsertCommand(ctx),
 			*newPipelinesTerminateCommand(ctx),
 		},
@@ -40,26 +39,6 @@ func newPipelinesListCommand(ctx *common.Context) *cli.Command {
 	return cmd
 }
 
-func newPipelinesShowCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command{
-		Name:  "show",
-		Usage: "show pipeline details",
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service to show",
-			},
-		},
-		Action: func(c *cli.Context) error {
-			service := c.String("service")
-			fmt.Printf("showing pipeline: %s\n", service)
-			return nil
-		},
-	}
-
-	return cmd
-}
-
 func newPipelinesTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
 		Name:    "terminate",
@@ -73,8 +52,8 @@ func newPipelinesTerminateCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			service := c.String("service")
-			fmt.Printf("terminating pipeline: %s\n", service)
-			return nil
+			workflow := workflows.NewPipelineTerminator(ctx, service)
+			return workflow()
 		},
 	}
 

@@ -24,3 +24,21 @@ func colorizeActionStatus(actionStatus string) string {
 	}
 	return color(actionStatus)
 }
+
+// Find the service in config
+func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.Context) Executor {
+
+	return func() error {
+		// Repo Name
+		if serviceName != "" {
+			workflow.serviceName = serviceName
+		} else if ctx.Config.Service.Name == "" {
+			workflow.serviceName = ctx.Repo.Name
+		} else {
+			workflow.serviceName = ctx.Config.Service.Name
+		}
+
+		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
+		return nil
+	}
+}
