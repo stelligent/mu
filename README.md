@@ -88,6 +88,7 @@ environments:
   # The unique name of the environment  (required)
   - name: dev
 
+
     ### Attributes for the ECS container instances
     cluster:
       imageId: ami-xxxxxx           # The AMI to use for the ECS container instances (default: latest ECS optimized AMI)
@@ -96,13 +97,22 @@ environments:
       maxSize: 2                    # Max size to scale the ECS ASG to (default: 2)
       keyName: my-keypair           # name of EC2 keypair to associate with ECS container instances (default: none)
       sshAllow: 0.0.0.0/0           # CIDR block to allow SSH access from (default: 0.0.0.0/0)
+      httpProxy: 10.0.0.43:8080     # Host and port to use for HTTP proxy for yum, docker images, and ECS (default: none)
       scaleOutThreshold: 80         # Threshold for % memory utilization to scale out ECS container instances (default: 80)
       scaleInThreshold: 30          # Threshold for % memory utilization to scale in ECS container instances (default: 30)
 
-    ### attributes for the VPC to target.  If not defined, a VPC will be created. (default: none)
+    ### Attributes for the ELB
+    loadBalancer:
+      internal: true                # Whether to create an internal ELB or not (default: false)
+
+    ### Attributes for the VPC to target.  If not defined, a VPC will be created. (default: none)
     vpcTarget:
         vpcId: vpc-xxxxx            # The id of the VPC to launch ECS container instances into
-        publicSubnetIds:            # The list of subnets to use for ECS container instances
+        ecsSubnetIds:               # The list of subnets to use for ECS container instances
+          - subnet-xxxxx
+          - subnet-xxxxy
+          - subnet-xxxxz
+        elbSubnetIds:               # The list of subnets to use for ELBs
           - subnet-xxxxx
           - subnet-xxxxy
           - subnet-xxxxz

@@ -27,6 +27,7 @@ type Environment struct {
 	Name         string
 	Loadbalancer struct {
 		Hostname string
+		Internal bool
 	}
 	Cluster struct {
 		ImageID           string `yaml:"imageId"`
@@ -37,10 +38,12 @@ type Environment struct {
 		SSHAllow          string `yaml:"sshAllow"`
 		ScaleOutThreshold int    `yaml:"scaleOutThreshold"`
 		ScaleInThreshold  int    `yaml:"scaleInThreshold"`
+		HTTPProxy         string `yaml:"httpProxy"`
 	}
 	VpcTarget struct {
-		VpcID           string   `yaml:"vpcId"`
-		PublicSubnetIds []string `yaml:"publicSubnetIds"`
+		VpcID        string   `yaml:"vpcId"`
+		EcsSubnetIds []string `yaml:"ecsSubnetIds"`
+		ElbSubnetIds []string `yaml:"elbSubnetIds"`
 	} `yaml:"vpcTarget,omitempty"`
 }
 
