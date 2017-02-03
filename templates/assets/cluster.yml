@@ -38,12 +38,26 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ElbInternal:
+    Description: Should ELB be internal?
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  PublicSubnetIds:
+  EcsSubnetIds:
     Type: String
-    Description: Name of the value to import for the subnet ids
+    Description: Name of the value to import for the ecs subnet ids
+  ElbSubnetIds:
+    Type: String
+    Description: Name of the value to import for the elb subnet ids
+  HttpProxy:
+    Type: String
+    Description: Proxy to use from ECS cluster instances (host:port)
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -73,6 +87,11 @@ Conditions:
   HasKeyName:
     "Fn::Not":
       - "Fn::Equals": [!Ref KeyName, '']
+  HasHttpProxy:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref HttpProxy, '']
+  IsElbInternal:
+    "Fn::Equals": [!Ref ElbInternal, 'true']
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -83,7 +102,7 @@ Resources:
       VPCZoneIdentifier:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${PublicSubnetIds}
+        - Fn::ImportValue: !Sub ${EcsSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: '1'
       MaxSize: !Ref MaxSize
@@ -191,6 +210,31 @@ Resources:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
+
+            if [[ ! -z "${HttpProxy}" ]]; then
+              echo "Configuring HTTP_PROXY=${HttpProxy}"
+
+              # Set Yum HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
+              	echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
+              fi
+
+              # Set Docker HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
+              	echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
+              fi
+
+              # Set ECS agent HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
+              	echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
+              	echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
+              fi
+            fi
+
+
             yum install -y aws-cfn-bootstrap
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
@@ -248,6 +292,10 @@ Resources:
         FromPort: '80'
         ToPort: '80'
         CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '443'
+        ToPort: '443'
+        CidrIp: 0.0.0.0/0
   ELB2HostRule:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -267,10 +315,11 @@ Resources:
   EcsElb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
+      Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
       Subnets:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${PublicSubnetIds}
+        - Fn::ImportValue: !Sub ${ElbSubnetIds}
       SecurityGroups:
       - !Ref ElbSG
   EcsElbListener:

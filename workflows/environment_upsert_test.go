@@ -107,7 +107,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
+	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -123,7 +123,7 @@ environments:
   - name: dev
     vpcTarget:
       vpcId: myVpcId
-      publicSubnetIds:
+      ecsSubnetIds:
         - mySubnetId1
         - mySubnetId2
 `
@@ -142,7 +142,7 @@ environments:
 	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-dev-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-dev-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
+	assert.Equal("mu-vpc-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)

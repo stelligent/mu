@@ -5,8 +5,11 @@ Parameters:
   VpcId:
     Description: VPC to target
     Type: String
-  PublicSubnetIds:
-    Description: Subnet ids
+  EcsSubnetIds:
+    Description: ECS subnet ids
+    Type: CommaDelimitedList
+  ElbSubnetIds:
+    Description: ELB subnet ids
     Type: CommaDelimitedList
 Resources:
   WaitHandle:
@@ -17,11 +20,19 @@ Outputs:
     Value: !Ref VpcId
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  PublicSubnetIds:
-    Description: The public subnetids
+  EcsSubnetIds:
+    Description: The ECS subnetids
     Value:
       Fn::Join:
       - ','
-      - !Ref PublicSubnetIds
+      - !Ref EcsSubnetIds
     Export:
-      Name: !Sub ${AWS::StackName}-PublicSubnetIds
+      Name: !Sub ${AWS::StackName}-EcsSubnetIds
+  ElbSubnetIds:
+    Description: The ELB subnetids
+    Value:
+      Fn::Join:
+      - ','
+      - !Ref ElbSubnetIds
+    Export:
+      Name: !Sub ${AWS::StackName}-ElbSubnetIds

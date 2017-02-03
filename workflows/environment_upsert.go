@@ -54,13 +54,14 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 				return err
 			}
 
-			vpcStackParams := make(map[string]string)
 			if environment.Cluster.InstanceTenancy != "" {
 				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
 			}
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
 			}
+
+			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
 
@@ -71,7 +72,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
-			vpcStackParams["PublicSubnetIds"] = strings.Join(environment.VpcTarget.PublicSubnetIds, ",")
+			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
+			vpcStackParams["EcsSubnetIds"] = strings.Join(environment.VpcTarget.EcsSubnetIds, ",")
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
@@ -85,7 +87,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		stackWaiter.AwaitFinalStatus(vpcStackName)
 
 		vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		vpcImportParams["PublicSubnetIds"] = fmt.Sprintf("%s-PublicSubnetIds", vpcStackName)
+		vpcImportParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+		vpcImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", vpcStackName)
 
 		return nil
 	}
@@ -131,6 +134,11 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		if environment.Cluster.ScaleOutThreshold != 0 {
 			stackParams["ScaleOutThreshold"] = strconv.Itoa(environment.Cluster.ScaleOutThreshold)
 		}
+		if environment.Cluster.HTTPProxy != "" {
+			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
+		}
+
+		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
 		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
 		if err != nil {
