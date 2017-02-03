@@ -26,8 +26,9 @@ type Config struct {
 type Environment struct {
 	Name         string
 	Loadbalancer struct {
-		Hostname string
-		Internal bool
+		HostedZone string `yaml:"hostedzone"`
+		Name       string `yaml:"name"`
+		Internal   bool   `yaml:"internal"`
 	}
 	Cluster struct {
 		ImageID           string `yaml:"imageId"`

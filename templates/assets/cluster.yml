@@ -58,6 +58,14 @@ Parameters:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
     Default: ''
+  ElbDomainName:
+    Type: String
+    Description: The domain name to use for the ELB DNS.  Assumes you have the zone for this DomainName hosted in Route53.  Leave blank to not use DNS for Elb.
+    Default: ''
+  ElbHostName:
+    Type: String
+    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -90,6 +98,12 @@ Conditions:
   HasHttpProxy:
     "Fn::Not":
       - "Fn::Equals": [!Ref HttpProxy, '']
+  HasElbDomainName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbDomainName, '']
+  HasElbHostName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbHostName, '']
   IsElbInternal:
     "Fn::Equals": [!Ref ElbInternal, 'true']
 Resources:
@@ -338,9 +352,33 @@ Resources:
       Protocol: HTTP
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+  ElbDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: HasElbDomainName
+    Properties:
+      HostedZoneName: !Sub ${ElbDomainName}.
+      Comment: DNS for ELB in ${AWS::StackName}
+      RecordSets:
+      - Name:
+          Fn::If:
+          - HasElbHostName
+          - !Sub ${ElbHostName}.${ElbDomainName}.
+          - !Sub ${ElbDomainName}.
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt EcsElb.CanonicalHostedZoneID
+          DNSName: !GetAtt EcsElb.DNSName
+          EvaluateTargetHealth: true
 Outputs:
   BaseUrl:
-    Value: !Sub http://${EcsElb.DNSName}/
+    Value:
+      Fn::If:
+      - HasElbDomainName
+      - Fn::If:
+        - HasElbHostName
+        - !Sub http://${ElbHostName}.${ElbDomainName}/
+        - !Sub http://${ElbDomainName}/
+      - !Sub http://${EcsElb.DNSName}/
     Description: ELB URL
   VpcId:
     Value:

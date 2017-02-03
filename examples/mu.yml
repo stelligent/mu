@@ -2,6 +2,8 @@
 
 environments:
   - name: sample-dev
+    loadbalancer:
+      hostedzone: casey.elasticoperations.com
     cluster:
       desiredCapacity: 1
       maxSize: 2

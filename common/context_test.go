@@ -23,13 +23,13 @@ func TestLoadYamlConfig(t *testing.T) {
 environments:
   - name: dev
     loadbalancer:
-      hostname: api-dev.example.com
+      hostedzone: api-dev.example.com
     cluster:
       desiredCapacity: 1
       maxSize: 1
   - name: production
     loadbalancer:
-      hostname: api.example.com
+      hostedzone: api.example.com
     cluster:
       desiredCapacity: 2
       maxSize: 5
@@ -46,11 +46,11 @@ service:
 	assert.NotNil(config)
 	assert.Equal(2, len(config.Environments))
 	assert.Equal("dev", config.Environments[0].Name)
-	assert.Equal("api-dev.example.com", config.Environments[0].Loadbalancer.Hostname)
+	assert.Equal("api-dev.example.com", config.Environments[0].Loadbalancer.HostedZone)
 	assert.Equal(1, config.Environments[0].Cluster.DesiredCapacity)
 	assert.Equal(1, config.Environments[0].Cluster.MaxSize)
 	assert.Equal("production", config.Environments[1].Name)
-	assert.Equal("api.example.com", config.Environments[1].Loadbalancer.Hostname)
+	assert.Equal("api.example.com", config.Environments[1].Loadbalancer.HostedZone)
 	assert.Equal(2, config.Environments[1].Cluster.DesiredCapacity)
 	assert.Equal(5, config.Environments[1].Cluster.MaxSize)
 
