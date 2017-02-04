@@ -33,8 +33,12 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 
 		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
 		ecsImportParams["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", ecsStackName)
-		ecsImportParams["EcsElbHttpListenerArn"] = fmt.Sprintf("%s-EcsElbHttpListenerArn", ecsStackName)
-		ecsImportParams["EcsElbHttpsListenerArn"] = fmt.Sprintf("%s-EcsElbHttpsListenerArn", ecsStackName)
+		if ecsStack.Outputs["EcsElbHttpListenerArn"] != "" {
+			ecsImportParams["EcsElbHttpListenerArn"] = fmt.Sprintf("%s-EcsElbHttpListenerArn", ecsStackName)
+		}
+		if ecsStack.Outputs["EcsElbHttpsListenerArn"] != "" {
+			ecsImportParams["EcsElbHttpsListenerArn"] = fmt.Sprintf("%s-EcsElbHttpsListenerArn", ecsStackName)
+		}
 
 		return nil
 	}

@@ -17,7 +17,10 @@ func TestNewServiceDeployer(t *testing.T) {
 func TestServiceEnvironmentLoader(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	outputs := make(map[string]string)
+	outputs["EcsElbHttpListenerArn"] = "foo"
+	outputs["EcsElbHttpsListenerArn"] = "foo"
+	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs})
 
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)

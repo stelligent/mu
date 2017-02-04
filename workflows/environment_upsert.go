@@ -139,7 +139,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		}
 
 		if environment.Loadbalancer.Certificate != "" {
-			stackParams["Certificate"] = environment.Loadbalancer.Certificate
+			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
 		}
 
 		if environment.Loadbalancer.HostedZone != "" {

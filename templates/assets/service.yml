@@ -49,16 +49,25 @@ Parameters:
     Type: String
     Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
 Conditions:
-  HasElbHttpsListener:
-    "Fn::Not":
-      - "Fn::Equals":
-        - Fn::ImportValue: !Sub ${EcsElbHttpsListenerArn}
-        - '-'
   HasPathPattern:
     "Fn::Not":
       - "Fn::Equals":
         - "Fn::Join": [ "", !Ref PathPattern]
         - ''
+  HasElbHttpListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${EcsElbHttpListenerArn}
+         - ''
+    - !Condition HasPathPattern
+  HasElbHttpsListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${EcsElbHttpsListenerArn}
+         - ''
+    - !Condition HasPathPattern
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -126,7 +135,7 @@ Resources:
       Volumes: []
   EcsElbHttpListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasPathPattern
+    Condition: HasElbHttpListener
     Properties:
       Actions:
       - Type: forward
@@ -139,7 +148,7 @@ Resources:
       Priority: !Ref ListenerRulePriority
   EcsElbHttpsListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasPathPattern, HasElbHttpsListener
+    Condition: HasElbHttpsListener
     Properties:
       Actions:
       - Type: forward
