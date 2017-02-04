@@ -58,6 +58,18 @@ Parameters:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
     Default: ''
+  ElbDomainName:
+    Type: String
+    Description: The domain name to use for the ELB DNS.  Assumes you have the zone for this DomainName hosted in Route53.  Leave blank to not use DNS for Elb.
+    Default: ''
+  ElbHostName:
+    Type: String
+    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
+    Default: ''
+  ElbCert:
+    Type: String
+    Description: The ARN for the certificate to use for ELB. Leave blank to disable HTTPS
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -90,6 +102,15 @@ Conditions:
   HasHttpProxy:
     "Fn::Not":
       - "Fn::Equals": [!Ref HttpProxy, '']
+  HasElbDomainName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbDomainName, '']
+  HasElbHostName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbHostName, '']
+  HasElbCert:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbCert, '']
   IsElbInternal:
     "Fn::Equals": [!Ref ElbInternal, 'true']
 Resources:
@@ -322,7 +343,7 @@ Resources:
         - Fn::ImportValue: !Sub ${ElbSubnetIds}
       SecurityGroups:
       - !Ref ElbSG
-  EcsElbListener:
+  EcsElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref EcsElb
@@ -331,6 +352,18 @@ Resources:
         TargetGroupArn: !Ref EcsElbDefaultTargetGroup
       Port: '80'
       Protocol: HTTP
+  EcsElbHttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasElbCert
+    Properties:
+      LoadBalancerArn: !Ref EcsElb
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref EcsElbDefaultTargetGroup
+      Certificates:
+        - CertificateArn: !Ref ElbCert
+      Port: '443'
+      Protocol: HTTPS
   EcsElbDefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -338,9 +371,33 @@ Resources:
       Protocol: HTTP
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+  ElbDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: HasElbDomainName
+    Properties:
+      HostedZoneName: !Sub ${ElbDomainName}.
+      Comment: DNS for ELB in ${AWS::StackName}
+      RecordSets:
+      - Name:
+          Fn::If:
+          - HasElbHostName
+          - !Sub ${ElbHostName}.${ElbDomainName}.
+          - !Sub ${ElbDomainName}.
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt EcsElb.CanonicalHostedZoneID
+          DNSName: !GetAtt EcsElb.DNSName
+          EvaluateTargetHealth: true
 Outputs:
   BaseUrl:
-    Value: !Sub http://${EcsElb.DNSName}/
+    Value:
+      Fn::If:
+      - HasElbDomainName
+      - Fn::If:
+        - HasElbHostName
+        - !Sub http://${ElbHostName}.${ElbDomainName}/
+        - !Sub http://${ElbDomainName}/
+      - !Sub http://${EcsElb.DNSName}/
     Description: ELB URL
   VpcId:
     Value:
@@ -348,11 +405,20 @@ Outputs:
     Description: VPC ID for the ECS cluster
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsElbListenerArn:
-    Value: !Ref EcsElbListener
-    Description: Arn of the ELB Listener.
+  EcsElbHttpListenerArn:
+    Value: !Ref EcsElbHttpListener
+    Description: Arn of the ELB HTTP Listener.
     Export:
-      Name: !Sub ${AWS::StackName}-EcsElbListenerArn
+      Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
+  EcsElbHttpsListenerArn:
+    Value:
+      Fn::If:
+      - HasElbCert
+      - !Ref EcsElbHttpsListener
+      - '-'
+    Description: Arn of the ELB HTTPS Listener.
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn
   EcsCluster:
     Value: !Ref EcsCluster
     Description: Name of the ECS cluster.

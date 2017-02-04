@@ -138,6 +138,20 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
+		if environment.Loadbalancer.Certificate != "" {
+			stackParams["Certificate"] = environment.Loadbalancer.Certificate
+		}
+
+		if environment.Loadbalancer.HostedZone != "" {
+			stackParams["ElbDomainName"] = environment.Loadbalancer.HostedZone
+
+			if environment.Loadbalancer.Name != "" {
+				stackParams["ElbHostName"] = environment.Loadbalancer.Name
+			} else {
+				stackParams["ElbHostName"] = environment.Name
+			}
+		}
+
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
 		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
