@@ -53,12 +53,12 @@ Conditions:
     "Fn::Not":
       - "Fn::Equals":
         - Fn::ImportValue: !Sub ${EcsElbHttpsListenerArn}
-        - ''
+        - '-'
   HasPathPattern:
     "Fn::Not":
       - "Fn::Equals":
         - "Fn::Join": [ "", !Ref PathPattern]
-        - ""
+        - ''
 Resources:
   EcsService:
     Type: AWS::ECS::Service

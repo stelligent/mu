@@ -407,13 +407,16 @@ Outputs:
       Name: !Sub ${AWS::StackName}-VpcId
   EcsElbHttpListenerArn:
     Value: !Ref EcsElbHttpListener
-    Description: Arn of the ELB Listener.
+    Description: Arn of the ELB HTTP Listener.
     Export:
       Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
   EcsElbHttpsListenerArn:
-    Value: !Ref EcsElbHttpListener
-    Description: Arn of the ELB Listener.
-    Condition: HasElbCert
+    Value:
+      Fn::If:
+      - HasElbCert
+      - !Ref EcsElbHttpsListener
+      - '-'
+    Description: Arn of the ELB HTTPS Listener.
     Export:
       Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn
   EcsCluster:
