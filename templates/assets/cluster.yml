@@ -66,6 +66,10 @@ Parameters:
     Type: String
     Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
     Default: ''
+  ElbCert:
+    Type: String
+    Description: The ARN for the certificate to use for ELB. Leave blank to disable HTTPS
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -104,6 +108,9 @@ Conditions:
   HasElbHostName:
     "Fn::Not":
       - "Fn::Equals": [!Ref ElbHostName, '']
+  HasElbCert:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbCert, '']
   IsElbInternal:
     "Fn::Equals": [!Ref ElbInternal, 'true']
 Resources:
@@ -336,7 +343,7 @@ Resources:
         - Fn::ImportValue: !Sub ${ElbSubnetIds}
       SecurityGroups:
       - !Ref ElbSG
-  EcsElbListener:
+  EcsElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref EcsElb
@@ -345,6 +352,18 @@ Resources:
         TargetGroupArn: !Ref EcsElbDefaultTargetGroup
       Port: '80'
       Protocol: HTTP
+  EcsElbHttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasElbCert
+    Properties:
+      LoadBalancerArn: !Ref EcsElb
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref EcsElbDefaultTargetGroup
+      Certificates:
+        - CertificateArn: !Ref ElbCert
+      Port: '443'
+      Protocol: HTTPS
   EcsElbDefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -386,11 +405,17 @@ Outputs:
     Description: VPC ID for the ECS cluster
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsElbListenerArn:
-    Value: !Ref EcsElbListener
+  EcsElbHttpListenerArn:
+    Value: !Ref EcsElbHttpListener
     Description: Arn of the ELB Listener.
     Export:
-      Name: !Sub ${AWS::StackName}-EcsElbListenerArn
+      Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
+  EcsElbHttpsListenerArn:
+    Value: !Ref EcsElbHttpListener
+    Description: Arn of the ELB Listener.
+    Condition: HasElbCert
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn
   EcsCluster:
     Value: !Ref EcsCluster
     Description: Name of the ECS cluster.

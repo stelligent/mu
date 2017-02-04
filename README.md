@@ -106,6 +106,7 @@ environments:
       internal: true                # Whether to create an internal ELB or not (default: false)
       hostedzone: mydomain.com      # HostedZone in Route53 to create ELB DNS for.  Leave blank to not create DNS (default: none)
       name: api                     # Name to register in hostedzone for ELB DNS.  (default: environment name)
+      certificate: arn:aws:acm:...  # The ARN of a certificate in ACM.  If defined, will create HTTPS listener in ELB.  (default: none)
 
     ### Attributes for the VPC to target.  If not defined, a VPC will be created. (default: none)
     vpcTarget:

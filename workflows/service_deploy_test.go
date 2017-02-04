@@ -26,7 +26,8 @@ func TestServiceEnvironmentLoader(t *testing.T) {
 
 	assert.Equal("mu-cluster-dev-VpcId", params["VpcId"])
 	assert.Equal("mu-cluster-dev-EcsCluster", params["EcsCluster"])
-	assert.Equal("mu-cluster-dev-EcsElbListenerArn", params["EcsElbListenerArn"])
+	assert.Equal("mu-cluster-dev-EcsElbHttpListenerArn", params["EcsElbHttpListenerArn"])
+	assert.Equal("mu-cluster-dev-EcsElbHttpsListenerArn", params["EcsElbHttpsListenerArn"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
