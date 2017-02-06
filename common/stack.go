@@ -205,12 +205,12 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 			// wait for create
 			log.Debugf("  Waiting for stack:%s to complete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackCreateComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusDeleteInProgress:
 			// wait for delete
 			log.Debugf("  Waiting for stack:%s to delete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackDeleteComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusUpdateInProgress,
 			cloudformation.StackStatusUpdateRollbackInProgress,
 			cloudformation.StackStatusUpdateCompleteCleanupInProgress,
@@ -218,7 +218,7 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 			// wait for update
 			log.Debugf("  Waiting for stack:%s to update...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackUpdateComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusCreateFailed,
 			cloudformation.StackStatusCreateComplete,
 			cloudformation.StackStatusRollbackFailed,

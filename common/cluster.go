@@ -70,7 +70,7 @@ func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]*ecs.Conta
 		Cluster:            aws.String(clusterName),
 		ContainerInstances: instanceIds,
 	}
-	describeOut, err := ecsAPI.DescribeContainerInstances(describeParams)
+	describeOut, _ := ecsAPI.DescribeContainerInstances(describeParams)
 
 	return describeOut.ContainerInstances, nil
 }

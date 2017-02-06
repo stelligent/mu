@@ -1,4 +1,4 @@
-[![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=shield)](https://circleci.com/gh/stelligent/mu) [![Join the chat at https://gitter.im/stelligent/mu](https://badges.gitter.im/stelligent/mu.svg)](https://gitter.im/stelligent/mu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=shield)](https://circleci.com/gh/stelligent/mu) [![Join the chat at https://gitter.im/stelligent/mu](https://badges.gitter.im/stelligent/mu.svg)](https://gitter.im/stelligent/mu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Go Report Card](https://goreportcard.com/badge/github.com/stelligent/mu)](https://goreportcard.com/report/github.com/stelligent/mu)
 
 
 
@@ -7,7 +7,9 @@ Amazon ECS (EC2 Container Service) provides an excellent platform for deploying 
 
 To address these challenges, this tool was created to simplify the declaration and administration of the AWS resources necessary to support microservices.  Similar to how the [Serverless Framework](https://serverless.com/) improved the developer experience of Lambda and API Gateway, this tool makes it easier for developers to use ECS as a microservices platform.
 
-For more details on the intended architecture, see [Microservices Platform with ECS](https://stelligent.com/2016/10/06/microservices-platform-with-ecs/).
+The `mu` tool uses CloudFormation stacks to manage all resources it creates.  Additionally, `mu` will not create any databases or other AWS resources to support itself.  It will only create resources (via CloudFormation) necessary to run your microservices.  This means at any point you can stop using `mu` and continue to manage the AWS resources that it created via AWS tools such as the CLI or the console.
+
+[![Architecture Diagram](docs/ms-architecture-3.png)
 
 # Installation
 
@@ -19,66 +21,17 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_DIR=~/bin sh
 ```
 
-# Commands
+# Environments
+Environments are defined to become a target for deploying services to.  Each environment is a CloudFormation stack consisting of the following resources:
 
-```
-# List all environments
-> mu env list
+* *VPC* – To provide the network infrastructure to launch the ECS container instances into. Optionally, you can target an existing VPC.
+* *ECS Cluster* – The cluster that the services will be deployed into.
+* *Auto Scaling Group* – To manage the ECS container instances that contain the compute resources for running the containers.  Auto scaling policies will be defined based on memory entitlements in the cluster.
+* *Application Load Balancer* – To provide load balancing for the microservices running in containers.
 
-# Show details about a specific environment (ECS container instances, Running services, etc)
-> mu env show <environment_name>
+[![Environment Diagram](docs/ms-architecture-1.png)
 
-# Upsert an environment
-> mu env up <environment_name>
-
-# Terminate an environment
-> mu env terminate <environment_name>
-
-# Show details about a specific service (Which versions in which environments, pipeline status)
-> mu service show [<service_name>]
-
-# Build docker image and push to ECR
-> mu service push
-
-# Deploy the service to an environment
-> mu service deploy <environment_name>
-
-# Undeploy the service from an environment
-> mu service undeploy <environment_name> [<service_name>]
-
-# List the pipelines
-> mu pipeline list
-
-# Upsert the pipeline
-> mu pipeline up [-t <repo_token>]
-
-# Terminate the pipeline
-> mu pipeline terminate [<service_name>]
-
-```
-
-# Common flags
-```
-# Path to mu config
-> mu -c path/to/mu.yml ...
-
-# AWS region
-> mu -r us-west-2 ...
-
-# or via environment variable
-> AWS_REGION=us-west-2 mu ...
-
-# AWS profile
-> mu -p my-profile ...
-
-# or via environment variable
-> AWS_PROFILE=my-profie mu ...
-
-```
-
-# Configuration
-The definition of your environments, services and pipelines is done via a YAML file (default `./mu.yml`).
-
+## Configuration
 ```
 ---
 
@@ -119,6 +72,36 @@ environments:
           - subnet-xxxxx
           - subnet-xxxxy
           - subnet-xxxxz
+```
+
+## Commands
+```
+# List all environments
+> mu env list
+
+# Show details about a specific environment (ECS container instances, Running services, etc)
+> mu env show <environment_name>
+
+# Upsert an environment
+> mu env up <environment_name>
+
+# Terminate an environment
+> mu env terminate <environment_name>
+```
+
+# Services
+Services are first pushed to an ECR repository and then deployed to a specific environment.  Each service is a CloudFormation stack consisting of the following resources:
+
+* *Task Definition* – An ECS task definition referencing the image and tag in the ECR repo.
+* *Service* - An ECS service referencing the Task Definition.
+* *Target Group* - An ALB target group for the Service to reference and register containers in.
+* *Listener Rule* - A rule in the ALB listener from the environment to route specific URLs to the target group.
+
+[![Service Diagram](docs/ms-architecture-2.png)
+
+## Configuration
+```
+---
 
 ### Define the service for this repo
 service:
@@ -136,6 +119,42 @@ service:
     - /bananas
     - /apples
 
+```
+
+## Commands
+```
+# Show details about a specific service (Which versions in which environments, pipeline status)
+> mu service show [<service_name>]
+
+# Build docker image and push to ECR
+> mu service push
+
+# Deploy the service to an environment
+> mu service deploy <environment_name>
+
+# Undeploy the service from an environment
+> mu service undeploy <environment_name> [<service_name>]
+```
+
+# Pipelines
+A pipeline can be created for each service that consists of the following steps:
+
+* *Source* - Retrieve source from GitHub for a specific branch.  Triggered on each commit.
+* *Build Artifact* - Compile the source code via CodeBuild and a `buildspec.yml`.
+* *Build Image* - Build the Docker image and push to ECR repository.
+* *Acceptance* - Deploy to acceptance environment and run automated tests.
+* *Production* - Wait for manual approval, then deploy to production environment.
+
+[![Pipeline Diagram](docs/ms-pipeline-1.png)
+
+## Configuration
+```
+---
+service:
+
+  name: my-service
+  # ... service config goes here ...
+
   # Define the behavior of the pipeline
   pipeline:
       source:
@@ -151,7 +170,36 @@ service:
         environment: production                 # The environment name to deploy to for production (default: production)
 ```
 
+## Commands
+```
+# List the pipelines
+> mu pipeline list
 
+# Upsert the pipeline
+> mu pipeline up [-t <repo_token>]
+
+# Terminate the pipeline
+> mu pipeline terminate [<service_name>]
+```
+
+# Common flags
+```
+# Path to mu config
+> mu -c path/to/mu.yml ...
+
+# AWS region
+> mu -r us-west-2 ...
+
+# or via environment variable
+> AWS_REGION=us-west-2 mu ...
+
+# AWS profile
+> mu -p my-profile ...
+
+# or via environment variable
+> AWS_PROFILE=my-profie mu ...
+
+```
 
 # Contributing
 
