@@ -9,7 +9,7 @@ To address these challenges, this tool was created to simplify the declaration a
 
 The `mu` tool uses CloudFormation stacks to manage all resources it creates.  Additionally, `mu` will not create any databases or other AWS resources to support itself.  It will only create resources (via CloudFormation) necessary to run your microservices.  This means at any point you can stop using `mu` and continue to manage the AWS resources that it created via AWS tools such as the CLI or the console.
 
-[![Architecture Diagram](docs/ms-architecture-3.png)
+[![Architecture Diagram](docs/ms-architecture-3.png)]
 
 # Installation
 
@@ -29,7 +29,7 @@ Environments are defined to become a target for deploying services to.  Each env
 * *Auto Scaling Group* – To manage the ECS container instances that contain the compute resources for running the containers.  Auto scaling policies will be defined based on memory entitlements in the cluster.
 * *Application Load Balancer* – To provide load balancing for the microservices running in containers.
 
-[![Environment Diagram](docs/ms-architecture-1.png)
+[![Environment Diagram](docs/ms-architecture-1.png)]
 
 ## Configuration
 ```
@@ -97,7 +97,7 @@ Services are first pushed to an ECR repository and then deployed to a specific e
 * *Target Group* - An ALB target group for the Service to reference and register containers in.
 * *Listener Rule* - A rule in the ALB listener from the environment to route specific URLs to the target group.
 
-[![Service Diagram](docs/ms-architecture-2.png)
+[![Service Diagram](docs/ms-architecture-2.png)]
 
 ## Configuration
 ```
@@ -139,13 +139,14 @@ service:
 # Pipelines
 A pipeline can be created for each service that consists of the following steps:
 
-* *Source* - Retrieve source from GitHub for a specific branch.  Triggered on each commit.
-* *Build Artifact* - Compile the source code via CodeBuild and a `buildspec.yml`.
-* *Build Image* - Build the Docker image and push to ECR repository.
-* *Acceptance* - Deploy to acceptance environment and run automated tests.
-* *Production* - Wait for manual approval, then deploy to production environment.
+* **Source** - Retrieve source from GitHub for a specific branch.  Triggered on each commit.
+* **Build Artifact** - Compile the source code via CodeBuild and a `buildspec.yml`.
+* **Build Image** - Build the Docker image and push to ECR repository.
+* **Acceptance** - Deploy to acceptance environment and run automated tests.
+* **Production** - Wait for manual approval, then deploy to production environment.
 
-[![Pipeline Diagram](docs/ms-pipeline-1.png)
+<a href="docs/ms-pipeline-1.png"><img src="docs/ms-pipeline-1.png" width="110"></a>
+
 
 ## Configuration
 ```
