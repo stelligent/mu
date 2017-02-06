@@ -45,8 +45,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		var template io.Reader
 		var err error
 
+		var stackType common.StackType
 		if environment.VpcTarget.VpcID == "" {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
+			stackType = common.StackTypeVpc
 
 			// no target VPC, we need to create/update the VPC stack
 			template, err = templates.NewTemplate("vpc.yml", environment)
@@ -64,6 +66,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
+			stackType = common.StackTypeTarget
 
 			template, err = templates.NewTemplate("vpc-target.yml", environment)
 			if err != nil {
@@ -77,7 +80,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
+		vpcStackName := common.CreateStackName(stackType, environment.Name)
 		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
 		if err != nil {
 			return err
@@ -126,7 +129,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
 		}
 		if environment.Cluster.KeyName != "" {
-			stackParams["Keyname"] = environment.Cluster.KeyName
+			stackParams["KeyName"] = environment.Cluster.KeyName
 		}
 		if environment.Cluster.ScaleInThreshold != 0 {
 			stackParams["ScaleInThreshold"] = strconv.Itoa(environment.Cluster.ScaleInThreshold)

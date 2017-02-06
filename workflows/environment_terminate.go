@@ -38,6 +38,14 @@ func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName st
 		}
 
 		stackWaiter.AwaitFinalStatus(vpcStackName)
+
+		targetStackName := common.CreateStackName(common.StackTypeTarget, environmentName)
+		err = stackDeleter.DeleteStack(targetStackName)
+		if err != nil {
+			log.Debugf("Unable to delete VPC target, but ignoring error: %v", err)
+		}
+
+		stackWaiter.AwaitFinalStatus(targetStackName)
 		return nil
 	}
 }

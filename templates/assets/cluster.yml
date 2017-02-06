@@ -232,6 +232,7 @@ Resources:
           !Sub |
             #!/bin/bash -xe
 
+            CFN_PROXY_ARGS=""
             if [[ ! -z "${HttpProxy}" ]]; then
               echo "Configuring HTTP_PROXY=${HttpProxy}"
 
@@ -244,7 +245,10 @@ Resources:
               # Set Docker HTTP proxy
               if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
               	echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              	echo "export HTTPS_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
               	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
+
+              	service docker restart
               fi
 
               # Set ECS agent HTTP proxy
@@ -253,12 +257,14 @@ Resources:
               	echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
               	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
               fi
+
+              CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
             fi
 
 
             yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -411,11 +417,8 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
   EcsElbHttpsListenerArn:
-    Value:
-      Fn::If:
-      - HasElbCert
-      - !Ref EcsElbHttpsListener
-      - '-'
+    Condition: HasElbCert
+    Value: !Ref EcsElbHttpsListener
     Description: Arn of the ELB HTTPS Listener.
     Export:
       Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn

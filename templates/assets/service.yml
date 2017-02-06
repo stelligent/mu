@@ -48,6 +48,7 @@ Parameters:
   EcsElbHttpsListenerArn:
     Type: String
     Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+    Default: ''
 Conditions:
   HasPathPattern:
     "Fn::Not":

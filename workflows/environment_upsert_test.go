@@ -133,16 +133,16 @@ environments:
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("UpsertStack", "mu-vpc-dev", mock.AnythingOfType("map[string]string")).Return(nil)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-target-dev", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
 	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
-	assert.Equal("mu-vpc-dev-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
+	assert.Equal("mu-target-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)

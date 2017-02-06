@@ -61,13 +61,15 @@ func TestNewEnvironmentVpcTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
+	stackManager.On("AwaitFinalStatus", "mu-target-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
+	stackManager.On("DeleteStack", "mu-target-foo").Return(nil)
 	stackManager.On("DeleteStack", "mu-vpc-foo").Return(nil)
 
 	err := workflow.environmentVpcTerminator("foo", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
-	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
+	stackManager.AssertNumberOfCalls(t, "DeleteStack", 2)
 }

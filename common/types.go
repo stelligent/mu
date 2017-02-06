@@ -102,6 +102,7 @@ type StackType string
 // List of valid stack types
 const (
 	StackTypeVpc      StackType = "vpc"
+	StackTypeTarget             = "target"
 	StackTypeCluster            = "cluster"
 	StackTypeRepo               = "repo"
 	StackTypeService            = "service"
