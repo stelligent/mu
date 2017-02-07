@@ -173,6 +173,9 @@ Resources:
         HttpCode: 200-299
       Port: !Ref ServicePort
       Protocol: HTTP
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 60

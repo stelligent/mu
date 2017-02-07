@@ -14,6 +14,7 @@ type serviceWorkflow struct {
 	serviceTag   string
 	serviceImage string
 	registryAuth string
+	priority     int
 }
 
 // Find a service in config, by name and set the reference
@@ -32,6 +33,8 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) 
 		} else {
 			workflow.serviceTag = "latest"
 		}
+
+		workflow.priority = ctx.Config.Service.Priority
 
 		log.Debugf("Working with service:'%s' tag:'%s'", workflow.serviceName, workflow.serviceTag)
 		return nil

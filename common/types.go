@@ -7,6 +7,7 @@ type Context struct {
 	Config          Config
 	StackManager    StackManager
 	ClusterManager  ClusterManager
+	ElbManager      ElbManager
 	PipelineManager PipelineManager
 	DockerManager   DockerManager
 }
@@ -60,6 +61,7 @@ type Service struct {
 	CPU             int      `yaml:"cpu"`
 	Memory          int      `yaml:"memory"`
 	PathPatterns    []string `yaml:"pathPatterns"`
+	Priority        int      `yaml:"priority"`
 	Pipeline        Pipeline
 }
 
