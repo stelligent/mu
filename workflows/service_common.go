@@ -3,6 +3,7 @@ package workflows
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
@@ -13,26 +14,45 @@ type serviceWorkflow struct {
 	serviceTag   string
 	serviceImage string
 	registryAuth string
+	priority     int
 }
 
 // Find a service in config, by name and set the reference
 func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) Executor {
 	return func() error {
-		// Repo Name
-		if ctx.Config.Service.Name == "" {
-			workflow.serviceName = ctx.Repo.Name
-		} else {
-			workflow.serviceName = ctx.Config.Service.Name
+		err := workflow.serviceInput(ctx, "")()
+		if err != nil {
+			return err
 		}
 
 		// Tag
 		if tag != "" {
 			workflow.serviceTag = tag
+		} else if ctx.Config.Repo.Revision != "" {
+			workflow.serviceTag = ctx.Config.Repo.Revision
 		} else {
-			workflow.serviceTag = ctx.Repo.Revision
+			workflow.serviceTag = "latest"
 		}
 
+		workflow.priority = ctx.Config.Service.Priority
+
 		log.Debugf("Working with service:'%s' tag:'%s'", workflow.serviceName, workflow.serviceTag)
+		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName string) Executor {
+	return func() error {
+		// Repo Name
+		if serviceName != "" {
+			workflow.serviceName = serviceName
+		} else if ctx.Config.Service.Name != "" {
+			workflow.serviceName = ctx.Config.Service.Name
+		} else if ctx.Config.Repo.Name != "" {
+			workflow.serviceName = ctx.Config.Repo.Name
+		} else {
+			return errors.New("Service name must be provided")
+		}
 		return nil
 	}
 }

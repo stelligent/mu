@@ -3,6 +3,8 @@ package common
 import (
 	"bufio"
 	"bytes"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
@@ -32,8 +34,8 @@ func NewContext() *Context {
 	return ctx
 }
 
-// InitializeFromFile loads config from file
-func (ctx *Context) InitializeFromFile(muFile string) error {
+// InitializeConfigFromFile loads config from file
+func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	absMuFile, err := filepath.Abs(muFile)
 	if err != nil {
 		return err
@@ -50,39 +52,62 @@ func (ctx *Context) InitializeFromFile(muFile string) error {
 
 	// set the basedir
 	ctx.Config.Basedir = path.Dir(absMuFile)
-	ctx.Repo.Name = path.Base(ctx.Config.Basedir)
-	ctx.Repo.Revision = time.Now().Format("20060102150405")
+	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
+	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
 	gitRevision, err := findGitRevision(absMuFile)
 	if err == nil {
-		ctx.Repo.Revision = gitRevision
+		ctx.Config.Repo.Revision = gitRevision
 	}
 
-	return ctx.Initialize(bufio.NewReader(yamlFile))
+	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }
 
-// Initialize loads config object
-func (ctx *Context) Initialize(configReader io.Reader) error {
+// InitializeConfig loads config object
+func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 
 	// load the configuration
 	err := loadYamlConfig(&ctx.Config, configReader)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// InitializeContext loads manager objects
+func (ctx *Context) InitializeContext(profile string, region string) error {
+	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
+	if region != "" {
+		sessOptions.Config = aws.Config{Region: aws.String(region)}
+	}
+	if profile != "" {
+		sessOptions.Profile = profile
+	}
+	log.Debugf("Creating AWS session profile:%s region:%s", profile, region)
+	sess, err := session.NewSessionWithOptions(sessOptions)
+	if err != nil {
+		return err
+	}
 
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(ctx.Config.Region)
+	ctx.StackManager, err = newStackManager(sess)
 	if err != nil {
 		return err
 	}
 
 	// initialize ClusterManager
-	ctx.ClusterManager, err = newClusterManager(ctx.Config.Region)
+	ctx.ClusterManager, err = newClusterManager(sess)
+	if err != nil {
+		return err
+	}
+
+	// initialize ElbManager
+	ctx.ElbManager, err = newElbv2Manager(sess)
 	if err != nil {
 		return err
 	}
 
 	// initialize CodePipelineManager
-	ctx.PipelineManager, err = newPipelineManager(ctx.Config.Region)
+	ctx.PipelineManager, err = newPipelineManager(sess)
 	if err != nil {
 		return err
 	}
@@ -92,6 +117,8 @@ func (ctx *Context) Initialize(configReader io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	ctx.DockerOut = os.Stdout
 
 	return nil
 }

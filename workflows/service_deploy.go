@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strconv"
@@ -17,12 +18,28 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newWorkflow(
 		workflow.serviceLoader(ctx, tag),
 		workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams),
+		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
 		workflow.serviceDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string) Executor {
+func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int {
+	rules, err := elbRuleLister.ListRules(listenerArn)
+	if err != nil {
+		log.Debugf("Error finding max priority for listener '%s': %v", listenerArn, err)
+		return 0
+	}
+	maxPriority := 0
+	for _, rule := range rules {
+		priority, _ := strconv.Atoi(aws.StringValue(rule.Priority))
+		if priority > maxPriority {
+			maxPriority = priority
+		}
+	}
+	return maxPriority
+}
+
+func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
 		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
@@ -33,7 +50,29 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 
 		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
 		ecsImportParams["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", ecsStackName)
-		ecsImportParams["EcsElbListenerArn"] = fmt.Sprintf("%s-EcsElbListenerArn", ecsStackName)
+		nextAvailablePriority := 0
+		if ecsStack.Outputs["EcsElbHttpListenerArn"] != "" {
+			ecsImportParams["EcsElbHttpListenerArn"] = fmt.Sprintf("%s-EcsElbHttpListenerArn", ecsStackName)
+			nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, ecsStack.Outputs["EcsElbHttpListenerArn"])
+		}
+		if ecsStack.Outputs["EcsElbHttpsListenerArn"] != "" {
+			ecsImportParams["EcsElbHttpsListenerArn"] = fmt.Sprintf("%s-EcsElbHttpsListenerArn", ecsStackName)
+			if nextAvailablePriority == 0 {
+				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, ecsStack.Outputs["EcsElbHttpsListenerArn"])
+			}
+		}
+
+		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if workflow.priority > 0 {
+			ecsImportParams["ListenerRulePriority"] = strconv.Itoa(workflow.priority)
+		} else if svcStack != nil {
+			// no value in config, and this is an update...use prior value
+			ecsImportParams["ListenerRulePriority"] = ""
+		} else {
+			// no value in config, and this is a create...use next available
+			ecsImportParams["ListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
+		}
 
 		return nil
 	}

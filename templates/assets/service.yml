@@ -42,15 +42,33 @@ Parameters:
   EcsCluster:
     Type: String
     Description: Name of the value to import for Ecs Cluster to deploy to.
-  EcsElbListenerArn:
+  EcsElbHttpListenerArn:
     Type: String
     Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+  EcsElbHttpsListenerArn:
+    Type: String
+    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+    Default: ''
 Conditions:
   HasPathPattern:
     "Fn::Not":
       - "Fn::Equals":
         - "Fn::Join": [ "", !Ref PathPattern]
-        - ""
+        - ''
+  HasElbHttpListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${EcsElbHttpListenerArn}
+         - ''
+    - !Condition HasPathPattern
+  HasElbHttpsListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${EcsElbHttpsListenerArn}
+         - ''
+    - !Condition HasPathPattern
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -116,9 +134,9 @@ Resources:
         - HostPort: 0
           ContainerPort: !Ref ServicePort
       Volumes: []
-  EcsElbListenerRule:
+  EcsElbHttpListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasPathPattern
+    Condition: HasElbHttpListener
     Properties:
       Actions:
       - Type: forward
@@ -127,7 +145,20 @@ Resources:
       - Field: path-pattern
         Values: !Ref PathPattern
       ListenerArn:
-        Fn::ImportValue: !Sub ${EcsElbListenerArn}
+        Fn::ImportValue: !Sub ${EcsElbHttpListenerArn}
+      Priority: !Ref ListenerRulePriority
+  EcsElbHttpsListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpsListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref EcsElbTargetGroup
+      Conditions:
+      - Field: path-pattern
+        Values: !Ref PathPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${EcsElbHttpsListenerArn}
       Priority: !Ref ListenerRulePriority
   EcsElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -142,6 +173,9 @@ Resources:
         HttpCode: 200-299
       Port: !Ref ServicePort
       Protocol: HTTP
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 60

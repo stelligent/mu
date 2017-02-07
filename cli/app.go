@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/stelligent/mu/common"
 	"github.com/urfave/cli"
+	"io/ioutil"
 )
 
 // NewApp creates a new CLI app
@@ -33,7 +34,21 @@ func NewApp() *cli.App {
 		}
 
 		// initialize context
-		return context.InitializeFromFile(c.String("config"))
+		err := context.InitializeContext(c.String("profile"), c.String("region"))
+		if err != nil {
+			return err
+		}
+
+		if c.Bool("silent") {
+			context.DockerOut = ioutil.Discard
+		}
+
+		err = context.InitializeConfigFromFile(c.String("config"))
+		if err != nil {
+			log.Warningf("Unable to load mu config: %v", err)
+		}
+		return nil
+
 	}
 
 	app.Flags = []cli.Flag{
@@ -41,6 +56,14 @@ func NewApp() *cli.App {
 			Name:  "config, c",
 			Usage: "path to config file",
 			Value: "mu.yml",
+		},
+		cli.StringFlag{
+			Name:  "region, r",
+			Usage: "AWS Region to use",
+		},
+		cli.StringFlag{
+			Name:  "profile, p",
+			Usage: "AWS config profile to use",
 		},
 		cli.BoolFlag{
 			Name:  "silent, s",

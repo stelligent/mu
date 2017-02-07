@@ -56,7 +56,11 @@ type mockedStackManagerForUpsert struct {
 
 func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common.Stack {
 	args := m.Called(stackName)
-	return args.Get(0).(*common.Stack)
+	rtn := args.Get(0)
+	if rtn == nil {
+		return nil
+	}
+	return rtn.(*common.Stack)
 }
 func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
 	args := m.Called(stackName, stackParameters)
@@ -107,7 +111,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
+	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -123,7 +127,7 @@ environments:
   - name: dev
     vpcTarget:
       vpcId: myVpcId
-      publicSubnetIds:
+      ecsSubnetIds:
         - mySubnetId1
         - mySubnetId2
 `
@@ -133,16 +137,16 @@ environments:
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("UpsertStack", "mu-vpc-dev", mock.AnythingOfType("map[string]string")).Return(nil)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-target-dev", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
 	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
 	assert.Nil(err)
-	assert.Equal("mu-vpc-dev-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-dev-PublicSubnetIds", vpcInputParams["PublicSubnetIds"])
+	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
+	assert.Equal("mu-target-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)

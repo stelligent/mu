@@ -45,8 +45,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		var template io.Reader
 		var err error
 
+		var stackType common.StackType
 		if environment.VpcTarget.VpcID == "" {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
+			stackType = common.StackTypeVpc
 
 			// no target VPC, we need to create/update the VPC stack
 			template, err = templates.NewTemplate("vpc.yml", environment)
@@ -54,15 +56,17 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 				return err
 			}
 
-			vpcStackParams := make(map[string]string)
 			if environment.Cluster.InstanceTenancy != "" {
 				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
 			}
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
 			}
+
+			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
+			stackType = common.StackTypeTarget
 
 			template, err = templates.NewTemplate("vpc-target.yml", environment)
 			if err != nil {
@@ -71,11 +75,12 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
-			vpcStackParams["PublicSubnetIds"] = strings.Join(environment.VpcTarget.PublicSubnetIds, ",")
+			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
+			vpcStackParams["EcsSubnetIds"] = strings.Join(environment.VpcTarget.EcsSubnetIds, ",")
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		vpcStackName := common.CreateStackName(common.StackTypeVpc, environment.Name)
+		vpcStackName := common.CreateStackName(stackType, environment.Name)
 		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
 		if err != nil {
 			return err
@@ -85,7 +90,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		stackWaiter.AwaitFinalStatus(vpcStackName)
 
 		vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		vpcImportParams["PublicSubnetIds"] = fmt.Sprintf("%s-PublicSubnetIds", vpcStackName)
+		vpcImportParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+		vpcImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", vpcStackName)
 
 		return nil
 	}
@@ -123,7 +129,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
 		}
 		if environment.Cluster.KeyName != "" {
-			stackParams["Keyname"] = environment.Cluster.KeyName
+			stackParams["KeyName"] = environment.Cluster.KeyName
 		}
 		if environment.Cluster.ScaleInThreshold != 0 {
 			stackParams["ScaleInThreshold"] = strconv.Itoa(environment.Cluster.ScaleInThreshold)
@@ -131,6 +137,25 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		if environment.Cluster.ScaleOutThreshold != 0 {
 			stackParams["ScaleOutThreshold"] = strconv.Itoa(environment.Cluster.ScaleOutThreshold)
 		}
+		if environment.Cluster.HTTPProxy != "" {
+			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
+		}
+
+		if environment.Loadbalancer.Certificate != "" {
+			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
+		}
+
+		if environment.Loadbalancer.HostedZone != "" {
+			stackParams["ElbDomainName"] = environment.Loadbalancer.HostedZone
+
+			if environment.Loadbalancer.Name != "" {
+				stackParams["ElbHostName"] = environment.Loadbalancer.Name
+			} else {
+				stackParams["ElbHostName"] = environment.Name
+			}
+		}
+
+		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
 		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
 		if err != nil {

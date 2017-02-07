@@ -1,33 +1,40 @@
 package common
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // Context defines the context object passed around
 type Context struct {
-	Config Config
-	Repo   struct {
-		Name     string
-		Revision string
-	}
+	Config          Config
 	StackManager    StackManager
 	ClusterManager  ClusterManager
+	ElbManager      ElbManager
 	PipelineManager PipelineManager
 	DockerManager   DockerManager
+	DockerOut       io.Writer
 }
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
-	Basedir      string
-	Region       string
 	Environments []Environment
 	Service      Service
+	Basedir      string
+	Repo         struct {
+		Name     string
+		Revision string
+	}
 }
 
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
 	Name         string
 	Loadbalancer struct {
-		Hostname string
+		HostedZone  string `yaml:"hostedzone"`
+		Name        string `yaml:"name"`
+		Certificate string `yaml:"certificate"`
+		Internal    bool   `yaml:"internal"`
 	}
 	Cluster struct {
 		ImageID           string `yaml:"imageId"`
@@ -38,10 +45,12 @@ type Environment struct {
 		SSHAllow          string `yaml:"sshAllow"`
 		ScaleOutThreshold int    `yaml:"scaleOutThreshold"`
 		ScaleInThreshold  int    `yaml:"scaleInThreshold"`
+		HTTPProxy         string `yaml:"httpProxy"`
 	}
 	VpcTarget struct {
-		VpcID           string   `yaml:"vpcId"`
-		PublicSubnetIds []string `yaml:"publicSubnetIds"`
+		VpcID        string   `yaml:"vpcId"`
+		EcsSubnetIds []string `yaml:"ecsSubnetIds"`
+		ElbSubnetIds []string `yaml:"elbSubnetIds"`
 	} `yaml:"vpcTarget,omitempty"`
 }
 
@@ -56,6 +65,7 @@ type Service struct {
 	CPU             int      `yaml:"cpu"`
 	Memory          int      `yaml:"memory"`
 	PathPatterns    []string `yaml:"pathPatterns"`
+	Priority        int      `yaml:"priority"`
 	Pipeline        Pipeline
 }
 
@@ -98,6 +108,7 @@ type StackType string
 // List of valid stack types
 const (
 	StackTypeVpc      StackType = "vpc"
+	StackTypeTarget             = "target"
 	StackTypeCluster            = "cluster"
 	StackTypeRepo               = "repo"
 	StackTypeService            = "service"

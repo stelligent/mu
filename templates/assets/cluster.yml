@@ -38,12 +38,38 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ElbInternal:
+    Description: Should ELB be internal?
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  PublicSubnetIds:
+  EcsSubnetIds:
     Type: String
-    Description: Name of the value to import for the subnet ids
+    Description: Name of the value to import for the ecs subnet ids
+  ElbSubnetIds:
+    Type: String
+    Description: Name of the value to import for the elb subnet ids
+  HttpProxy:
+    Type: String
+    Description: Proxy to use from ECS cluster instances (host:port)
+    Default: ''
+  ElbDomainName:
+    Type: String
+    Description: The domain name to use for the ELB DNS.  Assumes you have the zone for this DomainName hosted in Route53.  Leave blank to not use DNS for Elb.
+    Default: ''
+  ElbHostName:
+    Type: String
+    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
+    Default: ''
+  ElbCert:
+    Type: String
+    Description: The ARN for the certificate to use for ELB. Leave blank to disable HTTPS
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -73,6 +99,20 @@ Conditions:
   HasKeyName:
     "Fn::Not":
       - "Fn::Equals": [!Ref KeyName, '']
+  HasHttpProxy:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref HttpProxy, '']
+  HasElbDomainName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbDomainName, '']
+  HasElbHostName:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbHostName, '']
+  HasElbCert:
+    "Fn::Not":
+      - "Fn::Equals": [!Ref ElbCert, '']
+  IsElbInternal:
+    "Fn::Equals": [!Ref ElbInternal, 'true']
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -83,7 +123,7 @@ Resources:
       VPCZoneIdentifier:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${PublicSubnetIds}
+        - Fn::ImportValue: !Sub ${EcsSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: '1'
       MaxSize: !Ref MaxSize
@@ -191,9 +231,40 @@ Resources:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
+
+            CFN_PROXY_ARGS=""
+            if [[ ! -z "${HttpProxy}" ]]; then
+              echo "Configuring HTTP_PROXY=${HttpProxy}"
+
+              # Set Yum HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
+              	echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
+              fi
+
+              # Set Docker HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
+              	echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              	echo "export HTTPS_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
+
+              	service docker restart
+              fi
+
+              # Set ECS agent HTTP proxy
+              if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
+              	echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
+              	echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
+              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
+              fi
+
+              CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
+            fi
+
+
             yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -248,6 +319,10 @@ Resources:
         FromPort: '80'
         ToPort: '80'
         CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '443'
+        ToPort: '443'
+        CidrIp: 0.0.0.0/0
   ELB2HostRule:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -267,13 +342,17 @@ Resources:
   EcsElb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
+      Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
       Subnets:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${PublicSubnetIds}
+        - Fn::ImportValue: !Sub ${ElbSubnetIds}
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
       SecurityGroups:
       - !Ref ElbSG
-  EcsElbListener:
+  EcsElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       LoadBalancerArn: !Ref EcsElb
@@ -282,6 +361,18 @@ Resources:
         TargetGroupArn: !Ref EcsElbDefaultTargetGroup
       Port: '80'
       Protocol: HTTP
+  EcsElbHttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasElbCert
+    Properties:
+      LoadBalancerArn: !Ref EcsElb
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref EcsElbDefaultTargetGroup
+      Certificates:
+        - CertificateArn: !Ref ElbCert
+      Port: '443'
+      Protocol: HTTPS
   EcsElbDefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -289,9 +380,36 @@ Resources:
       Protocol: HTTP
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-default
+  ElbDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: HasElbDomainName
+    Properties:
+      HostedZoneName: !Sub ${ElbDomainName}.
+      Comment: DNS for ELB in ${AWS::StackName}
+      RecordSets:
+      - Name:
+          Fn::If:
+          - HasElbHostName
+          - !Sub ${ElbHostName}.${ElbDomainName}.
+          - !Sub ${ElbDomainName}.
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt EcsElb.CanonicalHostedZoneID
+          DNSName: !GetAtt EcsElb.DNSName
+          EvaluateTargetHealth: true
 Outputs:
   BaseUrl:
-    Value: !Sub http://${EcsElb.DNSName}/
+    Value:
+      Fn::If:
+      - HasElbDomainName
+      - Fn::If:
+        - HasElbHostName
+        - !Sub http://${ElbHostName}.${ElbDomainName}/
+        - !Sub http://${ElbDomainName}/
+      - !Sub http://${EcsElb.DNSName}/
     Description: ELB URL
   VpcId:
     Value:
@@ -299,11 +417,17 @@ Outputs:
     Description: VPC ID for the ECS cluster
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsElbListenerArn:
-    Value: !Ref EcsElbListener
-    Description: Arn of the ELB Listener.
+  EcsElbHttpListenerArn:
+    Value: !Ref EcsElbHttpListener
+    Description: Arn of the ELB HTTP Listener.
     Export:
-      Name: !Sub ${AWS::StackName}-EcsElbListenerArn
+      Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
+  EcsElbHttpsListenerArn:
+    Condition: HasElbCert
+    Value: !Ref EcsElbHttpsListener
+    Description: Arn of the ELB HTTPS Listener.
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn
   EcsCluster:
     Value: !Ref EcsCluster
     Description: Name of the ECS cluster.

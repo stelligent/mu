@@ -32,16 +32,12 @@ type ecsClusterManager struct {
 	ecrAPI ecriface.ECRAPI
 }
 
-func newClusterManager(region string) (ClusterManager, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("Connecting to ECS service in region:%s", region)
-	ecsAPI := ecs.New(sess, &aws.Config{Region: aws.String(region)})
+func newClusterManager(sess *session.Session) (ClusterManager, error) {
+	log.Debug("Connecting to ECS service")
+	ecsAPI := ecs.New(sess)
 
-	log.Debugf("Connecting to ECR service in region:%s", region)
-	ecrAPI := ecr.New(sess, &aws.Config{Region: aws.String(region)})
+	log.Debug("Connecting to ECR service")
+	ecrAPI := ecr.New(sess)
 
 	return &ecsClusterManager{
 		ecsAPI: ecsAPI,
@@ -74,7 +70,7 @@ func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]*ecs.Conta
 		Cluster:            aws.String(clusterName),
 		ContainerInstances: instanceIds,
 	}
-	describeOut, err := ecsAPI.DescribeContainerInstances(describeParams)
+	describeOut, _ := ecsAPI.DescribeContainerInstances(describeParams)
 
 	return describeOut.ContainerInstances, nil
 }

@@ -67,16 +67,12 @@ type cloudformationStackManager struct {
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(region string) (StackManager, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-	log.Debugf("Connecting to CloudFormation service in region:%s", region)
-	cfnAPI := cloudformation.New(sess, &aws.Config{Region: aws.String(region)})
+func newStackManager(sess *session.Session) (StackManager, error) {
+	log.Debug("Connecting to CloudFormation service")
+	cfnAPI := cloudformation.New(sess)
 
-	log.Debugf("Connecting to EC2 service in region:%s", region)
-	ec2API := ec2.New(sess, &aws.Config{Region: aws.String(region)})
+	log.Debug("Connecting to EC2 service")
+	ec2API := ec2.New(sess)
 
 	return &cloudformationStackManager{
 		cfnAPI: cfnAPI,
@@ -209,12 +205,12 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 			// wait for create
 			log.Debugf("  Waiting for stack:%s to complete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackCreateComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusDeleteInProgress:
 			// wait for delete
 			log.Debugf("  Waiting for stack:%s to delete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackDeleteComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusUpdateInProgress,
 			cloudformation.StackStatusUpdateRollbackInProgress,
 			cloudformation.StackStatusUpdateCompleteCleanupInProgress,
@@ -222,7 +218,7 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 			// wait for update
 			log.Debugf("  Waiting for stack:%s to update...current status=%s", stackName, *resp.Stacks[0].StackStatus)
 			cfnAPI.WaitUntilStackUpdateComplete(params)
-			resp, err = cfnAPI.DescribeStacks(params)
+			resp, _ = cfnAPI.DescribeStacks(params)
 		case cloudformation.StackStatusCreateFailed,
 			cloudformation.StackStatusCreateComplete,
 			cloudformation.StackStatusRollbackFailed,

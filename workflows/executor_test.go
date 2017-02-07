@@ -15,7 +15,7 @@ func TestNewWorkflow(t *testing.T) {
 
 	// error case
 	errorWorkflow := newWorkflow(func() error {
-		return errors.New("error occured")
+		return errors.New("error occurred")
 	})
 	assert.NotNil(errorWorkflow())
 
