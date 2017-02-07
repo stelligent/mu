@@ -65,35 +65,7 @@ func (d *clientDockerManager) ImageBuild(contextDir string, relDockerfile string
 		return err
 	}
 
-	if dockerOut != nil {
-		scanner := bufio.NewScanner(resp.Body)
-		type dockerMessage struct {
-			Stream      string `json:"stream"`
-			Error       string `json:"error"`
-			ErrorDetail struct {
-				Message string
-			}
-		}
-		msg := dockerMessage{}
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			log.Debug(string(line))
-			msg.Stream = ""
-			msg.Error = ""
-			if err := json.Unmarshal(line, &msg); err == nil {
-				if msg.Error != "" {
-					return fmt.Errorf("%s", msg.Error)
-				}
-				dockerOut.Write([]byte(fmt.Sprintf("  %s", msg.Stream)))
-			} else {
-				log.Debugf("Unable to unmarshal line: %v", err)
-			}
-		}
-	}
-
-	defer resp.Body.Close()
-
-	return nil
+	return handleDockerResponse(resp.Body, dockerOut)
 }
 
 func createBuildContext(contextDir string, relDockerfile string) (io.ReadCloser, error) {
@@ -159,34 +131,53 @@ func (d *clientDockerManager) ImagePush(image string, registryAuth string, docke
 		return err
 	}
 
-	if dockerOut != nil {
-		scanner := bufio.NewScanner(resp)
-		type dockerMessage struct {
-			Status   string `json:"status"`
-			ID       string `json:"id"`
-			Error    string `json:"error"`
-			Progress string `json:"progress"`
-		}
-		msg := dockerMessage{}
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			log.Debug(string(line))
-			msg.Status = ""
-			msg.Error = ""
-			if err := json.Unmarshal(line, &msg); err == nil {
-				if msg.Error != "" {
-					dockerOut.Write([]byte(fmt.Sprintf("Error: %s\n", msg.Error)))
-				} else if msg.Status != "" {
+	return handleDockerResponse(resp, dockerOut)
+}
+
+type dockerMessage struct {
+	ID          string `json:"id"`
+	Stream      string `json:"stream"`
+	Error       string `json:"error"`
+	ErrorDetail struct {
+		Message string
+	}
+	Status   string `json:"status"`
+	Progress string `json:"progress"`
+}
+
+func handleDockerResponse(resp io.ReadCloser, dockerOut io.Writer) error {
+	defer resp.Close()
+
+	scanner := bufio.NewScanner(resp)
+	msg := dockerMessage{}
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		msg.ID = ""
+		msg.Stream = ""
+		msg.Error = ""
+		msg.ErrorDetail.Message = ""
+		msg.Status = ""
+		msg.Progress = ""
+		if err := json.Unmarshal(line, &msg); err == nil {
+			if msg.Error != "" {
+				return fmt.Errorf("%s", msg.Error)
+			} else if dockerOut != nil {
+				if msg.Status != "" {
 					if msg.Progress != "" {
-						dockerOut.Write([]byte(fmt.Sprintf("%s :: %s :: %s\n", msg.Status, msg.ID, msg.Progress)))
+						dockerOut.Write([]byte(fmt.Sprintf("  %s :: %s :: %s\n", msg.Status, msg.ID, msg.Progress)))
 					} else {
-						dockerOut.Write([]byte(fmt.Sprintf("%s :: %s\n", msg.Status, msg.ID)))
+						dockerOut.Write([]byte(fmt.Sprintf("  %s :: %s\n", msg.Status, msg.ID)))
 					}
+				} else if msg.Stream != "" {
+					dockerOut.Write([]byte(fmt.Sprintf("  %s", msg.Stream)))
+				} else {
+					log.Debugf("Unable to handle line: %s", string(line))
 				}
-			} else {
-				log.Debugf("Unable to unmarshal line: %v", err)
 			}
+		} else {
+			log.Debugf("Unable to unmarshal line [%s] ==> %v", string(line), err)
 		}
 	}
-	return resp.Close()
+
+	return nil
 }

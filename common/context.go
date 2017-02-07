@@ -118,6 +118,8 @@ func (ctx *Context) InitializeContext(profile string, region string) error {
 		return err
 	}
 
+	ctx.DockerOut = os.Stdout
+
 	return nil
 }
 

@@ -3,6 +3,7 @@ package cli
 import (
 	"github.com/stelligent/mu/common"
 	"github.com/urfave/cli"
+	"io/ioutil"
 )
 
 // NewApp creates a new CLI app
@@ -36,6 +37,10 @@ func NewApp() *cli.App {
 		err := context.InitializeContext(c.String("profile"), c.String("region"))
 		if err != nil {
 			return err
+		}
+
+		if c.Bool("silent") {
+			context.DockerOut = ioutil.Discard
 		}
 
 		err = context.InitializeConfigFromFile(c.String("config"))

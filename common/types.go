@@ -1,6 +1,9 @@
 package common
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // Context defines the context object passed around
 type Context struct {
@@ -10,6 +13,7 @@ type Context struct {
 	ElbManager      ElbManager
 	PipelineManager PipelineManager
 	DockerManager   DockerManager
+	DockerOut       io.Writer
 }
 
 // Config defines the structure of the yml file for the mu config

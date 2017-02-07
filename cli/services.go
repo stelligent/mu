@@ -5,7 +5,6 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
-	"os"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -31,7 +30,7 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: "[<service>]",
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
-			workflow := workflows.NewServiceViewer(ctx, service, os.Stdout)
+			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
 			return workflow()
 		},
 	}
@@ -51,7 +50,7 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			tag := c.String("tag")
-			workflow := workflows.NewServicePusher(ctx, tag, os.Stdout)
+			workflow := workflows.NewServicePusher(ctx, tag, ctx.DockerOut)
 			return workflow()
 		},
 	}
