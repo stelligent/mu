@@ -100,6 +100,12 @@ func (ctx *Context) InitializeContext(profile string, region string) error {
 		return err
 	}
 
+	// initialize ElbManager
+	ctx.ElbManager, err = newElbv2Manager(sess)
+	if err != nil {
+		return err
+	}
+
 	// initialize CodePipelineManager
 	ctx.PipelineManager, err = newPipelineManager(sess)
 	if err != nil {

@@ -347,6 +347,9 @@ Resources:
         Fn::Split:
         - ","
         - Fn::ImportValue: !Sub ${ElbSubnetIds}
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
       SecurityGroups:
       - !Ref ElbSG
   EcsElbHttpListener:
@@ -377,6 +380,9 @@ Resources:
       Protocol: HTTP
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-default
   ElbDns:
     Type: AWS::Route53::RecordSetGroup
     Condition: HasElbDomainName

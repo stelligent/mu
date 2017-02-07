@@ -56,7 +56,11 @@ type mockedStackManagerForUpsert struct {
 
 func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common.Stack {
 	args := m.Called(stackName)
-	return args.Get(0).(*common.Stack)
+	rtn := args.Get(0)
+	if rtn == nil {
+		return nil
+	}
+	return rtn.(*common.Stack)
 }
 func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
 	args := m.Called(stackName, stackParameters)

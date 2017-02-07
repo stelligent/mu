@@ -119,6 +119,9 @@ service:
     - /bananas
     - /apples
 
+  # The priority for resolving the pathPatterns from the ALB (between 1 and 99999)
+  priority: 25
+
 ```
 
 ## Commands
