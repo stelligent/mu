@@ -68,9 +68,9 @@ func (d *clientDockerManager) ImageBuild(contextDir string, relDockerfile string
 	if dockerOut != nil {
 		scanner := bufio.NewScanner(resp.Body)
 		type dockerMessage struct {
-			Stream string `json:"stream"`
-			Error string `json:"error"`
-			ErrorDetail struct{
+			Stream      string `json:"stream"`
+			Error       string `json:"error"`
+			ErrorDetail struct {
 				Message string
 			}
 		}
