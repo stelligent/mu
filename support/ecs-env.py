@@ -7,6 +7,7 @@ import boto3
 import requests
 import datetime
 import time
+import traceback
 
 
 def get_contents(filename):
@@ -51,11 +52,8 @@ def get_local_container_info():
     return ecs_local_container['Name'], task_arn
 
 def get_container_ports(env_map,region):
-    try:
-        ecs_metadata = requests.get(get_ecs_introspection_url('metadata')).json()
-        cluster = ecs_metadata['Cluster']
-    except:
-        return
+    ecs_metadata = requests.get(get_ecs_introspection_url('metadata')).json()
+    cluster = ecs_metadata['Cluster']
 
     container_name, task_arn = get_local_container_info()
 
@@ -97,12 +95,17 @@ def main():
     metadata = boto.utils.get_instance_metadata()
     region = metadata['placement']['availability-zone'][:-1]  # last char is the zone, which we don't care about
 
-    env_map = dict(os.environ)
+    env_map = dict()
     env_map["HOST_IP"] = metadata['local-ipv4']
     env_map["HOST_NAME"] = metadata['local-hostname']
-    get_container_ports(env_map, region)
+    try:
+        get_container_ports(env_map, region)
+    except:
+        traceback.print_exc()
 
-    print(sys.argv[1:])
+    print("ENV: %s" % env_map)
+    print("CMD: %s" % ' '.join(sys.argv[1:]))
+    env_map.update(os.environ)
     os.execve('/bin/sh',['sh','-c', ' '.join(sys.argv[1:])],env_map)
 
 
