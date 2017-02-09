@@ -158,7 +158,7 @@ Resources:
             awslogs-group:
               Fn::ImportValue: !Sub ${EcsCluster}
             awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: !Ref ServiceName
+            awslogs-stream-prefix: service
         PortMappings:
         - HostPort: 0
           ContainerPort: !Ref ServicePort
