@@ -116,6 +116,8 @@ Conditions:
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn: []
@@ -213,8 +215,66 @@ Resources:
                 path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
                 runas=root
+            "/etc/awslogs/etc/proxy.conf":
+              content: !Sub |
+                HTTP_PROXY=http://${HttpProxy}/
+                HTTPS_PROXY=http://${HttpProxy}/
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+            "/etc/awslogs/awslogs.conf":
+              content: !Sub |
+                [general]
+                state_file = /var/lib/awslogs/agent-state
+
+                [dmesg]
+                file = /var/log/dmesg
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/dmesg/{instance_id}
+
+                [messages]
+                file = /var/log/messages
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/messages/{instance_id}
+                datetime_format = %b %d %H:%M:%S
+
+                [docker]
+                file = /var/log/docker
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/docker/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%S.%f
+
+                [ecs]
+                file = /var/log/ecs/*
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/ecs/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                [cloud-init]
+                file = /var/log/cloud-init*
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/cloud-init/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                [cfn-init]
+                file = /var/log/cfn-init*
+                log_group_name = ${EcsCluster}
+                log_stream_name = instance/cfn-init/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+          packages:
+            yum:
+              awslogs: []
           services:
             sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
               cfn-hup:
                 enabled: 'true'
                 ensureRunning: 'true'
@@ -291,12 +351,35 @@ Resources:
             Action:
             - ecs:RegisterContainerInstance
             - ecs:DeregisterContainerInstance
-            - ecs:DiscoverPollEndpoint
+            - ecs:SubmitContainerStateChange
+            - ecs:SubmitTaskStateChange
+            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}
+          - Effect: Allow
+            Action:
             - ecs:StartTelemetrySession
-            - ecs:Submit*
-            - ecr:*
             - ecs:Poll
             Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}
+          - Effect: Allow
+            Action:
+            - ecs:DiscoverPollEndpoint
+            - ecr:*
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${EcsCluster}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${EcsCluster}:*
+  ClusterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${EcsCluster}
   HostSG:
     Type: AWS::EC2::SecurityGroup
     Properties:

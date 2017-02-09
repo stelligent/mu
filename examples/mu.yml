@@ -8,3 +8,4 @@ environments:
     cluster:
       desiredCapacity: 1
       maxSize: 2
+      keyName: casey-lee-mbp

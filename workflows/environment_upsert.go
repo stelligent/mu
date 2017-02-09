@@ -10,6 +10,7 @@ import (
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+var bastionImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
@@ -19,7 +20,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -38,7 +39,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -61,6 +62,13 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			}
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
+			}
+			if environment.Cluster.KeyName != "" {
+				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(bastionImagePattern)
+				if err != nil {
+					return err
+				}
 			}
 
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
