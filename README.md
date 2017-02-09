@@ -48,7 +48,7 @@ environments:
       instanceTenancy: default      # Whether to use default or dedicated tenancy (default: default)
       desiredCapacity: 1            # Desired number of ECS container instances (default 1)
       maxSize: 2                    # Max size to scale the ECS ASG to (default: 2)
-      keyName: my-keypair           # name of EC2 keypair to associate with ECS container instances (default: none)
+      keyName: my-keypair           # name of EC2 keypair to associate with ECS container instances. Launches bastion host if defined. (default: none)
       sshAllow: 0.0.0.0/0           # CIDR block to allow SSH access from (default: 0.0.0.0/0)
       httpProxy: 10.0.0.43:8080     # Host and port to use for HTTP proxy for yum, docker images, and ECS (default: none)
       scaleOutThreshold: 80         # Threshold for % memory utilization to scale out ECS container instances (default: 80)
@@ -121,6 +121,13 @@ service:
 
   # The priority for resolving the pathPatterns from the ALB (between 1 and 99999)
   priority: 25
+
+  # Environment variables
+  environment:
+    DB_TYPE: mysql                  # Define an environment variable for all environments by have a string for value
+    DB_URL:                         # Define an different value per environment by have a map for value
+        dev:  10.0.0.1:3306
+        prod: 10.0.100.5:3306
 
 ```
 

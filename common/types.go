@@ -64,6 +64,7 @@ type Service struct {
 	HealthEndpoint  string   `yaml:"healthEndpoint"`
 	CPU             int      `yaml:"cpu"`
 	Memory          int      `yaml:"memory"`
+	Environment	map[string]string `yaml:"environment"`
 	PathPatterns    []string `yaml:"pathPatterns"`
 	Priority        int      `yaml:"priority"`
 	Pipeline        Pipeline

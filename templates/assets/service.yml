@@ -152,6 +152,13 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
+        {{with .Environment}}
+        Environment:
+          {{range $key, $val := .}}
+          - Name: {{$key}}
+            Value: {{$val}}
+          {{end}}
+        {{end}}
         LogConfiguration:
           LogDriver: awslogs
           Options:
