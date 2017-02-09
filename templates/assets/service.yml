@@ -69,6 +69,7 @@ Conditions:
          - !Sub ${EcsElbHttpsListenerArn}
          - ''
     - !Condition HasPathPattern
+
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -111,15 +112,36 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
-            - ec2:AuthorizeSecurityGroupIngress
             - ec2:Describe*
-            - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
             - elasticloadbalancing:Describe*
-            - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+            Resource: "*"
+          - Effect: Allow
+            Action:
             - elasticloadbalancing:DeregisterTargets
             - elasticloadbalancing:DescribeTargetGroups
             - elasticloadbalancing:DescribeTargetHealth
             - elasticloadbalancing:RegisterTargets
+            Resource: "*"
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Condition: HasPathPattern
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:DescribeTasks
             Resource: "*"
   MicroserviceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -130,10 +152,18 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Fn::ImportValue: !Sub ${EcsCluster}
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: service
         PortMappings:
         - HostPort: 0
           ContainerPort: !Ref ServicePort
       Volumes: []
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
   EcsElbHttpListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Condition: HasElbHttpListener

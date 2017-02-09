@@ -88,6 +88,18 @@ Parameters:
     AllowedValues:
       - true
       - false
+  BastionImageId:
+    Description: Bastion AMI to launch
+    Type: String
+    Default: ''
+  BastionInstanceType:
+    Description: Bastion Instance Type to launch
+    Type: String
+    Default: 't2.micro'
+  BastionKeyName:
+    Description: SSH Key to add to bastion
+    Type: String
+    Default: ''
 Conditions:
   HasElbSubnetAZ1:
     "Fn::Not":
@@ -110,7 +122,40 @@ Conditions:
   IsPublicElb:
     "Fn::Not":
       - "Fn::Equals": [!Ref ElbInternal, 'true']
+  HasBastion:
+    "Fn::And":
+      - "Fn::Not":
+        - "Fn::Equals": [!Ref BastionImageId, '']
+      - "Fn::Not":
+        - "Fn::Equals": [!Ref BastionKeyName, '']
 Resources:
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Condition: HasBastion
+    Properties:
+      ImageId: !Ref BastionImageId
+      InstanceType: !Ref BastionInstanceType
+      KeyName: !Ref BastionKeyName
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: 0
+        GroupSet:
+        - !Ref BastionSG
+        SubnetId: !Ref NatSubnetAZ1
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-bastion
+  BastionSG:
+    Type: AWS::EC2::SecurityGroup
+    Condition: HasBastion
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Bastion Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -511,6 +556,10 @@ Outputs:
     Value: !Ref VPC
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
+  BastionHost:
+    Description: IP of the bastion host
+    Value: !GetAtt BastionHost.PublicIp
+    Condition: HasBastion
   ElbSubnetIds:
     Description: The elb subnetids
     Value:
