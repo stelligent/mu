@@ -1,0 +1,14 @@
+---
+
+service:
+  name: banana-service
+  pathPatterns:
+    - /bananas
+  pipeline:
+    source:
+      repo: stelligent/microservice-exemplar
+      branch: mu
+    build:
+      image: aws/codebuild/java:openjdk-8
+    acceptance:
+      image: aws/codebuild/eb-nodejs-4.4.6-amazonlinux-64:2.1.3

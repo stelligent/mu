@@ -80,12 +80,16 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if workflow.pipelineConfig.Acceptance.Type != "" {
 			pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
 		}
-		if workflow.pipelineConfig.Build.ComputeType != "" {
+		if workflow.pipelineConfig.Acceptance.ComputeType != "" {
 			pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
 		}
 
-		if workflow.pipelineConfig.Build.Image != "" {
+		if workflow.pipelineConfig.Acceptance.Image != "" {
 			pipelineParams["TestImage"] = workflow.pipelineConfig.Acceptance.Image
+		}
+
+		if workflow.pipelineConfig.Acceptance.Environment != "" {
+			pipelineParams["TestEnv"] = workflow.pipelineConfig.Acceptance.Environment
 		}
 
 		if workflow.pipelineConfig.MuBaseurl != "" {

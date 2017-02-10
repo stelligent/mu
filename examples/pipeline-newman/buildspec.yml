@@ -1,0 +1,14 @@
+version: 0.1
+
+
+phases:
+  build:
+    commands:
+      - gradle build
+
+
+artifacts:
+  files:
+    - build/libs/*
+    - Dockerfile
+    - mu.yml

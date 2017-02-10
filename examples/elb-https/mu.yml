@@ -1,0 +1,7 @@
+---
+
+environments:
+  - name: env-with-elb-https
+    loadbalancer:
+      certificate: "arn:aws:acm:us-west-2:324320755747:certificate/973c1a2f-e1c6-4f65-8d43-0000000000"
+
