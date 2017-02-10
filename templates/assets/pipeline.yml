@@ -28,6 +28,18 @@ Parameters:
     Type: String
     Default: "aws/codebuild/ubuntu-base:14.04"
     Description: The build image to use for building the app
+  TestType:
+    Type: String
+    Default: "linuxContainer"
+    Description: The build container type to use for testing the app
+  TestComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for testing the app
+  TestImage:
+    Type: String
+    Default: "aws/codebuild/ubuntu-base:14.04"
+    Description: The build image to use for testing the app
   MuType:
     Type: String
     Default: "linuxContainer"
@@ -170,11 +182,11 @@ Resources:
             files:
               - ${MuFile}
       TimeoutInMinutes: 10
-  DeployTest:
+  DeployAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-test
+      Name: !Sub ${AWS::StackName}-deploy-acceptance
       Description: Deploy image to test environment
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
@@ -193,16 +205,34 @@ Resources:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
+                - mu env show ${TestEnv} -f json > env.json
+                - mv buildspec-test.yml buildspec.yml
           artifacts:
             type: zip
             files:
-              - ${MuFile}
+              - **/*
       TimeoutInMinutes: 10
-  DeployProd:
+  TestAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-prod
+      Name: !Sub ${AWS::StackName}-test-acceptance
+      Description: Test in the acceptance environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref TestType
+        ComputeType: !Ref TestComputeType
+        Image: !Sub ${TestImage}
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 10
+  DeployProduction:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-production
       Description: Deploy image to prod environment
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
@@ -285,11 +315,24 @@ Resources:
             Version: '1'
             Provider: CodeBuild
           InputArtifacts:
-          - Name: ArtifactOutput
+          - Name: SourceOutput
           OutputArtifacts:
-          - Name: AcceptanceOutput
+          - Name: DeployAcceptanceOutput
           Configuration:
-            ProjectName: !Ref DeployTest
+            ProjectName: !Ref DeployAcceptance
+          RunOrder: 1
+        - Name: Test
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: DeployAcceptanceOutput
+          OutputArtifacts:
+          - Name: TestAcceptanceOutput
+          Configuration:
+            ProjectName: !Ref TestAcceptance
           RunOrder: 1
       - Name: Production
         Actions:
@@ -309,11 +352,11 @@ Resources:
             Version: '1'
             Provider: CodeBuild
           InputArtifacts:
-          - Name: ArtifactOutput
+          - Name: SourceOutput
           OutputArtifacts:
-          - Name: ProductionOutput
+          - Name: DeployProductionOutput
           Configuration:
-            ProjectName: !Ref DeployProd
+            ProjectName: !Ref DeployProduction
           RunOrder: 2
       ArtifactStore:
         Type: S3

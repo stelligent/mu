@@ -487,12 +487,21 @@ Outputs:
   BaseUrl:
     Value:
       Fn::If:
-      - HasElbDomainName
+      - HasElbCert
       - Fn::If:
-        - HasElbHostName
-        - !Sub http://${ElbHostName}.${ElbDomainName}/
-        - !Sub http://${ElbDomainName}/
-      - !Sub http://${EcsElb.DNSName}/
+        - HasElbDomainName
+        - Fn::If:
+          - HasElbHostName
+          - !Sub https://${ElbHostName}.${ElbDomainName}
+          - !Sub https://${ElbDomainName}
+        - !Sub https://${EcsElb.DNSName}
+      - Fn::If:
+        - HasElbDomainName
+        - Fn::If:
+          - HasElbHostName
+          - !Sub http://${ElbHostName}.${ElbDomainName}
+          - !Sub http://${ElbDomainName}
+        - !Sub http://${EcsElb.DNSName}
     Description: ELB URL
   VpcId:
     Value:

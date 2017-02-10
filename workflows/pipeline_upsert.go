@@ -77,6 +77,17 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["BuildImage"] = workflow.pipelineConfig.Build.Image
 		}
 
+		if workflow.pipelineConfig.Acceptance.Type != "" {
+			pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
+		}
+		if workflow.pipelineConfig.Build.ComputeType != "" {
+			pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
+		}
+
+		if workflow.pipelineConfig.Build.Image != "" {
+			pipelineParams["TestImage"] = workflow.pipelineConfig.Acceptance.Image
+		}
+
 		if workflow.pipelineConfig.MuBaseurl != "" {
 			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
 		}
