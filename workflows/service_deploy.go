@@ -109,7 +109,6 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 			return err
 		}
 
-
 		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, common.StackTypeService))
 		if err != nil {
@@ -139,7 +138,7 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 		case string:
 			// do nothing
 		default:
-			log.Warningf("Unable to resolve environment '%s': %v",key,value)
+			log.Warningf("Unable to resolve environment '%s': %v", key, value)
 		}
 
 	}

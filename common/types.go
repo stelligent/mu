@@ -56,17 +56,17 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            string            `yaml:"name"`
-	DesiredCount    int               `yaml:"desiredCount"`
-	Dockerfile      string            `yaml:"dockerfile"`
-	ImageRepository string            `yaml:"imageRepository"`
-	Port            int               `yaml:"port"`
-	HealthEndpoint  string            `yaml:"healthEndpoint"`
-	CPU             int               `yaml:"cpu"`
-	Memory          int               `yaml:"memory"`
+	Name            string                 `yaml:"name"`
+	DesiredCount    int                    `yaml:"desiredCount"`
+	Dockerfile      string                 `yaml:"dockerfile"`
+	ImageRepository string                 `yaml:"imageRepository"`
+	Port            int                    `yaml:"port"`
+	HealthEndpoint  string                 `yaml:"healthEndpoint"`
+	CPU             int                    `yaml:"cpu"`
+	Memory          int                    `yaml:"memory"`
 	Environment     map[string]interface{} `yaml:"environment"`
-	PathPatterns    []string          `yaml:"pathPatterns"`
-	Priority        int               `yaml:"priority"`
+	PathPatterns    []string               `yaml:"pathPatterns"`
+	Priority        int                    `yaml:"priority"`
 	Pipeline        Pipeline
 }
 
