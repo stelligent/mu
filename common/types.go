@@ -83,6 +83,9 @@ type Pipeline struct {
 	}
 	Acceptance struct {
 		Environment string `yaml:"environment"`
+		Type        string `yaml:"type"`
+		ComputeType string `yaml:"computeType"`
+		Image       string `yaml:"image"`
 	}
 	Production struct {
 		Environment string `yaml:"environment"`

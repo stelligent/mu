@@ -9,6 +9,6 @@ import (
 func TestNewEnvironmentViewer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
-	viewer := NewEnvironmentViewer(ctx, "foo", nil)
+	viewer := NewEnvironmentViewer(ctx, "json", "foo", nil)
 	assert.NotNil(viewer)
 }
