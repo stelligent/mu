@@ -1,0 +1,80 @@
+{
+	"variables": [],
+	"info": {
+		"name": "Bananas",
+		"_postman_id": "706d8db3-8945-bfe4-abab-d1563d76139f",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "New Banana",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 200\"] = responseCode.code === 200;",
+							"",
+							"",
+							"",
+							"",
+							"var jsonData = JSON.parse(responseBody);",
+							"tests[\"Has picked date\"] = jsonData.pickedAt;",
+							"tests[\"Not peeled\"] = !jsonData.peeled;"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "{{BASE_URL}}/bananas  ",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"pickedAt\": \"2016-01-25T21:34:55\",\n\t\"peeled\": false\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "All Bananas",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"tests[\"Status code is 200\"] = responseCode.code === 200;"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "{{BASE_URL}}/bananas  ",
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"pickedAt\": \"2016-01-25T21:34:55\",\n\t\"peeled\": false\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}

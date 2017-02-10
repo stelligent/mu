@@ -1,0 +1,14 @@
+---
+
+environments:
+  - name: example-vpc-target
+    vpcTarget:
+        vpcId: vpc-xxxxx            # The id of the VPC to launch ECS container instances into
+        ecsSubnetIds:               # The list of subnets to use for ECS container instances
+          - subnet-xxxxx
+          - subnet-xxxxy
+          - subnet-xxxxz
+        elbSubnetIds:               # The list of subnets to use for ELBs
+          - subnet-xxxxx
+          - subnet-xxxxy
+          - subnet-xxxxz
