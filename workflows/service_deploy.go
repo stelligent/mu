@@ -103,10 +103,12 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 			stackParams["PathPattern"] = strings.Join(service.PathPatterns, ",")
 		}
 
+		resolveServiceEnvironment(service, environmentName)
 		template, err := templates.NewTemplate("service.yml", service)
 		if err != nil {
 			return err
 		}
+
 
 		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, common.StackTypeService))
@@ -117,6 +119,29 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 		stackWaiter.AwaitFinalStatus(svcStackName)
 
 		return nil
+	}
+}
+
+func resolveServiceEnvironment(service *common.Service, environment string) {
+	for key, value := range service.Environment {
+		switch value.(type) {
+		case map[interface{}]interface{}:
+			found := false
+			for env, v := range value.(map[interface{}]interface{}) {
+				if env.(string) == environment {
+					service.Environment[key] = v.(string)
+					found = true
+				}
+			}
+			if found != true {
+				service.Environment[key] = ""
+			}
+		case string:
+			// do nothing
+		default:
+			log.Warningf("Unable to resolve environment '%s': %v",key,value)
+		}
+
 	}
 }
 
