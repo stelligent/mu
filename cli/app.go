@@ -34,7 +34,7 @@ func NewApp() *cli.App {
 		}
 
 		// initialize context
-		err := context.InitializeContext(c.String("profile"), c.String("region"))
+		err := context.InitializeContext(c.String("profile"), c.String("region"), c.Bool("dryrun"))
 		if err != nil {
 			return err
 		}
@@ -72,6 +72,10 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "verbose, V",
 			Usage: "increase level of log verbosity",
+		},
+		cli.BoolFlag{
+			Name:  "dryrun, d",
+			Usage: "generate the cloudformation templates without upserting stacks",
 		},
 	}
 
