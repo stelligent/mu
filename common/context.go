@@ -70,6 +70,10 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	// register the stack overrides
+	registerStackOverrides(ctx.Config.Templates)
+
 	return nil
 }
 

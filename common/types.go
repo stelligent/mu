@@ -25,6 +25,7 @@ type Config struct {
 		Name     string
 		Revision string
 	}
+	Templates map[string]interface{}
 }
 
 // Environment defines the structure of the yml file for an environment

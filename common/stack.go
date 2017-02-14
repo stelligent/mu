@@ -24,6 +24,21 @@ func CreateStackName(stackType StackType, names ...string) string {
 	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names, "-"))
 }
 
+// GetStackOverrides will get the overrides from the config
+func GetStackOverrides(stackName string) interface{} {
+	if stackOverrides == nil {
+		return nil
+	}
+
+	return stackOverrides[stackName]
+}
+
+var stackOverrides map[string]interface{}
+
+func registerStackOverrides(overrides map[string]interface{}) {
+	stackOverrides = overrides
+}
+
 // StackWaiter for waiting on stack status to be final
 type StackWaiter interface {
 	AwaitFinalStatus(stackName string) *Stack

@@ -67,15 +67,15 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 
 		log.Noticef("Upsert repo for service '%s'", workflow.serviceName)
 
-		template, err := templates.NewTemplate("repo.yml", nil)
+		ecrStackName := common.CreateStackName(common.StackTypeRepo, workflow.serviceName)
+		overrides := common.GetStackOverrides(ecrStackName)
+		template, err := templates.NewTemplate("repo.yml", nil, overrides)
 		if err != nil {
 			return err
 		}
 
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
-
-		ecrStackName := common.CreateStackName(common.StackTypeRepo, workflow.serviceName)
 
 		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, common.StackTypeRepo))
 		if err != nil {

@@ -23,11 +23,12 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		template, err := templates.NewTemplate("bucket.yml", nil)
+		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		overrides := common.GetStackOverrides(bucketStackName)
+		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
 			return err
 		}
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
@@ -46,9 +47,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 	return func() error {
 		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
+		overrides := common.GetStackOverrides(pipelineStackName)
 
 		log.Noticef("Upserting Pipeline for service'%s' ...", workflow.serviceName)
-		template, err := templates.NewTemplate("pipeline.yml", nil)
+		template, err := templates.NewTemplate("pipeline.yml", nil, overrides)
 		if err != nil {
 			return err
 		}
