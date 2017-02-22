@@ -24,6 +24,8 @@ deps:
 	go get "github.com/aktau/github-release"
 	#go get -t -d -v $(SRC_FILES)
 	glide install
+
+gen:
 	go generate $(SRC_FILES)
 
 lint: fmt
@@ -31,7 +33,7 @@ lint: fmt
 	go vet $(SRC_FILES)
 	glide novendor | xargs -n1 golint -set_exit_status
 
-test: lint
+test: lint gen
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
@@ -41,7 +43,7 @@ else
 endif
 
 
-build: $(BUILD_FILES)
+build: $(BUILD_FILES) gen
 
 $(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
@@ -89,4 +91,4 @@ fmt:
 	go fmt $(SRC_FILES)
 
 
-.PHONY: default all lint test build deps clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default all lint test build deps gen clean release-clean release-create dev-release release $(UPLOAD_FILES) $(TARGET_OS)

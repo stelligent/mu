@@ -29,6 +29,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		if err != nil {
 			return err
 		}
+		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
@@ -49,7 +50,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 		overrides := common.GetStackOverrides(pipelineStackName)
 
-		log.Noticef("Upserting Pipeline for service'%s' ...", workflow.serviceName)
+		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
 		template, err := templates.NewTemplate("pipeline.yml", nil, overrides)
 		if err != nil {
 			return err
