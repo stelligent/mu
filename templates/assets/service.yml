@@ -53,7 +53,9 @@ Conditions:
   HasPathPattern:
     "Fn::Not":
       - "Fn::Equals":
-        - "Fn::Join": [ "", !Ref PathPattern]
+        - "Fn::Join":
+          - ''
+          - !Ref PathPattern
         - ''
   HasElbHttpListener:
     "Fn::And":

@@ -103,31 +103,49 @@ Parameters:
 Conditions:
   HasElbSubnetAZ1:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ1CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ1CidrBlock
+        - ''
   HasElbSubnetAZ2:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ2CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ2CidrBlock
+        - ''
   HasElbSubnetAZ3:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ3CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ3CidrBlock
+        - ''
   HasEcsSubnetAZ1:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ1CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ1CidrBlock
+        - ''
   HasEcsSubnetAZ2:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ2CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ2CidrBlock
+        - ''
   HasEcsSubnetAZ3:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ3CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ3CidrBlock
+        - ''
   IsPublicElb:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbInternal, 'true']
+      - "Fn::Equals":
+        - !Ref ElbInternal
+        - 'true'
   HasBastion:
     "Fn::And":
       - "Fn::Not":
-        - "Fn::Equals": [!Ref BastionImageId, '']
+        - "Fn::Equals":
+          - !Ref BastionImageId
+          - ''
       - "Fn::Not":
-        - "Fn::Equals": [!Ref BastionKeyName, '']
+        - "Fn::Equals":
+          - !Ref BastionKeyName
+          - ''
 Resources:
   BastionHost:
     Type: AWS::EC2::Instance
@@ -197,7 +215,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref NatSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Public
@@ -270,7 +291,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -283,7 +307,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ2CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 1, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -296,7 +323,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ3CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 2, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -407,7 +437,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -420,7 +453,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ2CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 1, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -433,7 +469,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ3CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 2, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]

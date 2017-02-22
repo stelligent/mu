@@ -18,7 +18,7 @@ Parameters:
     Description: Secret. It might look something like 9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo. Go to https://github.com/settings/tokens
   BuildType:
     Type: String
-    Default: "linuxContainer"
+    Default: "LINUX_CONTAINER"
     Description: The build container type to use for building the app
   BuildComputeType:
     Type: String
@@ -30,7 +30,7 @@ Parameters:
     Description: The build image to use for building the app
   TestType:
     Type: String
-    Default: "linuxContainer"
+    Default: "LINUX_CONTAINER"
     Description: The build container type to use for testing the app
   TestComputeType:
     Type: String
@@ -42,7 +42,7 @@ Parameters:
     Description: The build image to use for testing the app
   MuType:
     Type: String
-    Default: "linuxContainer"
+    Default: "LINUX_CONTAINER"
     Description: The build container type to use for mu commands
   MuComputeType:
     Type: String

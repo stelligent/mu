@@ -103,13 +103,15 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 			stackParams["PathPattern"] = strings.Join(service.PathPatterns, ",")
 		}
 
+		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+
 		resolveServiceEnvironment(service, environmentName)
-		template, err := templates.NewTemplate("service.yml", service)
+		overrides := common.GetStackOverrides(svcStackName)
+		template, err := templates.NewTemplate("service.yml", service, overrides)
 		if err != nil {
 			return err
 		}
 
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, common.StackTypeService))
 		if err != nil {
 			return err

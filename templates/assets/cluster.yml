@@ -98,21 +98,33 @@ Metadata:
 Conditions:
   HasKeyName:
     "Fn::Not":
-      - "Fn::Equals": [!Ref KeyName, '']
+      - "Fn::Equals":
+        - !Ref KeyName
+        - ''
   HasHttpProxy:
     "Fn::Not":
-      - "Fn::Equals": [!Ref HttpProxy, '']
+      - "Fn::Equals":
+        - !Ref HttpProxy
+        - ''
   HasElbDomainName:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbDomainName, '']
+      - "Fn::Equals":
+        - !Ref ElbDomainName
+        - ''
   HasElbHostName:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbHostName, '']
+      - "Fn::Equals":
+        - !Ref ElbHostName
+        - ''
   HasElbCert:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbCert, '']
+      - "Fn::Equals":
+        - !Ref ElbCert
+        - ''
   IsElbInternal:
-    "Fn::Equals": [!Ref ElbInternal, 'true']
+    "Fn::Equals":
+      - !Ref ElbInternal
+      - 'true'
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -283,48 +295,52 @@ Resources:
                 - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
     Properties:
       ImageId: !Ref ImageId
-      SecurityGroups: [ !Ref HostSG ]
+      SecurityGroups:
+      - !Ref HostSG
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfile
-      KeyName: !If [ HasKeyName, !Ref KeyName, !Ref "AWS::NoValue"]
+      KeyName:
+        Fn::If:
+          - HasKeyName
+          - !Ref KeyName
+          - !Ref "AWS::NoValue"
       UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash -xe
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
 
-            CFN_PROXY_ARGS=""
-            if [[ ! -z "${HttpProxy}" ]]; then
-              echo "Configuring HTTP_PROXY=${HttpProxy}"
+          CFN_PROXY_ARGS=""
+          if [[ ! -z "${HttpProxy}" ]]; then
+            echo "Configuring HTTP_PROXY=${HttpProxy}"
 
-              # Set Yum HTTP proxy
-              if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
-              	echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
-              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
-              fi
-
-              # Set Docker HTTP proxy
-              if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
-              	echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
-              	echo "export HTTPS_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
-              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
-
-              	service docker restart
-              fi
-
-              # Set ECS agent HTTP proxy
-              if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
-              	echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
-              	echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
-              	echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
-              fi
-
-              CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
+            # Set Yum HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
+              echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
             fi
 
+            # Set Docker HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
+              echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              echo "export HTTPS_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
 
-            yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+              service docker restart
+            fi
+
+            # Set ECS agent HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
+              echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
+              echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
+            fi
+
+            CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
+          fi
+
+
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:

@@ -70,11 +70,15 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	// register the stack overrides
+	registerStackOverrides(ctx.Config.Templates)
+
 	return nil
 }
 
 // InitializeContext loads manager objects
-func (ctx *Context) InitializeContext(profile string, region string) error {
+func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 	if region != "" {
 		sessOptions.Config = aws.Config{Region: aws.String(region)}
@@ -89,7 +93,7 @@ func (ctx *Context) InitializeContext(profile string, region string) error {
 	}
 
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess)
+	ctx.StackManager, err = newStackManager(sess, dryrun)
 	if err != nil {
 		return err
 	}

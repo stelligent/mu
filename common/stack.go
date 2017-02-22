@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"io"
+	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 )
@@ -19,6 +22,21 @@ import (
 // CreateStackName will create a name for a stack
 func CreateStackName(stackType StackType, names ...string) string {
 	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names, "-"))
+}
+
+// GetStackOverrides will get the overrides from the config
+func GetStackOverrides(stackName string) interface{} {
+	if stackOverrides == nil {
+		return nil
+	}
+
+	return stackOverrides[stackName]
+}
+
+var stackOverrides map[string]interface{}
+
+func registerStackOverrides(overrides map[string]interface{}) {
+	stackOverrides = overrides
 }
 
 // StackWaiter for waiting on stack status to be final
@@ -62,12 +80,13 @@ type StackManager interface {
 }
 
 type cloudformationStackManager struct {
+	dryrun bool
 	cfnAPI cloudformationiface.CloudFormationAPI
 	ec2API ec2iface.EC2API
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(sess *session.Session) (StackManager, error) {
+func newStackManager(sess *session.Session, dryrun bool) (StackManager, error) {
 	log.Debug("Connecting to CloudFormation service")
 	cfnAPI := cloudformation.New(sess)
 
@@ -75,6 +94,7 @@ func newStackManager(sess *session.Session) (StackManager, error) {
 	ec2API := ec2.New(sess)
 
 	return &cloudformationStackManager{
+		dryrun: dryrun,
 		cfnAPI: cfnAPI,
 		ec2API: ec2API,
 	}, nil
@@ -128,6 +148,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	// stack tags
 	stackTags := buildStackTags(tags)
 
+	// directory to write cfn to
+	cfnDirectory := fmt.Sprintf("%s/mu-cloudformation", os.TempDir())
+
 	cfnAPI := cfnMgr.cfnAPI
 	if stack == nil || stack.Status == "" {
 
@@ -143,6 +166,13 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			TemplateBody: templateBody,
 			Tags:         stackTags,
 		}
+
+		if cfnMgr.dryrun {
+			writeTemplateAndConfig(cfnDirectory, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping create of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnDirectory)
+			return nil
+		}
+
 		_, err := cfnAPI.CreateStack(params)
 		log.Debug("  Create stack complete err=%s", err)
 		if err != nil {
@@ -170,6 +200,12 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			TemplateBody: templateBody,
 
 			Tags: stackTags,
+		}
+
+		if cfnMgr.dryrun {
+			writeTemplateAndConfig(cfnDirectory, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping update of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnDirectory)
+			return nil
 		}
 
 		_, err := cfnAPI.UpdateStack(params)
@@ -370,8 +406,32 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 
 	params := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
 
+	if cfnMgr.dryrun {
+		log.Infof("  DRYRUN: Skipping delete of stack named '%s'", stackName)
+		return nil
+	}
+
 	log.Debugf("Deleting stack named '%s'", stackName)
 
 	_, err := cfnAPI.DeleteStack(params)
 	return err
+}
+
+func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string) error {
+	os.MkdirAll(cfnDirectory, 0700)
+	templateFile := fmt.Sprintf("%s/template-%s.yml", cfnDirectory, stackName)
+	err := ioutil.WriteFile(templateFile, templateBodyBytes.Bytes(), 0600)
+	if err != nil {
+		return err
+	}
+
+	configMap := make(map[string]map[string]string)
+	configMap["Parameters"] = parameters
+	configBody, err := json.MarshalIndent(configMap, "", "  ")
+	if err != nil {
+		return err
+	}
+	configFile := fmt.Sprintf("%s/config-%s.json", cfnDirectory, stackName)
+	err = ioutil.WriteFile(configFile, configBody, 0600)
+	return nil
 }
