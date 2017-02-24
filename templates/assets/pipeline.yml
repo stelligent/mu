@@ -150,7 +150,7 @@ Resources:
         Image: !Sub ${BuildImage}
       Source:
         Type: CODEPIPELINE
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   CodeBuildImage:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
@@ -181,7 +181,7 @@ Resources:
             type: zip
             files:
               - ${MuFile}
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   DeployAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
@@ -211,7 +211,7 @@ Resources:
             type: zip
             files:
               - '**/*'
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   TestAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
@@ -227,7 +227,7 @@ Resources:
         Image: !Sub ${TestImage}
       Source:
         Type: CODEPIPELINE
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   DeployProduction:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
@@ -255,7 +255,7 @@ Resources:
             type: zip
             files:
               - ${MuFile}
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:

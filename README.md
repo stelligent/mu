@@ -45,6 +45,7 @@ environments:
     ### Attributes for the ECS container instances
     cluster:
       imageId: ami-xxxxxx           # The AMI to use for the ECS container instances (default: latest ECS optimized AMI)
+      instanceType: t2.micro        # The instance type to use for the ECS container instances (default: t2.micro)
       instanceTenancy: default      # Whether to use default or dedicated tenancy (default: default)
       desiredCapacity: 1            # Desired number of ECS container instances (default 1)
       maxSize: 2                    # Max size to scale the ECS ASG to (default: 2)

@@ -123,6 +123,9 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
 		}
+		if environment.Cluster.InstanceType != "" {
+			stackParams["InstanceType"] = environment.Cluster.InstanceType
+		}
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {

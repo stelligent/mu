@@ -38,6 +38,7 @@ type Environment struct {
 		Internal    bool   `yaml:"internal"`
 	}
 	Cluster struct {
+		InstanceType      string `yaml:"instanceType"`
 		ImageID           string `yaml:"imageId"`
 		InstanceTenancy   string `yaml:"instanceTenancy"`
 		DesiredCapacity   int    `yaml:"desiredCapacity"`
