@@ -221,3 +221,11 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+Outputs:
+  MicroserviceTaskDefinition:
+    Description: Roadmap Task Definition
+    Value: !Ref MicroserviceTaskDefinition
+  EcsCluster:
+    Description: Roadmap Cluster
+    Value:
+      Fn::ImportValue: !Ref EcsCluster

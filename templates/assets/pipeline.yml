@@ -204,6 +204,7 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
                 - mu env show ${TestEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml
@@ -250,6 +251,7 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
           artifacts:
             type: zip
