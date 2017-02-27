@@ -258,7 +258,7 @@ Resources:
           artifacts:
             type: zip
             files:
-              - ${MuFile}
+              - '**/*'
       TimeoutInMinutes: 30
   TestProduction:
     Type: AWS::CodeBuild::Project
