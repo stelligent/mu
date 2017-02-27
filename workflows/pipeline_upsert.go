@@ -95,6 +95,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["TestEnv"] = workflow.pipelineConfig.Acceptance.Environment
 		}
 
+		if workflow.pipelineConfig.Production.Environment != "" {
+			pipelineParams["ProdEnv"] = workflow.pipelineConfig.Production.Environment
+		}
+
 		if workflow.pipelineConfig.MuBaseurl != "" {
 			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
 		}

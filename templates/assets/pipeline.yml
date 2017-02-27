@@ -253,10 +253,28 @@ Resources:
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
+                - mu env show ${ProdEnv} -f json > env.json
+                - mv buildspec-prod.yml buildspec.yml
           artifacts:
             type: zip
             files:
               - ${MuFile}
+      TimeoutInMinutes: 30
+  TestProduction:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-test-production
+      Description: Test in the production environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref TestType
+        ComputeType: !Ref TestComputeType
+        Image: !Sub ${TestImage}
+      Source:
+        Type: CODEPIPELINE
       TimeoutInMinutes: 30
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -360,6 +378,19 @@ Resources:
           Configuration:
             ProjectName: !Ref DeployProduction
           RunOrder: 2
+        - Name: Test
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: DeployProductionOutput
+          OutputArtifacts:
+          - Name: TestProductionOutput
+          Configuration:
+            ProjectName: !Ref TestProduction
+          RunOrder: 3
       ArtifactStore:
         Type: S3
         Location: !ImportValue mu-bucket-codepipeline
