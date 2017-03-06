@@ -31,7 +31,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		}
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
-		bucketParams["BucketPrefix"] = "codepipeline"
+		bucketParams["BucketPrefix"] = "mu-codepipeline"
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
 		if err != nil {
 			return err
