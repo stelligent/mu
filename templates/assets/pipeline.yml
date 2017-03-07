@@ -178,7 +178,6 @@ Resources:
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} svc push -t latest
           artifacts:
-            type: zip
             files:
               - ${MuFile}
       TimeoutInMinutes: 30
@@ -207,9 +206,8 @@ Resources:
                 - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
                 - mu env show ${TestEnv} -f json > env.json
-                - mv buildspec-test.yml buildspec.yml
+                - mv buildspec-test.yml buildspec.yml || echo "version: 0.1\nphases:\nartifacts:\n  files:\n    - '**/*'\n" > buildspec.yml
           artifacts:
-            type: zip
             files:
               - '**/*'
       TimeoutInMinutes: 30
@@ -254,9 +252,8 @@ Resources:
                 - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
                 - mu env show ${ProdEnv} -f json > env.json
-                - mv buildspec-prod.yml buildspec.yml
+                - mv buildspec-prod.yml buildspec.yml || echo "version: 0.1\nphases:\nartifacts:\n  files:\n    - '**/*'\n" > buildspec.yml
           artifacts:
-            type: zip
             files:
               - '**/*'
       TimeoutInMinutes: 30

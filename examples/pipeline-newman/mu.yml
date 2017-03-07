@@ -2,6 +2,7 @@
 
 service:
   name: banana-service
+  healthEndpoint: /health
   pathPatterns:
     - /bananas
   pipeline:

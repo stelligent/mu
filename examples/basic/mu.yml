@@ -10,9 +10,8 @@ environments:
 
 service:
   port: 80
-  healthEndpoint: /aftp/index.html
   pathPatterns:
-    - /aftp*
+    - /*
   pipeline:
     source:
       repo: cplee/aftp-mu
