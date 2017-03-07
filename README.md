@@ -29,7 +29,7 @@ Check out the [examples](examples) to see common `mu.yml` configuration use case
 * **[VPC Target](examples/vpc-target)** - Targeting an existing VPC for an environment
 * **[Custom CloudFormation](examples/custom-cloudformation)** - Demonstration of adding custom AWS resources via CloudFormation
 
-Refer to the [wiki](https://github.com/stelligent/mu/wiki/Reference) for complete details on the configuration of `mu.yml` and the cli usage:
+Refer to the wiki for complete details on the configuration of `mu.yml` and the cli usage:
 
 * **[Environments](https://github.com/stelligent/mu/wiki/Environments)** - managing VPCs, ECS clusters, container instances and ALBs
 * **[Services](https://github.com/stelligent/mu/wiki/Services)** - managing ECS service configuration
