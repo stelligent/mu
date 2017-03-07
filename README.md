@@ -19,7 +19,7 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 
 
 # What's next?
-Check out the [examples](https://github.com/stelligent/mu/wiki/Examples) to see common `mu.yml` configuration use cases:
+Check out the [examples](examples) to see common `mu.yml` configuration use cases:
 
 * **[Basic](examples/basic)** - Simple website with continuous delivery pipeline deploying to dev and prod environments
 * **[Test Automation](examples/pipeline-newman)** - Example of automating end-to-end testing via [Newman](https://github.com/postmanlabs/newman)
