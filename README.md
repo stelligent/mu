@@ -11,7 +11,7 @@ The `mu` tool uses CloudFormation stacks to manage all resources it creates.  Ad
 ![Architecture Diagram](https://github.com/stelligent/mu/wiki/img/ms-architecture-3.png)
 
 # Get Started!
-Install latest version to /usr/local/bin (or for additional options, see [installation options](https://github.com/stelligent/mu/wiki/Installation)):
+Install latest version to /usr/local/bin (or for additional options, see [wiki](https://github.com/stelligent/mu/wiki/Installation)):
 
 ```bash
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
