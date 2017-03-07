@@ -8,20 +8,18 @@ To address these challenges, this tool was created to simplify the declaration a
 
 The `mu` tool uses CloudFormation stacks to manage all resources it creates.  Additionally, `mu` will not create any databases or other AWS resources to support itself.  It will only create resources (via CloudFormation) necessary to run your microservices.  This means at any point you can stop using `mu` and continue to manage the AWS resources that it created via AWS tools such as the CLI or the console.
 
-![Architecture Diagram](wiki/img/ms-architecture-3.png)
+![Architecture Diagram](https://github.com/stelligent/mu/wiki/img/ms-architecture-3.png)
 
 # Get Started!
+Install latest version to /usr/local/bin (or for additional options, see [installation options](https://github.com/stelligent/mu/wiki/Installation)):
 
 ```bash
-# Install latest version to /usr/local/bin
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
-
-# ... or install v0.1.0 version to ~/bin
-curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | INSTALL_VERSION=0.1.0 INSTALL_DIR=~/bin sh
 ```
 
+
 # What's next?
-Check out the [examples](wiki/Examples) to see some common `mu.yml` configuration use cases:
+Check out the [examples](https://github.com/stelligent/mu/wiki/Examples) to see common `mu.yml` configuration use cases:
 
 * **[Basic](examples/basic)** - Simple website with continuous delivery pipeline deploying to dev and prod environments
 * **[Test Automation](examples/pipeline-newman)** - Example of automating end-to-end testing via [Newman](https://github.com/postmanlabs/newman)
@@ -31,11 +29,11 @@ Check out the [examples](wiki/Examples) to see some common `mu.yml` configuratio
 * **[VPC Target](examples/vpc-target)** - Targeting an existing VPC for an environment
 * **[Custom CloudFormation](examples/custom-cloudformation)** - Demonstration of adding custom AWS resources via CloudFormation
 
-Refer to the [wiki](wiki/Reference) for complete details on the configuration of `mu.yml` and the cli usage:
+Refer to the [wiki](https://github.com/stelligent/mu/wiki/Reference) for complete details on the configuration of `mu.yml` and the cli usage:
 
-* **[Environments](wiki/Environments)** - managing VPCs, ECS clusters, container instances and ALBs
-* **[Services](wiki/Services)** - managing ECS service configuration
-* **[Pipelines](wiki/Pipelines)** - managing continuous delivery pipelines
+* **[Environments](https://github.com/stelligent/mu/wiki/Environments)** - managing VPCs, ECS clusters, container instances and ALBs
+* **[Services](https://github.com/stelligent/mu/wiki/Services)** - managing ECS service configuration
+* **[Pipelines](https://github.com/stelligent/mu/wiki/Pipelines)** - managing continuous delivery pipelines
 
 # Contributing
 
