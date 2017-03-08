@@ -137,6 +137,16 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 
+	// delete stack if in rollback status
+	if stack != nil && stack.Status == cloudformation.StackStatusRollbackComplete {
+		log.Warningf("  Stack '%s' was in '%s' status, deleting...", stackName, stack.Status)
+		err := cfnMgr.DeleteStack(stackName)
+		if err != nil {
+			return err
+		}
+		stack = cfnMgr.AwaitFinalStatus(stackName)
+	}
+
 	// load the template
 	templateBodyBytes := new(bytes.Buffer)
 	templateBodyBytes.ReadFrom(templateBodyReader)

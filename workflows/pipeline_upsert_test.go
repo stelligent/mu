@@ -34,7 +34,7 @@ func TestPipelineBucket(t *testing.T) {
 
 	stackParams := stackManager.Calls[0].Arguments.Get(1).(map[string]string)
 	assert.NotNil(stackParams)
-	assert.Equal("mu-codepipeline", stackParams["BucketPrefix"])
+	assert.Equal("codepipeline", stackParams["BucketPrefix"])
 }
 
 func TestPipelineUpserter(t *testing.T) {

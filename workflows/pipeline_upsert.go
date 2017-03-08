@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strings"
+	"regexp"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -32,7 +33,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		}
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
-		bucketParams["BucketPrefix"] = "mu-codepipeline"
+		bucketParams["BucketPrefix"] = "codepipeline"
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
 		if err != nil {
 			return err
@@ -111,7 +112,9 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		}
 		buildspecBytes := new(bytes.Buffer)
 		buildspecBytes.ReadFrom(buildspec)
-		pipelineParams["DefaultBuildspec"] = buildspecBytes.String()
+		newlineRegexp := regexp.MustCompile(`\r?\n`)
+		buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
+		pipelineParams["DefaultBuildspec"] = buildspecString
 
 		version := workflow.pipelineConfig.MuVersion
 		if version == "" {

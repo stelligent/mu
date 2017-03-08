@@ -37,9 +37,31 @@ func NewContext() *Context {
 // InitializeConfigFromFile loads config from file
 func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	absMuFile, err := filepath.Abs(muFile)
-	if err != nil {
-		return err
+
+	// set the basedir
+	ctx.Config.Basedir = path.Dir(absMuFile)
+	log.Debugf("Setting basedir=%s", ctx.Config.Basedir)
+
+	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
+	log.Debugf("Setting repo name=%s", ctx.Config.Repo.Name)
+
+	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
+
+	gitRevision, err := findGitRevision(ctx.Config.Basedir)
+	if err == nil {
+		ctx.Config.Repo.Revision = gitRevision
+	} else {
+		log.Warningf("Unable to determine git revision: %s", err.Error())
 	}
+	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
+
+	gitSlug, err := findGitSlug()
+	if err == nil {
+		ctx.Config.Repo.Slug = gitSlug
+	} else {
+		log.Warningf("Unable to determine git slug: %s", err.Error())
+	}
+	log.Debugf("Setting repo slug=%s", ctx.Config.Repo.Slug)
 
 	// load yaml config
 	yamlFile, err := os.Open(absMuFile)
@@ -49,19 +71,6 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	defer func() {
 		yamlFile.Close()
 	}()
-
-	// set the basedir
-	ctx.Config.Basedir = path.Dir(absMuFile)
-	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
-	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
-	gitRevision, err := findGitRevision(absMuFile)
-	if err == nil {
-		ctx.Config.Repo.Revision = gitRevision
-	}
-	gitSlug, err := findGitSlug()
-	if err == nil {
-		ctx.Config.Repo.Slug = gitSlug
-	}
 
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }

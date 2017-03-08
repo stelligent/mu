@@ -201,6 +201,9 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.1
+          environment_variables:
+            plaintext:
+              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
@@ -209,7 +212,7 @@ Resources:
                 - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
                 - mu env show ${TestEnv} -f json > env.json
-                - mv buildspec-test.yml buildspec.yml || echo "${DefaultBuildspec}" > buildspec.yml
+                - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
               - '**/*'
@@ -247,6 +250,9 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.1
+          environment_variables:
+            plaintext:
+              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
@@ -255,7 +261,7 @@ Resources:
                 - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
                 - mu env show ${ProdEnv} -f json > env.json
-                - mv buildspec-prod.yml buildspec.yml || echo "${DefaultBuildspec}" > buildspec.yml
+                - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
               - '**/*'
