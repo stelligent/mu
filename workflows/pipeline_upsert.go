@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
@@ -102,6 +103,15 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if workflow.pipelineConfig.MuBaseurl != "" {
 			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
 		}
+
+		// get default buildspec
+		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)
+		if err != nil {
+			return err
+		}
+		buildspecBytes := new(bytes.Buffer)
+		buildspecBytes.ReadFrom(buildspec)
+		pipelineParams["DefaultBuildspec"] = buildspecBytes.String()
 
 		version := workflow.pipelineConfig.MuVersion
 		if version == "" {

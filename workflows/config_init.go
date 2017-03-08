@@ -1,8 +1,10 @@
 package workflows
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -28,14 +30,20 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			basedir = config.Basedir
 		}
 
+		// unless force is set, don't overwrite...make sure files don't exist
 		if forceOverwrite == false {
 			log.Debugf("Checking for existing config file at %s/mu.yml", basedir)
-			// don't overwrite...make sure file doesn't exist
 			if _, err := os.Stat(fmt.Sprintf("%s/mu.yml", basedir)); err == nil {
 				return fmt.Errorf("Config file already exists - '%s/mu.yml'.  Use --force to overwrite", basedir)
 			}
+
+			log.Debugf("Checking for existing buildspec file at %s/buildspec.yml", basedir)
+			if _, err := os.Stat(fmt.Sprintf("%s/buildspec.yml", basedir)); err == nil {
+				return fmt.Errorf("buildspec file already exists - '%s/buildspec.yml'.  Use --force to overwrite", basedir)
+			}
 		}
 
+		// write config
 		config.Service.Port = listenPort
 		config.Service.Name = config.Repo.Name
 		config.Service.PathPatterns = []string{"/*"}
@@ -55,6 +63,21 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		log.Noticef("Writing config to '%s/mu.yml'", basedir)
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/mu.yml", basedir), configBytes, 0600)
+		if err != nil {
+			return err
+		}
+
+		// write buildspec
+		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)
+		if err != nil {
+			return err
+		}
+		buildspecBytes := new(bytes.Buffer)
+		buildspecBytes.ReadFrom(buildspec)
+
+		log.Noticef("Writing builspec to '%s/buildspec.yml'", basedir)
+
+		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes.Bytes(), 0600)
 		if err != nil {
 			return err
 		}
