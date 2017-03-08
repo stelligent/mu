@@ -17,6 +17,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"github.com/briandowns/spinner"
 )
 
 // CreateStackName will create a name for a stack
@@ -241,6 +242,12 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 	params := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	}
+
+	// initialize Spinner
+	spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	spinner.Start()
+	defer spinner.Stop()
+
 	resp, err := cfnAPI.DescribeStacks(params)
 
 	if err == nil && resp != nil && len(resp.Stacks) == 1 {

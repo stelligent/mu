@@ -36,7 +36,7 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(environmentNam
 			if stack.Tags["environment"] != environmentName {
 				continue
 			}
-			log.Infof("   Undeploying service '%s' from environment '%s'", stack.Tags["service"], environmentName )
+			log.Infof("   Undeploying service '%s' from environment '%s'", stack.Tags["service"], environmentName)
 			stackWaiter.AwaitFinalStatus(stack.Name)
 		}
 

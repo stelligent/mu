@@ -1,5 +1,5 @@
-hash: 406b1e1867f81e9a56bc2350ca8b9131e18156899926fe10ed089bca8880a90d
-updated: 2017-03-07T16:26:20.60478348-08:00
+hash: f2f00c42cf0cfa225926e9ee5f96093eb52ca0f57075a31126315bf793e0c630
+updated: 2017-03-08T09:21:05.63735419-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
@@ -42,6 +42,8 @@ imports:
   - service/elbv2
   - service/elbv2/elbv2iface
   - service/sts
+- name: github.com/briandowns/spinner
+  version: 27dbbd67ecbfe572bbb1a79c2c6d62ad0cadde3c
 - name: github.com/docker/distribution
   version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
   subpackages:

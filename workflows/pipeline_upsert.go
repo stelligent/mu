@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
-	"strings"
 	"regexp"
+	"strings"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
