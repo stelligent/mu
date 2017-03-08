@@ -1,9 +1,11 @@
 package workflows
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"regexp"
 	"strings"
 )
 
@@ -23,11 +25,13 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		template, err := templates.NewTemplate("bucket.yml", nil)
+		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		overrides := common.GetStackOverrides(bucketStackName)
+		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
 			return err
 		}
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
@@ -46,9 +50,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 	return func() error {
 		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
+		overrides := common.GetStackOverrides(pipelineStackName)
 
-		log.Noticef("Upserting Pipeline for service'%s' ...", workflow.serviceName)
-		template, err := templates.NewTemplate("pipeline.yml", nil)
+		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
+		template, err := templates.NewTemplate("pipeline.yml", nil, overrides)
 		if err != nil {
 			return err
 		}
@@ -77,9 +82,39 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["BuildImage"] = workflow.pipelineConfig.Build.Image
 		}
 
+		if workflow.pipelineConfig.Acceptance.Type != "" {
+			pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
+		}
+		if workflow.pipelineConfig.Acceptance.ComputeType != "" {
+			pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
+		}
+
+		if workflow.pipelineConfig.Acceptance.Image != "" {
+			pipelineParams["TestImage"] = workflow.pipelineConfig.Acceptance.Image
+		}
+
+		if workflow.pipelineConfig.Acceptance.Environment != "" {
+			pipelineParams["TestEnv"] = workflow.pipelineConfig.Acceptance.Environment
+		}
+
+		if workflow.pipelineConfig.Production.Environment != "" {
+			pipelineParams["ProdEnv"] = workflow.pipelineConfig.Production.Environment
+		}
+
 		if workflow.pipelineConfig.MuBaseurl != "" {
 			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
 		}
+
+		// get default buildspec
+		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)
+		if err != nil {
+			return err
+		}
+		buildspecBytes := new(bytes.Buffer)
+		buildspecBytes.ReadFrom(buildspec)
+		newlineRegexp := regexp.MustCompile(`\r?\n`)
+		buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
+		pipelineParams["DefaultBuildspec"] = buildspecString
 
 		version := workflow.pipelineConfig.MuVersion
 		if version == "" {

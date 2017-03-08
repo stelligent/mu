@@ -1,0 +1,17 @@
+---
+
+environments:
+  - name: dev
+    cluster:
+      maxSize: 2
+  - name: production
+    cluster:
+      maxSize: 5
+
+service:
+  port: 80
+  pathPatterns:
+    - /*
+  pipeline:
+    source:
+      repo: cplee/aftp-mu

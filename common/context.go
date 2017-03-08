@@ -37,9 +37,31 @@ func NewContext() *Context {
 // InitializeConfigFromFile loads config from file
 func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	absMuFile, err := filepath.Abs(muFile)
-	if err != nil {
-		return err
+
+	// set the basedir
+	ctx.Config.Basedir = path.Dir(absMuFile)
+	log.Debugf("Setting basedir=%s", ctx.Config.Basedir)
+
+	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
+	log.Debugf("Setting repo name=%s", ctx.Config.Repo.Name)
+
+	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
+
+	gitRevision, err := findGitRevision(ctx.Config.Basedir)
+	if err == nil {
+		ctx.Config.Repo.Revision = gitRevision
+	} else {
+		log.Warningf("Unable to determine git revision: %s", err.Error())
 	}
+	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
+
+	gitSlug, err := findGitSlug()
+	if err == nil {
+		ctx.Config.Repo.Slug = gitSlug
+	} else {
+		log.Warningf("Unable to determine git slug: %s", err.Error())
+	}
+	log.Debugf("Setting repo slug=%s", ctx.Config.Repo.Slug)
 
 	// load yaml config
 	yamlFile, err := os.Open(absMuFile)
@@ -49,15 +71,6 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	defer func() {
 		yamlFile.Close()
 	}()
-
-	// set the basedir
-	ctx.Config.Basedir = path.Dir(absMuFile)
-	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
-	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
-	gitRevision, err := findGitRevision(absMuFile)
-	if err == nil {
-		ctx.Config.Repo.Revision = gitRevision
-	}
 
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }
@@ -70,11 +83,15 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	// register the stack overrides
+	registerStackOverrides(ctx.Config.Templates)
+
 	return nil
 }
 
 // InitializeContext loads manager objects
-func (ctx *Context) InitializeContext(profile string, region string) error {
+func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 	if region != "" {
 		sessOptions.Config = aws.Config{Region: aws.String(region)}
@@ -89,7 +106,7 @@ func (ctx *Context) InitializeContext(profile string, region string) error {
 	}
 
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess)
+	ctx.StackManager, err = newStackManager(sess, dryrun)
 	if err != nil {
 		return err
 	}

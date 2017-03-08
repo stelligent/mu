@@ -1,8 +1,8 @@
-hash: fdf6aec9a3747b3ba7145af44d2a840e6bb2cce2ece6a8554b7364c436d17e0e
-updated: 2017-01-31T11:14:43.508254901-08:00
+hash: f2f00c42cf0cfa225926e9ee5f96093eb52ca0f57075a31126315bf793e0c630
+updated: 2017-03-08T09:21:05.63735419-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
+  version: 00fb2125993965df739fa3398b03bef3eb2e198f
   subpackages:
   - aws
   - aws/awserr
@@ -31,20 +31,26 @@ imports:
   - private/waiter
   - service/cloudformation
   - service/cloudformation/cloudformationiface
+  - service/codepipeline
+  - service/codepipeline/codepipelineiface
   - service/ec2
   - service/ec2/ec2iface
   - service/ecr
   - service/ecr/ecriface
   - service/ecs
   - service/ecs/ecsiface
+  - service/elbv2
+  - service/elbv2/elbv2iface
   - service/sts
+- name: github.com/briandowns/spinner
+  version: 27dbbd67ecbfe572bbb1a79c2c6d62ad0cadde3c
 - name: github.com/docker/distribution
   version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
   subpackages:
   - digestset
   - reference
 - name: github.com/docker/docker
-  version: 2527cfcc49744f56a8d31c420a3ca4657f9fec2e
+  version: 092cba3727bb9b4a2f0e922cd6c0f93ea270e363
   subpackages:
   - api/types
   - api/types/blkiodev
@@ -112,6 +118,8 @@ imports:
   - diffmatchpatch
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
+- name: github.com/tcnksm/go-gitconfig
+  version: d154598bacbf4501c095a309753c5d4af66caa81
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: golang.org/x/crypto

@@ -17,6 +17,7 @@ func NewApp() *cli.App {
 	app.EnableBashCompletion = true
 
 	app.Commands = []cli.Command{
+		*newInitCommand(context),
 		*newEnvironmentsCommand(context),
 		*newServicesCommand(context),
 		*newPipelinesCommand(context),
@@ -34,7 +35,7 @@ func NewApp() *cli.App {
 		}
 
 		// initialize context
-		err := context.InitializeContext(c.String("profile"), c.String("region"))
+		err := context.InitializeContext(c.String("profile"), c.String("region"), c.Bool("dryrun"))
 		if err != nil {
 			return err
 		}
@@ -45,8 +46,12 @@ func NewApp() *cli.App {
 
 		err = context.InitializeConfigFromFile(c.String("config"))
 		if err != nil {
-			log.Warningf("Unable to load mu config: %v", err)
+			// ignore errors for init command
+			if c.Args().First() != "init" {
+				log.Warningf("Unable to load mu config: %v", err)
+			}
 		}
+
 		return nil
 
 	}
@@ -72,6 +77,10 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "verbose, V",
 			Usage: "increase level of log verbosity",
+		},
+		cli.BoolFlag{
+			Name:  "dryrun, d",
+			Usage: "generate the cloudformation templates without upserting stacks",
 		},
 	}
 

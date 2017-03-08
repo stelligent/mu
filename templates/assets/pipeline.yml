@@ -18,7 +18,7 @@ Parameters:
     Description: Secret. It might look something like 9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo. Go to https://github.com/settings/tokens
   BuildType:
     Type: String
-    Default: "linuxContainer"
+    Default: "LINUX_CONTAINER"
     Description: The build container type to use for building the app
   BuildComputeType:
     Type: String
@@ -28,9 +28,21 @@ Parameters:
     Type: String
     Default: "aws/codebuild/ubuntu-base:14.04"
     Description: The build image to use for building the app
+  TestType:
+    Type: String
+    Default: "LINUX_CONTAINER"
+    Description: The build container type to use for testing the app
+  TestComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type to use for testing the app
+  TestImage:
+    Type: String
+    Default: "aws/codebuild/ubuntu-base:14.04"
+    Description: The build image to use for testing the app
   MuType:
     Type: String
-    Default: "linuxContainer"
+    Default: "LINUX_CONTAINER"
     Description: The build container type to use for mu commands
   MuComputeType:
     Type: String
@@ -51,6 +63,9 @@ Parameters:
     Type: String
     Default: "mu-linux-amd64"
     Description: The name of the mu file to download to install
+  DefaultBuildspec:
+    Type: String
+    Description: The default buildspec to use
   MuFile:
     Type: String
     Description: Path to mu.yml, relative to GitHubRepo
@@ -138,7 +153,7 @@ Resources:
         Image: !Sub ${BuildImage}
       Source:
         Type: CODEPIPELINE
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 30
   CodeBuildImage:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
@@ -166,15 +181,14 @@ Resources:
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} svc push -t latest
           artifacts:
-            type: zip
             files:
               - ${MuFile}
-      TimeoutInMinutes: 10
-  DeployTest:
+      TimeoutInMinutes: 30
+  DeployAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-test
+      Name: !Sub ${AWS::StackName}-deploy-acceptance
       Description: Deploy image to test environment
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
@@ -187,22 +201,43 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.1
+          environment_variables:
+            plaintext:
+              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${TestEnv} -t latest
+                - mu env show ${TestEnv} -f json > env.json
+                - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
-            type: zip
             files:
-              - ${MuFile}
-      TimeoutInMinutes: 10
-  DeployProd:
+              - '**/*'
+      TimeoutInMinutes: 30
+  TestAcceptance:
     Type: AWS::CodeBuild::Project
     DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-prod
+      Name: !Sub ${AWS::StackName}-test-acceptance
+      Description: Test in the acceptance environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref TestType
+        ComputeType: !Ref TestComputeType
+        Image: !Sub ${TestImage}
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 30
+  DeployProduction:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-deploy-production
       Description: Deploy image to prod environment
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Artifacts:
@@ -215,17 +250,38 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.1
+          environment_variables:
+            plaintext:
+              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
+                - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} svc deploy ${ProdEnv} -t latest
+                - mu env show ${ProdEnv} -f json > env.json
+                - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
-            type: zip
             files:
-              - ${MuFile}
-      TimeoutInMinutes: 10
+              - '**/*'
+      TimeoutInMinutes: 30
+  TestProduction:
+    Type: AWS::CodeBuild::Project
+    DependsOn: CodeBuildRole
+    Properties:
+      Name: !Sub ${AWS::StackName}-test-production
+      Description: Test in the production environment
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: !Ref TestType
+        ComputeType: !Ref TestComputeType
+        Image: !Sub ${TestImage}
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 30
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
@@ -285,12 +341,25 @@ Resources:
             Version: '1'
             Provider: CodeBuild
           InputArtifacts:
-          - Name: ArtifactOutput
+          - Name: SourceOutput
           OutputArtifacts:
-          - Name: AcceptanceOutput
+          - Name: DeployAcceptanceOutput
           Configuration:
-            ProjectName: !Ref DeployTest
+            ProjectName: !Ref DeployAcceptance
           RunOrder: 1
+        - Name: Test
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: DeployAcceptanceOutput
+          OutputArtifacts:
+          - Name: TestAcceptanceOutput
+          Configuration:
+            ProjectName: !Ref TestAcceptance
+          RunOrder: 2
       - Name: Production
         Actions:
         - Name: Approve
@@ -309,12 +378,25 @@ Resources:
             Version: '1'
             Provider: CodeBuild
           InputArtifacts:
-          - Name: ArtifactOutput
+          - Name: SourceOutput
           OutputArtifacts:
-          - Name: ProductionOutput
+          - Name: DeployProductionOutput
           Configuration:
-            ProjectName: !Ref DeployProd
+            ProjectName: !Ref DeployProduction
           RunOrder: 2
+        - Name: Test
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: '1'
+            Provider: CodeBuild
+          InputArtifacts:
+          - Name: DeployProductionOutput
+          OutputArtifacts:
+          - Name: TestProductionOutput
+          Configuration:
+            ProjectName: !Ref TestProduction
+          RunOrder: 3
       ArtifactStore:
         Type: S3
         Location: !ImportValue mu-bucket-codepipeline

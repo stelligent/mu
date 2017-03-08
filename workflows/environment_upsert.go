@@ -10,6 +10,7 @@ import (
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+var bastionImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
@@ -19,7 +20,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -38,20 +39,21 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
 		var template io.Reader
 		var err error
 
-		var stackType common.StackType
+		var vpcStackName string
 		if environment.VpcTarget.VpcID == "" {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
-			stackType = common.StackTypeVpc
+			vpcStackName = common.CreateStackName(common.StackTypeVpc, environment.Name)
+			overrides := common.GetStackOverrides(vpcStackName)
 
 			// no target VPC, we need to create/update the VPC stack
-			template, err = templates.NewTemplate("vpc.yml", environment)
+			template, err = templates.NewTemplate("vpc.yml", environment, overrides)
 			if err != nil {
 				return err
 			}
@@ -62,13 +64,21 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
 			}
+			if environment.Cluster.KeyName != "" {
+				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(bastionImagePattern)
+				if err != nil {
+					return err
+				}
+			}
 
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
-			stackType = common.StackTypeTarget
+			vpcStackName = common.CreateStackName(common.StackTypeTarget, environment.Name)
+			overrides := common.GetStackOverrides(vpcStackName)
 
-			template, err = templates.NewTemplate("vpc-target.yml", environment)
+			template, err = templates.NewTemplate("vpc-target.yml", environment, overrides)
 			if err != nil {
 				return err
 			}
@@ -80,7 +90,6 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		vpcStackName := common.CreateStackName(stackType, environment.Name)
 		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
 		if err != nil {
 			return err
@@ -103,7 +112,8 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
 
 		log.Noticef("Upserting ECS environment '%s' ...", environment.Name)
-		template, err := templates.NewTemplate("cluster.yml", environment)
+		overrides := common.GetStackOverrides(envStackName)
+		template, err := templates.NewTemplate("cluster.yml", environment, overrides)
 		if err != nil {
 			return err
 		}
@@ -112,6 +122,9 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
+		}
+		if environment.Cluster.InstanceType != "" {
+			stackParams["InstanceType"] = environment.Cluster.InstanceType
 		}
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID

@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -11,16 +12,49 @@ import (
 )
 
 // NewEnvironmentViewer create a new workflow for showing an environment
-func NewEnvironmentViewer(ctx *common.Context, environmentName string, writer io.Writer) Executor {
+func NewEnvironmentViewer(ctx *common.Context, format string, environmentName string, writer io.Writer) Executor {
 
 	workflow := new(environmentWorkflow)
 
+	var environmentViewer func() error
+	if format == "json" {
+		environmentViewer = workflow.environmentViewerJSON(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+	} else {
+		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+	}
+
 	return newWorkflow(
-		workflow.environmentViewer(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer),
+		environmentViewer,
 	)
 }
 
-func (workflow *environmentWorkflow) environmentViewer(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+type jsonOutput struct {
+	Values [1]struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	} `json:"values"`
+}
+
+func (workflow *environmentWorkflow) environmentViewerJSON(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+	return func() error {
+		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		clusterStack, err := stackGetter.GetStack(clusterStackName)
+		if err != nil {
+			return err
+		}
+
+		output := jsonOutput{}
+		output.Values[0].Key = "BASE_URL"
+		output.Values[0].Value = clusterStack.Outputs["BaseUrl"]
+
+		enc := json.NewEncoder(writer)
+		enc.Encode(&output)
+
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	bold := color.New(color.Bold).SprintFunc()
 	return func() error {
 		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
@@ -38,9 +72,10 @@ func (workflow *environmentWorkflow) environmentViewer(environmentName string, s
 			fmt.Fprintf(writer, "%s:\tunmanaged\n", bold("VPC Stack"))
 		} else {
 			fmt.Fprintf(writer, "%s:\t%s (%s)\n", bold("VPC Stack"), vpcStack.Name, colorizeStackStatus(vpcStack.Status))
+			fmt.Fprintf(writer, "%s:\t%s\n", bold("Bastion Host"), vpcStack.Outputs["BastionHost"])
 		}
 
-		fmt.Fprintf(writer, "%s:\t\t%s\n", bold("Base URL"), clusterStack.Outputs["BaseUrl"])
+		fmt.Fprintf(writer, "%s:\t%s\n", bold("Base URL"), clusterStack.Outputs["BaseUrl"])
 
 		fmt.Fprintf(writer, "%s:\n", bold("Container Instances"))
 		fmt.Fprint(writer, "\n")

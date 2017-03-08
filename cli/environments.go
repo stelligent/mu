@@ -62,8 +62,15 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "show",
-		Usage:     "show environment details",
+		Name:  "show",
+		Usage: "show environment details",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "format, f",
+				Usage: "output format, either 'json' or 'cli' (default: cli)",
+				Value: "cli",
+			},
+		},
 		ArgsUsage: "<environment>",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
@@ -71,7 +78,7 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				cli.ShowCommandHelp(c, "show")
 				return errors.New("environment must be provided")
 			}
-			workflow := workflows.NewEnvironmentViewer(ctx, environmentName, os.Stdout)
+			workflow := workflows.NewEnvironmentViewer(ctx, c.String("format"), environmentName, os.Stdout)
 			return workflow()
 		},
 	}

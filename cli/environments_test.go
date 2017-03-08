@@ -73,6 +73,8 @@ func TestNewEnvironmentsShowCommand(t *testing.T) {
 	assert.NotNil(command)
 	assert.Equal("show", command.Name, "Name should match")
 	assert.Equal("<environment>", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(1, len(command.Flags), "Flag len should match")
+	assert.Equal("format, f", command.Flags[0].GetName(), "Flag should match")
 	assert.NotNil(command.Action)
 }
 func TestNewEnvironmentsTerminateCommand(t *testing.T) {

@@ -101,14 +101,16 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	workflow.environment = &common.Environment{
 		Name: "foo",
 	}
+	workflow.environment.Cluster.KeyName = "mykey"
 
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
@@ -116,6 +118,32 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+	stackManager.AssertNumberOfCalls(t, "FindLatestImageID", 1)
+}
+
+func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+
+	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
+	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+	stackManager.AssertNumberOfCalls(t, "FindLatestImageID", 0)
 }
 
 func TestEnvironmentVpcUpserter_Unmanaged(t *testing.T) {
@@ -143,7 +171,7 @@ environments:
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
-	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager)()
+	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-target-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])

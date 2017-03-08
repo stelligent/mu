@@ -1,0 +1,15 @@
+---
+
+environments:
+
+  # This env with have an ELB with http://example-default.casey.elasticoperations.com
+  - name: example-default
+    loadbalancer:
+      hostedzone: casey.elasticoperations.com
+
+  # This env with have an ELB with http://foo.casey.elasticoperations.com
+  - name: example-override
+    loadbalancer:
+      hostedzone: casey.elasticoperations.com
+      name: foo
+

@@ -88,29 +88,92 @@ Parameters:
     AllowedValues:
       - true
       - false
+  BastionImageId:
+    Description: Bastion AMI to launch
+    Type: String
+    Default: ''
+  BastionInstanceType:
+    Description: Bastion Instance Type to launch
+    Type: String
+    Default: 't2.micro'
+  BastionKeyName:
+    Description: SSH Key to add to bastion
+    Type: String
+    Default: ''
 Conditions:
   HasElbSubnetAZ1:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ1CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ1CidrBlock
+        - ''
   HasElbSubnetAZ2:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ2CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ2CidrBlock
+        - ''
   HasElbSubnetAZ3:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbSubnetAZ3CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref ElbSubnetAZ3CidrBlock
+        - ''
   HasEcsSubnetAZ1:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ1CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ1CidrBlock
+        - ''
   HasEcsSubnetAZ2:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ2CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ2CidrBlock
+        - ''
   HasEcsSubnetAZ3:
     "Fn::Not":
-      - "Fn::Equals": [!Ref EcsSubnetAZ3CidrBlock, '']
+      - "Fn::Equals":
+        - !Ref EcsSubnetAZ3CidrBlock
+        - ''
   IsPublicElb:
     "Fn::Not":
-      - "Fn::Equals": [!Ref ElbInternal, 'true']
+      - "Fn::Equals":
+        - !Ref ElbInternal
+        - 'true'
+  HasBastion:
+    "Fn::And":
+      - "Fn::Not":
+        - "Fn::Equals":
+          - !Ref BastionImageId
+          - ''
+      - "Fn::Not":
+        - "Fn::Equals":
+          - !Ref BastionKeyName
+          - ''
 Resources:
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Condition: HasBastion
+    Properties:
+      ImageId: !Ref BastionImageId
+      InstanceType: !Ref BastionInstanceType
+      KeyName: !Ref BastionKeyName
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: 0
+        GroupSet:
+        - !Ref BastionSG
+        SubnetId: !Ref NatSubnetAZ1
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-bastion
+  BastionSG:
+    Type: AWS::EC2::SecurityGroup
+    Condition: HasBastion
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Bastion Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -152,7 +215,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref NatSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Public
@@ -225,7 +291,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -238,7 +307,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ2CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 1, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -251,7 +323,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref EcsSubnetAZ3CidrBlock
       MapPublicIpOnLaunch: false
-      AvailabilityZone: !Select [ 2, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: Private
@@ -362,7 +437,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 0, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -375,7 +453,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ2CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 1, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -388,7 +469,10 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: !Ref ElbSubnetAZ3CidrBlock
       MapPublicIpOnLaunch: !If [ IsPublicElb, true, false ]
-      AvailabilityZone: !Select [ 2, !GetAZs '']
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - !GetAZs ''
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -511,6 +595,10 @@ Outputs:
     Value: !Ref VPC
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
+  BastionHost:
+    Description: IP of the bastion host
+    Value: !GetAtt BastionHost.PublicIp
+    Condition: HasBastion
   ElbSubnetIds:
     Description: The elb subnetids
     Value:

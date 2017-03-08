@@ -74,6 +74,7 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 					byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
 					if err == nil {
 						token = strings.TrimSpace(string(byteToken))
+						fmt.Println("")
 					}
 				}
 

@@ -1,0 +1,15 @@
+version: 0.1
+
+## Use newman to run a postman collection.  The env.json file is created magically by the pipeline with BASE_URL defined
+
+phases:
+  install:
+    commands:
+      - npm install newman --global
+  build:
+    commands:
+      - newman run -e env.json -r html,json,junit,cli collection.json
+
+artifacts:
+  files:
+    - newman/*

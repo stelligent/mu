@@ -2,10 +2,13 @@ package common
 
 import (
 	"errors"
+	"fmt"
+	"github.com/tcnksm/go-gitconfig"
 	"gopkg.in/src-d/go-git.v3"
 	"gopkg.in/src-d/go-git.v3/utils/fs"
 	"os"
 	"path"
+	"regexp"
 )
 
 func findGitRevision(file string) (string, error) {
@@ -24,6 +27,21 @@ func findGitRevision(file string) (string, error) {
 		return "", err
 	}
 	return string(hash.String()[:7]), nil
+}
+func findGitSlug() (string, error) {
+	url, err := gitconfig.OriginURL()
+	if err != nil {
+		return "", err
+	}
+
+	httpRegex := regexp.MustCompile("^http(s?)://.*github.com.*/(.+)/(.+).git$")
+	sshRegex := regexp.MustCompile("github.com:(.+)/(.+).git$")
+	if matches := httpRegex.FindStringSubmatch(url); matches != nil {
+		return fmt.Sprintf("%s/%s", matches[2], matches[3]), nil
+	} else if matches := sshRegex.FindStringSubmatch(url); matches != nil {
+		return fmt.Sprintf("%s/%s", matches[1], matches[2]), nil
+	}
+	return url, nil
 }
 
 func findGitDirectory(fromFile string) (string, error) {
