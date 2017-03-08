@@ -17,6 +17,8 @@ Install latest version to /usr/local/bin (or for additional options, see [wiki](
 curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 ```
 
+Assuming your project already has a Dockerfile, you can initialize your mu.yml file with: `mu init`.  More details available in the [quickstart](https://github.com/stelligent/mu/wiki/Quickstart).
+
 
 # What's next?
 Check out the [examples](examples) to see common `mu.yml` configuration use cases:

@@ -18,82 +18,83 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
-	Environments []Environment
-	Service      Service
-	Basedir      string
+	Environments []Environment `yaml:"environments,omitempty"`
+	Service      Service       `yaml:"service,omitempty"`
+	Basedir      string        `yaml:"-"`
 	Repo         struct {
 		Name     string
+		Slug     string
 		Revision string
-	}
-	Templates map[string]interface{}
+	} `yaml:"-"`
+	Templates map[string]interface{} `yaml:"templates,omitempty"`
 }
 
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string
+	Name         string `yaml:"name,omitempty"`
 	Loadbalancer struct {
-		HostedZone  string `yaml:"hostedzone"`
-		Name        string `yaml:"name"`
-		Certificate string `yaml:"certificate"`
-		Internal    bool   `yaml:"internal"`
-	}
+		HostedZone  string `yaml:"hostedzone,omitempty"`
+		Name        string `yaml:"name,omitempty"`
+		Certificate string `yaml:"certificate,omitempty"`
+		Internal    bool   `yaml:"internal,omitempty"`
+	} `yaml:"loadbalancer,omitempty"`
 	Cluster struct {
-		InstanceType      string `yaml:"instanceType"`
-		ImageID           string `yaml:"imageId"`
-		InstanceTenancy   string `yaml:"instanceTenancy"`
-		DesiredCapacity   int    `yaml:"desiredCapacity"`
-		MaxSize           int    `yaml:"maxSize"`
-		KeyName           string `yaml:"keyName"`
-		SSHAllow          string `yaml:"sshAllow"`
-		ScaleOutThreshold int    `yaml:"scaleOutThreshold"`
-		ScaleInThreshold  int    `yaml:"scaleInThreshold"`
-		HTTPProxy         string `yaml:"httpProxy"`
-	}
+		InstanceType      string `yaml:"instanceType,omitempty"`
+		ImageID           string `yaml:"imageId,omitempty"`
+		InstanceTenancy   string `yaml:"instanceTenancy,omitempty"`
+		DesiredCapacity   int    `yaml:"desiredCapacity,omitempty"`
+		MaxSize           int    `yaml:"maxSize,omitempty"`
+		KeyName           string `yaml:"keyName,omitempty"`
+		SSHAllow          string `yaml:"sshAllow,omitempty"`
+		ScaleOutThreshold int    `yaml:"scaleOutThreshold,omitempty"`
+		ScaleInThreshold  int    `yaml:"scaleInThreshold,omitempty"`
+		HTTPProxy         string `yaml:"httpProxy,omitempty"`
+	} `yaml:"cluster,omitempty"`
 	VpcTarget struct {
-		VpcID        string   `yaml:"vpcId"`
-		EcsSubnetIds []string `yaml:"ecsSubnetIds"`
-		ElbSubnetIds []string `yaml:"elbSubnetIds"`
+		VpcID        string   `yaml:"vpcId,omitempty"`
+		EcsSubnetIds []string `yaml:"ecsSubnetIds,omitempty"`
+		ElbSubnetIds []string `yaml:"elbSubnetIds,omitempty"`
 	} `yaml:"vpcTarget,omitempty"`
 }
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            string                 `yaml:"name"`
-	DesiredCount    int                    `yaml:"desiredCount"`
-	Dockerfile      string                 `yaml:"dockerfile"`
-	ImageRepository string                 `yaml:"imageRepository"`
-	Port            int                    `yaml:"port"`
-	HealthEndpoint  string                 `yaml:"healthEndpoint"`
-	CPU             int                    `yaml:"cpu"`
-	Memory          int                    `yaml:"memory"`
-	Environment     map[string]interface{} `yaml:"environment"`
-	PathPatterns    []string               `yaml:"pathPatterns"`
-	Priority        int                    `yaml:"priority"`
-	Pipeline        Pipeline
+	Name            string                 `yaml:"name,omitempty"`
+	DesiredCount    int                    `yaml:"desiredCount,omitempty"`
+	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
+	ImageRepository string                 `yaml:"imageRepository,omitempty"`
+	Port            int                    `yaml:"port,omitempty"`
+	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
+	CPU             int                    `yaml:"cpu,omitempty"`
+	Memory          int                    `yaml:"memory,omitempty"`
+	Environment     map[string]interface{} `yaml:"environment,omitempty"`
+	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
+	Priority        int                    `yaml:"priority,omitempty"`
+	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
 }
 
 // Pipeline definition
 type Pipeline struct {
 	Source struct {
-		Repo   string `yaml:"repo"`
-		Branch string `yaml:"branch"`
-	}
+		Repo   string `yaml:"repo,omitempty"`
+		Branch string `yaml:"branch,omitempty"`
+	} `yaml:"source,omitempty"`
 	Build struct {
-		Type        string `yaml:"type"`
-		ComputeType string `yaml:"computeType"`
-		Image       string `yaml:"image"`
-	}
+		Type        string `yaml:"type,omitempty"`
+		ComputeType string `yaml:"computeType,omitempty"`
+		Image       string `yaml:"image,omitempty"`
+	} `yaml:"build,omitempty"`
 	Acceptance struct {
-		Environment string `yaml:"environment"`
-		Type        string `yaml:"type"`
-		ComputeType string `yaml:"computeType"`
-		Image       string `yaml:"image"`
-	}
+		Environment string `yaml:"environment,omitempty"`
+		Type        string `yaml:"type,omitempty"`
+		ComputeType string `yaml:"computeType,omitempty"`
+		Image       string `yaml:"image,omitempty"`
+	} `yaml:"acceptance,omitempty"`
 	Production struct {
-		Environment string `yaml:"environment"`
-	}
-	MuBaseurl string `yaml:"muBaseurl"`
-	MuVersion string `yaml:"muVersion"`
+		Environment string `yaml:"environment,omitempty"`
+	} `yaml:"production,omitempty"`
+	MuBaseurl string `yaml:"muBaseurl,omitempty"`
+	MuVersion string `yaml:"muVersion,omitempty"`
 }
 
 // Stack summary

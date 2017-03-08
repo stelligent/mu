@@ -58,6 +58,10 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	if err == nil {
 		ctx.Config.Repo.Revision = gitRevision
 	}
+	gitSlug, err := findGitSlug()
+	if err == nil {
+		ctx.Config.Repo.Slug = gitSlug
+	}
 
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }

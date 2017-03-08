@@ -17,6 +17,7 @@ func NewApp() *cli.App {
 	app.EnableBashCompletion = true
 
 	app.Commands = []cli.Command{
+		*newInitCommand(context),
 		*newEnvironmentsCommand(context),
 		*newServicesCommand(context),
 		*newPipelinesCommand(context),
@@ -45,8 +46,12 @@ func NewApp() *cli.App {
 
 		err = context.InitializeConfigFromFile(c.String("config"))
 		if err != nil {
-			log.Warningf("Unable to load mu config: %v", err)
+			// ignore errors for init command
+			if c.Args().First() != "init" {
+				log.Warningf("Unable to load mu config: %v", err)
+			}
 		}
+
 		return nil
 
 	}
