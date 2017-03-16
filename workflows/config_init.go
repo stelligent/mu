@@ -30,6 +30,10 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			basedir = config.Basedir
 		}
 
+		if config.Repo.Slug == "" {
+			return fmt.Errorf("Unable to determine git repo to use for the pipeline.  Have you initialized your repo and pushed yet? %s", config.Repo.Slug)
+		}
+
 		// unless force is set, don't overwrite...make sure files don't exist
 		if forceOverwrite == false {
 			log.Debugf("Checking for existing config file at %s/mu.yml", basedir)

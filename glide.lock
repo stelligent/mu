@@ -1,5 +1,5 @@
-hash: f2f00c42cf0cfa225926e9ee5f96093eb52ca0f57075a31126315bf793e0c630
-updated: 2017-03-08T09:21:05.63735419-08:00
+hash: 437141aaccbbd467b2db0b78c0e9395abdebc830afd9ca9d2ae9ef895946a21e
+updated: 2017-03-16T14:24:28.417493833-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
@@ -43,7 +43,7 @@ imports:
   - service/elbv2/elbv2iface
   - service/sts
 - name: github.com/briandowns/spinner
-  version: 27dbbd67ecbfe572bbb1a79c2c6d62ad0cadde3c
+  version: ec599f41a86d9a71c359e224bd71a2df3e909a3d
 - name: github.com/docker/distribution
   version: fb0bebc4b64e3881cc52a2478d749845ed76d2a8
   subpackages:
@@ -112,12 +112,12 @@ imports:
   - libcontainer/user
 - name: github.com/pkg/errors
   version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
-- name: github.com/sergi/go-diff
-  version: 24e2351369ec4949b2ed0dc5c477afdd4c4034e8
-  subpackages:
-  - diffmatchpatch
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
+- name: github.com/speedata/gogit
+  version: 66815cd3f6b58ee192b0c6388295979b872d268f
+- name: github.com/speedata/mmap-go
+  version: 6c75090c55983bef2e129e173681b20d24871ef8
 - name: github.com/tcnksm/go-gitconfig
   version: d154598bacbf4501c095a309753c5d4af66caa81
 - name: github.com/urfave/cli
@@ -125,9 +125,6 @@ imports:
 - name: golang.org/x/crypto
   version: dc137beb6cce2043eb6b5f223ab8bf51c32459f4
   subpackages:
-  - curve25519
-  - ed25519
-  - ed25519/internal/edwards25519
   - ssh
   - ssh/terminal
 - name: golang.org/x/net
@@ -141,25 +138,6 @@ imports:
   subpackages:
   - unix
   - windows
-- name: gopkg.in/sourcegraph/go-vcsurl.v1
-  version: 6b12603ea6fd7f84b8c90118face09df39ea10c6
-- name: gopkg.in/src-d/go-git.v3
-  version: 02c228585e543413479ea36d3a2bbc80a070eb93
-  subpackages:
-  - clients
-  - clients/common
-  - clients/http
-  - clients/ssh
-  - core
-  - diff
-  - formats/idxfile
-  - formats/packfile
-  - formats/pktline
-  - storage/memory
-  - storage/seekable
-  - storage/seekable/internal/gitdir
-  - storage/seekable/internal/index
-  - utils/fs
 - name: gopkg.in/yaml.v2
   version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
 testImports:

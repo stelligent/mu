@@ -9,6 +9,7 @@ environments:
       maxSize: 5
 
 service:
+  name: basic-example
   port: 80
   pathPatterns:
     - /*

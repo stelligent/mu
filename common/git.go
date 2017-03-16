@@ -3,9 +3,8 @@ package common
 import (
 	"errors"
 	"fmt"
+	"github.com/speedata/gogit"
 	"github.com/tcnksm/go-gitconfig"
-	"gopkg.in/src-d/go-git.v3"
-	"gopkg.in/src-d/go-git.v3/utils/fs"
 	"os"
 	"path"
 	"regexp"
@@ -17,16 +16,20 @@ func findGitRevision(file string) (string, error) {
 		return "", err
 	}
 	log.Debugf("Loading revision from git directory '%s'", gitDir)
-	repo, err := git.NewRepositoryFromFS(fs.NewOS(), gitDir)
-	if err != nil {
-		return "", err
-	}
 
-	hash, err := repo.Head("")
+	repository, err := gogit.OpenRepository(gitDir)
 	if err != nil {
 		return "", err
 	}
-	return string(hash.String()[:7]), nil
+	ref, err := repository.LookupReference("HEAD")
+	if err != nil {
+		return "", err
+	}
+	ci, err := repository.LookupCommit(ref.Oid)
+	if err != nil {
+		return "", err
+	}
+	return string(ci.Id().String()[:7]), nil
 }
 func findGitSlug() (string, error) {
 	url, err := gitconfig.OriginURL()
