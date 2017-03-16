@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
@@ -46,4 +47,27 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeli
 	}
 
 	return output.StageStates, nil
+}
+
+func getRevisionFromCodePipeline(pipelineName string) (string, error) {
+	sess := session.Must(session.NewSession())
+	service := codepipeline.New(sess)
+
+	params := &codepipeline.GetPipelineStateInput{
+		Name: aws.String(pipelineName),
+	}
+	response, err := service.GetPipelineState(params)
+
+	if err != nil {
+		return "", err
+	}
+	for _, stageState := range response.StageStates {
+		for _, actionState := range stageState.ActionStates {
+			if *actionState.ActionName == "Source" {
+				return *actionState.CurrentRevision.RevisionId, nil
+			}
+		}
+	}
+
+	return "", errors.New("Can not locate revision from CodePipeline: " + pipelineName)
 }

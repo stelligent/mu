@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -47,11 +48,32 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 
 	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
 
+	// Get the git revision from the .git folder
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
 		ctx.Config.Repo.Revision = gitRevision
 	} else {
 		log.Warningf("Unable to determine git revision: %s", err.Error())
+
+		// The .git folder does not exist, check to see if we are in CodeBuild
+		if os.Getenv("CODEBUILD_INITIATOR") != "" {
+			log.Warningf("Trying to determine git revision from CodeBuild initiator.")
+			initiator := os.Getenv("CODEBUILD_INITIATOR")
+			parts := strings.Split(initiator, "/")
+
+			// See if the build was initiated by CodePipeline
+			if parts[0] == "codepipeline" {
+				// Try retrieving the revision from the CodePipeline status
+				gitRevision, err := getRevisionFromCodePipeline(parts[1])
+				if err != nil {
+					log.Warningf("Unable to determine git revision from CodeBuild initiator: %s", initiator)
+				}
+
+				ctx.Config.Repo.Revision = string(gitRevision[:7])
+			} else {
+				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
+			}
+		}
 	}
 	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
 
