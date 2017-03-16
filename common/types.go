@@ -25,6 +25,7 @@ type Config struct {
 		Name     string
 		Slug     string
 		Revision string
+		Provider string
 	} `yaml:"-"`
 	Templates map[string]interface{} `yaml:"templates,omitempty"`
 }
@@ -76,8 +77,9 @@ type Service struct {
 // Pipeline definition
 type Pipeline struct {
 	Source struct {
-		Repo   string `yaml:"repo,omitempty"`
-		Branch string `yaml:"branch,omitempty"`
+		Provider string `yaml:"provider,omitempty"`
+		Repo     string `yaml:"repo,omitempty"`
+		Branch   string `yaml:"branch,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
 		Type        string `yaml:"type,omitempty"`

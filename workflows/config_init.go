@@ -52,6 +52,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		config.Service.Name = config.Repo.Name
 		config.Service.PathPatterns = []string{"/*"}
 		config.Service.Pipeline.Source.Repo = config.Repo.Slug
+		config.Service.Pipeline.Source.Provider = config.Repo.Provider
 
 		if createEnvironment && len(config.Environments) == 0 {
 			config.Environments = append(config.Environments,

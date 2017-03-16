@@ -55,8 +55,9 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	}
 	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
 
-	gitSlug, err := findGitSlug()
+	gitProvider, gitSlug, err := findGitSlug()
 	if err == nil {
+		ctx.Config.Repo.Provider = gitProvider
 		ctx.Config.Repo.Slug = gitSlug
 	} else {
 		log.Warningf("Unable to determine git slug: %s", err.Error())

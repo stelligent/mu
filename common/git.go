@@ -31,20 +31,24 @@ func findGitRevision(file string) (string, error) {
 	}
 	return string(ci.Id().String()[:7]), nil
 }
-func findGitSlug() (string, error) {
+func findGitSlug() (string, string, error) {
 	url, err := gitconfig.OriginURL()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
+	codeCommitRegex := regexp.MustCompile("^http(s?)://git-codecommit\\.(.+)\\.amazonaws.com/v1/repos/(.+)$")
 	httpRegex := regexp.MustCompile("^http(s?)://.*github.com.*/(.+)/(.+).git$")
 	sshRegex := regexp.MustCompile("github.com:(.+)/(.+).git$")
-	if matches := httpRegex.FindStringSubmatch(url); matches != nil {
-		return fmt.Sprintf("%s/%s", matches[2], matches[3]), nil
+
+	if matches := codeCommitRegex.FindStringSubmatch(url); matches != nil {
+		return "CodeCommit", matches[1], nil
+	} else if matches := httpRegex.FindStringSubmatch(url); matches != nil {
+		return "GitHub", fmt.Sprintf("%s/%s", matches[2], matches[3]), nil
 	} else if matches := sshRegex.FindStringSubmatch(url); matches != nil {
-		return fmt.Sprintf("%s/%s", matches[1], matches[2]), nil
+		return "GitHub", fmt.Sprintf("%s/%s", matches[1], matches[2]), nil
 	}
-	return url, nil
+	return "", url, nil
 }
 
 func findGitDirectory(fromFile string) (string, error) {
