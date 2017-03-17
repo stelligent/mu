@@ -30,6 +30,10 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			basedir = config.Basedir
 		}
 
+		if config.Repo.Slug == "" {
+			return fmt.Errorf("Unable to determine git repo to use for the pipeline.  Have you initialized your repo and pushed yet? %s", config.Repo.Slug)
+		}
+
 		// unless force is set, don't overwrite...make sure files don't exist
 		if forceOverwrite == false {
 			log.Debugf("Checking for existing config file at %s/mu.yml", basedir)
@@ -48,6 +52,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		config.Service.Name = config.Repo.Name
 		config.Service.PathPatterns = []string{"/*"}
 		config.Service.Pipeline.Source.Repo = config.Repo.Slug
+		config.Service.Pipeline.Source.Provider = config.Repo.Provider
 
 		if createEnvironment && len(config.Environments) == 0 {
 			config.Environments = append(config.Environments,

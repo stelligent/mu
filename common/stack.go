@@ -12,12 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/briandowns/spinner"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
-	"github.com/briandowns/spinner"
 )
 
 // CreateStackName will create a name for a stack

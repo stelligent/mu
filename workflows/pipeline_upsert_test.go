@@ -44,6 +44,7 @@ func TestPipelineUpserter(t *testing.T) {
 	workflow.serviceName = "my-service"
 	workflow.pipelineConfig = new(common.Pipeline)
 	workflow.pipelineConfig.Source.Repo = "foo/bar"
+	workflow.pipelineConfig.Source.Provider = "GitHub"
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-pipeline-my-service").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
@@ -62,8 +63,7 @@ func TestPipelineUpserter(t *testing.T) {
 
 	stackParams := stackManager.Calls[1].Arguments.Get(1).(map[string]string)
 	assert.NotNil(stackParams)
-	assert.Equal("foo", stackParams["GitHubUser"])
-	assert.Equal("bar", stackParams["GitHubRepo"])
-	assert.Equal("", stackParams["GitHubBranch"])
+	assert.Equal("foo/bar", stackParams["SourceRepo"])
+	assert.Equal("", stackParams["Branch"])
 	assert.Equal("my-token", stackParams["GitHubToken"])
 }

@@ -24,9 +24,8 @@ func TestNewConfigInitializer_FileExists(t *testing.T) {
 
 	var err error
 	config := new(common.Config)
+	config.Repo.Slug = "foo/bar"
 	config.Basedir, err = ioutil.TempDir("", "mu-test")
-	assert.Nil(err)
-
 	defer os.RemoveAll(config.Basedir)
 
 	workflow := new(configWorkflow)

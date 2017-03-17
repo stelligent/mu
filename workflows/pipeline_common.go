@@ -39,6 +39,18 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		}
 
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
+
+		if workflow.pipelineConfig.Source.Repo == "" {
+			workflow.pipelineConfig.Source.Repo = ctx.Config.Repo.Name
+		}
+		if workflow.pipelineConfig.Source.Provider == "" {
+			if ctx.Config.Repo.Provider == "" {
+
+				workflow.pipelineConfig.Source.Provider = "GitHub"
+			} else {
+				workflow.pipelineConfig.Source.Provider = ctx.Config.Repo.Provider
+			}
+		}
 		return nil
 	}
 }

@@ -25,10 +25,10 @@ curl -s https://raw.githubusercontent.com/stelligent/mu/master/install.sh | sh
 Assuming your project already has a Dockerfile, you can initialize your mu.yml file with: `mu init`.  More details available in the [quickstart](https://github.com/stelligent/mu/wiki/Quickstart).
 
 # What's next?
-Check out the [examples](examples) to see common `mu.yml` configuration use cases:
+Check out the [examples](examples) to see snippets of `mu.yml` configuration files that you can use in your own project:
 
 * **[Basic](examples/basic)** - Simple website with continuous delivery pipeline deploying to dev and prod environments
-* **[Test Automation](examples/pipeline-newman)** - Example of automating end-to-end testing via [Newman](https://github.com/postmanlabs/newman)
+* **[Test Automation](examples/pipeline-newman)** - Automating end-to-end testing via [Newman](https://github.com/postmanlabs/newman)
 * **[Env Variables](examples/service-env-vars)** - Defining environment variables for the service
 * **[HTTPS](examples/elb-https)** - Enable HTTPS on the ALB for an environment
 * **[DNS](examples/elb-dns)** - Associate Route53 resource record with ALB for an environment
@@ -53,4 +53,5 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 * Install [Glide](https://github.com/Masterminds/glide) via `curl https://glide.sh/get | sh`
 * Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
 * Go to src `cd $GOPATH/src/github.com/stelligent/mu`
+* Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
 * Build with `make`

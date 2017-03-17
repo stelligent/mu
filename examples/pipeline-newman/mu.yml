@@ -1,4 +1,11 @@
 ---
+environments:
+  - name: dev
+    cluster:
+      maxSize: 2
+  - name: production
+    cluster:
+      maxSize: 5
 
 service:
   name: banana-service
