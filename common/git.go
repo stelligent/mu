@@ -3,8 +3,8 @@ package common
 import (
 	"errors"
 	"fmt"
+	"github.com/go-ini/ini"
 	"github.com/speedata/gogit"
-	"github.com/tcnksm/go-gitconfig"
 	"os"
 	"path"
 	"regexp"
@@ -31,18 +31,33 @@ func findGitRevision(file string) (string, error) {
 	}
 	return string(ci.Id().String()[:7]), nil
 }
-func findGitSlug() (string, string, error) {
-	url, err := gitconfig.OriginURL()
+func findGitSlug(file string) (string, string, error) {
+	gitDir, err := findGitDirectory(file)
 	if err != nil {
 		return "", "", err
 	}
+	log.Debugf("Loading slug from git directory '%s'", gitDir)
+
+	gitconfig, err := ini.InsensitiveLoad(fmt.Sprintf("%s/config", gitDir))
+	if err != nil {
+		return "", "", err
+	}
+	remote, err := gitconfig.GetSection("remote \"origin\"")
+	if err != nil {
+		return "", "", err
+	}
+	urlKey, err := remote.GetKey("url")
+	if err != nil {
+		return "", "", err
+	}
+	url := urlKey.String()
 
 	codeCommitRegex := regexp.MustCompile("^http(s?)://git-codecommit\\.(.+)\\.amazonaws.com/v1/repos/(.+)$")
 	httpRegex := regexp.MustCompile("^http(s?)://.*github.com.*/(.+)/(.+).git$")
 	sshRegex := regexp.MustCompile("github.com:(.+)/(.+).git$")
 
 	if matches := codeCommitRegex.FindStringSubmatch(url); matches != nil {
-		return "CodeCommit", matches[1], nil
+		return "CodeCommit", matches[3], nil
 	} else if matches := httpRegex.FindStringSubmatch(url); matches != nil {
 		return "GitHub", fmt.Sprintf("%s/%s", matches[2], matches[3]), nil
 	} else if matches := sshRegex.FindStringSubmatch(url); matches != nil {

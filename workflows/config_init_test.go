@@ -9,8 +9,6 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"syscall"
 	"testing"
 )
 
@@ -28,7 +26,7 @@ func TestNewConfigInitializer_FileExists(t *testing.T) {
 	config := new(common.Config)
 	config.Repo.Slug = "foo/bar"
 	config.Basedir, err = ioutil.TempDir("", "mu-test")
-	//defer os.RemoveAll(config.Basedir)
+	defer os.RemoveAll(config.Basedir)
 
 	workflow := new(configWorkflow)
 	err = workflow.configInitialize(config, false, 80, false)()
@@ -63,20 +61,4 @@ func loadConfig(basedir string) (*common.Config, error) {
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(yamlReader)
 	return config, yaml.Unmarshal(yamlBuffer.Bytes(), config)
-}
-
-func gitCmd(args ...string) error {
-	var stdout bytes.Buffer
-	cmd := exec.Command("git", args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = ioutil.Discard
-
-	err := cmd.Run()
-	if exitError, ok := err.(*exec.ExitError); ok {
-		if waitStatus, ok := exitError.Sys().(syscall.WaitStatus); ok {
-			return fmt.Errorf("Exit error %d", waitStatus.ExitStatus())
-		}
-		return exitError
-	}
-	return nil
 }

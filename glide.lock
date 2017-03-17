@@ -1,5 +1,5 @@
-hash: 437141aaccbbd467b2db0b78c0e9395abdebc830afd9ca9d2ae9ef895946a21e
-updated: 2017-03-16T14:24:28.417493833-07:00
+hash: 45286786cc2fa734a6c7953c7d30ae1690783f30d01e1184356ba1cf8b6d8af3
+updated: 2017-03-17T08:47:28.869372254-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 00fb2125993965df739fa3398b03bef3eb2e198f
@@ -112,14 +112,14 @@ imports:
   - libcontainer/user
 - name: github.com/pkg/errors
   version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+- name: github.com/robfig/config
+  version: 0f78529c8c7e3e9a25f15876532ecbc07c7d99e6
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: github.com/speedata/gogit
   version: 66815cd3f6b58ee192b0c6388295979b872d268f
 - name: github.com/speedata/mmap-go
   version: 6c75090c55983bef2e129e173681b20d24871ef8
-- name: github.com/tcnksm/go-gitconfig
-  version: d154598bacbf4501c095a309753c5d4af66caa81
 - name: github.com/urfave/cli
   version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
 - name: golang.org/x/crypto
@@ -138,6 +138,8 @@ imports:
   subpackages:
   - unix
   - windows
+- name: gopkg.in/ini.v1
+  version: 1730955e3146956d6a087861380f9b4667ed5071
 - name: gopkg.in/yaml.v2
   version: 4c78c975fe7c825c6d1466c42be594d1d6f3aba6
 testImports:
