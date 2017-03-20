@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
@@ -12,9 +13,15 @@ type PipelineStateLister interface {
 	ListState(pipelineName string) ([]*codepipeline.StageState, error)
 }
 
+// PipelineRevisionGetter for getting the git revision
+type PipelineRevisionGetter interface {
+	GetCurrentRevision(pipelineName string) (string, error)
+}
+
 // PipelineManager composite of all cluster capabilities
 type PipelineManager interface {
 	PipelineStateLister
+	PipelineRevisionGetter
 }
 
 type codePipelineManager struct {
@@ -46,4 +53,21 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeli
 	}
 
 	return output.StageStates, nil
+}
+
+func (cplMgr *codePipelineManager) GetCurrentRevision(pipelineName string) (string, error) {
+	stageStates, err := cplMgr.ListState(pipelineName)
+	if err != nil {
+		return "", err
+	}
+
+	for _, stageState := range stageStates {
+		for _, actionState := range stageState.ActionStates {
+			if aws.StringValue(actionState.ActionName) == "Source" {
+				return *actionState.CurrentRevision.RevisionId, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("Can not locate revision from CodePipeline: %s", pipelineName)
 }
