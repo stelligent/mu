@@ -64,7 +64,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 			// See if the build was initiated by CodePipeline
 			if parts[0] == "codepipeline" {
 				// Try retrieving the revision from the CodePipeline status
-				gitRevision, err := getRevisionFromCodePipeline(parts[1])
+				gitRevision, err := ctx.PipelineManager.GetCurrentRevision(parts[1])
 				if err != nil {
 					log.Warningf("Unable to determine git revision from CodeBuild initiator: %s", initiator)
 				}

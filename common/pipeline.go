@@ -1,7 +1,7 @@
 package common
 
 import (
-	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
@@ -13,9 +13,15 @@ type PipelineStateLister interface {
 	ListState(pipelineName string) ([]*codepipeline.StageState, error)
 }
 
+// PipelineRevisionGetter for getting the git revision
+type PipelineRevisionGetter interface {
+	GetCurrentRevision(pipelineName string) (string, error)
+}
+
 // PipelineManager composite of all cluster capabilities
 type PipelineManager interface {
 	PipelineStateLister
+	PipelineRevisionGetter
 }
 
 type codePipelineManager struct {
@@ -49,25 +55,19 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeli
 	return output.StageStates, nil
 }
 
-func getRevisionFromCodePipeline(pipelineName string) (string, error) {
-	sess := session.Must(session.NewSession())
-	service := codepipeline.New(sess)
-
-	params := &codepipeline.GetPipelineStateInput{
-		Name: aws.String(pipelineName),
-	}
-	response, err := service.GetPipelineState(params)
-
+func (cplMgr *codePipelineManager) GetCurrentRevision(pipelineName string) (string, error) {
+	stageStates, err := cplMgr.ListState(pipelineName)
 	if err != nil {
 		return "", err
 	}
-	for _, stageState := range response.StageStates {
+
+	for _, stageState := range stageStates {
 		for _, actionState := range stageState.ActionStates {
-			if *actionState.ActionName == "Source" {
+			if aws.StringValue(actionState.ActionName) == "Source" {
 				return *actionState.CurrentRevision.RevisionId, nil
 			}
 		}
 	}
 
-	return "", errors.New("Can not locate revision from CodePipeline: " + pipelineName)
+	return "", fmt.Errorf("Can not locate revision from CodePipeline: %s", pipelineName)
 }
