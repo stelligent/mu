@@ -40,7 +40,7 @@ func TestCodePipelineManager_ListState(t *testing.T) {
 	m.AssertNumberOfCalls(t, "GetPipelineState", 1)
 }
 
-func TestCodePipelineManager_GetCurrentRevision(t *testing.T) {
+func TestCodePipelineManager_GetGetInfo(t *testing.T) {
 	assert := assert.New(t)
 
 	m := new(mockedCPL)
@@ -71,7 +71,8 @@ func TestCodePipelineManager_GetCurrentRevision(t *testing.T) {
 		codePipelineAPI: m,
 	}
 
-	revision, err := pipelineManager.GetCurrentRevision("foo")
+	gitInfo, err := pipelineManager.GetGitInfo("foo")
 	assert.Nil(err)
-	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", revision)
+	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", gitInfo.revision)
+	assert.Equal("aftp-mu", gitInfo.repoName)
 }
