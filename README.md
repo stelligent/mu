@@ -8,7 +8,7 @@ To address these challenges, this tool was created to simplify the declaration a
 
 The `mu` tool uses CloudFormation stacks to manage all resources it creates.  Additionally, `mu` will not create any databases or other AWS resources to support itself.  It will only create resources (via CloudFormation) necessary to run your microservices.  This means at any point you can stop using `mu` and continue to manage the AWS resources that it created via AWS tools such as the CLI or the console.
 
-![Architecture Diagram](https://github.com/stelligent/mu/wiki/img/ms-architecture-3.png)
+![Architecture Diagram](https://github.com/stelligent/mu/wiki/img/mu-architecture.gif)
 
 # Demo
 Watch the 90 second demo below to see mu in action!
