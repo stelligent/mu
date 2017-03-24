@@ -15,6 +15,8 @@ type serviceWorkflow struct {
 	serviceImage string
 	registryAuth string
 	priority     int
+	codeRevision string
+	repoName string
 }
 
 // Find a service in config, by name and set the reference
@@ -77,7 +79,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, common.StackTypeRepo))
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}

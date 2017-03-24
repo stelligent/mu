@@ -17,6 +17,8 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	workflow := new(environmentWorkflow)
 	ecsStackParams := make(map[string]string)
+	workflow.codeRevision = ctx.Config.Repo.Revision
+	workflow.repoName = ctx.Config.Repo.Name
 
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),
@@ -91,7 +93,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -154,7 +156,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams ma
 
 		}
 
-		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeConsul))
+		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -239,7 +241,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -257,9 +259,11 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 	}
 }
 
-func buildEnvironmentTags(environmentName string, stackType common.StackType) map[string]string {
+func buildEnvironmentTags(environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
+		"revision": codeRevision,
+		"repo": repoName,
 	}
 }
