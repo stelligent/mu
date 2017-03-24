@@ -55,3 +55,6 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 * Go to src `cd $GOPATH/src/github.com/stelligent/mu`
 * Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
 * Build with `make`
+
+
+## DONT MERGE
