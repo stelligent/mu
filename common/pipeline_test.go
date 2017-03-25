@@ -50,13 +50,13 @@ func TestCodePipelineManager_GetGetInfo(t *testing.T) {
 				{
 					ActionStates: []*codepipeline.ActionState{
 						{
-							ActionName: aws.String("Source"),
+							ActionName:  aws.String("Source"),
 							RevisionUrl: aws.String("https://github.com/dmurawsky/aftp-mu/commit/4e934a1e51476d88d715f421ecd86d93dad02c5b"),
-							EntityUrl: aws.String("https://github.com/dmurawsky/aftp-mu/tree/master"),
+							EntityUrl:   aws.String("https://github.com/dmurawsky/aftp-mu/tree/master"),
 							LatestExecution: &codepipeline.ActionExecution{
 								Status: aws.String("Succeeded"),
 							},
-						  CurrentRevision: &codepipeline.ActionRevision{
+							CurrentRevision: &codepipeline.ActionRevision{
 								RevisionId: aws.String("4e934a1e51476d88d715f421ecd86d93dad02c5b"),
 							},
 						},
