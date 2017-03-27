@@ -96,7 +96,14 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
-		stackWaiter.AwaitFinalStatus(vpcStackName)
+		stack := stackWaiter.AwaitFinalStatus(vpcStackName)
+
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", vpcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		vpcImportParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
@@ -175,7 +182,14 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			return err
 		}
 		log.Debugf("Waiting for stack '%s' to complete", envStackName)
-		stackWaiter.AwaitFinalStatus(envStackName)
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", envStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		return nil
 	}

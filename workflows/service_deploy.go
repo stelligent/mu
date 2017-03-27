@@ -117,7 +117,13 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 			return err
 		}
 		log.Debugf("Waiting for stack '%s' to complete", svcStackName)
-		stackWaiter.AwaitFinalStatus(svcStackName)
+		stack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", svcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		return nil
 	}

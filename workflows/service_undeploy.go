@@ -1,7 +1,9 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
+	"strings"
 )
 
 // NewServiceUndeployer create a new workflow for undeploying a service in an environment
@@ -25,7 +27,10 @@ func (workflow *serviceWorkflow) serviceUndeployer(environmentName string, stack
 			if err != nil {
 				return err
 			}
-			stackWaiter.AwaitFinalStatus(svcStackName)
+			svcStack = stackWaiter.AwaitFinalStatus(svcStackName)
+			if svcStack != nil && !strings.HasSuffix(svcStack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", svcStack.Status, svcStack.StatusReason)
+			}
 		} else {
 			log.Info("  Stack is alredy deleted.")
 		}

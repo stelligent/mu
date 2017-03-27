@@ -25,18 +25,13 @@ func (m *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStac
 	args := m.Called()
 	return args.Get(0).(*cloudformation.DescribeStacksOutput), args.Error(1)
 }
+func (m *mockedCloudFormation) DescribeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
+	args := m.Called()
+	return args.Get(0).(*cloudformation.DescribeStackEventsOutput), args.Error(1)
+}
 func (m *mockedCloudFormation) DescribeStacksPages(input *cloudformation.DescribeStacksInput, cb func(*cloudformation.DescribeStacksOutput, bool) bool) error {
 	args := m.Called(input, cb)
 	return args.Error(0)
-}
-
-func (m *mockedCloudFormation) WaitUntilStackCreateComplete(*cloudformation.DescribeStacksInput) error {
-	m.Called()
-	return nil
-}
-func (m *mockedCloudFormation) WaitUntilStackUpdateComplete(*cloudformation.DescribeStacksInput) error {
-	m.Called()
-	return nil
 }
 func (m *mockedCloudFormation) WaitUntilStackExists(*cloudformation.DescribeStacksInput) error {
 	m.Called()
@@ -87,6 +82,11 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 				},
 			},
 		}, nil).Once()
+	cfn.On("DescribeStackEvents").Return(
+		&cloudformation.DescribeStackEventsOutput{
+			StackEvents: []*cloudformation.StackEvent{},
+		}, nil)
+
 	cfn.On("DescribeStacks").Return(
 		&cloudformation.DescribeStacksOutput{
 			Stacks: []*cloudformation.Stack{
@@ -95,8 +95,6 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 				},
 			},
 		}, nil)
-
-	cfn.On("WaitUntilStackCreateComplete").Return(nil)
 
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
@@ -107,7 +105,7 @@ func TestStack_AwaitFinalStatus_CreateInProgress(t *testing.T) {
 	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 2)
-	cfn.AssertNumberOfCalls(t, "WaitUntilStackCreateComplete", 1)
+	cfn.AssertNumberOfCalls(t, "DescribeStackEvents", 1)
 }
 
 func TestStack_UpsertStack_Create(t *testing.T) {
@@ -126,8 +124,8 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
-	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 1)
+	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
 }
 
 func TestStack_UpsertStack_Update(t *testing.T) {
@@ -154,7 +152,6 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
 	cfn.AssertNumberOfCalls(t, "CreateStack", 0)
 	cfn.AssertNumberOfCalls(t, "UpdateStack", 1)
-	cfn.AssertNumberOfCalls(t, "WaitUntilStackUpdateComplete", 0)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 0)
 }
 

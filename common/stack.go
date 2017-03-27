@@ -244,55 +244,60 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 	}
 
 	// initialize Spinner
-	spinner := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	spinner.Start()
-	defer spinner.Stop()
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Start()
+	defer s.Stop()
 
-	resp, err := cfnAPI.DescribeStacks(params)
+	var priorEventTime *time.Time
+	for {
 
-	if err == nil && resp != nil && len(resp.Stacks) == 1 {
-		switch *resp.Stacks[0].StackStatus {
-		case cloudformation.StackStatusReviewInProgress,
-			cloudformation.StackStatusCreateInProgress,
-			cloudformation.StackStatusRollbackInProgress:
-			// wait for create
-			log.Debugf("  Waiting for stack:%s to complete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
-			cfnAPI.WaitUntilStackCreateComplete(params)
-			resp, _ = cfnAPI.DescribeStacks(params)
-		case cloudformation.StackStatusDeleteInProgress:
-			// wait for delete
-			log.Debugf("  Waiting for stack:%s to delete...current status=%s", stackName, *resp.Stacks[0].StackStatus)
-			cfnAPI.WaitUntilStackDeleteComplete(params)
-			resp, _ = cfnAPI.DescribeStacks(params)
-		case cloudformation.StackStatusUpdateInProgress,
-			cloudformation.StackStatusUpdateRollbackInProgress,
-			cloudformation.StackStatusUpdateCompleteCleanupInProgress,
-			cloudformation.StackStatusUpdateRollbackCompleteCleanupInProgress:
-			// wait for update
-			log.Debugf("  Waiting for stack:%s to update...current status=%s", stackName, *resp.Stacks[0].StackStatus)
-			cfnAPI.WaitUntilStackUpdateComplete(params)
-			resp, _ = cfnAPI.DescribeStacks(params)
-		case cloudformation.StackStatusCreateFailed,
-			cloudformation.StackStatusCreateComplete,
-			cloudformation.StackStatusRollbackFailed,
-			cloudformation.StackStatusRollbackComplete,
-			cloudformation.StackStatusDeleteFailed,
-			cloudformation.StackStatusDeleteComplete,
-			cloudformation.StackStatusUpdateComplete,
-			cloudformation.StackStatusUpdateRollbackFailed,
-			cloudformation.StackStatusUpdateRollbackComplete:
-			// no op
+		resp, err := cfnAPI.DescribeStacks(params)
 
+		s.Stop()
+		if err != nil || resp == nil || len(resp.Stacks) != 1 {
+			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
+			return nil
 		}
 
-		if len(resp.Stacks) > 0 {
+		if !strings.HasSuffix(aws.StringValue(resp.Stacks[0].StackStatus), "_IN_PROGRESS") {
 			log.Debugf("  Returning final status for stack:%s ... status=%s", stackName, *resp.Stacks[0].StackStatus)
 			return buildStack(resp.Stacks[0])
 		}
-	}
 
-	log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
-	return nil
+		eventParams := &cloudformation.DescribeStackEventsInput{
+			StackName: aws.String(stackName),
+		}
+		eventResp, err := cfnAPI.DescribeStackEvents(eventParams)
+		if err == nil && eventResp != nil {
+			numEvents := len(eventResp.StackEvents)
+			for i := numEvents - 1; i >= 0; i-- {
+				e := eventResp.StackEvents[i]
+				if priorEventTime == nil || priorEventTime.Before(aws.TimeValue(e.Timestamp)) {
+
+					status := aws.StringValue(e.ResourceStatus)
+					eventMesg := fmt.Sprintf("  %s (%s) %s %s", aws.StringValue(e.LogicalResourceId),
+						aws.StringValue(e.ResourceType),
+						status,
+						aws.StringValue(e.ResourceStatusReason))
+					if strings.HasSuffix(status, "_IN_PROGRESS") {
+						s.Suffix = eventMesg
+						log.Debug(eventMesg)
+					} else if strings.HasSuffix(status, "_FAILED") {
+						log.Error(eventMesg)
+					} else {
+						log.Debug(eventMesg)
+					}
+					priorEventTime = e.Timestamp
+				}
+
+			}
+
+		}
+
+		log.Debugf("  Not in final status (%s)...sleeping for 5 seconds", *resp.Stacks[0].StackStatus)
+		s.Start()
+		time.Sleep(time.Second * 5)
+	}
 }
 
 func buildStack(stackDetails *cloudformation.Stack) *Stack {
