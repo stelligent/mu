@@ -338,6 +338,7 @@ Resources:
             - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${EcsCluster}:*
   ClusterLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
     Properties:
       LogGroupName: !Sub ${EcsCluster}
   ConsulApiClientSG:
