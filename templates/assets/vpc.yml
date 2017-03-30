@@ -398,6 +398,18 @@ Resources:
       PortRange:
         From: '1024'
         To: '65535'
+  EcsInboundEphemeralUdpPortNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref EcsNetworkAcl
+      RuleNumber: '102'
+      Protocol: '17'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '1024'
+        To: '65535'
   EcsInboundSSHPublicNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
