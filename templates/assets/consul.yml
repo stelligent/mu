@@ -435,6 +435,14 @@ Resources:
       ToPort: !Ref ConsulSerfWanPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
+  ConsulRpcClientSerfUdpReplyRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: udp
+      FromPort: !Ref ConsulSerfLanPort
+      ToPort: !Ref ConsulSerfWanPort
+      SourceSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
   EcsElb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:

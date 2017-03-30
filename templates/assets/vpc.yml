@@ -386,6 +386,18 @@ Resources:
       PortRange:
         From: '0'
         To: '65535'
+  EcsOutboundUdpNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref EcsNetworkAcl
+      RuleNumber: '101'
+      Protocol: '17'
+      RuleAction: allow
+      Egress: 'true'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '0'
+        To: '65535'
   EcsInboundEphemeralPortNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
