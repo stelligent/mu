@@ -14,6 +14,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	return newWorkflow(
 		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentConsulTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 		workflow.environmentVpcTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -40,6 +41,23 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(environmentNam
 			}
 			log.Infof("   Undeploying service '%s' from environment '%s'", stack.Tags["service"], environmentName)
 			stackWaiter.AwaitFinalStatus(stack.Name)
+		}
+
+		return nil
+	}
+}
+func (workflow *environmentWorkflow) environmentConsulTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Terminating Consul environment '%s' ...", environmentName)
+		envStackName := common.CreateStackName(common.StackTypeConsul, environmentName)
+		err := stackDeleter.DeleteStack(envStackName)
+		if err != nil {
+			return err
+		}
+
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
 		return nil
