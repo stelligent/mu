@@ -36,6 +36,8 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) 
 			workflow.serviceTag = "latest"
 		}
 
+		workflow.codeRevision = ctx.Config.Repo.Revision
+		workflow.repoName = ctx.Config.Repo.Name
 		workflow.priority = ctx.Config.Service.Priority
 
 		log.Debugf("Working with service:'%s' tag:'%s'", workflow.serviceName, workflow.serviceTag)

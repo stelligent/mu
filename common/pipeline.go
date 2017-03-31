@@ -73,7 +73,8 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, err
 			if aws.StringValue(actionState.ActionName) == "Source" {
 				cloneURL := *actionState.EntityUrl
 				parts := strings.Split(cloneURL, "/")
-				return GitInfo{*actionState.CurrentRevision.RevisionId, parts[4]}, nil
+				fullRepo := fmt.Sprintf("%s/%s", parts[3], parts[4])
+				return GitInfo{*actionState.CurrentRevision.RevisionId, fullRepo}, nil
 			}
 		}
 	}
