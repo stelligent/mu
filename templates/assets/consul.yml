@@ -151,36 +151,36 @@ Resources:
 
                 [dmesg]
                 file = /var/log/dmesg
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/dmesg/{instance_id}
 
                 [messages]
                 file = /var/log/messages
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/messages/{instance_id}
                 datetime_format = %b %d %H:%M:%S
 
                 [docker]
                 file = /var/log/docker
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/docker/{instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%S.%f
 
                 [ecs]
                 file = /var/log/ecs/*
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/ecs/{instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%SZ
 
                 [cloud-init]
                 file = /var/log/cloud-init*
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/cloud-init/{instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%SZ
 
                 [cfn-init]
                 file = /var/log/cfn-init*
-                log_group_name = ${EcsCluster}
+                log_group_name = ${AWS::StackName}
                 log_stream_name = instance/cfn-init/{instance_id}
                 datetime_format = %Y-%m-%d %H:%M:%S
           commands:
@@ -334,13 +334,13 @@ Resources:
             - logs:PutLogEvents
             - logs:DescribeLogStreams
             Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${EcsCluster}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${EcsCluster}:*
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AWS::StackName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AWS::StackName}:*
   ClusterLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     Properties:
-      LogGroupName: !Sub ${EcsCluster}
+      LogGroupName: !Ref AWS::StackName
   ConsulApiClientSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -570,9 +570,9 @@ Resources:
         LogConfiguration:
           LogDriver: awslogs
           Options:
-            awslogs-group: !Ref EcsCluster
+            awslogs-group: !Ref AWS::StackName
             awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: service
+            awslogs-stream-prefix: instance
         Command:
           - 'agent'
           - '-server'

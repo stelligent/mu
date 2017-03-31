@@ -5,6 +5,8 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
+	"os"
+	"strings"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -17,6 +19,7 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 			*newServicesPushCommand(ctx),
 			*newServicesDeployCommand(ctx),
 			*newServicesUndeployCommand(ctx),
+			*newServicesLogsCommand(ctx),
 		},
 	}
 
@@ -97,6 +100,36 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 			}
 			serviceName := c.Args().Get(1)
 			workflow := workflows.NewServiceUndeployer(ctx, serviceName, environmentName)
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+func newServicesLogsCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:  "logs",
+		Usage: "show service logs",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "service, s",
+				Usage: "service name to view logs for",
+			},
+			cli.BoolFlag{
+				Name:  "follow, f",
+				Usage: "follow logs for latest changes",
+			},
+		},
+		ArgsUsage: "<environment> [<filter>...]",
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().First()
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "logs")
+				return errors.New("environment must be provided")
+			}
+			serviceName := c.String("service")
+
+			workflow := workflows.NewServiceLogViewer(ctx, c.Bool("follow"), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), " "))
 			return workflow()
 		},
 	}
