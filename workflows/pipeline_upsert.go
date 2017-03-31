@@ -14,7 +14,7 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	workflow := new(pipelineWorkflow)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.repoName = ctx.Config.Repo.Name
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	return newWorkflow(
 		workflow.serviceFinder("", ctx),

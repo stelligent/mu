@@ -18,7 +18,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	workflow := new(environmentWorkflow)
 	ecsStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.repoName = ctx.Config.Repo.Name
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),

@@ -14,7 +14,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 
 	workflow := new(serviceWorkflow)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.repoName = ctx.Config.Repo.Name
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	ecsImportParams := make(map[string]string)
 

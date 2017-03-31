@@ -69,6 +69,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 
 				ctx.Config.Repo.Revision = string(gitInfo.revision[:7])
 				ctx.Config.Repo.Name = gitInfo.repoName
+				ctx.Config.Repo.OrgName = gitInfo.orgName
 			} else {
 				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
 			}

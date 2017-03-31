@@ -3,7 +3,7 @@ package workflows
 import (
 	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
-	"strings"
+	"fmt"
 )
 
 type pipelineWorkflow struct {
@@ -36,14 +36,7 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		if serviceName != "" {
 			workflow.serviceName = serviceName
 		} else if ctx.Config.Service.Name == "" {
-			var repoName string
-			if strings.Contains(ctx.Config.Repo.Name, "/") {
-				parts := strings.Split(ctx.Config.Repo.Name, "/")
-				repoName = parts[1]
-			} else {
-				repoName = ctx.Config.Repo.Name
-			}
-			workflow.serviceName = repoName
+			workflow.serviceName = ctx.Config.Repo.Name
 		} else {
 			workflow.serviceName = ctx.Config.Service.Name
 		}
@@ -51,11 +44,12 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
 		workflow.codeRevision = ctx.Config.Repo.Revision
 
+		repoName := fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 		if workflow.pipelineConfig.Source.Repo == "" {
-			workflow.pipelineConfig.Source.Repo = ctx.Config.Repo.Name
-			workflow.repoName = ctx.Config.Repo.Name
+			workflow.pipelineConfig.Source.Repo = repoName
+			workflow.repoName = repoName
 		} else {
-			workflow.repoName = workflow.pipelineConfig.Source.Repo
+			workflow.repoName = repoName
 		}
 
 		if workflow.pipelineConfig.Source.Provider == "" {
