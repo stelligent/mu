@@ -16,7 +16,7 @@ func TestNewPipelinesCommand(t *testing.T) {
 	assert.NotNil(command)
 	assert.Equal("pipeline", command.Name, "Name should match")
 	assert.Equal("options for managing pipelines", command.Usage, "Usage should match")
-	assert.Equal(3, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
 }
 func TestNewPipelinesListCommand(t *testing.T) {
 	assert := assert.New(t)

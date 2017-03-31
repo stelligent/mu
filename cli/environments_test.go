@@ -23,7 +23,7 @@ func TestNewEnvironmentsCommand(t *testing.T) {
 	assert.Equal(1, len(command.Aliases), "Aliases len should match")
 	assert.Equal("env", command.Aliases[0], "Aliases should match")
 	assert.Equal("options for managing environments", command.Usage, "Usage should match")
-	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(5, len(command.Subcommands), "Subcommands len should match")
 
 	args := []string{"environment", "help"}
 	err := runCommand(command, args)

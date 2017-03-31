@@ -152,6 +152,12 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 		return err
 	}
 
+	// initialize CloudWatchLogs
+	ctx.LogsManager, err = newLogsManager(sess)
+	if err != nil {
+		return err
+	}
+
 	// initialize DockerManager
 	ctx.DockerManager, err = newClientDockerManager()
 	if err != nil {

@@ -12,6 +12,7 @@ type Context struct {
 	ClusterManager  ClusterManager
 	ElbManager      ElbManager
 	PipelineManager PipelineManager
+	LogsManager     LogsManager
 	DockerManager   DockerManager
 	DockerOut       io.Writer
 }
