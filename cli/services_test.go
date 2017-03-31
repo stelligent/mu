@@ -71,7 +71,6 @@ func TestNewUndeployCommand(t *testing.T) {
 
 	command := newServicesUndeployCommand(ctx)
 
-
 	assert.Equal("undeploy", command.Name, "Name should match")
 	assert.Equal("<environment> [<service>]", command.ArgsUsage, "ArgsUsage should match")
 	assert.Equal(0, len(command.Flags), "Flags length")
