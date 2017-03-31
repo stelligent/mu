@@ -101,7 +101,7 @@ func newPipelinesLogsCommand(ctx *common.Context) *cli.Command {
 				Usage: "follow logs for latest changes",
 			},
 		},
-		ArgsUsage: "[filter...]",
+		ArgsUsage: "[<filter>...]",
 		Action: func(c *cli.Context) error {
 			serviceName := c.String("service")
 			workflow := workflows.NewPipelineLogViewer(ctx, c.Bool("follow"), serviceName, os.Stdout, strings.Join(c.Args(), " "))

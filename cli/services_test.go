@@ -71,9 +71,25 @@ func TestNewUndeployCommand(t *testing.T) {
 
 	command := newServicesUndeployCommand(ctx)
 
-	assert.NotNil(command)
+
 	assert.Equal("undeploy", command.Name, "Name should match")
 	assert.Equal("<environment> [<service>]", command.ArgsUsage, "ArgsUsage should match")
 	assert.Equal(0, len(command.Flags), "Flags length")
+	assert.NotNil(command.Action)
+}
+
+func TestNewServicesLogsCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newServicesLogsCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("logs", command.Name, "Name should match")
+	assert.Equal("<environment> [<filter>...]", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(2, len(command.Flags), "Flags length")
+	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
+	assert.Equal("follow, f", command.Flags[1].GetName(), "Flags Name")
 	assert.NotNil(command.Action)
 }

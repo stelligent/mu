@@ -89,6 +89,20 @@ func TestNewEnvironmentsTerminateCommand(t *testing.T) {
 	assert.Equal("<environment>", command.ArgsUsage, "ArgsUsage should match")
 	assert.NotNil(command.Action)
 }
+func TestNewEnvironmentsLogsCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newEnvironmentsLogsCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("logs", command.Name, "Name should match")
+	assert.Equal("<environment> [<filter>...]", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(1, len(command.Flags), "Flags length")
+	assert.Equal("follow, f", command.Flags[0].GetName(), "Flags Name")
+	assert.NotNil(command.Action)
+}
 
 func runCommand(command *cli.Command, args []string) error {
 	app := cli.NewApp()

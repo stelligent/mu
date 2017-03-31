@@ -116,7 +116,7 @@ func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 				Usage: "follow logs for latest changes",
 			},
 		},
-		ArgsUsage: "<environment> [filter...]",
+		ArgsUsage: "<environment> [<filter>...]",
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {

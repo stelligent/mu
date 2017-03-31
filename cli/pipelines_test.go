@@ -57,3 +57,18 @@ func TestNewPipelinesUpsertCommand(t *testing.T) {
 	assert.Equal("token, t", command.Flags[0].GetName(), "Flag should match")
 	assert.NotNil(command.Action)
 }
+func TestNewPipelinesLogsCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newPipelinesLogsCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("logs", command.Name, "Name should match")
+	assert.Equal("[<filter>...]", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(2, len(command.Flags), "Flags length")
+	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
+	assert.Equal("follow, f", command.Flags[1].GetName(), "Flags Name")
+	assert.NotNil(command.Action)
+}
