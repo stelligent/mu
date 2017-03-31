@@ -37,6 +37,11 @@ func (logsMgr *logsManager) ViewLogs(logGroup string, follow bool, filter string
 
 	startTime := int64(0)
 
+	// if following, only go back 30 seconds
+	if follow {
+		startTime = int64((time.Now().Unix() - 30) * 1000)
+	}
+
 	for {
 		log.Debugf("Searching for logs in log_group '%s' after time '%d' and filter '%s'", logGroup, startTime, filter)
 
@@ -45,7 +50,6 @@ func (logsMgr *logsManager) ViewLogs(logGroup string, follow bool, filter string
 			Interleaved:   aws.Bool(true),
 			LogGroupName:  aws.String(logGroup),
 			FilterPattern: aws.String(filter),
-			Limit:         aws.Int64(100),
 		}
 
 		err := logsAPI.FilterLogEventsPages(params,
