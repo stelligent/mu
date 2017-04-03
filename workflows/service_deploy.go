@@ -13,6 +13,9 @@ import (
 func NewServiceDeployer(ctx *common.Context, environmentName string, tag string) Executor {
 
 	workflow := new(serviceWorkflow)
+	workflow.codeRevision = ctx.Config.Repo.Revision
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
+
 	ecsImportParams := make(map[string]string)
 
 	return newWorkflow(
@@ -112,7 +115,7 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, common.StackTypeService))
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, common.StackTypeService, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -152,10 +155,12 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 	}
 }
 
-func buildServiceTags(serviceName string, environmentName string, stackType common.StackType) map[string]string {
+func buildServiceTags(serviceName string, environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
 		"service":     serviceName,
+		"revision": codeRevision,
+		"repo": repoName,
 	}
 }

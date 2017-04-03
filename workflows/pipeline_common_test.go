@@ -13,21 +13,22 @@ func TestServiceFinder(t *testing.T) {
 
 	ctx := new(common.Context)
 	ctx.Config.Repo.Name = "my-repo"
+	ctx.Config.Repo.OrgName = "foo"
 
 	err := workflow.serviceFinder("", ctx)()
 	assert.Nil(err)
 	assert.NotNil(workflow.pipelineConfig)
 	assert.Equal("my-repo", workflow.serviceName)
-	assert.Equal("my-repo", workflow.pipelineConfig.Source.Repo)
+	assert.Equal("foo/my-repo", workflow.pipelineConfig.Source.Repo)
 	assert.Equal("GitHub", workflow.pipelineConfig.Source.Provider)
 
 	ctx.Config.Service.Name = "my-service"
 	ctx.Config.Service.Pipeline.Source.Provider = "CodeCommit"
-	ctx.Config.Service.Pipeline.Source.Repo = "foo"
+	ctx.Config.Service.Pipeline.Source.Repo = "bar/my-repo"
 	err = workflow.serviceFinder("", ctx)()
 	assert.Nil(err)
 	assert.NotNil(workflow.pipelineConfig)
 	assert.Equal("my-service", workflow.serviceName)
-	assert.Equal("foo", workflow.pipelineConfig.Source.Repo)
+	assert.Equal("bar/my-repo", workflow.pipelineConfig.Source.Repo)
 	assert.Equal("CodeCommit", workflow.pipelineConfig.Source.Provider)
 }

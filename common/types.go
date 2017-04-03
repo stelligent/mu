@@ -24,6 +24,7 @@ type Config struct {
 	Basedir      string        `yaml:"-"`
 	Repo         struct {
 		Name     string
+		OrgName  string
 		Slug     string
 		Revision string
 		Provider string

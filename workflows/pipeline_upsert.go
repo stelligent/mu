@@ -13,6 +13,8 @@ import (
 func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) Executor {
 
 	workflow := new(pipelineWorkflow)
+	workflow.codeRevision = ctx.Config.Repo.Revision
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	return newWorkflow(
 		workflow.serviceFinder("", ctx),
@@ -34,7 +36,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -131,7 +133,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["MuDownloadVersion"] = version
 		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -149,9 +151,11 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 	}
 }
 
-func buildPipelineTags(serviceName string, stackType common.StackType) map[string]string {
+func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":    string(stackType),
 		"service": serviceName,
+		"revision": codeRevision,
+		"repo": repoName,
 	}
 }

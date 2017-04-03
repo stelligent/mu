@@ -23,6 +23,7 @@ type PipelineGitInfoGetter interface {
 type GitInfo struct {
 	revision string
 	repoName string
+	orgName string
 }
 
 // PipelineManager composite of all cluster capabilities
@@ -73,7 +74,7 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, err
 			if aws.StringValue(actionState.ActionName) == "Source" {
 				cloneURL := *actionState.EntityUrl
 				parts := strings.Split(cloneURL, "/")
-				return GitInfo{*actionState.CurrentRevision.RevisionId, parts[4]}, nil
+				return GitInfo{*actionState.CurrentRevision.RevisionId, parts[4], parts[3]}, nil
 			}
 		}
 	}
