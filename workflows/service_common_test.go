@@ -14,7 +14,8 @@ func TestServiceLoader_FromConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
-	ctx.Config.Repo.Name = "foo/myrepo"
+	ctx.Config.Repo.OrgName = "foo"
+	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
 	ctx.Config.Service.Name = "myservice"
 
@@ -29,6 +30,7 @@ func TestServiceLoader_FromRepo(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Repo.OrgName = "foo"
 	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
 
