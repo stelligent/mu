@@ -16,7 +16,7 @@ type serviceWorkflow struct {
 	registryAuth string
 	priority     int
 	codeRevision string
-	repoName string
+	repoName     string
 }
 
 // Find a service in config, by name and set the reference

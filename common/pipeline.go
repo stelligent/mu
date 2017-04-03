@@ -23,7 +23,7 @@ type PipelineGitInfoGetter interface {
 type GitInfo struct {
 	revision string
 	repoName string
-	orgName string
+	orgName  string
 }
 
 // PipelineManager composite of all cluster capabilities
