@@ -18,6 +18,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // CreateStackName will create a name for a stack
@@ -244,16 +245,24 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 	}
 
 	// initialize Spinner
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Start()
-	defer s.Stop()
+	var statusSpinner *spinner.Spinner
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		statusSpinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	}
+
+	if statusSpinner != nil {
+		statusSpinner.Start()
+		defer statusSpinner.Stop()
+	}
 
 	var priorEventTime *time.Time
 	for {
 
 		resp, err := cfnAPI.DescribeStacks(params)
 
-		s.Stop()
+		if statusSpinner != nil {
+			statusSpinner.Stop()
+		}
 		if err != nil || resp == nil || len(resp.Stacks) != 1 {
 			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
 			return nil
@@ -280,7 +289,9 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 						status,
 						aws.StringValue(e.ResourceStatusReason))
 					if strings.HasSuffix(status, "_IN_PROGRESS") {
-						s.Suffix = eventMesg
+						if statusSpinner != nil {
+							statusSpinner.Suffix = eventMesg
+						}
 						log.Debug(eventMesg)
 					} else if strings.HasSuffix(status, "_FAILED") {
 						log.Error(eventMesg)
@@ -295,7 +306,9 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *St
 		}
 
 		log.Debugf("  Not in final status (%s)...sleeping for 5 seconds", *resp.Stacks[0].StackStatus)
-		s.Start()
+		if statusSpinner != nil {
+			statusSpinner.Start()
+		}
 		time.Sleep(time.Second * 5)
 	}
 }
