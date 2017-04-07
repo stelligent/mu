@@ -7,9 +7,9 @@ import (
 )
 
 type environmentWorkflow struct {
-	environment *common.Environment
+	environment  *common.Environment
 	codeRevision string
-	repoName string
+	repoName     string
 }
 
 func colorizeStackStatus(stackStatus string) string {

@@ -263,7 +263,7 @@ func buildEnvironmentTags(environmentName string, stackType common.StackType, co
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
-		"revision": codeRevision,
-		"repo": repoName,
+		"revision":    codeRevision,
+		"repo":        repoName,
 	}
 }

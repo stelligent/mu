@@ -160,7 +160,7 @@ func buildServiceTags(serviceName string, environmentName string, stackType comm
 		"type":        string(stackType),
 		"environment": environmentName,
 		"service":     serviceName,
-		"revision": codeRevision,
-		"repo": repoName,
+		"revision":    codeRevision,
+		"repo":        repoName,
 	}
 }

@@ -1,16 +1,16 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
-	"fmt"
 )
 
 type pipelineWorkflow struct {
 	serviceName    string
 	pipelineConfig *common.Pipeline
-	codeRevision string
-	repoName string
+	codeRevision   string
+	repoName       string
 }
 
 func colorizeActionStatus(actionStatus string) string {

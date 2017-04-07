@@ -113,6 +113,33 @@ Resources:
             Action: "*"
             Resource: "*"
           Version: '2012-10-17'
+  NoCfnCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: codebuild-allow-all
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: "*"
+            Resource: "*"
+          Version: '2012-10-17'
+      - PolicyName: codebuild-deny-cfn
+        PolicyDocument:
+          Statement:
+          - Effect: Deny
+            Action: cloudformation:*
+            Resource: "*"
+          Version: '2012-10-17'
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -130,24 +157,26 @@ Resources:
         PolicyDocument:
           Statement:
           - Action:
-            - codebuild:*
-            Resource: "*"
+            - codebuild:StartBuild
+            - codebuild:StopBuild
+            - codebuild:UpdateProject
+            Resource:
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-artifact
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-image
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-deploy-acceptance
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-test-acceptance
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-deploy-production
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-test-production
             Effect: Allow
           - Action:
             - codecommit:GetBranch
             - codecommit:GetCommit
-            Resource: "*"
-            Effect: Allow
-          - Action:
-            - s3:GetObject
-            - s3:GetObjectVersion
-            - s3:GetBucketVersioning
-            Resource: "*"
-            Effect: Allow
-          - Action:
-            - s3:PutObject
             Resource:
-            - arn:aws:s3:::codepipeline*
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${SourceRepo}
+            Effect: !If [IsCodeCommit, Allow, Deny]
+          - Action:
+            - s3:*
+            Resource: "*"
             Effect: Allow
           - Action:
             - s3:*
@@ -155,6 +184,7 @@ Resources:
             - ecs:*
             - iam:PassRole
             Resource: "*"
+            # - !Sub arn:aws:s3:::mu-codepipeline-${AWS::Region}-${AWS::AccountId}
             Effect: Allow
           Version: '2012-10-17'
   CodeBuildArtifact:
