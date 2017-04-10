@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
 	"os"
+	"strings"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
@@ -19,6 +20,7 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 			*newEnvironmentsShowCommand(ctx),
 			*newEnvironmentsUpsertCommand(ctx),
 			*newEnvironmentsTerminateCommand(ctx),
+			*newEnvironmentsLogsCommand(ctx),
 		},
 	}
 
@@ -98,6 +100,31 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 				return errors.New("environment must be provided")
 			}
 			workflow := workflows.NewEnvironmentTerminator(ctx, environmentName)
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:  "logs",
+		Usage: "show environment logs",
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "follow, f",
+				Usage: "follow logs for latest changes",
+			},
+		},
+		ArgsUsage: "<environment> [<filter>...]",
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().First()
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "logs")
+				return errors.New("environment must be provided")
+			}
+
+			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Bool("follow"), environmentName, os.Stdout, strings.Join(c.Args().Tail(), " "))
 			return workflow()
 		},
 	}

@@ -2,15 +2,19 @@ package workflows
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"regexp"
+	"strings"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
 func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) Executor {
 
 	workflow := new(pipelineWorkflow)
+	workflow.codeRevision = ctx.Config.Repo.Revision
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	return newWorkflow(
 		workflow.serviceFinder("", ctx),
@@ -32,13 +36,19 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket))
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
-		stackWaiter.AwaitFinalStatus(bucketStackName)
+		stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", bucketStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		return nil
 	}
@@ -123,21 +133,29 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["MuDownloadVersion"] = version
 		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline))
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", pipelineStackName)
-		stackWaiter.AwaitFinalStatus(pipelineStackName)
+		stack := stackWaiter.AwaitFinalStatus(pipelineStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", pipelineStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		return nil
 	}
 }
 
-func buildPipelineTags(serviceName string, stackType common.StackType) map[string]string {
+func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
-		"type":    string(stackType),
-		"service": serviceName,
+		"type":     string(stackType),
+		"service":  serviceName,
+		"revision": codeRevision,
+		"repo":     repoName,
 	}
 }

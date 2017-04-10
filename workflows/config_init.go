@@ -80,7 +80,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		buildspecBytes := new(bytes.Buffer)
 		buildspecBytes.ReadFrom(buildspec)
 
-		log.Noticef("Writing builspec to '%s/buildspec.yml'", basedir)
+		log.Noticef("Writing buildspec to '%s/buildspec.yml'", basedir)
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes.Bytes(), 0600)
 		if err != nil {

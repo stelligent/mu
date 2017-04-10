@@ -23,7 +23,7 @@ func TestNewEnvironmentsCommand(t *testing.T) {
 	assert.Equal(1, len(command.Aliases), "Aliases len should match")
 	assert.Equal("env", command.Aliases[0], "Aliases should match")
 	assert.Equal("options for managing environments", command.Usage, "Usage should match")
-	assert.Equal(4, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(5, len(command.Subcommands), "Subcommands len should match")
 
 	args := []string{"environment", "help"}
 	err := runCommand(command, args)
@@ -87,6 +87,20 @@ func TestNewEnvironmentsTerminateCommand(t *testing.T) {
 	assert.Equal(1, len(command.Aliases), "Aliases len should match")
 	assert.Equal("term", command.Aliases[0], "Aliases should match")
 	assert.Equal("<environment>", command.ArgsUsage, "ArgsUsage should match")
+	assert.NotNil(command.Action)
+}
+func TestNewEnvironmentsLogsCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newEnvironmentsLogsCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("logs", command.Name, "Name should match")
+	assert.Equal("<environment> [<filter>...]", command.ArgsUsage, "ArgsUsage should match")
+	assert.Equal(1, len(command.Flags), "Flags length")
+	assert.Equal("follow, f", command.Flags[0].GetName(), "Flags Name")
 	assert.NotNil(command.Action)
 }
 

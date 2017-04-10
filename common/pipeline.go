@@ -1,10 +1,12 @@
 package common
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
+	"strings"
 )
 
 // PipelineStateLister for getting cluster instances
@@ -12,9 +14,22 @@ type PipelineStateLister interface {
 	ListState(pipelineName string) ([]*codepipeline.StageState, error)
 }
 
+// PipelineGitInfoGetter for getting the git revision
+type PipelineGitInfoGetter interface {
+	GetGitInfo(pipelineName string) (GitInfo, error)
+}
+
+// GitInfo represents pertinent git information
+type GitInfo struct {
+	revision string
+	repoName string
+	orgName  string
+}
+
 // PipelineManager composite of all cluster capabilities
 type PipelineManager interface {
 	PipelineStateLister
+	PipelineGitInfoGetter
 }
 
 type codePipelineManager struct {
@@ -46,4 +61,23 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeli
 	}
 
 	return output.StageStates, nil
+}
+
+func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, error) {
+	stageStates, err := cplMgr.ListState(pipelineName)
+	if err != nil {
+		return GitInfo{}, err
+	}
+
+	for _, stageState := range stageStates {
+		for _, actionState := range stageState.ActionStates {
+			if aws.StringValue(actionState.ActionName) == "Source" {
+				cloneURL := *actionState.EntityUrl
+				parts := strings.Split(cloneURL, "/")
+				return GitInfo{*actionState.CurrentRevision.RevisionId, parts[4], parts[3]}, nil
+			}
+		}
+	}
+
+	return GitInfo{}, fmt.Errorf("Can not obtain git information from CodePipeline: %s", pipelineName)
 }

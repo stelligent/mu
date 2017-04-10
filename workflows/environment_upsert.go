@@ -16,12 +16,15 @@ var bastionImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
-	vpcImportParams := make(map[string]string)
+	ecsStackParams := make(map[string]string)
+	workflow.codeRevision = ctx.Config.Repo.Revision
+	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
 	return newWorkflow(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsUpserter(vpcImportParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentEcsUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -39,7 +42,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -90,23 +93,91 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(vpcImportParams map[
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc))
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
-		stackWaiter.AwaitFinalStatus(vpcStackName)
+		stack := stackWaiter.AwaitFinalStatus(vpcStackName)
 
-		vpcImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		vpcImportParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
-		vpcImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", vpcStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", vpcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		ecsStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		ecsStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+		ecsStackParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", vpcStackName)
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		if !strings.EqualFold(workflow.environment.Discovery.Provider, "consul") {
+			return nil
+		}
+
+		environment := workflow.environment
+		consulStackName := common.CreateStackName(common.StackTypeConsul, environment.Name)
+
+		log.Noticef("Upserting Consul environment '%s' ...", environment.Name)
+		overrides := common.GetStackOverrides(consulStackName)
+		template, err := templates.NewTemplate("consul.yml", environment, overrides)
+		if err != nil {
+			return err
+		}
+
+		stackParams := ecsStackParams
+
+		if environment.Cluster.SSHAllow != "" {
+			stackParams["SshAllow"] = environment.Cluster.SSHAllow
+		}
+		if environment.Cluster.KeyName != "" {
+			stackParams["KeyName"] = environment.Cluster.KeyName
+		}
+		if environment.Cluster.HTTPProxy != "" {
+			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
+		}
+		if environment.Cluster.InstanceType != "" {
+			stackParams["InstanceType"] = environment.Cluster.InstanceType
+		}
+		if environment.Cluster.ImageID != "" {
+			stackParams["ImageId"] = environment.Cluster.ImageID
+		} else {
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+		log.Debugf("Waiting for stack '%s' to complete", consulStackName)
+		stack := stackWaiter.AwaitFinalStatus(consulStackName)
+
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", consulStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		ecsStackParams["ConsulServerAutoScalingGroup"] = stack.Outputs["ConsulServerAutoScalingGroup"]
+		ecsStackParams["ConsulRpcClientSecurityGroup"] = stack.Outputs["ConsulRpcClientSecurityGroup"]
+
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
@@ -118,7 +189,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 			return err
 		}
 
-		stackParams := vpcImportParams
+		stackParams := ecsStackParams
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
@@ -170,20 +241,29 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(vpcImportParams map[
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster))
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
 		log.Debugf("Waiting for stack '%s' to complete", envStackName)
-		stackWaiter.AwaitFinalStatus(envStackName)
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", envStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		return nil
 	}
 }
 
-func buildEnvironmentTags(environmentName string, stackType common.StackType) map[string]string {
+func buildEnvironmentTags(environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
+		"revision":    codeRevision,
+		"repo":        repoName,
 	}
 }

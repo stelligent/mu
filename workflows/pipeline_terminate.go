@@ -1,7 +1,9 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
+	"strings"
 )
 
 // NewPipelineTerminator create a new workflow for terminating a pipeline
@@ -24,7 +26,10 @@ func (workflow *pipelineWorkflow) pipelineTerminator(stackDeleter common.StackDe
 			return err
 		}
 
-		stackWaiter.AwaitFinalStatus(pipelineStackName)
+		stack := stackWaiter.AwaitFinalStatus(pipelineStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 		return nil
 	}
 }

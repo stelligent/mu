@@ -52,6 +52,26 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
 }
 
+func TestNewEnvironmentConsulTerminator(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	stackManager := new(mockedStackManagerForTerminate)
+	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
+	stackManager.On("DeleteStack", "mu-consul-foo").Return(nil)
+
+	err := workflow.environmentConsulTerminator("foo", stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
+}
+
 func TestNewEnvironmentVpcTerminator(t *testing.T) {
 	assert := assert.New(t)
 

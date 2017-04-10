@@ -94,6 +94,60 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
+func TestEnvironmentConsulUpserter_nilProvider(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+
+	err := workflow.environmentConsulUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+}
+
+func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+	workflow.environment.Discovery.Provider = "consul"
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackResult := &common.Stack{
+		Status: cloudformation.StackStatusCreateComplete,
+		Outputs: map[string]string{
+			"ConsulServerAutoScalingGroup": "test-asg",
+			"ConsulRpcClientSecurityGroup": "test-sg",
+		},
+	}
+	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(stackResult)
+	stackManager.On("UpsertStack", "mu-consul-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
+
+	err := workflow.environmentConsulUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	assert.Equal("test-asg", vpcInputParams["ConsulServerAutoScalingGroup"])
+	assert.Equal("test-sg", vpcInputParams["ConsulRpcClientSecurityGroup"])
+}
+
 func TestEnvironmentVpcUpserter(t *testing.T) {
 	assert := assert.New(t)
 

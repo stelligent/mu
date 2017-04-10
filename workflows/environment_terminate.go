@@ -1,7 +1,9 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
+	"strings"
 )
 
 // NewEnvironmentTerminator create a new workflow for terminating an environment
@@ -12,6 +14,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	return newWorkflow(
 		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentConsulTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 		workflow.environmentVpcTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -43,6 +46,23 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(environmentNam
 		return nil
 	}
 }
+func (workflow *environmentWorkflow) environmentConsulTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Terminating Consul environment '%s' ...", environmentName)
+		envStackName := common.CreateStackName(common.StackTypeConsul, environmentName)
+		err := stackDeleter.DeleteStack(envStackName)
+		if err != nil {
+			return err
+		}
+
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		return nil
+	}
+}
 func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating ECS environment '%s' ...", environmentName)
@@ -52,7 +72,11 @@ func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName st
 			return err
 		}
 
-		stackWaiter.AwaitFinalStatus(envStackName)
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
 		return nil
 	}
 }
@@ -65,7 +89,10 @@ func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName st
 			log.Debugf("Unable to delete VPC, but ignoring error: %v", err)
 		}
 
-		stackWaiter.AwaitFinalStatus(vpcStackName)
+		stack := stackWaiter.AwaitFinalStatus(vpcStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
 
 		targetStackName := common.CreateStackName(common.StackTypeTarget, environmentName)
 		err = stackDeleter.DeleteStack(targetStackName)
@@ -73,7 +100,11 @@ func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName st
 			log.Debugf("Unable to delete VPC target, but ignoring error: %v", err)
 		}
 
-		stackWaiter.AwaitFinalStatus(targetStackName)
+		stack = stackWaiter.AwaitFinalStatus(targetStackName)
+		if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
 		return nil
 	}
 }

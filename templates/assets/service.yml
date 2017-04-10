@@ -97,7 +97,6 @@ Resources:
       TaskDefinition: !Ref MicroserviceTaskDefinition
   EcsServiceRole:
     Type: AWS::IAM::Role
-    Condition: HasPathPattern
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -126,7 +125,6 @@ Resources:
             Resource: "*"
   EcsTaskRole:
     Type: AWS::IAM::Role
-    Condition: HasPathPattern
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -145,6 +143,11 @@ Resources:
             Action:
             - ecs:DescribeTasks
             Resource: "*"
+  ServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
   MicroserviceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -164,10 +167,9 @@ Resources:
         LogConfiguration:
           LogDriver: awslogs
           Options:
-            awslogs-group:
-              Fn::ImportValue: !Sub ${EcsCluster}
+            awslogs-group: !Ref AWS::StackName
             awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: service
+            awslogs-stream-prefix: container
         PortMappings:
         - HostPort: 0
           ContainerPort: !Ref ServicePort

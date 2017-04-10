@@ -19,6 +19,7 @@ func newPipelinesCommand(ctx *common.Context) *cli.Command {
 			*newPipelinesListCommand(ctx),
 			*newPipelinesUpsertCommand(ctx),
 			*newPipelinesTerminateCommand(ctx),
+			*newPipelinesLogsCommand(ctx),
 		},
 	}
 
@@ -80,6 +81,30 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 
 				return token
 			})
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+func newPipelinesLogsCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:  "logs",
+		Usage: "show pipeline logs",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "service, s",
+				Usage: "service name to view logs for",
+			},
+			cli.BoolFlag{
+				Name:  "follow, f",
+				Usage: "follow logs for latest changes",
+			},
+		},
+		ArgsUsage: "[<filter>...]",
+		Action: func(c *cli.Context) error {
+			serviceName := c.String("service")
+			workflow := workflows.NewPipelineLogViewer(ctx, c.Bool("follow"), serviceName, os.Stdout, strings.Join(c.Args(), " "))
 			return workflow()
 		},
 	}

@@ -12,6 +12,7 @@ type Context struct {
 	ClusterManager  ClusterManager
 	ElbManager      ElbManager
 	PipelineManager PipelineManager
+	LogsManager     LogsManager
 	DockerManager   DockerManager
 	DockerOut       io.Writer
 }
@@ -23,6 +24,7 @@ type Config struct {
 	Basedir      string        `yaml:"-"`
 	Repo         struct {
 		Name     string
+		OrgName  string
 		Slug     string
 		Revision string
 		Provider string
@@ -51,6 +53,10 @@ type Environment struct {
 		ScaleInThreshold  int    `yaml:"scaleInThreshold,omitempty"`
 		HTTPProxy         string `yaml:"httpProxy,omitempty"`
 	} `yaml:"cluster,omitempty"`
+	Discovery struct {
+		Provider      string            `yaml:"provider,omitempty"`
+		Configuration map[string]string `yaml:"configuration,omitempty"`
+	} `yaml:"discovery,omitempty"`
 	VpcTarget struct {
 		VpcID        string   `yaml:"vpcId,omitempty"`
 		EcsSubnetIds []string `yaml:"ecsSubnetIds,omitempty"`
@@ -119,6 +125,7 @@ const (
 	StackTypeVpc      StackType = "vpc"
 	StackTypeTarget             = "target"
 	StackTypeCluster            = "cluster"
+	StackTypeConsul             = "consul"
 	StackTypeRepo               = "repo"
 	StackTypeService            = "service"
 	StackTypePipeline           = "pipeline"

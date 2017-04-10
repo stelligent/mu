@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
 )
@@ -8,6 +9,8 @@ import (
 type pipelineWorkflow struct {
 	serviceName    string
 	pipelineConfig *common.Pipeline
+	codeRevision   string
+	repoName       string
 }
 
 func colorizeActionStatus(actionStatus string) string {
@@ -39,13 +42,18 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		}
 
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
+		workflow.codeRevision = ctx.Config.Repo.Revision
 
+		repoName := fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 		if workflow.pipelineConfig.Source.Repo == "" {
-			workflow.pipelineConfig.Source.Repo = ctx.Config.Repo.Name
+			workflow.pipelineConfig.Source.Repo = repoName
+			workflow.repoName = repoName
+		} else {
+			workflow.repoName = repoName
 		}
+
 		if workflow.pipelineConfig.Source.Provider == "" {
 			if ctx.Config.Repo.Provider == "" {
-
 				workflow.pipelineConfig.Source.Provider = "GitHub"
 			} else {
 				workflow.pipelineConfig.Source.Provider = ctx.Config.Repo.Provider

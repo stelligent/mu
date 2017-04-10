@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -43,16 +44,38 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	log.Debugf("Setting basedir=%s", ctx.Config.Basedir)
 
 	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
-	log.Debugf("Setting repo name=%s", ctx.Config.Repo.Name)
-
 	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
 
+	// Get the git revision from the .git folder
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
 		ctx.Config.Repo.Revision = gitRevision
 	} else {
 		log.Warningf("Unable to determine git revision: %s", err.Error())
+
+		// The .git folder does not exist, check to see if we are in CodeBuild
+		if os.Getenv("CODEBUILD_INITIATOR") != "" {
+			log.Warningf("Trying to determine git revision from CodeBuild initiator.")
+			initiator := os.Getenv("CODEBUILD_INITIATOR")
+			parts := strings.Split(initiator, "/")
+
+			// See if the build was initiated by CodePipeline
+			if parts[0] == "codepipeline" {
+				// Try retrieving the revision from the CodePipeline status
+				gitInfo, err := ctx.PipelineManager.GetGitInfo(parts[1])
+				if err != nil {
+					log.Warningf("Unable to determine git information from CodeBuild initiator: %s", initiator)
+				}
+
+				ctx.Config.Repo.Revision = string(gitInfo.revision[:7])
+				ctx.Config.Repo.Name = gitInfo.repoName
+				ctx.Config.Repo.OrgName = gitInfo.orgName
+			} else {
+				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
+			}
+		}
 	}
+	log.Debugf("Setting repo name=%s", ctx.Config.Repo.Name)
 	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
 
 	gitProvider, gitSlug, err := findGitSlug(ctx.Config.Basedir)
@@ -126,6 +149,12 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 
 	// initialize CodePipelineManager
 	ctx.PipelineManager, err = newPipelineManager(sess)
+	if err != nil {
+		return err
+	}
+
+	// initialize CloudWatchLogs
+	ctx.LogsManager, err = newLogsManager(sess)
 	if err != nil {
 		return err
 	}
