@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
+	"time"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -119,6 +120,11 @@ func newServicesLogsCommand(ctx *common.Context) *cli.Command {
 				Name:  "follow, f",
 				Usage: "follow logs for latest changes",
 			},
+			cli.DurationFlag{
+				Name:  "search-duration, t",
+				Usage: "duration to go into the past for searching (e.g. 5m for 5 minutes)",
+				Value: 1 * time.Minute,
+			},
 		},
 		ArgsUsage: "<environment> [<filter>...]",
 		Action: func(c *cli.Context) error {
@@ -129,7 +135,7 @@ func newServicesLogsCommand(ctx *common.Context) *cli.Command {
 			}
 			serviceName := c.String("service")
 
-			workflow := workflows.NewServiceLogViewer(ctx, c.Bool("follow"), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), " "))
+			workflow := workflows.NewServiceLogViewer(ctx, c.Duration("search-duration"), c.Bool("follow"), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), " "))
 			return workflow()
 		},
 	}

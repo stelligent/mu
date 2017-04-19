@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
+	"time"
 )
 
 type mockedCwLogs struct {
@@ -48,7 +49,9 @@ func TestLogsManager_ViewLogs(t *testing.T) {
 		events++
 	}
 
-	err := lm.ViewLogs("foo", false, "", cb)
+	searchDuration := 30 * time.Second
+
+	err := lm.ViewLogs("foo", searchDuration, false, "", cb)
 	assert.Nil(err)
 	assert.Equal(2, events)
 

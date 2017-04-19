@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
+	"time"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
@@ -115,6 +116,11 @@ func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 				Name:  "follow, f",
 				Usage: "follow logs for latest changes",
 			},
+			cli.DurationFlag{
+				Name:  "search-duration, t",
+				Usage: "duration to go into the past for searching (e.g. 5m for 5 minutes)",
+				Value: 1 * time.Minute,
+			},
 		},
 		ArgsUsage: "<environment> [<filter>...]",
 		Action: func(c *cli.Context) error {
@@ -124,7 +130,7 @@ func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 				return errors.New("environment must be provided")
 			}
 
-			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Bool("follow"), environmentName, os.Stdout, strings.Join(c.Args().Tail(), " "))
+			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Duration("search-duration"), c.Bool("follow"), environmentName, os.Stdout, strings.Join(c.Args().Tail(), " "))
 			return workflow()
 		},
 	}

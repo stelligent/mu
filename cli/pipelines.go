@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {
@@ -100,11 +101,17 @@ func newPipelinesLogsCommand(ctx *common.Context) *cli.Command {
 				Name:  "follow, f",
 				Usage: "follow logs for latest changes",
 			},
+			cli.DurationFlag{
+				Name:  "search-duration, t",
+				Usage: "duration to go into the past for searching (e.g. 5m for 5 minutes)",
+				Value: 1 * time.Minute,
+			},
 		},
 		ArgsUsage: "[<filter>...]",
 		Action: func(c *cli.Context) error {
 			serviceName := c.String("service")
-			workflow := workflows.NewPipelineLogViewer(ctx, c.Bool("follow"), serviceName, os.Stdout, strings.Join(c.Args(), " "))
+
+			workflow := workflows.NewPipelineLogViewer(ctx, c.Duration("search-duration"), c.Bool("follow"), serviceName, os.Stdout, strings.Join(c.Args(), " "))
 			return workflow()
 		},
 	}

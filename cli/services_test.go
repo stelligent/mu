@@ -87,8 +87,9 @@ func TestNewServicesLogsCommand(t *testing.T) {
 	assert.NotNil(command)
 	assert.Equal("logs", command.Name, "Name should match")
 	assert.Equal("<environment> [<filter>...]", command.ArgsUsage, "ArgsUsage should match")
-	assert.Equal(2, len(command.Flags), "Flags length")
+	assert.Equal(3, len(command.Flags), "Flags length")
 	assert.Equal("service, s", command.Flags[0].GetName(), "Flags Name")
 	assert.Equal("follow, f", command.Flags[1].GetName(), "Flags Name")
+	assert.Equal("search-duration, t", command.Flags[2].GetName(), "Flags Name")
 	assert.NotNil(command.Action)
 }
