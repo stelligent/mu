@@ -15,13 +15,20 @@ func SetupLogging(verbosity int) {
 	errLeveled := logging.AddModuleLevel(errFormatter)
 	errLeveled.SetLevel(logging.ERROR, "")
 
+	warnFormat := logging.MustStringFormatter(
+		`%{color}%{message}%{color:reset}`,
+	)
+	warnFormatter := logging.NewBackendFormatter(errBackend, warnFormat)
+	warnLeveled := logging.AddModuleLevel(notToExceedLevel(logging.WARNING, warnFormatter))
+	warnLeveled.SetLevel(logging.WARNING, "")
+
 	if verbosity >= 1 {
 		infoBackend := logging.NewLogBackend(os.Stdout, "", 0)
 		infoFormat := logging.MustStringFormatter(
 			`%{color}%{message}%{color:reset}`,
 		)
 		infoFormatter := logging.NewBackendFormatter(infoBackend, infoFormat)
-		infoLeveled := logging.AddModuleLevel(notToExceedLevel(logging.WARNING, infoFormatter))
+		infoLeveled := logging.AddModuleLevel(notToExceedLevel(logging.INFO, infoFormatter))
 		infoLeveled.SetLevel(logging.INFO, "")
 
 		if verbosity >= 2 {
@@ -33,12 +40,12 @@ func SetupLogging(verbosity int) {
 			debugLeveled := logging.AddModuleLevel(notToExceedLevel(logging.DEBUG, debugFormatter))
 			debugLeveled.SetLevel(logging.DEBUG, "")
 
-			logging.SetBackend(debugLeveled, infoLeveled, errLeveled)
+			logging.SetBackend(debugLeveled, infoLeveled, warnLeveled, errLeveled)
 		} else {
-			logging.SetBackend(infoLeveled, errLeveled)
+			logging.SetBackend(infoLeveled, warnLeveled, errLeveled)
 		}
 	} else {
-		logging.SetBackend(errLeveled)
+		logging.SetBackend(warnLeveled, errLeveled)
 	}
 
 }
