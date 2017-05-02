@@ -129,5 +129,6 @@ const (
 	StackTypeRepo               = "repo"
 	StackTypeService            = "service"
 	StackTypePipeline           = "pipeline"
+	StackTypeDatabase           = "database"
 	StackTypeBucket             = "bucket"
 )

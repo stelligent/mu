@@ -1,0 +1,74 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU database in a specific environment
+Parameters:
+  DatabaseName:
+    Type: String
+    Description: Name of database
+  DatabaseEngine:
+    Type: String
+    Description: Engine for database
+    Default: aurora
+  DatabaseInstanceClass:
+    Type: String
+    Description: Instance class for database
+    Default: db.t2.small
+  DatabaseMasterUsername:
+    Type: String
+    Description: Username of database
+  DatabaseMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Password of database
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  EcsSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+Resources:
+  DBSubnetsGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: DB subnets
+      SubnetIds:
+      Subnets:
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${EcsSubnetIds}
+  DBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: DB security groups
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      SecurityGroupIngress:
+        -
+          IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          CidrIp: 10.0.0.0/0
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      PubliclyAccessible: false
+      DBName: !Sub ${DatabaseName}
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName:
+        Ref: DBSubnetsGroup
+      VPCSecurityGroups:
+      - Ref: DBSecurityGroup
+      Engine: !Ref DatabaseEngine
+      MasterUsername: !Ref DatabaseMasterUsername
+      MasterUserPassword: !Ref DatabaseMasterPassword
+      Tags:
+      - Key: Name
+        Value: !Ref DatabaseName
+    DeletionPolicy: Snapshot
+Outputs:
+  DatabaseEndpointAddress:
+    Description: DB Endpoint Address
+    Value: !Sub ${DBInstance.Endpoint.Address}
+  DatabaseEndpointPort:
+    Description: DB Endpoint Port
+    Value: !Sub ${DBInstance.Endpoint.Port}

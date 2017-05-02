@@ -161,7 +161,7 @@ Resources:
         Environment:
           {{range $key, $val := .}}
           - Name: {{$key}}
-            Value: {{$val}}
+            Value: !Sub {{$val}}
           {{end}}
         {{end}}
         LogConfiguration:
