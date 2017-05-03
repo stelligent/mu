@@ -13,6 +13,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 
 	return newWorkflow(
 		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentDbTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 		workflow.environmentConsulTerminator(environmentName, ctx.StackManager, ctx.StackManager),
 		workflow.environmentVpcTerminator(environmentName, ctx.StackManager, ctx.StackManager),
@@ -40,6 +41,33 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(environmentNam
 				continue
 			}
 			log.Infof("   Undeploying service '%s' from environment '%s'", stack.Tags["service"], environmentName)
+			stackWaiter.AwaitFinalStatus(stack.Name)
+		}
+
+		return nil
+	}
+}
+func (workflow *environmentWorkflow) environmentDbTerminator(environmentName string, stackLister common.StackLister, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Terminating Databases for environment '%s' ...", environmentName)
+		stacks, err := stackLister.ListStacks(common.StackTypeDatabase)
+		if err != nil {
+			return err
+		}
+		for _, stack := range stacks {
+			if stack.Tags["environment"] != environmentName {
+				continue
+			}
+			err := stackDeleter.DeleteStack(stack.Name)
+			if err != nil {
+				return err
+			}
+		}
+		for _, stack := range stacks {
+			if stack.Tags["environment"] != environmentName {
+				continue
+			}
+			log.Infof("   Terminating database for service '%s' from environment '%s'", stack.Tags["service"], environmentName)
 			stackWaiter.AwaitFinalStatus(stack.Name)
 		}
 
