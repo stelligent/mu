@@ -65,6 +65,16 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 			}
 		}
 
+		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
+		if dbStack != nil {
+			ecsImportParams["DatabaseName"] = dbStack.Outputs["DatabaseName"]
+			ecsImportParams["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
+			ecsImportParams["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
+			ecsImportParams["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
+			ecsImportParams["DatabaseMasterPassword"] = "changeme"
+		}
+
 		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 		if workflow.priority > 0 {

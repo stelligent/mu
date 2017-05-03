@@ -11,6 +11,7 @@ type Context struct {
 	StackManager    StackManager
 	ClusterManager  ClusterManager
 	ElbManager      ElbManager
+	RdsManager      RdsManager
 	PipelineManager PipelineManager
 	LogsManager     LogsManager
 	DockerManager   DockerManager
@@ -78,6 +79,17 @@ type Service struct {
 	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
 	Priority        int                    `yaml:"priority,omitempty"`
 	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
+	Database        Database               `yaml:"database,omitempty"`
+}
+
+// Database definition
+type Database struct {
+	Name              string `yaml:"name,omitempty"`
+	InstanceClass     string `yaml:"instanceClass,omitempty"`
+	Engine            string `yaml:"engine,omitempty"`
+	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
 }
 
 // Pipeline definition

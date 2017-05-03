@@ -14,23 +14,41 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
 
-	svcWorkflow := new(serviceWorkflow)
-
 	ecsImportParams := make(map[string]string)
 
 	return newWorkflow(
 		workflow.databaseInput(ctx, ""),
-		svcWorkflow.serviceLoader(ctx, ""),
-		svcWorkflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
-		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.databaseEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
+		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager),
 	)
 }
 
-func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
-		log.Noticef("Deploying database '%s' to '%s'", workflow.serviceName, environmentName)
+		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
 
-		stackParams["DatabaseName"] = workflow.serviceName
+		if ecsStack == nil {
+			return fmt.Errorf("Unable to find stack '%s' for environment '%s'", ecsStackName, environmentName)
+		}
+
+		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
+		ecsImportParams["EcsInstanceSecurityGroup"] = fmt.Sprintf("%s-EcsInstanceSecurityGroup", ecsStackName)
+		ecsImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", ecsStackName)
+
+		return nil
+	}
+}
+
+func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter) Executor {
+	return func() error {
+
+		if service.Database.Name == "" {
+			log.Noticef("Skipping database since database.name is unset")
+			return nil
+		}
+
+		log.Noticef("Deploying database '%s' to '%s'", workflow.serviceName, environmentName)
 
 		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
 
@@ -39,6 +57,25 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 		if err != nil {
 			return err
 		}
+
+		stackParams["DatabaseName"] = service.Database.Name
+
+		if service.Database.Engine != "" {
+			stackParams["DatabaseEngine"] = service.Database.Engine
+		}
+
+		if service.Database.InstanceClass != "" {
+			stackParams["DatabaseInstanceClass"] = service.Database.InstanceClass
+		}
+		if service.Database.AllocatedStorage != "" {
+			stackParams["DatabaseStorage"] = service.Database.AllocatedStorage
+		}
+		if service.Database.MasterUsername != "" {
+			stackParams["DatabaseMasterUsername"] = service.Database.MasterUsername
+		}
+
+		//DatabaseMasterPassword:
+		stackParams["DatabaseMasterPassword"] = "changeme"
 
 		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, buildDatabaseTags(workflow.serviceName, environmentName, common.StackTypeDatabase, workflow.codeRevision, workflow.repoName))
 		if err != nil {
@@ -53,7 +90,8 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		return nil
+		// update IAM Authentication
+		return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
 	}
 }
 func buildDatabaseTags(serviceName string, environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {

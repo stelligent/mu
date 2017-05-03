@@ -661,6 +661,17 @@ Outputs:
     Description: VPC ID for the ECS cluster
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
+  EcsInstanceSecurityGroup:
+    Value: !Ref HostSG
+    Description: Security Group ID for the ECS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsInstanceSecurityGroup
+  EcsSubnetIds:
+    Value:
+      Fn::ImportValue: !Sub ${EcsSubnetIds}
+    Description: Subnet Ids for the ECS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsSubnetIds
   EcsElbHttpListenerArn:
     Value: !Ref EcsElbHttpListener
     Description: Arn of the ELB HTTP Listener.
