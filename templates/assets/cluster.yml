@@ -150,7 +150,8 @@ Resources:
       ClusterName: !Ref AWS::StackName
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn: []
+    DependsOn:
+    - ClusterLogGroup
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
