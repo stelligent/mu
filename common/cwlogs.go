@@ -10,7 +10,7 @@ import (
 
 // LogsViewer for viewing cloudwatch logs
 type LogsViewer interface {
-	ViewLogs(logGroup string, follow bool, filter string, callback func(string, string, int64)) error
+	ViewLogs(logGroup string, searchDuration time.Duration, follow bool, filter string, callback func(string, string, int64)) error
 }
 
 // LogsManager composite of all logs capabilities
@@ -32,15 +32,10 @@ func newLogsManager(sess *session.Session) (LogsManager, error) {
 }
 
 // ViewLogs view the logs in CW
-func (logsMgr *logsManager) ViewLogs(logGroup string, follow bool, filter string, callback func(string, string, int64)) error {
+func (logsMgr *logsManager) ViewLogs(logGroup string, searchDuration time.Duration, follow bool, filter string, callback func(string, string, int64)) error {
 	logsAPI := logsMgr.logsAPI
 
-	startTime := int64(0)
-
-	// if following, only go back 30 seconds
-	if follow {
-		startTime = int64((time.Now().Unix() - 30) * 1000)
-	}
+	startTime := time.Now().Add(-searchDuration).Unix() * 1000
 
 	for {
 		log.Debugf("Searching for logs in log_group '%s' after time '%d' and filter '%s'", logGroup, startTime, filter)
