@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"crypto/rand"
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
@@ -19,7 +20,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 	return newWorkflow(
 		workflow.databaseInput(ctx, ""),
 		workflow.databaseEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
-		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager),
+		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
 	)
 }
 
@@ -40,7 +41,7 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName stri
 	}
 }
 
-func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter) Executor {
+func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter, paramManager common.ParamManager) Executor {
 	return func() error {
 
 		if service.Database.Name == "" {
@@ -75,7 +76,15 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 		}
 
 		//DatabaseMasterPassword:
-		stackParams["DatabaseMasterPassword"] = "changeme"
+		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		if dbPass == "" {
+			dbPass = randomPassword(32)
+			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass)
+			if err != nil {
+				return err
+			}
+		}
+		stackParams["DatabaseMasterPassword"] = dbPass
 
 		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, buildDatabaseTags(workflow.serviceName, environmentName, common.StackTypeDatabase, workflow.codeRevision, workflow.repoName))
 		if err != nil {
@@ -102,4 +111,43 @@ func buildDatabaseTags(serviceName string, environmentName string, stackType com
 		"revision":    codeRevision,
 		"repo":        repoName,
 	}
+}
+
+func randomPassword(length int) string {
+	availableCharBytes := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+	// Compute bitMask
+	availableCharLength := len(availableCharBytes)
+	if availableCharLength == 0 || availableCharLength > 256 {
+		panic("availableCharBytes length must be greater than 0 and less than or equal to 256")
+	}
+	var bitLength byte
+	var bitMask byte
+	for bits := availableCharLength - 1; bits != 0; {
+		bits = bits >> 1
+		bitLength++
+	}
+	bitMask = 1<<bitLength - 1
+
+	// Compute bufferSize
+	bufferSize := length + length/3
+
+	// Create random string
+	result := make([]byte, length)
+	for i, j, randomBytes := 0, 0, []byte{}; i < length; j++ {
+		if j%bufferSize == 0 {
+			randomBytes = make([]byte, length)
+			_, err := rand.Read(randomBytes)
+			if err != nil {
+				log.Fatal("Unable to generate random bytes")
+			}
+		}
+		// Mask bytes to get an index into the character slice
+		if idx := int(randomBytes[j%length] & bitMask); idx < availableCharLength {
+			result[i] = availableCharBytes[idx]
+			i++
+		}
+	}
+
+	return string(result)
 }

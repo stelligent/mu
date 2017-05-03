@@ -12,6 +12,7 @@ type Context struct {
 	ClusterManager  ClusterManager
 	ElbManager      ElbManager
 	RdsManager      RdsManager
+	ParamManager    ParamManager
 	PipelineManager PipelineManager
 	LogsManager     LogsManager
 	DockerManager   DockerManager

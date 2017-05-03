@@ -36,6 +36,8 @@ func TestServiceEnvironmentLoader_Create(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(nil).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
+	paramManager := new(mockedParamManager)
+
 	elbRuleLister := new(mockedElbManager)
 	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
 		{Priority: aws.String("15")},
@@ -46,7 +48,7 @@ func TestServiceEnvironmentLoader_Create(t *testing.T) {
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister)()
+	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("mu-cluster-dev-VpcId", params["VpcId"])
@@ -70,6 +72,8 @@ func TestServiceEnvironmentLoader_Update(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
+	paramManager := new(mockedParamManager)
+
 	elbRuleLister := new(mockedElbManager)
 	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
 		{Priority: aws.String("15")},
@@ -80,7 +84,7 @@ func TestServiceEnvironmentLoader_Update(t *testing.T) {
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister)()
+	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("", params["ListenerRulePriority"])
@@ -100,6 +104,8 @@ func TestServiceEnvironmentLoader_StaticPriority(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
+	paramManager := new(mockedParamManager)
+
 	elbRuleLister := new(mockedElbManager)
 	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
 		{Priority: aws.String("15")},
@@ -111,7 +117,7 @@ func TestServiceEnvironmentLoader_StaticPriority(t *testing.T) {
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
 	workflow.priority = 77
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister)()
+	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("77", params["ListenerRulePriority"])
@@ -127,13 +133,15 @@ func TestServiceEnvironmentLoader_NotFound(t *testing.T) {
 	stackManager := new(mockedStackManagerForService)
 	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(nil)
 
+	paramManager := new(mockedParamManager)
+
 	elbRuleLister := new(mockedElbManager)
 	elbRuleLister.On("ListRules", "foo").Return(nil)
 
 	params := make(map[string]string)
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister)()
+	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
 
 	assert.NotNil(err)
 

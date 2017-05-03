@@ -153,6 +153,12 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 		return err
 	}
 
+	// initialize ParamManager
+	ctx.ParamManager, err = newParamManager(sess)
+	if err != nil {
+		return err
+	}
+
 	// initialize CodePipelineManager
 	ctx.PipelineManager, err = newPipelineManager(sess)
 	if err != nil {

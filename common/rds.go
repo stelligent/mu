@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds/rdsiface"
 )
 
-// RdsIamAuthenticationSetter for getting cluster instances
+// RdsIamAuthenticationSetter for getting db instances
 type RdsIamAuthenticationSetter interface {
 	SetIamAuthentication(dbInstanceIdentifier string, enabled bool, dbEngine string) error
 }
@@ -30,7 +30,7 @@ func newRdsManager(sess *session.Session) (RdsManager, error) {
 	}, nil
 }
 
-// ListState get the state of the pipeline
+// SetIamAuthentication set value of RDS IAM authentication
 func (rdsMgr *rdsManager) SetIamAuthentication(dbInstanceIdentifier string, enabled bool, dbEngine string) error {
 	rdsAPI := rdsMgr.rdsAPI
 
