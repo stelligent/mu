@@ -132,7 +132,7 @@ func assetsClusterYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/cluster.yml", size: 21654, mode: os.FileMode(420), modTime: time.Unix(1493794632, 0)}
+	info := bindataFileInfo{name: "assets/cluster.yml", size: 21654, mode: os.FileMode(420), modTime: time.Unix(1493833879, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -172,7 +172,7 @@ func assetsDatabaseYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/database.yml", size: 4435, mode: os.FileMode(420), modTime: time.Unix(1493822306, 0)}
+	info := bindataFileInfo{name: "assets/database.yml", size: 4435, mode: os.FileMode(420), modTime: time.Unix(1493833879, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -192,7 +192,7 @@ func assetsPipelineYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline.yml", size: 13379, mode: os.FileMode(420), modTime: time.Unix(1493794729, 0)}
+	info := bindataFileInfo{name: "assets/pipeline.yml", size: 13379, mode: os.FileMode(420), modTime: time.Unix(1493833879, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -232,7 +232,7 @@ func assetsServiceYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service.yml", size: 7112, mode: os.FileMode(420), modTime: time.Unix(1493822837, 0)}
+	info := bindataFileInfo{name: "assets/service.yml", size: 7112, mode: os.FileMode(420), modTime: time.Unix(1493833879, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
