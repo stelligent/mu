@@ -21,7 +21,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newWorkflow(
 		workflow.serviceLoader(ctx, tag),
 		workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
+		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager, ctx.ParamManager),
 		workflow.serviceDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -42,7 +42,7 @@ func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int 
 	return maxPriority
 }
 
-func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
+func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
 	return func() error {
 		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
@@ -63,6 +63,18 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 			if nextAvailablePriority == 0 {
 				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, ecsStack.Outputs["EcsElbHttpsListenerArn"])
 			}
+		}
+
+		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
+		if dbStack != nil {
+			ecsImportParams["DatabaseName"] = dbStack.Outputs["DatabaseName"]
+			ecsImportParams["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
+			ecsImportParams["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
+			ecsImportParams["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
+
+			dbPass, _ := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			ecsImportParams["DatabaseMasterPassword"] = dbPass
 		}
 
 		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)

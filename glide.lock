@@ -1,8 +1,8 @@
-hash: 45286786cc2fa734a6c7953c7d30ae1690783f30d01e1184356ba1cf8b6d8af3
-updated: 2017-03-17T08:47:28.869372254-07:00
+hash: 47b5385a75bf795ce1933dc24f01379b510f70e77d09e25dc881d2c5289d6c42
+updated: 2017-05-02T23:00:18.517062545-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: 00fb2125993965df739fa3398b03bef3eb2e198f
+  version: 0dbc446aca87aebb6e0a24509b59bafc0e3ec0ae
   subpackages:
   - aws
   - aws/awserr
@@ -28,9 +28,10 @@ imports:
   - private/protocol/query/queryutil
   - private/protocol/rest
   - private/protocol/xml/xmlutil
-  - private/waiter
   - service/cloudformation
   - service/cloudformation/cloudformationiface
+  - service/cloudwatchlogs
+  - service/cloudwatchlogs/cloudwatchlogsiface
   - service/codepipeline
   - service/codepipeline/codepipelineiface
   - service/ec2
@@ -41,6 +42,8 @@ imports:
   - service/ecs/ecsiface
   - service/elbv2
   - service/elbv2/elbv2iface
+  - service/rds
+  - service/rds/rdsiface
   - service/sts
 - name: github.com/briandowns/spinner
   version: ec599f41a86d9a71c359e224bd71a2df3e909a3d
@@ -112,8 +115,6 @@ imports:
   - libcontainer/user
 - name: github.com/pkg/errors
   version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
-- name: github.com/robfig/config
-  version: 0f78529c8c7e3e9a25f15876532ecbc07c7d99e6
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: github.com/speedata/gogit

@@ -49,6 +49,27 @@ Parameters:
     Type: String
     Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
     Default: ''
+  DatabaseName:
+    Type: String
+    Description: Name of database
+    Default: ""
+  DatabaseMasterUsername:
+    Type: String
+    Description: Username of database
+    Default: ""
+  DatabaseMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Password of database
+    Default: ""
+  DatabaseEndpointAddress:
+    Type: String
+    Description: Endpoint address of database
+    Default: ""
+  DatabaseEndpointPort:
+    Type: String
+    Description: Endpoint port of database
+    Default: ""
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -161,7 +182,7 @@ Resources:
         Environment:
           {{range $key, $val := .}}
           - Name: {{$key}}
-            Value: {{$val}}
+            Value: !Sub {{$val}}
           {{end}}
         {{end}}
         LogConfiguration:

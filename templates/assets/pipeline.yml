@@ -229,6 +229,7 @@ Resources:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} db up ${TestEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} svc deploy ${TestEnv}
                 - mu env show ${TestEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
@@ -278,6 +279,7 @@ Resources:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
                 - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} db up ${ProdEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} svc deploy ${ProdEnv}
                 - mu env show ${ProdEnv} -f json > env.json
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml

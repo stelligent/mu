@@ -1,0 +1,156 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU database in a specific environment
+Parameters:
+  DatabaseEngine:
+    Type: String
+    Description: Engine for database
+    Default: aurora
+  DatabaseInstanceClass:
+    Type: String
+    Description: Instance class for database
+    Default: db.t2.small
+  DatabaseMasterUsername:
+    Type: String
+    Description: Username of database
+    Default: admin
+  DatabaseName:
+    Type: String
+    Description: Name of database
+  DatabaseMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Password of database
+  DatabaseStorage:
+    Type: Number
+    Description: Allocated storage for DB
+    Default: 100
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  EcsSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+  EcsInstanceSecurityGroup:
+    Type: String
+    Description: Name of the value to import for the ecs security group id
+Conditions:
+  IsClustered:
+    "Fn::Equals":
+      - !Ref DatabaseEngine
+      - 'aurora'
+  IsStandalone:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref DatabaseEngine
+        - 'aurora'
+Resources:
+  DBSubnetsGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: DB subnets
+      SubnetIds:
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${EcsSubnetIds}
+  DBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: DB security groups
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+        - IpProtocol: tcp
+          FromPort: '3306'
+          ToPort: '3306'
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+        - IpProtocol: tcp
+          FromPort: '1433'
+          ToPort: '1433'
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+        - IpProtocol: tcp
+          FromPort: '1521'
+          ToPort: '1521'
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    Condition: IsClustered
+    Properties:
+      DatabaseName: !Ref DatabaseName
+      DBSubnetGroupName: !Ref DBSubnetsGroup
+      Engine: !Ref DatabaseEngine
+      MasterUsername: !Ref DatabaseMasterUsername
+      MasterUserPassword: !Ref DatabaseMasterPassword
+      Tags:
+      - Key: Name
+        Value: !Ref DatabaseName
+      VpcSecurityGroupIds:
+      - Ref: DBSecurityGroup
+    DeletionPolicy: Snapshot
+  DBInstanceClustered:
+    Type: AWS::RDS::DBInstance
+    Condition: IsClustered
+    Properties:
+      PubliclyAccessible: false
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DBSubnetsGroup
+      Engine: !Ref DatabaseEngine
+      Tags:
+      - Key: Name
+        Value: !Ref DatabaseName
+  DBInstanceStandalone:
+    Type: AWS::RDS::DBInstance
+    Condition: IsStandalone
+    Properties:
+      PubliclyAccessible: false
+      AllocatedStorage: !Ref DatabaseStorage
+      StorageType: gp2
+      DBName: !Sub ${DatabaseName}
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DBSubnetsGroup
+      VPCSecurityGroups:
+      - Ref: DBSecurityGroup
+      Engine: !Ref DatabaseEngine
+      MasterUsername: !Ref DatabaseMasterUsername
+      MasterUserPassword: !Ref DatabaseMasterPassword
+      Tags:
+      - Key: Name
+        Value: !Ref DatabaseName
+    DeletionPolicy: Snapshot
+Outputs:
+  DatabaseIdentifier:
+    Description: DB Identifier
+    Value:
+      Fn::If:
+      - IsClustered
+      - !Ref DBCluster
+      - !Ref DBInstanceStandalone
+  DatabaseName:
+    Description: DB Name
+    Value: !Ref DatabaseName
+  DatabaseMasterUsername:
+    Description: DB Username
+    Value: !Ref DatabaseMasterUsername
+  DatabaseEndpointAddress:
+    Description: DB Endpoint Address
+    Value:
+      Fn::If:
+      - IsClustered
+      - !Sub ${DBCluster.Endpoint.Address}
+      - !Sub ${DBInstanceStandalone.Endpoint.Address}
+  DatabaseEndpointPort:
+    Description: DB Endpoint Port
+    Value:
+      Fn::If:
+      - IsClustered
+      - !Sub ${DBCluster.Endpoint.Port}
+      - !Sub ${DBInstanceStandalone.Endpoint.Port}
