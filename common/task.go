@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
-	"github.com/stelligent/mu2/common"
 	"os"
 	"strings"
 )
@@ -43,7 +42,7 @@ func newTaskManager(sess *session.Session) (TaskManager, error) {
 
 // ExecuteCommand runs a command for a specific environment
 func (taskMgr *ecsTaskManager) ExecuteCommand(environmentName string, command string) (string, error) {
-	ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+	ecsStackName := CreateStackName(StackTypeCluster, environmentName)
 
 	fmt.Fprintf(os.Stdout, "TBD REMOVE----Executing command [%s] on environment %s for stack %s\n", strings.TrimSpace(command), environmentName, ecsStackName)
 	log.Debugf("Executing command '[%s]' on environment '%s' for stack '%s'\n", environmentName, command, ecsStackName)
