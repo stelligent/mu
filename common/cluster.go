@@ -84,7 +84,7 @@ func (ecsMgr *ecsClusterManager) AuthenticateRepository(repoURL string) (string,
 
 	resp, err := ecrAPI.GetAuthorizationToken(params)
 	if err != nil {
-		return "", err
+		return Empty, err
 	}
 
 	for _, authData := range resp.AuthorizationData {
@@ -93,5 +93,5 @@ func (ecsMgr *ecsClusterManager) AuthenticateRepository(repoURL string) (string,
 		}
 	}
 
-	return "", fmt.Errorf("unable to find token for repo url:%s", repoURL)
+	return Empty, fmt.Errorf("unable to find token for repo url:%s", repoURL)
 }

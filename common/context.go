@@ -177,6 +177,11 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 		return err
 	}
 
+	ctx.TaskManager, err = newTaskManager(sess)
+	if err != nil {
+		return err
+	}
+
 	ctx.DockerOut = os.Stdout
 
 	return nil

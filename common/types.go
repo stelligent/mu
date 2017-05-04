@@ -17,6 +17,7 @@ type Context struct {
 	LogsManager     LogsManager
 	DockerManager   DockerManager
 	DockerOut       io.Writer
+	TaskManager     TaskManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -144,4 +145,52 @@ const (
 	StackTypePipeline           = "pipeline"
 	StackTypeDatabase           = "database"
 	StackTypeBucket             = "bucket"
+)
+
+// Constants for available command names and options
+const (
+	EnvCmd              = "environment"
+	EnvAlias            = "env"
+	EnvUsage            = "options for managing environments"
+	EnvArgUsage         = "<environment>"
+	UpsertCmd           = "upsert"
+	UpsertAlias         = "up"
+	UpsertUsage         = "create/update an environment"
+	ListCmd             = "list"
+	TerminateCmd        = "terminate"
+	TerminateAlias      = "term"
+	TerminateUsage      = "terminate an environment"
+	ListAlias           = "ls"
+	ListUsage           = "list environments"
+	ShowCmd             = "show"
+	ShowCmdUsage        = "show environment details"
+	ExeCmd              = "exec"
+	ExeUsage            = "execute a command in environment"
+	ExeArgs             = "<environment> <command>"
+	LogsCmd             = "logs"
+	LogsArgs            = "<environment> [<filter>...]"
+	LogsUsage           = "show environment logs"
+	Format              = "format"
+	FormatFlag          = "format, f"
+	FormatFlagUsage     = "output format, either 'json' or 'cli' (default: cli)"
+	FormatFlagDefault   = "cli"
+	Follow              = "follow"
+	FollowFlag          = "follow, f"
+	FollowUsage         = "follow logs for latest changes"
+	SearchDuration      = "search-duration"
+	SearchDurationUsage = "duration to go into the past for searching (e.g. 5m for 5 minutes)"
+	SearchDurationFlag  = "search-duration, t"
+)
+
+// Constants to prevent multiple updates when making changes.
+const (
+	Empty                  = ""
+	Space                  = " "
+	Spaces                 = "   "
+	NoEnvValidation        = "environment must be provided"
+	NoCmdValidation        = "command must be provided"
+	EmptyCmdValidation     = "command must not be an empty string"
+	EnvCmdTaskExecutingLog = "Executing Command '%s' for environment '%s' ..."
+	EnvCmdTaskResultLog    = "Result of Command '%s' for environment '%s' ...\n'%s"
+	EnvCmdTaskErrorLog     = "The following error has occurred executing the command:  '%v'"
 )

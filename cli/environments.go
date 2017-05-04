@@ -13,15 +13,16 @@ import (
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
 	cmd := &cli.Command{
-		Name:    "environment",
-		Aliases: []string{"env"},
-		Usage:   "options for managing environments",
+		Name:    common.EnvCmd,
+		Aliases: []string{common.EnvAlias},
+		Usage:   common.EnvUsage,
 		Subcommands: []cli.Command{
 			*newEnvironmentsListCommand(ctx),
 			*newEnvironmentsShowCommand(ctx),
 			*newEnvironmentsUpsertCommand(ctx),
 			*newEnvironmentsTerminateCommand(ctx),
 			*newEnvironmentsLogsCommand(ctx),
+			*newEnvironmentsExecuteCommand(ctx),
 		},
 	}
 
@@ -30,15 +31,15 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "upsert",
-		Aliases:   []string{"up"},
-		Usage:     "create/update an environment",
-		ArgsUsage: "<environment>",
+		Name:      common.UpsertCmd,
+		Aliases:   []string{common.UpsertAlias},
+		Usage:     common.UpsertUsage,
+		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "upsert")
-				return errors.New("environment must be provided")
+				cli.ShowCommandHelp(c, common.UpsertCmd)
+				return errors.New(common.NoEnvValidation)
 			}
 
 			workflow := workflows.NewEnvironmentUpserter(ctx, environmentName)
@@ -51,9 +52,9 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:    "list",
-		Aliases: []string{"ls"},
-		Usage:   "list environments",
+		Name:    common.ListCmd,
+		Aliases: []string{common.ListAlias},
+		Usage:   common.ListUsage,
 		Action: func(c *cli.Context) error {
 			workflow := workflows.NewEnvironmentLister(ctx, os.Stdout)
 			return workflow()
@@ -65,40 +66,41 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "show",
-		Usage: "show environment details",
+		Name:  common.ShowCmd,
+		Usage: common.ShowCmdUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "format, f",
-				Usage: "output format, either 'json' or 'cli' (default: cli)",
-				Value: "cli",
+				Name:  common.FormatFlag,
+				Usage: common.FormatFlagUsage,
+				Value: common.FormatFlagDefault,
 			},
 		},
-		ArgsUsage: "<environment>",
+		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "show")
-				return errors.New("environment must be provided")
+				cli.ShowCommandHelp(c, common.ShowCmd)
+				return errors.New(common.NoEnvValidation)
 			}
-			workflow := workflows.NewEnvironmentViewer(ctx, c.String("format"), environmentName, os.Stdout)
+			workflow := workflows.NewEnvironmentViewer(ctx, c.String(common.Format), environmentName, os.Stdout)
 			return workflow()
 		},
 	}
 
 	return cmd
 }
+
 func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "terminate",
-		Aliases:   []string{"term"},
-		Usage:     "terminate an environment",
-		ArgsUsage: "<environment>",
+		Name:      common.TerminateCmd,
+		Aliases:   []string{common.TerminateAlias},
+		Usage:     common.TerminateUsage,
+		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "terminate")
-				return errors.New("environment must be provided")
+				cli.ShowCommandHelp(c, common.TerminateCmd)
+				return errors.New(common.NoEnvValidation)
 			}
 			workflow := workflows.NewEnvironmentTerminator(ctx, environmentName)
 			return workflow()
@@ -107,30 +109,70 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 
 	return cmd
 }
+
+func validateExecuteArguments(ctx *cli.Context) error {
+	environmentName := ctx.Args().First()
+	argLength := len(ctx.Args())
+
+	if argLength == 0 || len(strings.TrimSpace(environmentName)) == 0 {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.NoEnvValidation)
+	}
+
+	if argLength == 1 {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.NoCmdValidation)
+	}
+
+	if len(strings.TrimSpace(ctx.Args().Get(1))) == 0 {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.EmptyCmdValidation)
+	}
+	return nil
+}
+
+func newEnvironmentsExecuteCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      common.ExeCmd,
+		Usage:     common.ExeUsage,
+		ArgsUsage: common.ExeArgs,
+		Action: func(c *cli.Context) error {
+			err := validateExecuteArguments(c)
+			if err != nil {
+				return err
+			}
+			environmentName := c.Args().First()
+			workflow := workflows.NewEnvironmentExecutor(ctx, environmentName, strings.Join(c.Args().Tail(), common.Space))
+			return workflow()
+		},
+	}
+	return cmd
+}
+
 func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "logs",
-		Usage: "show environment logs",
+		Name:  common.LogsCmd,
+		Usage: common.LogsUsage,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
-				Name:  "follow, f",
-				Usage: "follow logs for latest changes",
+				Name:  common.FollowFlag,
+				Usage: common.FollowUsage,
 			},
 			cli.DurationFlag{
-				Name:  "search-duration, t",
-				Usage: "duration to go into the past for searching (e.g. 5m for 5 minutes)",
+				Name:  common.SearchDurationFlag,
+				Usage: common.SearchDurationUsage,
 				Value: 1 * time.Minute,
 			},
 		},
-		ArgsUsage: "<environment> [<filter>...]",
+		ArgsUsage: common.LogsArgs,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "logs")
-				return errors.New("environment must be provided")
+				cli.ShowCommandHelp(c, common.LogsCmd)
+				return errors.New(common.NoEnvValidation)
 			}
 
-			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Duration("search-duration"), c.Bool("follow"), environmentName, os.Stdout, strings.Join(c.Args().Tail(), " "))
+			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Duration(common.SearchDuration), c.Bool(common.Follow), environmentName, os.Stdout, strings.Join(c.Args().Tail(), common.Space))
 			return workflow()
 		},
 	}
