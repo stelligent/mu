@@ -7,20 +7,20 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
-	"time"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:    "service",
-		Aliases: []string{"svc"},
-		Usage:   "options for managing services",
+		Name:    common.SvcCmd,
+		Aliases: []string{common.SvcAlias},
+		Usage:   common.SvcUsage,
 		Subcommands: []cli.Command{
 			*newServicesShowCommand(ctx),
 			*newServicesPushCommand(ctx),
 			*newServicesDeployCommand(ctx),
 			*newServicesUndeployCommand(ctx),
 			*newServicesLogsCommand(ctx),
+			*newServicesExecuteCommand(ctx),
 		},
 	}
 
@@ -29,9 +29,9 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 
 func newServicesShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "show",
-		Usage:     "show service details",
-		ArgsUsage: "[<service>]",
+		Name:      common.ShowCmd,
+		Usage:     common.SvcShowUsage,
+		ArgsUsage: common.SvcShowUsage,
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
 			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
@@ -44,16 +44,16 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 
 func newServicesPushCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "push",
-		Usage: "push service to repository",
+		Name:  common.PushCmd,
+		Usage: common.SvcPushCmdUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "tag, t",
-				Usage: "tag to push",
+				Name:  common.TagFlagName,
+				Usage: common.SvcPushTagFlagUsage,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			tag := c.String("tag")
+			tag := c.String(common.Tag)
 			workflow := workflows.NewServicePusher(ctx, tag, ctx.DockerOut)
 			return workflow()
 		},
@@ -64,22 +64,22 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 
 func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "deploy",
-		Usage:     "deploy service to environment",
-		ArgsUsage: "<environment>",
+		Name:      common.DeployCmd,
+		Usage:     common.SvcDeployCmdUsage,
+		ArgsUsage: common.EnvArgUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "tag, t",
-				Usage: "tag to deploy",
+				Name:  common.TagFlagName,
+				Usage: common.SvcDeployTagFlagUsage,
 			},
 		},
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "deploy")
-				return errors.New("environment must be provided")
+			if len(environmentName) == common.Zero {
+				cli.ShowCommandHelp(c, common.DeployCmd)
+				return errors.New(common.NoEnvValidation)
 			}
-			tag := c.String("tag")
+			tag := c.String(common.Tag)
 			workflow := workflows.NewServiceDeployer(ctx, environmentName, tag)
 			return workflow()
 		},
@@ -90,16 +90,16 @@ func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 
 func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      "undeploy",
-		Usage:     "undeploy service from environment",
-		ArgsUsage: "<environment> [<service>]",
+		Name:      common.UndeployCmd,
+		Usage:     common.SvcUndeployCmdUsage,
+		ArgsUsage: common.SvcUndeployArgsUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "undeploy")
-				return errors.New("environment must be provided")
+			if len(environmentName) == common.Zero {
+				cli.ShowCommandHelp(c, common.UndeployCmd)
+				return errors.New(common.NoEnvValidation)
 			}
-			serviceName := c.Args().Get(1)
+			serviceName := c.Args().Get(common.SvcUndeploySvcFlagIndex)
 			workflow := workflows.NewServiceUndeployer(ctx, serviceName, environmentName)
 			return workflow()
 		},
@@ -107,38 +107,86 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 
 	return cmd
 }
+
 func newServicesLogsCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  "logs",
-		Usage: "show service logs",
+		Name:  common.LogsCmd,
+		Usage: common.SvcLogUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "service, s",
-				Usage: "service name to view logs for",
+				Name:  common.ServiceFlag,
+				Usage: common.SvcLogServiceFlagUsage,
 			},
 			cli.BoolFlag{
-				Name:  "follow, f",
-				Usage: "follow logs for latest changes",
+				Name:  common.FollowFlag,
+				Usage: common.FollowUsage,
 			},
 			cli.DurationFlag{
-				Name:  "search-duration, t",
-				Usage: "duration to go into the past for searching (e.g. 5m for 5 minutes)",
-				Value: 1 * time.Minute,
+				Name:  common.SearchDurationFlag,
+				Usage: common.SearchDurationUsage,
+				Value: common.DefaultLogDurationValue,
 			},
 		},
-		ArgsUsage: "<environment> [<filter>...]",
+		ArgsUsage: common.SvcLogArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
-				cli.ShowCommandHelp(c, "logs")
-				return errors.New("environment must be provided")
+			if len(environmentName) == common.Zero {
+				cli.ShowCommandHelp(c, common.LogsCmd)
+				return errors.New(common.NoEnvValidation)
 			}
-			serviceName := c.String("service")
+			serviceName := c.String(common.SvcCmd)
 
-			workflow := workflows.NewServiceLogViewer(ctx, c.Duration("search-duration"), c.Bool("follow"), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), " "))
+			workflow := workflows.NewServiceLogViewer(ctx, c.Duration(common.SearchDuration), c.Bool(common.Follow), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), common.Space))
 			return workflow()
 		},
 	}
 
+	return cmd
+}
+
+func validateExecuteArguments(ctx *cli.Context) error {
+	environmentName := ctx.Args().First()
+	argLength := len(ctx.Args())
+
+	if argLength == common.Zero || len(strings.TrimSpace(environmentName)) == common.Zero {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.NoEnvValidation)
+	}
+	if argLength == common.ExeArgsSvcIndex {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.NoSvcValidation)
+	}
+	if len(strings.TrimSpace(ctx.Args().Get(common.ExeArgsSvcIndex))) == common.Zero {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.EmptySvcValidation)
+	}
+	if argLength == common.ExeArgsCmdIndex {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.NoCmdValidation)
+	}
+	if len(strings.TrimSpace(ctx.Args().Get(common.ExeArgsCmdIndex))) == common.Zero {
+		cli.ShowCommandHelp(ctx, common.ExeCmd)
+		return errors.New(common.EmptyCmdValidation)
+	}
+	return nil
+}
+
+func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      common.ExeCmd,
+		Usage:     common.ExeUsage,
+		ArgsUsage: common.ExeArgs,
+		Action: func(c *cli.Context) error {
+			err := validateExecuteArguments(c)
+			if err != nil {
+				return err
+			}
+			environmentName := c.Args().First()
+			serviceName := c.Args()[common.ExeArgsSvcIndex]
+			command := strings.Join(c.Args()[common.ExeArgsCmdIndex:], common.Space)
+			workflow := workflows.NewServiceExecutor(ctx, environmentName, serviceName, command)
+			return workflow()
+		},
+	}
 	return cmd
 }

@@ -2,9 +2,8 @@ package common
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"os"
@@ -13,7 +12,7 @@ import (
 
 // TaskCommandExecutor for executing commands against an environment
 type TaskCommandExecutor interface {
-	ExecuteCommand(environmentName string, command string) (string, error)
+	ExecuteCommand(environmentName string, command string, service string) (string, error)
 }
 
 // TaskManager composite of all task capabilities
@@ -22,30 +21,57 @@ type TaskManager interface {
 }
 
 type ecsTaskManager struct {
-	dryrun bool
-	cfnAPI cloudformationiface.CloudFormationAPI
-	ecsAPI ecsiface.ECSAPI
+	ecsAPI       ecsiface.ECSAPI
+	stackManager StackManager
 }
 
-func newTaskManager(sess *session.Session) (TaskManager, error) {
-	log.Debug("Connecting to ECS service")
+func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
+	log.Debug(EcsConnectionLog)
 	ecsAPI := ecs.New(sess)
-	log.Debug("Connecting to CloudFormation service")
-	cfnAPI := cloudformation.New(sess)
+	stackManager, err := newStackManager(sess, dryRun)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ecsTaskManager{
-		dryrun: false,
-		cfnAPI: cfnAPI,
-		ecsAPI: ecsAPI,
+		ecsAPI:       ecsAPI,
+		stackManager: stackManager,
 	}, nil
 }
 
 // ExecuteCommand runs a command for a specific environment
-func (taskMgr *ecsTaskManager) ExecuteCommand(environmentName string, command string) (string, error) {
-	ecsStackName := CreateStackName(StackTypeCluster, environmentName)
+func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string, command string) (string, error) {
+	stack, err := taskMgr.stackManager.GetStack(service)
+	if err != nil {
+		return Empty, err
+	}
+	ecsServiceName := stack.Parameters[ECSServiceNameParameterKey]
+	ecsTaskDefinitionName := stack.Outputs[ECSTaskDefinitionOutputKey]
 
-	fmt.Fprintf(os.Stdout, "TBD REMOVE----Executing command [%s] on environment %s for stack %s\n", strings.TrimSpace(command), environmentName, ecsStackName)
-	log.Debugf("Executing command '[%s]' on environment '%s' for stack '%s'\n", environmentName, command, ecsStackName)
+	ecsRunTaskInput := &ecs.RunTaskInput{
+		TaskDefinition: aws.String(ecsTaskDefinitionName),
+		Count:          aws.Int64(ECSRunTaskDefaultCount),
+		Overrides: &ecs.TaskOverride{
+			ContainerOverrides: []*ecs.ContainerOverride{
+				{
+					Name: aws.String(ecsServiceName),
+					Command: []*string{
+						aws.String(strings.TrimSpace(command)),
+					},
+				},
+			},
+		},
+	}
+	fmt.Fprintf(os.Stdout, "Executing command '[%s]' on environment '%s' for stack '%s'\n", command, environment, service)
+	fmt.Fprintf(os.Stdout, "TBD REMOVE----Task Definition Input %s\n", ecsRunTaskInput)
+	log.Debugf("Executing command '[%s]' on environment '%s' for stack '%s'\n", command, environment, service)
 
-	return command, nil
+	resp, err := taskMgr.ecsAPI.RunTask(ecsRunTaskInput)
+	if err != nil {
+		return Empty, err
+	}
+
+	fmt.Fprintf(os.Stdout, "TBD REMOVE----Response: %s\n", resp)
+	log.Debugf("ECS Task Response: %s\n", resp)
+	return resp.String(), nil
 }

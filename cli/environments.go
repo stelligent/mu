@@ -7,7 +7,6 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
-	"time"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
@@ -22,7 +21,6 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 			*newEnvironmentsUpsertCommand(ctx),
 			*newEnvironmentsTerminateCommand(ctx),
 			*newEnvironmentsLogsCommand(ctx),
-			*newEnvironmentsExecuteCommand(ctx),
 		},
 	}
 
@@ -37,7 +35,7 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
+			if len(environmentName) == common.Zero {
 				cli.ShowCommandHelp(c, common.UpsertCmd)
 				return errors.New(common.NoEnvValidation)
 			}
@@ -78,7 +76,7 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
+			if len(environmentName) == common.Zero {
 				cli.ShowCommandHelp(c, common.ShowCmd)
 				return errors.New(common.NoEnvValidation)
 			}
@@ -98,7 +96,7 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: common.EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
+			if len(environmentName) == common.Zero {
 				cli.ShowCommandHelp(c, common.TerminateCmd)
 				return errors.New(common.NoEnvValidation)
 			}
@@ -107,45 +105,6 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 		},
 	}
 
-	return cmd
-}
-
-func validateExecuteArguments(ctx *cli.Context) error {
-	environmentName := ctx.Args().First()
-	argLength := len(ctx.Args())
-
-	if argLength == 0 || len(strings.TrimSpace(environmentName)) == 0 {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.NoEnvValidation)
-	}
-
-	if argLength == 1 {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.NoCmdValidation)
-	}
-
-	if len(strings.TrimSpace(ctx.Args().Get(1))) == 0 {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.EmptyCmdValidation)
-	}
-	return nil
-}
-
-func newEnvironmentsExecuteCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command{
-		Name:      common.ExeCmd,
-		Usage:     common.ExeUsage,
-		ArgsUsage: common.ExeArgs,
-		Action: func(c *cli.Context) error {
-			err := validateExecuteArguments(c)
-			if err != nil {
-				return err
-			}
-			environmentName := c.Args().First()
-			workflow := workflows.NewEnvironmentExecutor(ctx, environmentName, strings.Join(c.Args().Tail(), common.Space))
-			return workflow()
-		},
-	}
 	return cmd
 }
 
@@ -161,13 +120,13 @@ func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 			cli.DurationFlag{
 				Name:  common.SearchDurationFlag,
 				Usage: common.SearchDurationUsage,
-				Value: 1 * time.Minute,
+				Value: common.DefaultLogDurationValue,
 			},
 		},
 		ArgsUsage: common.LogsArgs,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == 0 {
+			if len(environmentName) == common.Zero {
 				cli.ShowCommandHelp(c, common.LogsCmd)
 				return errors.New(common.NoEnvValidation)
 			}

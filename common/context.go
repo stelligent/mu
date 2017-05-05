@@ -18,8 +18,8 @@ var version string
 
 // GetVersion returns the current version of the app
 func GetVersion() string {
-	if version == "" {
-		return "0.0.0-local"
+	if version == Empty {
+		return DefaultVersion
 	}
 	return version
 }
@@ -117,10 +117,10 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 // InitializeContext loads manager objects
 func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-	if region != "" {
+	if region != Empty {
 		sessOptions.Config = aws.Config{Region: aws.String(region)}
 	}
-	if profile != "" {
+	if profile != Empty {
 		sessOptions.Profile = profile
 	}
 	log.Debugf("Creating AWS session profile:%s region:%s", profile, region)
@@ -177,7 +177,8 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 		return err
 	}
 
-	ctx.TaskManager, err = newTaskManager(sess)
+	// initialize TaskManager
+	ctx.TaskManager, err = newTaskManager(sess, dryrun)
 	if err != nil {
 		return err
 	}

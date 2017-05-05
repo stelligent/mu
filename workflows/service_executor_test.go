@@ -9,6 +9,6 @@ import (
 func TestNewEnvironmentExecutor(t *testing.T) {
 	assertion := assert.New(t)
 	ctx := common.NewContext()
-	executor := NewEnvironmentExecutor(ctx, "env", "cmd")
+	executor := NewServiceExecutor(ctx, "env", "cmd", "svc")
 	assertion.NotNil(executor)
 }
