@@ -152,14 +152,6 @@ func validateExecuteArguments(ctx *cli.Context) error {
 		cli.ShowCommandHelp(ctx, common.ExeCmd)
 		return errors.New(common.NoEnvValidation)
 	}
-	if argLength == common.ExeArgsSvcIndex {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.NoSvcValidation)
-	}
-	if len(strings.TrimSpace(ctx.Args().Get(common.ExeArgsSvcIndex))) == common.Zero {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.EmptySvcValidation)
-	}
 	if argLength == common.ExeArgsCmdIndex {
 		cli.ShowCommandHelp(ctx, common.ExeCmd)
 		return errors.New(common.NoCmdValidation)
@@ -176,13 +168,24 @@ func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 		Name:      common.ExeCmd,
 		Usage:     common.ExeUsage,
 		ArgsUsage: common.ExeArgs,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  common.ServiceFlag,
+				Usage: common.SvcExeServiceFlagUsage,
+			},
+		},
 		Action: func(c *cli.Context) error {
 			err := validateExecuteArguments(c)
 			if err != nil {
 				return err
 			}
 			environmentName := c.Args().First()
-			serviceName := c.Args()[common.ExeArgsSvcIndex]
+			var serviceName string
+			if len(c.String(common.SvcCmd)) == common.Zero {
+				serviceName = ctx.Config.Service.Name
+			} else {
+				serviceName = c.String(common.SvcCmd)
+			}
 			command := strings.Join(c.Args()[common.ExeArgsCmdIndex:], common.Space)
 			workflow := workflows.NewServiceExecutor(ctx, environmentName, serviceName, command)
 			return workflow()

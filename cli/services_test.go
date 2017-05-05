@@ -131,16 +131,8 @@ func TestNewServiceExecuteCommandNoCmd(t *testing.T) {
 	assertion := assert.New(t)
 	testBaseServiceExecute(t)
 
-	assertion.Equal(errors.New(common.NoCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.TestSvc})))
-	assertion.Equal(errors.New(common.EmptyCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.TestSvc, common.Spaces})))
-}
-
-func TestNewServiceExecuteCommandNoSvc(t *testing.T) {
-	assertion := assert.New(t)
-	testBaseServiceExecute(t)
-
-	assertion.Equal(errors.New(common.NoSvcValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv})))
-	assertion.Equal(errors.New(common.EmptySvcValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.Spaces})))
+	assertion.Equal(errors.New(common.NoCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv})))
+	assertion.Equal(errors.New(common.EmptyCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.Spaces})))
 }
 
 func TestNewServiceExecuteCommand(t *testing.T) {

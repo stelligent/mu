@@ -1,18 +1,16 @@
 package common
 
 import (
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
-	"os"
 	"strings"
 )
 
 // TaskCommandExecutor for executing commands against an environment
 type TaskCommandExecutor interface {
-	ExecuteCommand(environmentName string, command string, service string) (string, error)
+	ExecuteCommand(environmentName string, command string, service string) (ECSRunTaskResult, error)
 }
 
 // TaskManager composite of all task capabilities
@@ -40,13 +38,14 @@ func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
 }
 
 // ExecuteCommand runs a command for a specific environment
-func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string, command string) (string, error) {
-	stack, err := taskMgr.stackManager.GetStack(service)
+func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string, command string) (ECSRunTaskResult, error) {
+	log.Infof(ExecuteCommandStartLog, command, environment, service)
+	stackManager, err := taskMgr.stackManager.GetStack(service)
 	if err != nil {
-		return Empty, err
+		return nil, err
 	}
-	ecsServiceName := stack.Parameters[ECSServiceNameParameterKey]
-	ecsTaskDefinitionName := stack.Outputs[ECSTaskDefinitionOutputKey]
+	ecsServiceName := stackManager.Parameters[ECSServiceNameParameterKey]
+	ecsTaskDefinitionName := stackManager.Outputs[ECSTaskDefinitionOutputKey]
 
 	ecsRunTaskInput := &ecs.RunTaskInput{
 		TaskDefinition: aws.String(ecsTaskDefinitionName),
@@ -62,16 +61,15 @@ func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string
 			},
 		},
 	}
-	fmt.Fprintf(os.Stdout, "Executing command '[%s]' on environment '%s' for stack '%s'\n", command, environment, service)
-	fmt.Fprintf(os.Stdout, "TBD REMOVE----Task Definition Input %s\n", ecsRunTaskInput)
-	log.Debugf("Executing command '[%s]' on environment '%s' for stack '%s'\n", command, environment, service)
+
+	log.Debugf(ExecuteECSInputContentsLog, ecsRunTaskInput)
 
 	resp, err := taskMgr.ecsAPI.RunTask(ecsRunTaskInput)
+	log.Debugf(ExecuteECSResultContentsLog, resp, err)
+	log.Info(ExecuteCommandFinishLog)
 	if err != nil {
-		return Empty, err
+		return nil, err
 	}
 
-	fmt.Fprintf(os.Stdout, "TBD REMOVE----Response: %s\n", resp)
-	log.Debugf("ECS Task Response: %s\n", resp)
-	return resp.String(), nil
+	return resp, nil
 }

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"io"
 	"time"
 )
@@ -134,6 +135,9 @@ type Stack struct {
 // StackType describes supported stack types
 type StackType string
 
+// ECSRunTaskResult describes the output result from ECS call to RunTask
+type ECSRunTaskResult *ecs.RunTaskOutput
+
 // List of valid stack types
 const (
 	StackTypeVpc      StackType = "vpc"
@@ -160,8 +164,7 @@ const (
 	SvcLogFollowFlagIndex   = 1
 	SvcLogDurationFlagIndex = 2
 	ShowFlagCount           = 1
-	ExeArgsSvcIndex         = 1
-	ExeArgsCmdIndex         = 2
+	ExeArgsCmdIndex         = 1
 	EnvLogsFlagCount        = 2
 	SvcPushTagFlagIndex     = 0
 	SvcDeployTagFlagIndex   = 0
@@ -174,6 +177,7 @@ const (
 	SvcLogUsage             = "show service logs"
 	SvcLogArgUsage          = "<environment> [<filter>...]"
 	SvcLogServiceFlagUsage  = "service name to view logs for"
+	SvcExeServiceFlagUsage  = "service name for command"
 	SvcPushTagFlagUsage     = "tag to push"
 	SvcDeployTagFlagUsage   = "tag to deploy"
 	TagFlagName             = "tag, t"
@@ -221,23 +225,25 @@ const (
 
 // Constants to prevent multiple updates when making changes.
 const (
-	Zero                       = 0
-	ECSRunTaskDefaultCount     = 1
-	Empty                      = ""
-	Space                      = " "
-	Spaces                     = "   "
-	DefaultVersion             = "0.0.0-local"
-	ECSServiceNameParameterKey = "ServiceName"
-	ECSTaskDefinitionOutputKey = "MicroserviceTaskDefinition"
-	NoEnvValidation            = "environment must be provided"
-	NoSvcValidation            = "service must be provided"
-	EmptySvcValidation         = "service must not be an empty string"
-	NoCmdValidation            = "command must be provided"
-	EmptyCmdValidation         = "command must not be an empty string"
-	EnvCmdTaskExecutingLog     = "Executing Command '%s' for environment '%s' ..."
-	EnvCmdTaskResultLog        = "Result of Command '%s' for environment '%s' ...\n'%s"
-	EnvCmdTaskErrorLog         = "The following error has occurred executing the command:  '%v'"
-	EcsConnectionLog           = "Connecting to ECS service"
+	Zero                        = 0
+	ECSRunTaskDefaultCount      = 1
+	Empty                       = ""
+	Space                       = " "
+	Spaces                      = "   "
+	DefaultVersion              = "0.0.0-local"
+	ECSServiceNameParameterKey  = "ServiceName"
+	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinition"
+	NoEnvValidation             = "environment must be provided"
+	NoCmdValidation             = "command must be provided"
+	EmptyCmdValidation          = "command must not be an empty string"
+	EnvCmdTaskExecutingLog      = "Executing Command '%s' for environment '%s' ..."
+	EnvCmdTaskResultLog         = "Result of Command '%s' for environment '%s' ...\n'%s"
+	EnvCmdTaskErrorLog          = "The following error has occurred executing the command:  '%v'"
+	EcsConnectionLog            = "Connecting to ECS service"
+	ExecuteCommandStartLog      = "Executing command '[%s]' on environment '%s' for service '%s'\n"
+	ExecuteCommandFinishLog     = "Command execution complete\n"
+	ExecuteECSInputContentsLog  = "ECS Input Contents: %s\n"
+	ExecuteECSResultContentsLog = "ECS Result Contents: %s, %s\n"
 )
 
 // Constants used during testing
