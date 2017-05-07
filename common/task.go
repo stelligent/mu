@@ -23,24 +23,14 @@ type ecsTaskManager struct {
 	stackManager StackManager
 }
 
-func getTaskDefinition(taskDefFlag string, stackTaskDef string) (taskDefinition string) {
-	var ecsTaskDefinitionName string
-	if len(taskDefFlag) == Zero {
-		ecsTaskDefinitionName = stackTaskDef
+func getFlagOrValue(flag string, value string) string {
+	var actual string
+	if len(flag) == Zero {
+		actual = value
 	} else {
-		ecsTaskDefinitionName = taskDefFlag
+		actual = flag
 	}
-	return ecsTaskDefinitionName
-}
-
-func getCluster(clusterFlag string, cluster string) (taskDefinition string) {
-	var ecsCluster string
-	if len(clusterFlag) == Zero {
-		ecsCluster = cluster
-	} else {
-		ecsCluster = clusterFlag
-	}
-	return ecsCluster
+	return actual
 }
 
 func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
@@ -68,8 +58,8 @@ func getTaskRunInput(stackManager StackManager, task Task) (*ecs.RunTaskInput, e
 
 	taskDefinitionOutput := ecsStack.Outputs[ECSTaskDefinitionOutputKey]
 	ecsClusterOutput := ecsStack.Outputs[ECSClusterOutputKey]
-	ecsTaskDefinition := getTaskDefinition(task.TaskDefinition, taskDefinitionOutput)
-	ecsCluster := getCluster(task.Cluster, ecsClusterOutput)
+	ecsTaskDefinition := getFlagOrValue(task.TaskDefinition, taskDefinitionOutput)
+	ecsCluster := getFlagOrValue(task.Cluster, ecsClusterOutput)
 	ecsServiceName := ecsStack.Parameters[ECSServiceNameParameterKey]
 	log.Debugf(ExecuteECSInputParameterLog, task.Environment, ecsServiceName, ecsCluster, ecsTaskDefinition)
 
