@@ -98,25 +98,24 @@ func TestNewServicesLogsCommand(t *testing.T) {
 	assertion.NotNil(command.Action)
 }
 
-func testBaseServiceExecute(t *testing.T) {
+func TestExecuteTaskCreation(t *testing.T) {
 	assertion := assert.New(t)
-	ctx := common.NewContext()
-	command := newServicesExecuteCommand(ctx)
-
-	assertion.NotNil(command)
-	assertion.Equal(common.ExeCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.ExeArgs, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.ExeUsage, command.Usage, common.UsageMessage)
-	assertion.NotNil(command.Action)
+	args := []string{common.EnvCmd, common.Help}
+	ctx := getTestExecuteContext(args)
+	assertion.NotNil(ctx)
+	task, err := newTask(ctx)
+	assertion.NotNil(task)
+	assertion.Nil(err)
 }
 
-func getTestExecuteContext(args cli.Args) *cli.Context {
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
-	set := flag.NewFlagSet(common.Test, common.Zero)
-	set.Parse(args)
-
-	return cli.NewContext(app, set, nil)
+func TestExecuteTaskCreationFail(t *testing.T) {
+	assertion := assert.New(t)
+	args := []string{}
+	ctx := getTestExecuteContext(args)
+	assertion.NotNil(ctx)
+	task, err := newTask(ctx)
+	assertion.Nil(task)
+	assertion.NotNil(err)
 }
 
 func TestNewServiceExecuteCommandNoEnv(t *testing.T) {
@@ -140,4 +139,25 @@ func TestNewServiceExecuteCommand(t *testing.T) {
 	testBaseServiceExecute(t)
 
 	assertion.Nil(validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.TestSvc, common.TestCmd})))
+}
+
+func testBaseServiceExecute(t *testing.T) {
+	assertion := assert.New(t)
+	ctx := common.NewContext()
+	command := newServicesExecuteCommand(ctx)
+
+	assertion.NotNil(command)
+	assertion.Equal(common.ExeCmd, command.Name, common.NameMessage)
+	assertion.Equal(common.ExeArgs, command.ArgsUsage, common.ArgsUsageMessage)
+	assertion.Equal(common.ExeUsage, command.Usage, common.UsageMessage)
+	assertion.NotNil(command.Action)
+}
+
+func getTestExecuteContext(args cli.Args) *cli.Context {
+	app := cli.NewApp()
+	app.Writer = ioutil.Discard
+	set := flag.NewFlagSet(common.Test, common.Zero)
+	set.Parse(args)
+
+	return cli.NewContext(app, set, nil)
 }
