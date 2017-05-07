@@ -34,7 +34,12 @@ func TestTaskCommandExecutor_succeed(t *testing.T) {
 		ecsAPI:       ecsMock,
 		stackManager: stackManagerMock,
 	}
-	result, err := executeManager.ExecuteCommand(TestEnv, TestSvc, TestCmd)
+	task := Task{
+		Environment: TestEnv,
+		Service:     TestSvc,
+		Command:     TestCmd,
+	}
+	result, err := executeManager.ExecuteCommand(task)
 	assertion.NotNil(result)
 	assertion.Nil(err)
 

@@ -5,24 +5,27 @@ import (
 )
 
 // NewServiceExecutor create a new workflow for executing a command in an environment
-func NewServiceExecutor(ctx *common.Context, environmentName string, service string, command string) Executor {
+func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 
 	workflow := new(environmentWorkflow)
+	if len(task.Service) == common.Zero {
+		task.Service = ctx.Config.Service.Name
+	}
 
 	return newWorkflow(
-		workflow.serviceTaskExecutor(environmentName, service, command, ctx.TaskManager),
+		workflow.serviceTaskExecutor(ctx.TaskManager, task),
 	)
 }
 
-func (workflow *environmentWorkflow) serviceTaskExecutor(environmentName string, service string, command string, taskManager common.TaskManager) Executor {
+func (workflow *environmentWorkflow) serviceTaskExecutor(taskManager common.TaskManager, task common.Task) Executor {
 	return func() error {
-		log.Noticef(common.EnvCmdTaskExecutingLog, command, environmentName)
-		result, err := taskManager.ExecuteCommand(environmentName, service, command)
+		log.Notice(common.SvcCmdTaskExecutingLog)
+		result, err := taskManager.ExecuteCommand(task)
 		if err != nil {
-			log.Noticef(common.EnvCmdTaskErrorLog, err)
+			log.Noticef(common.SvcCmdTaskErrorLog, err)
 			return err
 		}
-		log.Noticef(common.EnvCmdTaskResultLog, command, environmentName, result)
+		log.Noticef(common.SvcCmdTaskResultLog, result)
 		return nil
 	}
 }

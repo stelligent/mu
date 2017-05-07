@@ -173,23 +173,40 @@ func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 				Name:  common.ServiceFlag,
 				Usage: common.SvcExeServiceFlagUsage,
 			},
+			cli.StringFlag{
+				Name:  common.TaskFlag,
+				Usage: common.SvcExeTaskFlagUsage,
+			},
+			cli.StringFlag{
+				Name:  common.ClusterFlag,
+				Usage: common.SvcExeClusterFlagUsage,
+			},
 		},
 		Action: func(c *cli.Context) error {
-			err := validateExecuteArguments(c)
+			task, err := newTask(c)
 			if err != nil {
 				return err
 			}
-			environmentName := c.Args().First()
-			var serviceName string
-			if len(c.String(common.SvcCmd)) == common.Zero {
-				serviceName = ctx.Config.Service.Name
-			} else {
-				serviceName = c.String(common.SvcCmd)
-			}
-			command := strings.Join(c.Args()[common.ExeArgsCmdIndex:], common.Space)
-			workflow := workflows.NewServiceExecutor(ctx, environmentName, serviceName, command)
+
+			workflow := workflows.NewServiceExecutor(ctx, *task)
 			return workflow()
 		},
 	}
 	return cmd
+}
+
+func newTask(c *cli.Context) (*common.Task, error) {
+	err := validateExecuteArguments(c)
+	if err != nil {
+		return nil, err
+	}
+	environmentName := c.Args().First()
+	command := strings.Join(c.Args()[common.ExeArgsCmdIndex:], common.Space)
+	return &common.Task{
+		Environment:    environmentName,
+		Command:        command,
+		Service:        c.String(common.SvcCmd),
+		TaskDefinition: c.String(common.TaskFlagName),
+		Cluster:        c.String(common.ClusterFlagName),
+	}, nil
 }

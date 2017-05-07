@@ -135,6 +135,15 @@ type Stack struct {
 // StackType describes supported stack types
 type StackType string
 
+// Task describes task definition
+type Task struct {
+	Environment    string
+	Service        string
+	TaskDefinition string
+	Cluster        string
+	Command        string
+}
+
 // ECSRunTaskResult describes the output result from ECS call to RunTask
 type ECSRunTaskResult *ecs.RunTaskOutput
 
@@ -178,6 +187,8 @@ const (
 	SvcLogArgUsage          = "<environment> [<filter>...]"
 	SvcLogServiceFlagUsage  = "service name to view logs for"
 	SvcExeServiceFlagUsage  = "service name for command"
+	SvcExeTaskFlagUsage     = "task definition arn"
+	SvcExeClusterFlagUsage  = "cluster name or full arn"
 	SvcPushTagFlagUsage     = "tag to push"
 	SvcDeployTagFlagUsage   = "tag to deploy"
 	TagFlagName             = "tag, t"
@@ -199,7 +210,7 @@ const (
 	ShowCmdUsage            = "show environment details"
 	ExeCmd                  = "exec"
 	ExeUsage                = "execute a command in environment"
-	ExeArgs                 = "<environment> <service> <command>"
+	ExeArgs                 = "<environment> <command>"
 	LogsCmd                 = "logs"
 	LogsArgs                = "<environment> [<filter>...]"
 	LogsUsage               = "show environment logs"
@@ -210,6 +221,10 @@ const (
 	Follow                  = "follow"
 	FollowFlag              = "follow, f"
 	ServiceFlag             = "service, s"
+	TaskFlagName            = "task"
+	TaskFlag                = "task, t"
+	ClusterFlagName         = "cluster"
+	ClusterFlag             = "cluster, c"
 	FollowUsage             = "follow logs for latest changes"
 	SearchDuration          = "search-duration"
 	SearchDurationUsage     = "duration to go into the past for searching (e.g. 5m for 5 minutes)"
@@ -233,15 +248,18 @@ const (
 	DefaultVersion              = "0.0.0-local"
 	ECSServiceNameParameterKey  = "ServiceName"
 	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinition"
+	ECSClusterOutputKey         = "EcsCluster"
 	NoEnvValidation             = "environment must be provided"
 	NoCmdValidation             = "command must be provided"
 	EmptyCmdValidation          = "command must not be an empty string"
-	EnvCmdTaskExecutingLog      = "Executing Command '%s' for environment '%s' ..."
-	EnvCmdTaskResultLog         = "Result of Command '%s' for environment '%s' ...\n'%s"
-	EnvCmdTaskErrorLog          = "The following error has occurred executing the command:  '%v'"
+	SvcCmdTaskExecutingLog      = "Creating service executor...\n"
+	SvcCmdTaskResultLog         = "Service executor complete with result:\n%s\n"
+	SvcCmdStackLog              = "Getting stack '%s'..."
+	SvcCmdTaskErrorLog          = "The following error has occurred executing the command:  '%v'"
 	EcsConnectionLog            = "Connecting to ECS service"
 	ExecuteCommandStartLog      = "Executing command '[%s]' on environment '%s' for service '%s'\n"
 	ExecuteCommandFinishLog     = "Command execution complete\n"
+	ExecuteECSInputParameterLog = "Environment: %s, Service: %s, Cluster: %s, Task: %s"
 	ExecuteECSInputContentsLog  = "ECS Input Contents: %s\n"
 	ExecuteECSResultContentsLog = "ECS Result Contents: %s, %s\n"
 )

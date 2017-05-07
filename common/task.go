@@ -10,7 +10,7 @@ import (
 
 // TaskCommandExecutor for executing commands against an environment
 type TaskCommandExecutor interface {
-	ExecuteCommand(environmentName string, command string, service string) (ECSRunTaskResult, error)
+	ExecuteCommand(task Task) (ECSRunTaskResult, error)
 }
 
 // TaskManager composite of all task capabilities
@@ -21,6 +21,26 @@ type TaskManager interface {
 type ecsTaskManager struct {
 	ecsAPI       ecsiface.ECSAPI
 	stackManager StackManager
+}
+
+func getTaskDefinition(taskDefFlag string, stackTaskDef string) (taskDefinition string) {
+	var ecsTaskDefinitionName string
+	if len(taskDefFlag) == Zero {
+		ecsTaskDefinitionName = stackTaskDef
+	} else {
+		ecsTaskDefinitionName = taskDefFlag
+	}
+	return ecsTaskDefinitionName
+}
+
+func getCluster(clusterFlag string, cluster string) (taskDefinition string) {
+	var ecsCluster string
+	if len(clusterFlag) == Zero {
+		ecsCluster = cluster
+	} else {
+		ecsCluster = clusterFlag
+	}
+	return ecsCluster
 }
 
 func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
@@ -37,34 +57,43 @@ func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
 	}, nil
 }
 
-// ExecuteCommand runs a command for a specific environment
-func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string, command string) (ECSRunTaskResult, error) {
-	log.Infof(ExecuteCommandStartLog, command, environment, service)
-	stackManager, err := taskMgr.stackManager.GetStack(service)
+func getTaskRunInput(stackManager StackManager, task Task) (*ecs.RunTaskInput, error) {
+	envStackName := CreateStackName(StackTypeService, task.Service, task.Environment)
+	log.Infof(SvcCmdStackLog, envStackName)
+
+	ecsStack, err := stackManager.GetStack(envStackName)
 	if err != nil {
 		return nil, err
 	}
-	ecsServiceName := stackManager.Parameters[ECSServiceNameParameterKey]
-	ecsTaskDefinitionName := stackManager.Outputs[ECSTaskDefinitionOutputKey]
+
+	taskDefinitionOutput := ecsStack.Outputs[ECSTaskDefinitionOutputKey]
+	ecsClusterOutput := ecsStack.Outputs[ECSClusterOutputKey]
+	ecsTaskDefinition := getTaskDefinition(task.TaskDefinition, taskDefinitionOutput)
+	ecsCluster := getCluster(task.Cluster, ecsClusterOutput)
+	ecsServiceName := ecsStack.Parameters[ECSServiceNameParameterKey]
+	log.Debugf(ExecuteECSInputParameterLog, task.Environment, ecsServiceName, ecsCluster, ecsTaskDefinition)
 
 	ecsRunTaskInput := &ecs.RunTaskInput{
-		TaskDefinition: aws.String(ecsTaskDefinitionName),
+		Cluster:        aws.String(ecsCluster),
+		TaskDefinition: aws.String(ecsTaskDefinition),
 		Count:          aws.Int64(ECSRunTaskDefaultCount),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
 					Name: aws.String(ecsServiceName),
 					Command: []*string{
-						aws.String(strings.TrimSpace(command)),
+						aws.String(strings.TrimSpace(task.Command)),
 					},
 				},
 			},
 		},
 	}
-
 	log.Debugf(ExecuteECSInputContentsLog, ecsRunTaskInput)
+	return ecsRunTaskInput, nil
+}
 
-	resp, err := taskMgr.ecsAPI.RunTask(ecsRunTaskInput)
+func (taskMgr *ecsTaskManager) runTask(runTaskInput *ecs.RunTaskInput) (ECSRunTaskResult, error) {
+	resp, err := taskMgr.ecsAPI.RunTask(runTaskInput)
 	log.Debugf(ExecuteECSResultContentsLog, resp, err)
 	log.Info(ExecuteCommandFinishLog)
 	if err != nil {
@@ -72,4 +101,16 @@ func (taskMgr *ecsTaskManager) ExecuteCommand(environment string, service string
 	}
 
 	return resp, nil
+}
+
+// ExecuteCommand runs a command for a specific environment
+func (taskMgr *ecsTaskManager) ExecuteCommand(task Task) (ECSRunTaskResult, error) {
+	log.Infof(ExecuteCommandStartLog, task.Command, task.Environment, task.Service)
+
+	ecsRunTaskInput, err := getTaskRunInput(taskMgr.stackManager, task)
+	if err != nil {
+		return nil, err
+	}
+
+	return taskMgr.runTask(ecsRunTaskInput)
 }
