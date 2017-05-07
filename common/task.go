@@ -33,8 +33,19 @@ func getFlagOrValue(flag string, value string) string {
 	return actual
 }
 
+// NewTaskManager need for testing
+func NewTaskManager(ecsAPI ecsiface.ECSAPI, stackManager StackManager) (TaskManager, error) {
+	return &ecsTaskManager{
+		ecsAPI:       ecsAPI,
+		stackManager: stackManager,
+	}, nil
+}
+
 func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
 	log.Debug(EcsConnectionLog)
+	if dryRun {
+		return &ecsTaskManager{}, nil
+	}
 	ecsAPI := ecs.New(sess)
 	stackManager, err := newStackManager(sess, dryRun)
 	if err != nil {

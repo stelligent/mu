@@ -17,6 +17,14 @@ func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 	)
 }
 
+func newServiceExecutor(taskManager common.TaskManager, task common.Task) Executor {
+	workflow := new(environmentWorkflow)
+
+	return newWorkflow(
+		workflow.serviceTaskExecutor(taskManager, task),
+	)
+}
+
 func (workflow *environmentWorkflow) serviceTaskExecutor(taskManager common.TaskManager, task common.Task) Executor {
 	return func() error {
 		log.Notice(common.SvcCmdTaskExecutingLog)
