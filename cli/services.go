@@ -174,12 +174,14 @@ func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 				Usage: common.SvcExeServiceFlagUsage,
 			},
 			cli.StringFlag{
-				Name:  common.TaskFlag,
-				Usage: common.SvcExeTaskFlagUsage,
+				Name:   common.TaskFlag,
+				Usage:  common.SvcExeTaskFlagUsage,
+				Hidden: common.TaskFlagVisible,
 			},
 			cli.StringFlag{
-				Name:  common.ClusterFlag,
-				Usage: common.SvcExeClusterFlagUsage,
+				Name:   common.ClusterFlag,
+				Usage:  common.SvcExeClusterFlagUsage,
+				Hidden: common.ClusterFlagVisible,
 			},
 		},
 		Action: func(c *cli.Context) error {

@@ -222,9 +222,11 @@ const (
 	FollowFlag              = "follow, f"
 	ServiceFlag             = "service, s"
 	TaskFlagName            = "task"
+	TaskFlagVisible         = true
 	TaskFlag                = "task, t"
 	ClusterFlagName         = "cluster"
 	ClusterFlag             = "cluster, c"
+	ClusterFlagVisible      = true
 	FollowUsage             = "follow logs for latest changes"
 	SearchDuration          = "search-duration"
 	SearchDurationUsage     = "duration to go into the past for searching (e.g. 5m for 5 minutes)"
