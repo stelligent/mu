@@ -2,6 +2,8 @@ package common
 
 import (
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"io"
 	"time"
 )
@@ -135,17 +137,58 @@ type Stack struct {
 // StackType describes supported stack types
 type StackType string
 
+// Container describes container details
+type Container struct {
+	Name      string
+	Instance  string
+	PrivateIP string
+}
+
 // Task describes task definition
 type Task struct {
+	Name           string
 	Environment    string
 	Service        string
 	TaskDefinition string
 	Cluster        string
 	Command        string
+	Containers     []Container
+}
+
+// JSONOutput common json definition
+type JSONOutput struct {
+	Values [1]struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	} `json:"values"`
 }
 
 // ECSRunTaskResult describes the output result from ECS call to RunTask
 type ECSRunTaskResult *ecs.RunTaskOutput
+
+// Bold is the specifier for bold formatted text values
+var Bold = color.New(color.Bold).SprintFunc()
+
+// SvcPipelineTableHeader is the header array for the pipeline table
+var SvcPipelineTableHeader = []string{SvcStageHeader, SvcActionHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
+
+// SvcEnvironmentTableHeader is the header array for the environment table
+var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+
+// SvcTaskContainerHeader is the header for container task detail
+var SvcTaskContainerHeader = []string{"Task", "Container", "Instance", "Private IP"}
+
+// PipeLineServiceHeader is the header for the pipeline service table
+var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+
+// EnvironmentAMITableHeader is the header for the instance details
+var EnvironmentAMITableHeader = []string{EC2Instance, TypeHeader, AMI, AZ, ConnectedHeader, SvcStatusHeader, NumTasks, CPUAvail, MEMAvail}
+
+// ServiceTableHeader is the header for the service table
+var ServiceTableHeader = []string{SvcServiceHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+
+// EnvironmentShowHeader is the header for the environment table
+var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
 
 // List of valid stack types
 const (
@@ -163,6 +206,7 @@ const (
 // Constants for available command names and options
 const (
 	EnvSubCmdCount          = 5
+	FirstValueIndex         = 0
 	SingleAliasIndex        = 0
 	SvcSubCmdCount          = 6
 	SvcShowFormatFlagIndex  = 0
@@ -178,6 +222,7 @@ const (
 	SvcPushTagFlagIndex     = 0
 	SvcDeployTagFlagIndex   = 0
 	SvcUndeploySvcFlagIndex = 1
+	TaskGUIDIndex           = 1
 	DefaultLogDurationValue = 1 * time.Minute
 	SvcCmd                  = "service"
 	SvcAlias                = "svc"
@@ -247,8 +292,68 @@ const (
 	Empty                       = ""
 	Space                       = " "
 	Spaces                      = "   "
+	LineChar                    = "-"
+	ForwardSlash                = "/"
+	NewLine                     = "\n"
+	NA                          = "N/A"
+	UnknownValue                = "???"
+	JSON                        = "json"
+	HomeIPAddress               = "127.0.0.1"
 	DefaultVersion              = "0.0.0-local"
+	LastUpdateTime              = "2006-01-02 15:04:05"
+	CPU                         = "CPU"
+	MEMORY                      = "MEMORY"
+	AMI                         = "AMI"
+	AZ                          = "AZ"
+	BoolStringFormat            = "%v"
+	IntStringFormat             = "%d"
+	HeaderValueFormat           = "%s:\t%s\n"
+	SvcPipelineFormat           = HeaderValueFormat
+	HeadNewlineHeader           = "%s:\n"
+	SvcDeploymentsFormat        = HeadNewlineHeader
+	SvcContainersFormat         = "\n%s for %s:\n"
+	KeyValueFormat              = "%s %s"
+	StackFormat                 = "%s:\t%s (%s)\n"
+	UnmanagedStackFormat        = "%s:\tunmanaged\n"
+	BaseURLKey                  = "BASE_URL"
+	BaseURLValueKey             = "BaseUrl"
+	SvcPipelineURLLabel         = "Pipeline URL"
+	SvcDeploymentsLabel         = "Deployments"
+	SvcContainersLabel          = "Containers"
+	BaseURLHeader               = "Base URL"
+	SvcCodePipelineURLKey       = "CodePipelineUrl"
+	SvcVersionKey               = "version"
+	SvcCodePipelineNameKey      = "PipelineName"
+	ECSClusterKey               = "EcsCluster"
+	EC2Instance                 = "EC2 Instance"
+	VPCStack                    = "VPC Stack"
+	ContainerInstances          = "Container Instances"
+	BastionHost                 = "Bastion Host"
+	BastionHostKey              = "BastionHost"
+	ClusterStack                = "Cluster Stack"
+	TypeHeader                  = "Type"
+	ConnectedHeader             = "Connected"
+	CPUAvail                    = "CPU Avail"
+	MEMAvail                    = "Mem Avail"
+	NumTasks                    = "# Tasks"
+	SvcImageURLKey              = "ImageUrl"
+	SvcStageHeader              = "Stage"
+	SvcServiceHeader            = "Service"
+	ServicesHeader              = "Services"
+	SvcActionHeader             = "Action"
+	SvcStatusHeader             = "Status"
+	SvcRevisionHeader           = "Revision"
+	SvcMuVersionHeader          = "Mu Version"
+	SvcImageHeader              = "Image"
+	EnvironmentHeader           = "Environment"
+	SvcStackHeader              = "Stack"
+	SvcLastUpdateHeader         = "Last Update"
 	ECSServiceNameParameterKey  = "ServiceName"
+	ListServices                = "ListServices"
+	DescribeInstances           = "DescribeInstances"
+	ListTasks                   = "ListTasks"
+	DescribeTasks               = "DescribeTasks"
+	DescribeContainerInstances  = "DescribeContainerInstances"
 	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinition"
 	ECSClusterOutputKey         = "EcsCluster"
 	NoEnvValidation             = "environment must be provided"
@@ -264,6 +369,14 @@ const (
 	ExecuteECSInputParameterLog = "Environment: %s, Service: %s, Cluster: %s, Task: %s"
 	ExecuteECSInputContentsLog  = "ECS Input Contents: %s\n"
 	ExecuteECSResultContentsLog = "ECS Result Contents: %s, %s\n"
+	SvcGetTaskInfoLog           = "Getting task info for task: %s"
+	SvcTaskDetailLog            = "Task Detail: %s"
+	SvcInstancePrivateIPLog     = "Instance Private IP for Instance ID %s: %s"
+	SvcListTasksLog             = "Listing tasks for Environment: %s, Cluster: %s, Service: %s"
+	ECSAvailabilityZoneKey      = "ecs.availability-zone"
+	ECSInstanceTypeKey          = "ecs.instance-type"
+	ECSAMIKey                   = "ecs.ami-id"
+	TaskARNSeparator            = ForwardSlash
 )
 
 // Constants used during testing
@@ -275,6 +388,7 @@ const (
 	TestEnv          = "fooenv"
 	TestSvc          = "foosvc"
 	TestCmd          = "foocmd"
+	TestTaskARN      = "ARN/TEST"
 	Help             = "help"
 	GetStackName     = "GetStack"
 	RunTaskName      = "RunTask"
@@ -287,3 +401,12 @@ const (
 	FlagLenMessage   = "Flag len should match"
 	FlagMessage      = "Flag should match"
 )
+
+// CreateTableSection creates the standard output table used
+func CreateTableSection(writer io.Writer, header []string) *tablewriter.Table {
+	table := tablewriter.NewWriter(writer)
+	table.SetHeader(header)
+	table.SetBorder(true)
+	table.SetAutoWrapText(false)
+	return table
+}
