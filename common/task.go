@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
-	"github.com/stelligent/mu2/common"
 	"strings"
 )
 
@@ -127,7 +126,7 @@ func (taskMgr *ecsTaskManager) ExecuteCommand(task Task) (ECSRunTaskResult, erro
 
 // ExecuteCommand runs a command for a specific environment
 func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string) ([]Task, error) {
-	cluster := CreateStackName(common.StackTypeCluster, environment)
+	cluster := CreateStackName(StackTypeCluster, environment)
 	serviceInputParameters := &ecs.ListServicesInput{
 		Cluster: aws.String(cluster),
 	}
