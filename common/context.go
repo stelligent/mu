@@ -50,12 +50,17 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
 		ctx.Config.Repo.Revision = gitRevision
-		gitProvider, gitSlug, err := findGitSlug(ctx.Config.Basedir)
+		gitURL, err := findGitRemoteURL(ctx.Config.Basedir)
 		if err == nil {
-			ctx.Config.Repo.Provider = gitProvider
-			ctx.Config.Repo.Slug = gitSlug
+			gitProvider, gitSlug, err := findGitSlug(gitURL)
+			if err == nil {
+				ctx.Config.Repo.Provider = gitProvider
+				ctx.Config.Repo.Slug = gitSlug
+			} else {
+				log.Warningf("Unable to determine git slug: %s", err.Error())
+			}
 		} else {
-			log.Warningf("Unable to determine git slug: %s", err.Error())
+			log.Warningf("Unable to determine git remote url: %s", err.Error())
 		}
 	} else {
 
