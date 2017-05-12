@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
 	"io"
 	"strings"
@@ -60,11 +59,10 @@ func NewPipelineLogViewer(ctx *common.Context, searchDuration time.Duration, fol
 }
 
 func (workflow *logsWorkflow) logsViewer(logsViewer common.LogsViewer, writer io.Writer, filter string, searchDuration time.Duration, follow bool, logGroups ...string) Executor {
-	bold := color.New(color.Bold).SprintFunc()
 
 	return func() error {
 		cb := func(logStream string, message string, timestamp int64) {
-			fmt.Fprintf(writer, "[%s] %s\n", bold(logStream), strings.TrimSpace(message))
+			fmt.Fprintf(writer, "[%s] %s\n", common.Bold(logStream), strings.TrimSpace(message))
 		}
 
 		var wg sync.WaitGroup
