@@ -66,7 +66,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 
 		// The .git folder does not exist, check to see if we are in CodeBuild
 		if os.Getenv("CODEBUILD_INITIATOR") != "" {
-			log.Infof("Trying to determine git revision from CodeBuild initiator.")
+			log.Debugf("Trying to determine git revision from CodeBuild initiator.")
 			initiator := os.Getenv("CODEBUILD_INITIATOR")
 			parts := strings.Split(initiator, "/")
 
