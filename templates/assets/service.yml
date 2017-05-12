@@ -226,7 +226,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Condition: HasPathPattern
     Properties:
-      HealthCheckIntervalSeconds: 5
+      HealthCheckIntervalSeconds: 30
       HealthCheckPath: !Ref ServiceHealthEndpoint
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 3
