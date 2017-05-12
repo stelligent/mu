@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"fmt"
 	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
 )
@@ -44,7 +43,7 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
 		workflow.codeRevision = ctx.Config.Repo.Revision
 
-		repoName := fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
+		repoName := ctx.Config.Repo.Slug
 		if workflow.pipelineConfig.Source.Repo == "" {
 			workflow.pipelineConfig.Source.Repo = repoName
 			workflow.repoName = repoName
