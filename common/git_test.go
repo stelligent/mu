@@ -20,6 +20,7 @@ func TestFindGitSlug(t *testing.T) {
 		slug     string // expected result
 	}{
 		{"https://git-codecommit.us-east-1.amazonaws.com/v1/repos/my-repo-name", "CodeCommit", "my-repo-name"},
+		{"ssh://git-codecommit.us-west-2.amazonaws.com/v1/repos/my-repo", "CodeCommit", "my-repo"},
 		{"git@github.com:stelligent/mu.git", "GitHub", "stelligent/mu"},
 		{"https://github.com/stelligent/mu.git", "GitHub", "stelligent/mu"},
 		{"http://github.com/stelligent/mu.git", "GitHub", "stelligent/mu"},
@@ -27,25 +28,33 @@ func TestFindGitSlug(t *testing.T) {
 	}
 
 	for _, tt := range slugTests {
-
-		basedir, err := ioutil.TempDir("", "mu-test")
-		defer os.RemoveAll(basedir)
-
-		assert.Nil(err)
-
-		err = gitCmd("init", basedir)
-		assert.Nil(err)
-
-		err = gitCmd("config", "-f", fmt.Sprintf("%s/.git/config", basedir), "--add", "remote.origin.url", tt.url)
-		assert.Nil(err)
-
-		provider, slug, err := findGitSlug(basedir)
+		provider, slug, err := findGitSlug(tt.url)
 
 		assert.Nil(err)
 		assert.Equal(tt.provider, provider)
 		assert.Equal(tt.slug, slug)
 	}
 
+}
+
+func TestFindGitRemoteURL(t *testing.T) {
+	assert := assert.New(t)
+
+	basedir, err := ioutil.TempDir("", "mu-test")
+	defer os.RemoveAll(basedir)
+
+	assert.Nil(err)
+
+	err = gitCmd("init", basedir)
+	assert.Nil(err)
+
+	remoteURL := "https://git-codecommit.us-east-1.amazonaws.com/v1/repos/my-repo-name"
+	err = gitCmd("config", "-f", fmt.Sprintf("%s/.git/config", basedir), "--add", "remote.origin.url", remoteURL)
+	assert.Nil(err)
+
+	u, err := findGitRemoteURL(basedir)
+	assert.Nil(err)
+	assert.Equal(remoteURL, u)
 }
 
 func gitCmd(args ...string) error {

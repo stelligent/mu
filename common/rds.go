@@ -38,7 +38,7 @@ func (rdsMgr *rdsManager) SetIamAuthentication(dbInstanceIdentifier string, enab
 	if dbEngine == "aurora" || dbEngine == "" {
 		params := &rds.ModifyDBClusterInput{
 			DBClusterIdentifier:             aws.String(dbInstanceIdentifier),
-			EnableIAMDatabaseAuthentication: aws.Bool(true),
+			EnableIAMDatabaseAuthentication: aws.Bool(enabled),
 			ApplyImmediately:                aws.Bool(true),
 		}
 
@@ -48,7 +48,7 @@ func (rdsMgr *rdsManager) SetIamAuthentication(dbInstanceIdentifier string, enab
 	} else {
 		params := &rds.ModifyDBInstanceInput{
 			DBInstanceIdentifier:            aws.String(dbInstanceIdentifier),
-			EnableIAMDatabaseAuthentication: aws.Bool(true),
+			EnableIAMDatabaseAuthentication: aws.Bool(enabled),
 			ApplyImmediately:                aws.Bool(true),
 		}
 

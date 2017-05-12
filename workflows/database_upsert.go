@@ -13,7 +13,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(databaseWorkflow)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
+	workflow.repoName = ctx.Config.Repo.Slug
 
 	ecsImportParams := make(map[string]string)
 

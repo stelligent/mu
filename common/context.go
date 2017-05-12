@@ -18,8 +18,8 @@ var version string
 
 // GetVersion returns the current version of the app
 func GetVersion() string {
-	if version == "" {
-		return "0.0.0-local"
+	if version == Empty {
+		return DefaultVersion
 	}
 	return version
 }
@@ -50,12 +50,23 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
 		ctx.Config.Repo.Revision = gitRevision
+		gitURL, err := findGitRemoteURL(ctx.Config.Basedir)
+		if err == nil {
+			gitProvider, gitSlug, err := findGitSlug(gitURL)
+			if err == nil {
+				ctx.Config.Repo.Provider = gitProvider
+				ctx.Config.Repo.Slug = gitSlug
+			} else {
+				log.Warningf("Unable to determine git slug: %s", err.Error())
+			}
+		} else {
+			log.Warningf("Unable to determine git remote url: %s", err.Error())
+		}
 	} else {
-		log.Warningf("Unable to determine git revision: %s", err.Error())
 
 		// The .git folder does not exist, check to see if we are in CodeBuild
 		if os.Getenv("CODEBUILD_INITIATOR") != "" {
-			log.Warningf("Trying to determine git revision from CodeBuild initiator.")
+			log.Debugf("Trying to determine git revision from CodeBuild initiator.")
 			initiator := os.Getenv("CODEBUILD_INITIATOR")
 			parts := strings.Split(initiator, "/")
 
@@ -67,24 +78,20 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 					log.Warningf("Unable to determine git information from CodeBuild initiator: %s", initiator)
 				}
 
+				ctx.Config.Repo.Provider = gitInfo.provider
 				ctx.Config.Repo.Revision = string(gitInfo.revision[:7])
 				ctx.Config.Repo.Name = gitInfo.repoName
-				ctx.Config.Repo.OrgName = gitInfo.orgName
+				ctx.Config.Repo.Slug = gitInfo.slug
 			} else {
 				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
 			}
+		} else {
+			log.Warningf("Unable to determine git revision: %s", err.Error())
 		}
 	}
+	log.Debugf("Setting repo provider=%s", ctx.Config.Repo.Provider)
 	log.Debugf("Setting repo name=%s", ctx.Config.Repo.Name)
 	log.Debugf("Setting repo revision=%s", ctx.Config.Repo.Revision)
-
-	gitProvider, gitSlug, err := findGitSlug(ctx.Config.Basedir)
-	if err == nil {
-		ctx.Config.Repo.Provider = gitProvider
-		ctx.Config.Repo.Slug = gitSlug
-	} else {
-		log.Warningf("Unable to determine git slug: %s", err.Error())
-	}
 	log.Debugf("Setting repo slug=%s", ctx.Config.Repo.Slug)
 
 	// load yaml config
@@ -117,10 +124,10 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 // InitializeContext loads manager objects
 func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-	if region != "" {
+	if region != Empty {
 		sessOptions.Config = aws.Config{Region: aws.String(region)}
 	}
-	if profile != "" {
+	if profile != Empty {
 		sessOptions.Profile = profile
 	}
 	log.Debugf("Creating AWS session profile:%s region:%s", profile, region)
@@ -173,6 +180,12 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 
 	// initialize DockerManager
 	ctx.DockerManager, err = newClientDockerManager()
+	if err != nil {
+		return err
+	}
+
+	// initialize TaskManager
+	ctx.TaskManager, err = newTaskManager(sess, dryrun)
 	if err != nil {
 		return err
 	}

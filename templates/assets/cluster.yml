@@ -29,7 +29,7 @@ Parameters:
   ScaleOutThreshold:
     Description: Threshold at which a scale out event will be initiated
     Type: Number
-    Default: '80'
+    Default: '75'
   ScaleInThreshold:
     Description: Threshold at which a scale in event will be initiated
     Type: Number
@@ -484,6 +484,14 @@ Resources:
         FromPort: '443'
         ToPort: '443'
         CidrIp: 0.0.0.0/0
+  Host2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt HostSG.GroupId
+      GroupId: !GetAtt HostSG.GroupId
   ELB2HostRule:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -602,7 +610,7 @@ Resources:
           - Name: CONSUL_BIND_INTERFACE
             Value: eth0
           - Name: CONSUL_CLIENT_INTERFACE
-            Value: lo
+            Value: docker0
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -627,7 +635,7 @@ Resources:
             awslogs-stream-prefix: instance
         Command:
           - "-retry-attempts=-1"
-          - !Sub "consul://localhost:8500"
+          - !Sub "consul://172.17.0.1:8500"
         MountPoints:
           - ContainerPath: /tmp/docker.sock
             SourceVolume: dockersock

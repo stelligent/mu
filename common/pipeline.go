@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
-	"strings"
+	"regexp"
 )
 
 // PipelineStateLister for getting cluster instances
@@ -21,9 +21,10 @@ type PipelineGitInfoGetter interface {
 
 // GitInfo represents pertinent git information
 type GitInfo struct {
+	provider string
 	revision string
 	repoName string
-	orgName  string
+	slug     string
 }
 
 // PipelineManager composite of all cluster capabilities
@@ -69,15 +70,33 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, err
 		return GitInfo{}, err
 	}
 
+	var gitInfo GitInfo
+
+	codeCommitRegex := regexp.MustCompile("^http(s?)://.+\\.console\\.aws\\.amazon\\.com/codecommit/home#/repository/([^/]+)/.+$")
+	gitHubRegex := regexp.MustCompile("^http(s?)://github\\.com/([^/]+)/([^/]+)/.+$")
+
 	for _, stageState := range stageStates {
 		for _, actionState := range stageState.ActionStates {
 			if aws.StringValue(actionState.ActionName) == "Source" {
-				cloneURL := *actionState.EntityUrl
-				parts := strings.Split(cloneURL, "/")
-				return GitInfo{*actionState.CurrentRevision.RevisionId, parts[4], parts[3]}, nil
+				entityURL := aws.StringValue(actionState.EntityUrl)
+
+				if matches := codeCommitRegex.FindStringSubmatch(entityURL); matches != nil {
+					gitInfo.provider = "CodeCommit"
+					gitInfo.repoName = matches[2]
+					gitInfo.slug = gitInfo.repoName
+				} else if matches := gitHubRegex.FindStringSubmatch(entityURL); matches != nil {
+					gitInfo.provider = "GitHub"
+					gitInfo.repoName = matches[3]
+					gitInfo.slug = fmt.Sprintf("%s/%s", matches[2], matches[3])
+				} else {
+					return gitInfo, fmt.Errorf("Unable to parse entity url: %s", entityURL)
+				}
+
+				gitInfo.revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
+				return gitInfo, nil
 			}
 		}
 	}
 
-	return GitInfo{}, fmt.Errorf("Can not obtain git information from CodePipeline: %s", pipelineName)
+	return gitInfo, fmt.Errorf("Can not obtain git information from CodePipeline: %s", pipelineName)
 }

@@ -31,33 +31,40 @@ func findGitRevision(file string) (string, error) {
 	}
 	return string(ci.Id().String()[:7]), nil
 }
-func findGitSlug(file string) (string, string, error) {
+
+func findGitRemoteURL(file string) (string, error) {
 	gitDir, err := findGitDirectory(file)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	log.Debugf("Loading slug from git directory '%s'", gitDir)
 
 	gitconfig, err := ini.InsensitiveLoad(fmt.Sprintf("%s/config", gitDir))
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	remote, err := gitconfig.GetSection("remote \"origin\"")
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	urlKey, err := remote.GetKey("url")
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	url := urlKey.String()
+	return url, nil
+}
 
-	codeCommitRegex := regexp.MustCompile("^http(s?)://git-codecommit\\.(.+)\\.amazonaws.com/v1/repos/(.+)$")
+func findGitSlug(url string) (string, string, error) {
+	codeCommitHTTPRegex := regexp.MustCompile("^http(s?)://git-codecommit\\.(.+)\\.amazonaws.com/v1/repos/(.+)$")
+	codeCommitSSHRegex := regexp.MustCompile("ssh://git-codecommit\\.(.+)\\.amazonaws.com/v1/repos/(.+)$")
 	httpRegex := regexp.MustCompile("^http(s?)://.*github.com.*/(.+)/(.+).git$")
 	sshRegex := regexp.MustCompile("github.com:(.+)/(.+).git$")
 
-	if matches := codeCommitRegex.FindStringSubmatch(url); matches != nil {
+	if matches := codeCommitHTTPRegex.FindStringSubmatch(url); matches != nil {
 		return "CodeCommit", matches[3], nil
+	} else if matches := codeCommitSSHRegex.FindStringSubmatch(url); matches != nil {
+		return "CodeCommit", matches[2], nil
 	} else if matches := httpRegex.FindStringSubmatch(url); matches != nil {
 		return "GitHub", fmt.Sprintf("%s/%s", matches[2], matches[3]), nil
 	} else if matches := sshRegex.FindStringSubmatch(url); matches != nil {

@@ -37,7 +37,7 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) 
 		}
 
 		workflow.codeRevision = ctx.Config.Repo.Revision
-		workflow.repoName = fmt.Sprintf("%s/%s", ctx.Config.Repo.OrgName, ctx.Config.Repo.Name)
+		workflow.repoName = ctx.Config.Repo.Slug
 		workflow.priority = ctx.Config.Service.Priority
 
 		log.Debugf("Working with service:'%s' tag:'%s'", workflow.serviceName, workflow.serviceTag)
