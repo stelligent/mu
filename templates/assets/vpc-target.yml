@@ -5,8 +5,8 @@ Parameters:
   VpcId:
     Description: VPC to target
     Type: String
-  EcsSubnetIds:
-    Description: ECS subnet ids
+  InstanceSubnetIds:
+    Description: EC2 subnet ids
     Type: CommaDelimitedList
   ElbSubnetIds:
     Description: ELB subnet ids
@@ -20,14 +20,14 @@ Outputs:
     Value: !Ref VpcId
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsSubnetIds:
-    Description: The ECS subnetids
+  InstanceSubnetIds:
+    Description: The EC2 subnetids
     Value:
       Fn::Join:
       - ','
-      - !Ref EcsSubnetIds
+      - !Ref InstanceSubnetIds
     Export:
-      Name: !Sub ${AWS::StackName}-EcsSubnetIds
+      Name: !Sub ${AWS::StackName}-InstanceSubnetIds
   ElbSubnetIds:
     Description: The ELB subnetids
     Value:

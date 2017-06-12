@@ -34,8 +34,8 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName stri
 		}
 
 		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
-		ecsImportParams["EcsInstanceSecurityGroup"] = fmt.Sprintf("%s-EcsInstanceSecurityGroup", ecsStackName)
-		ecsImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", ecsStackName)
+		ecsImportParams["InstanceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", ecsStackName)
+		ecsImportParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", ecsStackName)
 
 		return nil
 	}

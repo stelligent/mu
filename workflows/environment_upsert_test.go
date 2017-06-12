@@ -167,7 +167,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -192,7 +192,7 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -209,7 +209,7 @@ environments:
   - name: dev
     vpcTarget:
       vpcId: myVpcId
-      ecsSubnetIds:
+      instanceSubnetIds:
         - mySubnetId1
         - mySubnetId2
 `
@@ -228,7 +228,7 @@ environments:
 	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-target-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-target-dev-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)

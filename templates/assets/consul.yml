@@ -33,7 +33,7 @@ Parameters:
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  EcsSubnetIds:
+  InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
   ElbSubnetIds:
@@ -79,14 +79,14 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Ref AWS::StackName
-  ECSAutoScalingGroup:
+  EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn: []
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${EcsSubnetIds}
+        - Fn::ImportValue: !Sub ${InstanceSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
       HealthCheckType: ELB
       HealthCheckGracePeriod: 300
@@ -94,7 +94,7 @@ Resources:
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
       TargetGroupARNs:
-      - !Ref EcsElbTargetGroup
+      - !Ref ElbTargetGroup
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName
@@ -256,7 +256,7 @@ Resources:
 
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
           Content-Type: text/text/upstart-job; charset="us-ascii"
@@ -443,7 +443,7 @@ Resources:
       ToPort: !Ref ConsulSerfWanPort
       SourceSecurityGroupId: !GetAtt ConsulServerSG.GroupId
       GroupId: !GetAtt ConsulRpcClientSG.GroupId
-  EcsElb:
+  Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Scheme: internal
@@ -457,16 +457,16 @@ Resources:
       SecurityGroups:
       - !Ref ElbSG
       - !Ref ConsulApiClientSG
-  EcsElbHttpListener:
+  ElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      LoadBalancerArn: !Ref EcsElb
+      LoadBalancerArn: !Ref Elb
       DefaultActions:
       - Type: forward
-        TargetGroupArn: !Ref EcsElbTargetGroup
+        TargetGroupArn: !Ref ElbTargetGroup
       Port: '80'
       Protocol: HTTP
-  EcsElbTargetGroup:
+  ElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 5
@@ -487,19 +487,19 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
-  EcsElbHttpListenerRule:
+  ElbHttpListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       Actions:
       - Type: forward
-        TargetGroupArn: !Ref EcsElbTargetGroup
+        TargetGroupArn: !Ref ElbTargetGroup
       Conditions:
       - Field: path-pattern
         Values:
         - '/*'
-      ListenerArn: !Ref EcsElbHttpListener
+      ListenerArn: !Ref ElbHttpListener
       Priority: 1
-  EcsServiceRole:
+  ServiceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -580,7 +580,7 @@ Resources:
           - '-ui'
           - !Sub "-datacenter=${AWS::Region}"
           - '-retry-join-ec2-tag-key=aws:autoscaling:groupName'
-          - !Sub "-retry-join-ec2-tag-value=${ECSAutoScalingGroup}"
+          - !Sub "-retry-join-ec2-tag-value=${EcsAutoScalingGroup}"
         PortMappings:
         - HostPort: !Ref ConsulHttpPort
           ContainerPort: !Ref ConsulHttpPort
@@ -588,10 +588,10 @@ Resources:
       TaskRoleArn: !GetAtt ConsulTaskRole.Arn
 Outputs:
   ConsulUiUrl:
-    Value: !Sub http://${EcsElb.DNSName}/ui
+    Value: !Sub http://${Elb.DNSName}/ui
     Description: Consul URL for UI
   ConsulServerAutoScalingGroup:
-    Value: !Ref ECSAutoScalingGroup
+    Value: !Ref EcsAutoScalingGroup
     Description: Autoscaling group for consul agents to join
   ConsulRpcClientSecurityGroup:
     Value: !Ref ConsulRpcClientSG

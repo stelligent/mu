@@ -1,0 +1,203 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU load balancer for an environment
+Parameters:
+  ElbInternal:
+    Description: Should ELB be internal?
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  ElbSubnetIds:
+    Type: String
+    Description: Name of the value to import for the elb subnet ids
+  ElbDomainName:
+    Type: String
+    Description: The domain name to use for the ELB DNS.  Assumes you have the zone for this DomainName hosted in Route53.  Leave blank to not use DNS for Elb.
+    Default: ''
+  ElbHostName:
+    Type: String
+    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
+    Default: ''
+  ElbCert:
+    Type: String
+    Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
+    Default: ''
+Metadata:
+  HasElbDomainName:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ElbDomainName
+        - ''
+  HasElbHostName:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ElbHostName
+        - ''
+  HasElbCert:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ElbCert
+        - ''
+  IsElbInternal:
+    "Fn::Equals":
+      - !Ref ElbInternal
+      - 'true'
+Resources:
+  HostSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Microservice Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
+  ElbSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: ELB Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '80'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '443'
+        ToPort: '443'
+        CidrIp: 0.0.0.0/0
+  Host2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt HostSG.GroupId
+      GroupId: !GetAtt HostSG.GroupId
+  ELB2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt ElbSG.GroupId
+      GroupId: !GetAtt HostSG.GroupId
+  Host2ELBRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt HostSG.GroupId
+      GroupId: !GetAtt ElbSG.GroupId
+  Elb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
+      Subnets:
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${ElbSubnetIds}
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      SecurityGroups:
+      - !Ref ElbSG
+  ElbHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Elb
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbDefaultTargetGroup
+      Port: '80'
+      Protocol: HTTP
+  ElbHttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasElbCert
+    Properties:
+      LoadBalancerArn: !Ref Elb
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbDefaultTargetGroup
+      Certificates:
+        - CertificateArn: !Sub "arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
+      Port: '443'
+      Protocol: HTTPS
+  ElbDefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: '8080'
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-default
+  ElbDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: HasElbDomainName
+    Properties:
+      HostedZoneName: !Sub ${ElbDomainName}.
+      Comment: DNS for ELB in ${AWS::StackName}
+      RecordSets:
+      - Name:
+          Fn::If:
+          - HasElbHostName
+          - !Sub ${ElbHostName}.${ElbDomainName}.
+          - !Sub ${ElbDomainName}.
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt Elb.CanonicalHostedZoneID
+          DNSName: !GetAtt Elb.DNSName
+          EvaluateTargetHealth: true
+Outputs:
+  BaseUrl:
+    Value:
+      Fn::If:
+      - HasElbCert
+      - Fn::If:
+        - HasElbDomainName
+        - Fn::If:
+          - HasElbHostName
+          - !Sub https://${ElbHostName}.${ElbDomainName}
+          - !Sub https://${ElbDomainName}
+        - !Sub https://${Elb.DNSName}
+      - Fn::If:
+        - HasElbDomainName
+        - Fn::If:
+          - HasElbHostName
+          - !Sub http://${ElbHostName}.${ElbDomainName}
+          - !Sub http://${ElbDomainName}
+        - !Sub http://${Elb.DNSName}
+    Description: ELB URL
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: VPC ID for the microservice cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  InstanceSecurityGroup:
+    Value: !Ref HostSG
+    Description: Security Group ID for the microservice instances
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSecurityGroup
+  ElbHttpListenerArn:
+    Value: !Ref ElbHttpListener
+    Description: Arn of the ELB HTTP Listener.
+    Export:
+      Name: !Sub ${AWS::StackName}-ElbHttpListenerArn
+  ElbHttpsListenerArn:
+    Condition: HasElbCert
+    Value: !Ref ElbHttpsListener
+    Description: Arn of the ELB HTTPS Listener.
+    Export:
+      Name: !Sub ${AWS::StackName}-ElbHttpsListenerArn

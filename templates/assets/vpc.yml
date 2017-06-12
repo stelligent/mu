@@ -49,24 +49,24 @@ Parameters:
     Default: 10.0.2.0/24
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  EcsSubnetAZ1CidrBlock:
-    Description: ECS Subnet block for AZ1
+  InstanceSubnetAZ1CidrBlock:
+    Description: Instance Subnet block for AZ1
     Type: String
     MinLength: '9'
     MaxLength: '18'
     Default: 10.0.100.0/24
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  EcsSubnetAZ2CidrBlock:
-    Description: ECS Subnet block for AZ2
+  InstanceSubnetAZ2CidrBlock:
+    Description: Instance Subnet block for AZ2
     Type: String
     MinLength: '9'
     MaxLength: '18'
     Default: 10.0.101.0/24
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  EcsSubnetAZ3CidrBlock:
-    Description: ECS Subnet block for AZ3
+  InstanceSubnetAZ3CidrBlock:
+    Description: Instance Subnet block for AZ3
     Type: String
     MinLength: '9'
     MaxLength: '18'
@@ -116,20 +116,20 @@ Conditions:
       - "Fn::Equals":
         - !Ref ElbSubnetAZ3CidrBlock
         - ''
-  HasEcsSubnetAZ1:
+  HasInstanceSubnetAZ1:
     "Fn::Not":
       - "Fn::Equals":
-        - !Ref EcsSubnetAZ1CidrBlock
+        - !Ref InstanceSubnetAZ1CidrBlock
         - ''
-  HasEcsSubnetAZ2:
+  HasInstanceSubnetAZ2:
     "Fn::Not":
       - "Fn::Equals":
-        - !Ref EcsSubnetAZ2CidrBlock
+        - !Ref InstanceSubnetAZ2CidrBlock
         - ''
-  HasEcsSubnetAZ3:
+  HasInstanceSubnetAZ3:
     "Fn::Not":
       - "Fn::Equals":
-        - !Ref EcsSubnetAZ3CidrBlock
+        - !Ref InstanceSubnetAZ3CidrBlock
         - ''
   IsPublicElb:
     "Fn::Not":
@@ -283,13 +283,13 @@ Resources:
       SubnetId: !Ref NatSubnetAZ1
       NetworkAclId: !Ref NatNetworkAcl
 
-  ### ECS Networking
-  EcsSubnetAZ1:
+  ### Instance Networking
+  InstanceSubnetAZ1:
     Type: AWS::EC2::Subnet
-    Condition: HasEcsSubnetAZ1
+    Condition: HasInstanceSubnetAZ1
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref EcsSubnetAZ1CidrBlock
+      CidrBlock: !Ref InstanceSubnetAZ1CidrBlock
       MapPublicIpOnLaunch: false
       AvailabilityZone:
         Fn::Select:
@@ -299,13 +299,13 @@ Resources:
       - Key: Network
         Value: Private
       - Key: Name
-        Value: !Sub ${AWS::StackName}-ecs-1
-  EcsSubnetAZ2:
+        Value: !Sub ${AWS::StackName}-ec2-1
+  InstanceSubnetAZ2:
     Type: AWS::EC2::Subnet
-    Condition: HasEcsSubnetAZ2
+    Condition: HasInstanceSubnetAZ2
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref EcsSubnetAZ2CidrBlock
+      CidrBlock: !Ref InstanceSubnetAZ2CidrBlock
       MapPublicIpOnLaunch: false
       AvailabilityZone:
         Fn::Select:
@@ -315,13 +315,13 @@ Resources:
       - Key: Network
         Value: Private
       - Key: Name
-        Value: !Sub ${AWS::StackName}-ecs-2
-  EcsSubnetAZ3:
+        Value: !Sub ${AWS::StackName}-ec2-2
+  InstanceSubnetAZ3:
     Type: AWS::EC2::Subnet
-    Condition: HasEcsSubnetAZ3
+    Condition: HasInstanceSubnetAZ3
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref EcsSubnetAZ3CidrBlock
+      CidrBlock: !Ref InstanceSubnetAZ3CidrBlock
       MapPublicIpOnLaunch: false
       AvailabilityZone:
         Fn::Select:
@@ -331,8 +331,8 @@ Resources:
       - Key: Network
         Value: Private
       - Key: Name
-        Value: !Sub ${AWS::StackName}-ecs-3
-  EcsRouteTable:
+        Value: !Sub ${AWS::StackName}-ec2-3
+  InstanceRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
@@ -340,32 +340,32 @@ Resources:
       - Key: Network
         Value: Private
       - Key: Name
-        Value: !Sub ${AWS::StackName}-ecs
-  EcsDefaultRoute:
+        Value: !Sub ${AWS::StackName}-ec2
+  InstanceDefaultRoute:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref EcsRouteTable
+      RouteTableId: !Ref InstanceRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatAZ1
-  EcsSubnetAZ1RouteTableAssociation:
+  InstanceSubnetAZ1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasEcsSubnetAZ1
+    Condition: HasInstanceSubnetAZ1
     Properties:
-      SubnetId: !Ref EcsSubnetAZ1
-      RouteTableId: !Ref EcsRouteTable
-  EcsSubnetAZ2RouteTableAssociation:
+      SubnetId: !Ref InstanceSubnetAZ1
+      RouteTableId: !Ref InstanceRouteTable
+  InstanceSubnetAZ2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasEcsSubnetAZ2
+    Condition: HasInstanceSubnetAZ2
     Properties:
-      SubnetId: !Ref EcsSubnetAZ2
-      RouteTableId: !Ref EcsRouteTable
-  EcsSubnetAZ3RouteTableAssociation:
+      SubnetId: !Ref InstanceSubnetAZ2
+      RouteTableId: !Ref InstanceRouteTable
+  InstanceSubnetAZ3RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasEcsSubnetAZ3
+    Condition: HasInstanceSubnetAZ3
     Properties:
-      SubnetId: !Ref EcsSubnetAZ3
-      RouteTableId: !Ref EcsRouteTable
-  EcsNetworkAcl:
+      SubnetId: !Ref InstanceSubnetAZ3
+      RouteTableId: !Ref InstanceRouteTable
+  InstanceNetworkAcl:
     Type: AWS::EC2::NetworkAcl
     Properties:
       VpcId: !Ref VPC
@@ -373,11 +373,11 @@ Resources:
       - Key: Network
         Value: Private
       - Key: Name
-        Value: !Sub ${AWS::StackName}-ecs
-  EcsOutboundNetworkAclEntry:
+        Value: !Sub ${AWS::StackName}-ec2
+  InstanceOutboundNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
-      NetworkAclId: !Ref EcsNetworkAcl
+      NetworkAclId: !Ref InstanceNetworkAcl
       RuleNumber: '100'
       Protocol: '6'
       RuleAction: allow
@@ -386,10 +386,10 @@ Resources:
       PortRange:
         From: '0'
         To: '65535'
-  EcsOutboundUdpNetworkAclEntry:
+  InstanceOutboundUdpNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
-      NetworkAclId: !Ref EcsNetworkAcl
+      NetworkAclId: !Ref InstanceNetworkAcl
       RuleNumber: '101'
       Protocol: '17'
       RuleAction: allow
@@ -398,10 +398,10 @@ Resources:
       PortRange:
         From: '0'
         To: '65535'
-  EcsInboundEphemeralPortNetworkAclEntry:
+  InstanceInboundEphemeralPortNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
-      NetworkAclId: !Ref EcsNetworkAcl
+      NetworkAclId: !Ref InstanceNetworkAcl
       RuleNumber: '103'
       Protocol: '6'
       RuleAction: allow
@@ -410,10 +410,10 @@ Resources:
       PortRange:
         From: '1024'
         To: '65535'
-  EcsInboundEphemeralUdpPortNetworkAclEntry:
+  InstanceInboundEphemeralUdpPortNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
-      NetworkAclId: !Ref EcsNetworkAcl
+      NetworkAclId: !Ref InstanceNetworkAcl
       RuleNumber: '102'
       Protocol: '17'
       RuleAction: allow
@@ -422,10 +422,10 @@ Resources:
       PortRange:
         From: '1024'
         To: '65535'
-  EcsInboundSSHPublicNetworkAclEntry:
+  InstanceInboundSSHPublicNetworkAclEntry:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
-      NetworkAclId: !Ref EcsNetworkAcl
+      NetworkAclId: !Ref InstanceNetworkAcl
       RuleNumber: '104'
       Protocol: '6'
       RuleAction: allow
@@ -434,24 +434,24 @@ Resources:
       PortRange:
         From: '22'
         To: '22'
-  EcsSubnetAZ1PublicNetworkAclAssociation:
+  InstanceSubnetAZ1PublicNetworkAclAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
-    Condition: HasEcsSubnetAZ1
+    Condition: HasInstanceSubnetAZ1
     Properties:
-      SubnetId: !Ref EcsSubnetAZ1
-      NetworkAclId: !Ref EcsNetworkAcl
-  EcsSubnetAZ2PublicNetworkAclAssociation:
+      SubnetId: !Ref InstanceSubnetAZ1
+      NetworkAclId: !Ref InstanceNetworkAcl
+  InstanceSubnetAZ2PublicNetworkAclAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
-    Condition: HasEcsSubnetAZ2
+    Condition: HasInstanceSubnetAZ2
     Properties:
-      SubnetId: !Ref EcsSubnetAZ2
-      NetworkAclId: !Ref EcsNetworkAcl
-  EcsSubnetAZ3PublicNetworkAclAssociation:
+      SubnetId: !Ref InstanceSubnetAZ2
+      NetworkAclId: !Ref InstanceNetworkAcl
+  InstanceSubnetAZ3PublicNetworkAclAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
-    Condition: HasEcsSubnetAZ3
+    Condition: HasInstanceSubnetAZ3
     Properties:
-      SubnetId: !Ref EcsSubnetAZ3
-      NetworkAclId: !Ref EcsNetworkAcl
+      SubnetId: !Ref InstanceSubnetAZ3
+      NetworkAclId: !Ref InstanceNetworkAcl
 
   ### ELB Networking
   ElbSubnetAZ1:
@@ -643,24 +643,24 @@ Outputs:
             - !Ref AWS::NoValue
     Export:
       Name: !Sub ${AWS::StackName}-ElbSubnetIds
-  EcsSubnetIds:
-    Description: The ecs subnetids
+  InstanceSubnetIds:
+    Description: The ec2 subnetids
     Value:
       Fn::Join:
         - ','
         -
           - Fn::If:
-            - HasEcsSubnetAZ1
-            - !Ref EcsSubnetAZ1
+            - HasInstanceSubnetAZ1
+            - !Ref InstanceSubnetAZ1
             - !Ref AWS::NoValue
           - Fn::If:
-            - HasEcsSubnetAZ2
-            - !Ref EcsSubnetAZ2
+            - HasInstanceSubnetAZ2
+            - !Ref InstanceSubnetAZ2
             - !Ref AWS::NoValue
           - Fn::If:
-            - HasEcsSubnetAZ3
-            - !Ref EcsSubnetAZ3
+            - HasInstanceSubnetAZ3
+            - !Ref InstanceSubnetAZ3
             - !Ref AWS::NoValue
     Export:
-      Name: !Sub ${AWS::StackName}-EcsSubnetIds
+      Name: !Sub ${AWS::StackName}-InstanceSubnetIds
 

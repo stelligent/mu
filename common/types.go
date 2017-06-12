@@ -39,7 +39,8 @@ type Config struct {
 
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string `yaml:"name,omitempty"`
+	Name         string      `yaml:"name,omitempty"`
+	Provider     EnvProvider `yaml:"strategy,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`
@@ -63,9 +64,9 @@ type Environment struct {
 		Configuration map[string]string `yaml:"configuration,omitempty"`
 	} `yaml:"discovery,omitempty"`
 	VpcTarget struct {
-		VpcID        string   `yaml:"vpcId,omitempty"`
-		EcsSubnetIds []string `yaml:"ecsSubnetIds,omitempty"`
-		ElbSubnetIds []string `yaml:"elbSubnetIds,omitempty"`
+		VpcID             string   `yaml:"vpcId,omitempty"`
+		InstanceSubnetIds []string `yaml:"instanceSubnetIds,omitempty"`
+		ElbSubnetIds      []string `yaml:"elbSubnetIds,omitempty"`
 	} `yaml:"vpcTarget,omitempty"`
 }
 
@@ -136,6 +137,29 @@ type Stack struct {
 // StackType describes supported stack types
 type StackType string
 
+// List of valid stack types
+const (
+	StackTypeVpc          StackType = "vpc"
+	StackTypeTarget                 = "target"
+	StackTypeCluster                = "cluster"
+	StackTypeLoadBalancer           = "loadbalancer"
+	StackTypeConsul                 = "consul"
+	StackTypeRepo                   = "repo"
+	StackTypeService                = "service"
+	StackTypePipeline               = "pipeline"
+	StackTypeDatabase               = "database"
+	StackTypeBucket                 = "bucket"
+)
+
+// EnvProvider describes supported environment strategies
+type EnvProvider string
+
+// List of valid environment strategies
+const (
+	EnvProviderEcs EnvProvider = "ecs"
+	EnvProviderEc2             = "ec2"
+)
+
 // Container describes container details
 type Container struct {
 	Name      string
@@ -188,19 +212,6 @@ var ServiceTableHeader = []string{SvcServiceHeader, SvcImageHeader, SvcStatusHea
 
 // EnvironmentShowHeader is the header for the environment table
 var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
-
-// List of valid stack types
-const (
-	StackTypeVpc      StackType = "vpc"
-	StackTypeTarget             = "target"
-	StackTypeCluster            = "cluster"
-	StackTypeConsul             = "consul"
-	StackTypeRepo               = "repo"
-	StackTypeService            = "service"
-	StackTypePipeline           = "pipeline"
-	StackTypeDatabase           = "database"
-	StackTypeBucket             = "bucket"
-)
 
 // Constants for available command names and options
 const (
