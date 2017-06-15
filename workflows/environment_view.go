@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 	"io"
@@ -19,7 +18,7 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	if format == common.JSON {
 		environmentViewer = workflow.environmentViewerJSON(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.TaskManager, writer)
+		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
 	}
 
 	return newWorkflow(
@@ -46,8 +45,14 @@ func (workflow *environmentWorkflow) environmentViewerJSON(environmentName strin
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
 	return func() error {
+		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStack, err := stackGetter.GetStack(lbStackName)
+		if err != nil {
+			return err
+		}
+
 		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 		if err != nil {
@@ -66,16 +71,26 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 			fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.BastionHost), vpcStack.Outputs[common.BastionHostKey])
 		}
 
-		fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.BaseURLHeader), clusterStack.Outputs[common.BaseURLValueKey])
+		fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.BaseURLHeader), lbStack.Outputs[common.BaseURLValueKey])
 		fmt.Fprintf(writer, common.HeadNewlineHeader, common.Bold(common.ContainerInstances))
 		fmt.Fprint(writer, common.NewLine)
 
-		instances, err := instanceLister.ListInstances(clusterStack.Outputs[common.ECSClusterKey])
+		containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[common.ECSClusterKey])
 		if err != nil {
 			return err
 		}
 
-		table := buildInstanceTable(writer, instances)
+		var instanceIds []string
+		for _, containerInstance := range containerInstances {
+			instanceIds = append(instanceIds, aws.StringValue(containerInstance.Ec2InstanceId))
+		}
+
+		instances, err := instanceLister.ListInstances(instanceIds...)
+		if err != nil {
+			return err
+		}
+
+		table := buildInstanceTable(writer, containerInstances, instances)
 		table.Render()
 
 		fmt.Fprint(writer, common.NewLine)
@@ -125,10 +140,15 @@ func buildServiceTable(stacks []*common.Stack, environmentName string, writer io
 	return table
 }
 
-func buildInstanceTable(writer io.Writer, instances []*ecs.ContainerInstance) *tablewriter.Table {
+func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerInstance, instances []common.Instance) *tablewriter.Table {
 	table := common.CreateTableSection(writer, common.EnvironmentAMITableHeader)
 
+	instanceIps := make(map[string]string)
 	for _, instance := range instances {
+		instanceIps[aws.StringValue(instance.InstanceId)] = aws.StringValue(instance.PrivateIpAddress)
+	}
+
+	for _, instance := range containerInstances {
 		instanceType := common.UnknownValue
 		availZone := common.UnknownValue
 		amiID := common.UnknownValue
@@ -156,6 +176,7 @@ func buildInstanceTable(writer io.Writer, instances []*ecs.ContainerInstance) *t
 			aws.StringValue(instance.Ec2InstanceId),
 			instanceType,
 			amiID,
+			instanceIps[aws.StringValue(instance.Ec2InstanceId)],
 			availZone,
 			fmt.Sprintf(common.BoolStringFormat, aws.BoolValue(instance.AgentConnected)),
 			aws.StringValue(instance.Status),

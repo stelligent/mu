@@ -148,6 +148,12 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 		return err
 	}
 
+	// initialize InstanceManager
+	ctx.InstanceManager, err = newInstanceManager(sess)
+	if err != nil {
+		return err
+	}
+
 	// initialize ElbManager
 	ctx.ElbManager, err = newElbv2Manager(sess)
 	if err != nil {

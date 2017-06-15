@@ -94,6 +94,49 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
+func TestEnvironmentEcsUpserter_Ec2Provider(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name:     "foo",
+		Provider: common.EnvProviderEc2,
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+
+	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+}
+
+func TestEnvironmentElbUpserter(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name: "foo",
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-loadbalancer-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+
+	err := workflow.environmentElbUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
 func TestEnvironmentConsulUpserter_nilProvider(t *testing.T) {
 	assert := assert.New(t)
 

@@ -87,18 +87,14 @@ func TestTaskCommandExecutorSucceed(t *testing.T) {
 func TestTaskListViewSucceed(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
-	ec2Mock := new(mockedEC2)
 	serviceList := []*string{aws.String(TestSvc)}
 	stackManagerMock.On(GetStackName).Return(&Stack{}, nil)
 	ecsMock.On(ListTasks).Return(&ecs.ListTasksOutput{TaskArns: serviceList}, nil)
 	ecsMock.On(ListServices).Return(&ecs.ListServicesOutput{ServiceArns: serviceList}, nil)
 	ecsMock.On(DescribeTasks).Return(&ecs.DescribeTasksOutput{Tasks: []*ecs.Task{{ContainerInstanceArn: aws.String(TestEnv), TaskArn: aws.String(TestTaskARN), Containers: []*ecs.Container{{ContainerArn: aws.String(TestCmd), Name: aws.String(TestEnv)}}}}}, nil)
 	ecsMock.On(DescribeContainerInstances).Return(&ecs.DescribeContainerInstancesOutput{ContainerInstances: []*ecs.ContainerInstance{{Ec2InstanceId: aws.String(TestSvc), ContainerInstanceArn: aws.String(TestCmd)}}}, nil)
-	instanceOutput := &ec2.DescribeInstancesOutput{Reservations: []*ec2.Reservation{{Instances: []*ec2.Instance{{PrivateIpAddress: aws.String(HomeIPAddress)}}}}}
-	ec2Mock.On(DescribeInstances).Return(instanceOutput, nil)
 
 	executeManager := ecsTaskManager{
-		ec2API:       ec2Mock,
 		ecsAPI:       ecsMock,
 		stackManager: stackManagerMock,
 	}
@@ -112,8 +108,6 @@ func TestTaskListViewSucceed(t *testing.T) {
 	ecsMock.AssertNumberOfCalls(t, ListTasks, 1)
 	ecsMock.AssertNumberOfCalls(t, DescribeTasks, 1)
 	ecsMock.AssertNumberOfCalls(t, DescribeContainerInstances, 1)
-	ec2Mock.AssertExpectations(t)
-	ec2Mock.AssertNumberOfCalls(t, DescribeInstances, 1)
 }
 
 func TestTaskCommandExecutorFailRun(t *testing.T) {

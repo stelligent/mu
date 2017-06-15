@@ -47,12 +47,11 @@ func TestNewServiceExecutorFail(t *testing.T) {
 	assertion := assert.New(t)
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
-	ec2Mock := new(mockedEC2)
 
 	stackManagerMock.On(common.GetStackName).Return(&common.Stack{}, nil)
 	ecsMock.On(common.RunTaskName).Return(&ecs.RunTaskOutput{}, errors.New(common.Empty))
 
-	taskManager, err := common.NewTaskManager(ec2Mock, ecsMock, stackManagerMock)
+	taskManager, err := common.NewTaskManager(ecsMock, stackManagerMock)
 	assertion.Nil(err)
 	assertion.NotNil(taskManager)
 	task := common.Task{
@@ -69,12 +68,11 @@ func TestNewServiceExecutor(t *testing.T) {
 	assertion := assert.New(t)
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
-	ec2Mock := new(mockedEC2)
 
 	stackManagerMock.On(common.GetStackName).Return(&common.Stack{}, nil)
 	ecsMock.On(common.RunTaskName).Return(&ecs.RunTaskOutput{}, nil)
 
-	taskManager, err := common.NewTaskManager(ec2Mock, ecsMock, stackManagerMock)
+	taskManager, err := common.NewTaskManager(ecsMock, stackManagerMock)
 	assertion.Nil(err)
 	assertion.NotNil(taskManager)
 	task := common.Task{

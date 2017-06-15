@@ -3,8 +3,6 @@ package common
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
@@ -15,6 +13,9 @@ import (
 type TaskContainerLister interface {
 	ListTasks(environment string, serviceName string) ([]Task, error)
 }
+
+// ECSRunTaskResult describes the output result from ECS call to RunTask
+type ECSRunTaskResult *ecs.RunTaskOutput
 
 // TaskCommandExecutor for executing commands against an environment
 type TaskCommandExecutor interface {
@@ -28,7 +29,6 @@ type TaskManager interface {
 }
 
 type ecsTaskManager struct {
-	ec2API       ec2iface.EC2API
 	ecsAPI       ecsiface.ECSAPI
 	stackManager StackGetter
 }
@@ -44,9 +44,8 @@ func getFlagOrValue(flag string, value string) string {
 }
 
 // NewTaskManager need for testing
-func NewTaskManager(ec2API ec2iface.EC2API, ecsAPI ecsiface.ECSAPI, stackManager StackGetter) (TaskManager, error) {
+func NewTaskManager(ecsAPI ecsiface.ECSAPI, stackManager StackGetter) (TaskManager, error) {
 	return &ecsTaskManager{
-		ec2API:       ec2API,
 		ecsAPI:       ecsAPI,
 		stackManager: stackManager,
 	}, nil
@@ -56,14 +55,12 @@ func newTaskManager(sess *session.Session, dryRun bool) (TaskManager, error) {
 	log.Debug(EcsConnectionLog)
 
 	ecsAPI := ecs.New(sess)
-	ec2API := ec2.New(sess)
 	stackManager, err := newStackManager(sess, dryRun)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ecsTaskManager{
-		ec2API:       ec2API,
 		ecsAPI:       ecsAPI,
 		stackManager: stackManager,
 	}, nil
@@ -205,24 +202,7 @@ func getContainer(taskMgr *ecsTaskManager, cluster string, instanceARN string, c
 		return Container{}
 	}
 	ec2InstanceID := *instanceOutput.ContainerInstances[FirstValueIndex].Ec2InstanceId
-	ipAddress := getInstancePrivateIPAddress(taskMgr.ec2API, ec2InstanceID)
-	return Container{Name: *container.Name, Instance: ec2InstanceID, PrivateIP: ipAddress}
-}
-
-func getInstancePrivateIPAddress(ec2API ec2iface.EC2API, instanceID string) string {
-	ec2InputParameters := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{
-			aws.String(instanceID),
-		},
-	}
-	ec2Details, err := ec2API.DescribeInstances(ec2InputParameters)
-	if err != nil {
-		return Empty
-	}
-	ipAddress := *ec2Details.Reservations[FirstValueIndex].Instances[FirstValueIndex].PrivateIpAddress
-	log.Debugf(SvcInstancePrivateIPLog, instanceID, ipAddress)
-
-	return ipAddress
+	return Container{Name: *container.Name, Instance: ec2InstanceID}
 }
 
 func (taskMgr *ecsTaskManager) getECSStack(serviceName string, environment string) (*Stack, error) {

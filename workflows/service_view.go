@@ -140,7 +140,6 @@ func buildTaskTable(tasks []common.Task, writer io.Writer) *tablewriter.Table {
 				common.Bold(task.Name),
 				container.Name,
 				container.Instance,
-				container.PrivateIP,
 			})
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
@@ -182,6 +183,12 @@ func TestNewTemplate_assets(t *testing.T) {
 
 			_, err := svc.ValidateTemplate(params)
 			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					if awsErr.Code() == "RequestError" && awsErr.Message() == "send request failed" {
+						return
+					}
+					assert.Fail(awsErr.Code(), awsErr.Message(), templateName)
+				}
 				assert.Fail(err.Error(), templateName)
 			}
 

@@ -11,9 +11,12 @@ import (
 	"strings"
 )
 
+// ContainerInstance represents the ECS container instance
+type ContainerInstance *ecs.ContainerInstance
+
 // ClusterInstanceLister for getting cluster instances
 type ClusterInstanceLister interface {
-	ListInstances(clusterName string) ([]*ecs.ContainerInstance, error)
+	ListInstances(clusterName string) ([]ContainerInstance, error)
 }
 
 // RepositoryAuthenticator auths for a repo
@@ -46,7 +49,7 @@ func newClusterManager(sess *session.Session) (ClusterManager, error) {
 }
 
 // ListInstances get the instances for a specific cluster
-func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]*ecs.ContainerInstance, error) {
+func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]ContainerInstance, error) {
 	ecsAPI := ecsMgr.ecsAPI
 
 	params := &ecs.ListContainerInstancesInput{
@@ -72,7 +75,11 @@ func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]*ecs.Conta
 	}
 	describeOut, _ := ecsAPI.DescribeContainerInstances(describeParams)
 
-	return describeOut.ContainerInstances, nil
+	instances := make([]ContainerInstance, len(describeOut.ContainerInstances))
+	for _, instance := range describeOut.ContainerInstances {
+		instances = append(instances, instance)
+	}
+	return instances, nil
 }
 
 func (ecsMgr *ecsClusterManager) AuthenticateRepository(repoURL string) (string, error) {
