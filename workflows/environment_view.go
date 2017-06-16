@@ -3,7 +3,6 @@ package workflows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 	"io"
@@ -82,7 +81,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 
 		var instanceIds []string
 		for _, containerInstance := range containerInstances {
-			instanceIds = append(instanceIds, aws.StringValue(containerInstance.Ec2InstanceId))
+			instanceIds = append(instanceIds, common.StringValue(containerInstance.Ec2InstanceId))
 		}
 
 		instances, err := instanceLister.ListInstances(instanceIds...)
@@ -145,7 +144,7 @@ func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerI
 
 	instanceIps := make(map[string]string)
 	for _, instance := range instances {
-		instanceIps[aws.StringValue(instance.InstanceId)] = aws.StringValue(instance.PrivateIpAddress)
+		instanceIps[common.StringValue(instance.InstanceId)] = common.StringValue(instance.PrivateIpAddress)
 	}
 
 	for _, instance := range containerInstances {
@@ -153,34 +152,34 @@ func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerI
 		availZone := common.UnknownValue
 		amiID := common.UnknownValue
 		for _, attr := range instance.Attributes {
-			switch aws.StringValue(attr.Name) {
+			switch common.StringValue(attr.Name) {
 			case common.ECSAvailabilityZoneKey:
-				availZone = aws.StringValue(attr.Value)
+				availZone = common.StringValue(attr.Value)
 			case common.ECSInstanceTypeKey:
-				instanceType = aws.StringValue(attr.Value)
+				instanceType = common.StringValue(attr.Value)
 			case common.ECSAMIKey:
-				amiID = aws.StringValue(attr.Value)
+				amiID = common.StringValue(attr.Value)
 			}
 		}
 		var cpuAvail int64
 		var memAvail int64
 		for _, resource := range instance.RemainingResources {
-			switch aws.StringValue(resource.Name) {
+			switch common.StringValue(resource.Name) {
 			case common.CPU:
-				cpuAvail = aws.Int64Value(resource.IntegerValue)
+				cpuAvail = common.Int64Value(resource.IntegerValue)
 			case common.MEMORY:
-				memAvail = aws.Int64Value(resource.IntegerValue)
+				memAvail = common.Int64Value(resource.IntegerValue)
 			}
 		}
 		table.Append([]string{
-			aws.StringValue(instance.Ec2InstanceId),
+			common.StringValue(instance.Ec2InstanceId),
 			instanceType,
 			amiID,
-			instanceIps[aws.StringValue(instance.Ec2InstanceId)],
+			instanceIps[common.StringValue(instance.Ec2InstanceId)],
 			availZone,
-			fmt.Sprintf(common.BoolStringFormat, aws.BoolValue(instance.AgentConnected)),
-			aws.StringValue(instance.Status),
-			fmt.Sprintf(common.IntStringFormat, aws.Int64Value(instance.RunningTasksCount)),
+			fmt.Sprintf(common.BoolStringFormat, common.BoolValue(instance.AgentConnected)),
+			common.StringValue(instance.Status),
+			fmt.Sprintf(common.IntStringFormat, common.Int64Value(instance.RunningTasksCount)),
 			fmt.Sprintf(common.IntStringFormat, cpuAvail),
 			fmt.Sprintf(common.IntStringFormat, memAvail),
 		})

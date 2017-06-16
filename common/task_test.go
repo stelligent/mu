@@ -3,9 +3,6 @@ package common
 import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -15,11 +12,6 @@ import (
 type mockedStackManager struct {
 	mock.Mock
 	StackManager
-}
-
-type mockedEC2 struct {
-	mock.Mock
-	ec2iface.EC2API
 }
 
 func (m *mockedStackManager) GetStack(stackName string) (*Stack, error) {
@@ -40,11 +32,6 @@ func (m *mockedECS) ListServices(input *ecs.ListServicesInput) (*ecs.ListService
 func (m *mockedECS) DescribeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
 	args := m.Called()
 	return args.Get(0).(*ecs.DescribeTasksOutput), args.Error(1)
-}
-
-func (m *mockedEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
-	args := m.Called()
-	return args.Get(0).(*ec2.DescribeInstancesOutput), args.Error(1)
 }
 
 func (m *mockedECS) ListTasks(input *ecs.ListTasksInput) (*ecs.ListTasksOutput, error) {
@@ -138,10 +125,12 @@ func TestTaskCommandExecutorFailStack(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 
 	stackManagerMock.On(GetStackName).Return(&Stack{}, errors.New(Empty))
-	sess, err := session.NewSession()
-	taskManager, err := newTaskManager(sess, false)
+	taskManager := ecsTaskManager{
+		stackManager: stackManagerMock,
+	}
 
 	task := getTestTask()
+
 	result, err := taskManager.ExecuteCommand(task)
 	assertion.NotNil(err)
 	assertion.Nil(result)

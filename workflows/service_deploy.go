@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"strconv"
@@ -34,7 +33,7 @@ func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int 
 	}
 	maxPriority := 0
 	for _, rule := range rules {
-		priority, _ := strconv.Atoi(aws.StringValue(rule.Priority))
+		priority, _ := strconv.Atoi(common.StringValue(rule.Priority))
 		if priority > maxPriority {
 			maxPriority = priority
 		}

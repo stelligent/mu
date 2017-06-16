@@ -9,9 +9,12 @@ import (
 	"regexp"
 )
 
+// PipelineStageState a representation of the state of a stage in the pipeline
+type PipelineStageState *codepipeline.StageState
+
 // PipelineStateLister for getting cluster instances
 type PipelineStateLister interface {
-	ListState(pipelineName string) ([]*codepipeline.StageState, error)
+	ListState(pipelineName string) ([]PipelineStageState, error)
 }
 
 // PipelineGitInfoGetter for getting the git revision
@@ -47,7 +50,7 @@ func newPipelineManager(sess *session.Session) (PipelineManager, error) {
 }
 
 // ListState get the state of the pipeline
-func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeline.StageState, error) {
+func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]PipelineStageState, error) {
 	cplAPI := cplMgr.codePipelineAPI
 
 	params := &codepipeline.GetPipelineStateInput{
@@ -61,7 +64,12 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]*codepipeli
 		return nil, err
 	}
 
-	return output.StageStates, nil
+	stageStates := make([]PipelineStageState, len(output.StageStates))
+	for i, stageState := range output.StageStates {
+		stageStates[i] = stageState
+	}
+
+	return stageStates, nil
 }
 
 func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, error) {
@@ -78,7 +86,7 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (GitInfo, err
 	for _, stageState := range stageStates {
 		for _, actionState := range stageState.ActionStates {
 			if aws.StringValue(actionState.ActionName) == "Source" {
-				entityURL := aws.StringValue(actionState.EntityUrl)
+				entityURL := StringValue(actionState.EntityUrl)
 
 				if matches := codeCommitRegex.FindStringSubmatch(entityURL); matches != nil {
 					gitInfo.provider = "CodeCommit"

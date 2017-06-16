@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
@@ -119,8 +118,4 @@ var (
 func init() {
 	cli.OsExiter = fakeOsExiter
 	cli.ErrWriter = fakeErrWriter
-}
-
-type mockedCloudFormation struct {
-	cloudformationiface.CloudFormationAPI
 }

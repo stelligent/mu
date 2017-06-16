@@ -7,9 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 )
 
+// ElbRule for the rules in ELB listeners
+type ElbRule *elbv2.Rule
+
 // ElbRuleLister for getting cluster instances
 type ElbRuleLister interface {
-	ListRules(listenerArn string) ([]*elbv2.Rule, error)
+	ListRules(listenerArn string) ([]ElbRule, error)
 }
 
 // ElbManager composite of all cluster capabilities
@@ -31,7 +34,7 @@ func newElbv2Manager(sess *session.Session) (ElbManager, error) {
 }
 
 // ListState get the state of the pipeline
-func (elbMgr *elbv2Manager) ListRules(listenerArn string) ([]*elbv2.Rule, error) {
+func (elbMgr *elbv2Manager) ListRules(listenerArn string) ([]ElbRule, error) {
 	elbAPI := elbMgr.elbAPI
 
 	params := &elbv2.DescribeRulesInput{
@@ -45,5 +48,10 @@ func (elbMgr *elbv2Manager) ListRules(listenerArn string) ([]*elbv2.Rule, error)
 		return nil, err
 	}
 
-	return output.Rules, nil
+	rules := make([]ElbRule, len(output.Rules))
+	for i, rule := range output.Rules {
+		rules[i] = rule
+	}
+
+	return rules, nil
 }

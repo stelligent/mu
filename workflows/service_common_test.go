@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"encoding/base64"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -100,7 +99,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 	workflow.serviceName = "foo"
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
 	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()

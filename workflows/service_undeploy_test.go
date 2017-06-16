@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -21,7 +20,7 @@ func TestServiceUndeployer(t *testing.T) {
 	workflow.serviceName = "foo"
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-service-foo-dev").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
+	stackManager.On("AwaitFinalStatus", "mu-service-foo-dev").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-service-foo-dev").Return(nil)
 
 	err := workflow.serviceUndeployer("dev", stackManager, stackManager)()

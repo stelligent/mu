@@ -191,7 +191,7 @@ func (ctx *Context) InitializeContext(profile string, region string, dryrun bool
 	}
 
 	// initialize TaskManager
-	ctx.TaskManager, err = newTaskManager(sess, dryrun)
+	ctx.TaskManager, err = newTaskManager(sess, &ctx.StackManager)
 	if err != nil {
 		return err
 	}

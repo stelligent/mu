@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -67,7 +66,7 @@ func TestDatabaseUpserter(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)
@@ -103,7 +102,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)

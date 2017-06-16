@@ -1,9 +1,6 @@
 package workflows
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,9 +18,9 @@ type mockedElbManager struct {
 	mock.Mock
 }
 
-func (m *mockedElbManager) ListRules(listenerArn string) ([]*elbv2.Rule, error) {
+func (m *mockedElbManager) ListRules(listenerArn string) ([]common.ElbRule, error) {
 	args := m.Called(listenerArn)
-	return args.Get(0).([]*elbv2.Rule), nil
+	return args.Get(0).([]common.ElbRule), nil
 }
 
 func TestServiceEnvironmentLoader_Create(t *testing.T) {
@@ -32,17 +29,17 @@ func TestServiceEnvironmentLoader_Create(t *testing.T) {
 	outputs := make(map[string]string)
 	outputs["EcsElbHttpListenerArn"] = "foo"
 	outputs["EcsElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
+	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(nil).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
 	paramManager := new(mockedParamManager)
 
 	elbRuleLister := new(mockedElbManager)
-	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
-		{Priority: aws.String("15")},
-		{Priority: aws.String("5")},
-		{Priority: aws.String("10")},
+	elbRuleLister.On("ListRules", "foo").Return([]common.ElbRule{
+		{Priority: stringRef("15")},
+		{Priority: stringRef("5")},
+		{Priority: stringRef("10")},
 	})
 
 	params := make(map[string]string)
@@ -68,17 +65,17 @@ func TestServiceEnvironmentLoader_Update(t *testing.T) {
 	outputs := make(map[string]string)
 	outputs["EcsElbHttpListenerArn"] = "foo"
 	outputs["EcsElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
-	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
+	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
+	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
 	paramManager := new(mockedParamManager)
 
 	elbRuleLister := new(mockedElbManager)
-	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
-		{Priority: aws.String("15")},
-		{Priority: aws.String("5")},
-		{Priority: aws.String("10")},
+	elbRuleLister.On("ListRules", "foo").Return([]common.ElbRule{
+		{Priority: stringRef("15")},
+		{Priority: stringRef("5")},
+		{Priority: stringRef("10")},
 	})
 
 	params := make(map[string]string)
@@ -100,17 +97,17 @@ func TestServiceEnvironmentLoader_StaticPriority(t *testing.T) {
 	outputs := make(map[string]string)
 	outputs["EcsElbHttpListenerArn"] = "foo"
 	outputs["EcsElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
-	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete, Outputs: outputs}).Once()
+	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
+	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
 	paramManager := new(mockedParamManager)
 
 	elbRuleLister := new(mockedElbManager)
-	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
-		{Priority: aws.String("15")},
-		{Priority: aws.String("5")},
-		{Priority: aws.String("10")},
+	elbRuleLister.On("ListRules", "foo").Return([]common.ElbRule{
+		{Priority: stringRef("15")},
+		{Priority: stringRef("5")},
+		{Priority: stringRef("10")},
 	})
 
 	params := make(map[string]string)
@@ -154,10 +151,10 @@ func TestServiceGetMaxPriority(t *testing.T) {
 	assert := assert.New(t)
 
 	elbRuleLister := new(mockedElbManager)
-	elbRuleLister.On("ListRules", "foo").Return([]*elbv2.Rule{
-		{Priority: aws.String("15")},
-		{Priority: aws.String("5")},
-		{Priority: aws.String("10")},
+	elbRuleLister.On("ListRules", "foo").Return([]common.ElbRule{
+		{Priority: stringRef("15")},
+		{Priority: stringRef("5")},
+		{Priority: stringRef("10")},
 	})
 
 	max := getMaxPriority(elbRuleLister, "foo")
@@ -173,7 +170,7 @@ func TestServiceDeployer(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-service-foo-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-service-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-service-foo-dev").Return(nil)
 
 	config := new(common.Config)
@@ -190,4 +187,8 @@ func TestServiceDeployer(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 
+}
+
+func stringRef(v string) *string {
+	return &v
 }

@@ -2,8 +2,6 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 	"io"
@@ -59,28 +57,28 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, s
 	}
 }
 
-func buildPipelineStateTable(writer io.Writer, stages []*codepipeline.StageState) *tablewriter.Table {
+func buildPipelineStateTable(writer io.Writer, stages []common.PipelineStageState) *tablewriter.Table {
 	table := common.CreateTableSection(writer, common.SvcPipelineTableHeader)
 
 	for _, stage := range stages {
 		for _, action := range stage.ActionStates {
 			revision := common.LineChar
 			if action.CurrentRevision != nil {
-				revision = aws.StringValue(action.CurrentRevision.RevisionId)
+				revision = common.StringValue(action.CurrentRevision.RevisionId)
 			}
 			status := common.LineChar
 			message := common.Empty
 			lastUpdate := common.LineChar
 			if action.LatestExecution != nil {
-				lastUpdate = aws.TimeValue(action.LatestExecution.LastStatusChange).Local().Format(common.LastUpdateTime)
-				status = aws.StringValue(action.LatestExecution.Status)
+				lastUpdate = common.TimeValue(action.LatestExecution.LastStatusChange).Local().Format(common.LastUpdateTime)
+				status = common.StringValue(action.LatestExecution.Status)
 				if action.LatestExecution.ErrorDetails != nil {
-					message = aws.StringValue(action.LatestExecution.ErrorDetails.Message)
+					message = common.StringValue(action.LatestExecution.ErrorDetails.Message)
 				}
 			}
 			table.Append([]string{
-				common.Bold(aws.StringValue(stage.StageName)),
-				aws.StringValue(action.ActionName),
+				common.Bold(common.StringValue(stage.StageName)),
+				common.StringValue(action.ActionName),
 				revision,
 				fmt.Sprintf(common.KeyValueFormat, colorizeActionStatus(status), message),
 				lastUpdate,

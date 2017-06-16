@@ -132,6 +132,59 @@ type Stack struct {
 	Parameters     map[string]string
 }
 
+const (
+	// StackStatusCreateInProgress is a StackStatus enum value
+	StackStatusCreateInProgress = "CREATE_IN_PROGRESS"
+
+	// StackStatusCreateFailed is a StackStatus enum value
+	StackStatusCreateFailed = "CREATE_FAILED"
+
+	// StackStatusCreateComplete is a StackStatus enum value
+	StackStatusCreateComplete = "CREATE_COMPLETE"
+
+	// StackStatusRollbackInProgress is a StackStatus enum value
+	StackStatusRollbackInProgress = "ROLLBACK_IN_PROGRESS"
+
+	// StackStatusRollbackFailed is a StackStatus enum value
+	StackStatusRollbackFailed = "ROLLBACK_FAILED"
+
+	// StackStatusRollbackComplete is a StackStatus enum value
+	StackStatusRollbackComplete = "ROLLBACK_COMPLETE"
+
+	// StackStatusDeleteInProgress is a StackStatus enum value
+	StackStatusDeleteInProgress = "DELETE_IN_PROGRESS"
+
+	// StackStatusDeleteFailed is a StackStatus enum value
+	StackStatusDeleteFailed = "DELETE_FAILED"
+
+	// StackStatusDeleteComplete is a StackStatus enum value
+	StackStatusDeleteComplete = "DELETE_COMPLETE"
+
+	// StackStatusUpdateInProgress is a StackStatus enum value
+	StackStatusUpdateInProgress = "UPDATE_IN_PROGRESS"
+
+	// StackStatusUpdateCompleteCleanupInProgress is a StackStatus enum value
+	StackStatusUpdateCompleteCleanupInProgress = "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"
+
+	// StackStatusUpdateComplete is a StackStatus enum value
+	StackStatusUpdateComplete = "UPDATE_COMPLETE"
+
+	// StackStatusUpdateRollbackInProgress is a StackStatus enum value
+	StackStatusUpdateRollbackInProgress = "UPDATE_ROLLBACK_IN_PROGRESS"
+
+	// StackStatusUpdateRollbackFailed is a StackStatus enum value
+	StackStatusUpdateRollbackFailed = "UPDATE_ROLLBACK_FAILED"
+
+	// StackStatusUpdateRollbackCompleteCleanupInProgress is a StackStatus enum value
+	StackStatusUpdateRollbackCompleteCleanupInProgress = "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"
+
+	// StackStatusUpdateRollbackComplete is a StackStatus enum value
+	StackStatusUpdateRollbackComplete = "UPDATE_ROLLBACK_COMPLETE"
+
+	// StackStatusReviewInProgress is a StackStatus enum value
+	StackStatusReviewInProgress = "REVIEW_IN_PROGRESS"
+)
+
 // StackType describes supported stack types
 type StackType string
 
@@ -181,4 +234,40 @@ type JSONOutput struct {
 		Key   string `json:"key"`
 		Value string `json:"value"`
 	} `json:"values"`
+}
+
+// Int64Value returns the value of the int64 pointer passed in or
+// 0 if the pointer is nil.
+func Int64Value(v *int64) int64 {
+	if v != nil {
+		return *v
+	}
+	return 0
+}
+
+// StringValue returns the value of the string pointer passed in or
+// "" if the pointer is nil.
+func StringValue(v *string) string {
+	if v != nil {
+		return *v
+	}
+	return ""
+}
+
+// BoolValue returns the value of the bool pointer passed in or
+// false if the pointer is nil.
+func BoolValue(v *bool) bool {
+	if v != nil {
+		return *v
+	}
+	return false
+}
+
+// TimeValue returns the value of the time.Time pointer passed in or
+// time.Time{} if the pointer is nil.
+func TimeValue(v *time.Time) time.Time {
+	if v != nil {
+		return *v
+	}
+	return time.Time{}
 }

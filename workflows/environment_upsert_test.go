@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -82,7 +81,7 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-cluster-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
@@ -126,7 +125,7 @@ func TestEnvironmentElbUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-loadbalancer-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
 	err := workflow.environmentElbUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
@@ -170,7 +169,7 @@ func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackResult := &common.Stack{
-		Status: cloudformation.StackStatusCreateComplete,
+		Status: common.StackStatusCreateComplete,
 		Outputs: map[string]string{
 			"ConsulServerAutoScalingGroup": "test-asg",
 			"ConsulRpcClientSecurityGroup": "test-sg",
@@ -203,7 +202,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
@@ -229,7 +228,7 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
 	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
@@ -263,7 +262,7 @@ environments:
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("UpsertStack", "mu-target-dev", mock.AnythingOfType("map[string]string")).Return(nil)
-	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
