@@ -578,7 +578,7 @@ Resources:
           - '-server'
           - !Sub "-bootstrap-expect=${DesiredCapacity}"
           - '-ui'
-          - !Sub '-datacenter=${AWS::Region}'
+          - !Sub "-datacenter=${AWS::Region}"
           - '-retry-join-ec2-tag-key=aws:autoscaling:groupName'
           - !Sub "-retry-join-ec2-tag-value=${ECSAutoScalingGroup}"
         PortMappings:

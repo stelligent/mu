@@ -68,7 +68,7 @@ Parameters:
     Default: ''
   ElbCert:
     Type: String
-    Description: The ARN for the certificate to use for ELB. Leave blank to disable HTTPS
+    Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
     Default: ''
   ConsulServerAutoScalingGroup:
     Type: String
@@ -539,7 +539,7 @@ Resources:
       - Type: forward
         TargetGroupArn: !Ref EcsElbDefaultTargetGroup
       Certificates:
-        - CertificateArn: !Ref ElbCert
+        - CertificateArn: !Sub "arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
       Port: '443'
       Protocol: HTTPS
   EcsElbDefaultTargetGroup:
@@ -619,7 +619,7 @@ Resources:
             awslogs-stream-prefix: instance
         Command:
           - 'agent'
-          - !Sub '-datacenter=${AWS::Region}'
+          - !Sub "-datacenter=${AWS::Region}"
           - '-retry-join-ec2-tag-key=aws:autoscaling:groupName'
           - !Sub "-retry-join-ec2-tag-value=${ConsulServerAutoScalingGroup}"
       - Name: registrator

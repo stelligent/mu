@@ -126,11 +126,13 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 		})
 
 	for key, value := range tags {
-		stackTags = append(stackTags,
-			&cloudformation.Tag{
-				Key:   aws.String(fmt.Sprintf("mu:%s", key)),
-				Value: aws.String(value),
-			})
+		if value != "" {
+			stackTags = append(stackTags,
+				&cloudformation.Tag{
+					Key:   aws.String(fmt.Sprintf("mu:%s", key)),
+					Value: aws.String(value),
+				})
+		}
 	}
 	return stackTags
 }

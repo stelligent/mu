@@ -118,7 +118,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: github.com/speedata/gogit
-  version: 66815cd3f6b58ee192b0c6388295979b872d268f
+  version: f25600b364f0bbdfa12abed6fa6fa2a1a89f0588
 - name: github.com/speedata/mmap-go
   version: 6c75090c55983bef2e129e173681b20d24871ef8
 - name: github.com/urfave/cli

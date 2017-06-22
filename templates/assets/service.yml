@@ -35,7 +35,7 @@ Parameters:
   ListenerRulePriority:
     Type: Number
     Description: The priority of the rule being added to the listener
-    Default: 1
+    Default: '1'
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
