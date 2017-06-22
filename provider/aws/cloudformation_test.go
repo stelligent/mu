@@ -1,10 +1,11 @@
-package common
+package aws
 
 import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"strings"
@@ -202,7 +203,7 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	stacks, err := stackManager.ListStacks(StackTypeCluster)
+	stacks, err := stackManager.ListStacks(common.StackTypeCluster)
 
 	assert.Nil(err)
 	assert.NotNil(stacks)
