@@ -19,10 +19,10 @@ type PipelineGitInfoGetter interface {
 
 // GitInfo represents pertinent git information
 type GitInfo struct {
-	provider string
-	revision string
-	repoName string
-	slug     string
+	Provider string
+	Revision string
+	RepoName string
+	Slug     string
 }
 
 // PipelineManager composite of all cluster capabilities

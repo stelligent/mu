@@ -17,4 +17,3 @@ type RdsManager interface {
 type rdsManager struct {
 	rdsAPI rdsiface.RDSAPI
 }
-

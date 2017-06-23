@@ -8,7 +8,7 @@ import (
 func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 
 	workflow := new(environmentWorkflow)
-	if len(task.Service) == common.Zero {
+	if len(task.Service) == Zero {
 		task.Service = ctx.Config.Service.Name
 	}
 
@@ -27,13 +27,13 @@ func newServiceExecutor(taskManager common.TaskManager, task common.Task) Execut
 
 func (workflow *environmentWorkflow) serviceTaskExecutor(taskManager common.TaskManager, task common.Task) Executor {
 	return func() error {
-		log.Notice(common.SvcCmdTaskExecutingLog)
+		log.Notice(SvcCmdTaskExecutingLog)
 		result, err := taskManager.ExecuteCommand(task)
 		if err != nil {
-			log.Noticef(common.SvcCmdTaskErrorLog, err)
+			log.Noticef(SvcCmdTaskErrorLog, err)
 			return err
 		}
-		log.Noticef(common.SvcCmdTaskResultLog, result)
+		log.Noticef(SvcCmdTaskResultLog, result)
 		return nil
 	}
 }

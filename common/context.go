@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/stelligent/mu/provider/aws"
 )
 
 var version string
@@ -78,10 +76,10 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 					log.Warningf("Unable to determine git information from CodeBuild initiator: %s", initiator)
 				}
 
-				ctx.Config.Repo.Provider = gitInfo.provider
-				ctx.Config.Repo.Revision = string(gitInfo.revision[:7])
-				ctx.Config.Repo.Name = gitInfo.repoName
-				ctx.Config.Repo.Slug = gitInfo.slug
+				ctx.Config.Repo.Provider = gitInfo.Provider
+				ctx.Config.Repo.Revision = string(gitInfo.Revision[:7])
+				ctx.Config.Repo.Name = gitInfo.RepoName
+				ctx.Config.Repo.Slug = gitInfo.Slug
 			} else {
 				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
 			}
@@ -122,9 +120,10 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 }
 
 // InitializeContext loads manager objects
-func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
+func (ctx *Context) InitializeContext() error {
+	var err error
+
 	// initialize DockerManager
-	ctx.DockerOut = os.Stdout
 	ctx.DockerManager, err = newClientDockerManager()
 	if err != nil {
 		return err

@@ -24,15 +24,15 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 			return err
 		}
 
-		table := common.CreateTableSection(writer, common.EnvironmentShowHeader)
+		table := CreateTableSection(writer, EnvironmentShowHeader)
 
 		for _, stack := range stacks {
 			table.Append([]string{
-				common.Bold(stack.Tags[common.EnvCmd]),
+				Bold(stack.Tags[EnvTagKey]),
 				stack.Name,
-				fmt.Sprintf(common.KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
-				stack.LastUpdateTime.Local().Format(common.LastUpdateTime),
-				stack.Tags[common.SvcVersionKey],
+				fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
+				stack.LastUpdateTime.Local().Format(LastUpdateTime),
+				stack.Tags[SvcVersionKey],
 			})
 		}
 

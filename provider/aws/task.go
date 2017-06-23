@@ -17,7 +17,7 @@ type ecsTaskManager struct {
 
 func getFlagOrValue(flag string, value string) string {
 	var actual string
-	if len(flag) == common.Zero {
+	if len(flag) == Zero {
 		actual = value
 	} else {
 		actual = flag
@@ -26,7 +26,7 @@ func getFlagOrValue(flag string, value string) string {
 }
 
 func newTaskManager(sess *session.Session, stackManager *common.StackManager) (common.TaskManager, error) {
-	log.Debug(common.EcsConnectionLog)
+	log.Debug(EcsConnectionLog)
 
 	ecsAPI := ecs.New(sess)
 
@@ -42,17 +42,17 @@ func (taskMgr *ecsTaskManager) getTaskRunInput(task common.Task) (*ecs.RunTaskIn
 		return nil, err
 	}
 
-	taskDefinitionOutput := ecsStack.Outputs[common.ECSTaskDefinitionOutputKey]
-	ecsClusterOutput := ecsStack.Outputs[common.ECSClusterOutputKey]
+	taskDefinitionOutput := ecsStack.Outputs[ECSTaskDefinitionOutputKey]
+	ecsClusterOutput := ecsStack.Outputs[ECSClusterOutputKey]
 	ecsTaskDefinition := getFlagOrValue(task.TaskDefinition, taskDefinitionOutput)
 	ecsCluster := getFlagOrValue(task.Cluster, ecsClusterOutput)
-	ecsServiceName := ecsStack.Parameters[common.ECSServiceNameParameterKey]
-	log.Debugf(common.ExecuteECSInputParameterLog, task.Environment, ecsServiceName, ecsCluster, ecsTaskDefinition)
+	ecsServiceName := ecsStack.Parameters[ECSServiceNameParameterKey]
+	log.Debugf(ExecuteECSInputParameterLog, task.Environment, ecsServiceName, ecsCluster, ecsTaskDefinition)
 
 	ecsRunTaskInput := &ecs.RunTaskInput{
 		Cluster:        aws.String(ecsCluster),
 		TaskDefinition: aws.String(ecsTaskDefinition),
-		Count:          aws.Int64(common.ECSRunTaskDefaultCount),
+		Count:          aws.Int64(1),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
@@ -64,14 +64,14 @@ func (taskMgr *ecsTaskManager) getTaskRunInput(task common.Task) (*ecs.RunTaskIn
 			},
 		},
 	}
-	log.Debugf(common.ExecuteECSInputContentsLog, ecsRunTaskInput)
+	log.Debugf(ExecuteECSInputContentsLog, ecsRunTaskInput)
 	return ecsRunTaskInput, nil
 }
 
 func (taskMgr *ecsTaskManager) runTask(runTaskInput *ecs.RunTaskInput) (common.ECSRunTaskResult, error) {
 	resp, err := taskMgr.ecsAPI.RunTask(runTaskInput)
-	log.Debugf(common.ExecuteECSResultContentsLog, resp, err)
-	log.Info(common.ExecuteCommandFinishLog)
+	log.Debugf(ExecuteECSResultContentsLog, resp, err)
+	log.Info(ExecuteCommandFinishLog)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (taskMgr *ecsTaskManager) runTask(runTaskInput *ecs.RunTaskInput) (common.E
 
 // ExecuteCommand runs a command for a specific environment
 func (taskMgr *ecsTaskManager) ExecuteCommand(task common.Task) (common.ECSRunTaskResult, error) {
-	log.Infof(common.ExecuteCommandStartLog, task.Command, task.Environment, task.Service)
+	log.Infof(ExecuteCommandStartLog, task.Command, task.Environment, task.Service)
 
 	ecsRunTaskInput, err := taskMgr.getTaskRunInput(task)
 	if err != nil {
@@ -105,7 +105,7 @@ func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string)
 	}
 
 	for _, serviceARN := range serviceOutput.ServiceArns {
-		log.Debugf(common.SvcListTasksLog, environment, cluster, serviceName)
+		log.Debugf(SvcListTasksLog, environment, cluster, serviceName)
 		listTaskInput := &ecs.ListTasksInput{
 			Cluster:     aws.String(cluster),
 			ServiceName: aws.String(*serviceARN),
@@ -140,23 +140,23 @@ func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string)
 }
 
 func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, environment string, serviceName string) (*common.Task, error) {
-	log.Debugf(common.SvcGetTaskInfoLog, *ecsTask.TaskArn)
+	log.Debugf(SvcGetTaskInfoLog, *ecsTask.TaskArn)
 	containers := []common.Container{}
-	if len(ecsTask.Containers) > common.Zero {
+	if len(ecsTask.Containers) > Zero {
 		for _, container := range ecsTask.Containers {
-			if *container.Name != serviceName && len(serviceName) != common.Zero {
+			if *container.Name != serviceName && len(serviceName) != Zero {
 				return nil, errors.New(common.Empty)
 			}
 			containers = append(containers, getContainer(taskMgr, cluster, *ecsTask.ContainerInstanceArn, *container))
 		}
 	}
 	task := common.Task{
-		Name:        strings.Split(*ecsTask.TaskArn, common.TaskARNSeparator)[common.TaskGUIDIndex],
+		Name:        strings.Split(*ecsTask.TaskArn, TaskARNSeparator)[1],
 		Environment: environment,
 		Service:     serviceName,
 		Containers:  containers,
 	}
-	log.Debugf(common.SvcTaskDetailLog, task)
+	log.Debugf(SvcTaskDetailLog, task)
 	return &task, nil
 }
 
@@ -171,13 +171,13 @@ func getContainer(taskMgr *ecsTaskManager, cluster string, instanceARN string, c
 	if err != nil {
 		return common.Container{}
 	}
-	ec2InstanceID := *instanceOutput.ContainerInstances[common.FirstValueIndex].Ec2InstanceId
+	ec2InstanceID := *instanceOutput.ContainerInstances[0].Ec2InstanceId
 	return common.Container{Name: *container.Name, Instance: ec2InstanceID}
 }
 
 func (taskMgr *ecsTaskManager) getECSStack(serviceName string, environment string) (*common.Stack, error) {
 	envStackName := common.CreateStackName(common.StackTypeService, serviceName, environment)
-	log.Infof(common.SvcCmdStackLog, envStackName)
+	log.Infof(SvcCmdStackLog, envStackName)
 
 	return taskMgr.stackManager.GetStack(envStackName)
 }

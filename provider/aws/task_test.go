@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -11,12 +12,12 @@ import (
 
 type mockedStackManager struct {
 	mock.Mock
-	StackManager
+	common.StackManager
 }
 
-func (m *mockedStackManager) GetStack(stackName string) (*Stack, error) {
+func (m *mockedStackManager) GetStack(stackName string) (*common.Stack, error) {
 	args := m.Called()
-	return args.Get(0).(*Stack), args.Error(1)
+	return args.Get(0).(*common.Stack), args.Error(1)
 }
 
 func (m *mockedECS) RunTask(input *ecs.RunTaskInput) (*ecs.RunTaskOutput, error) {
@@ -53,7 +54,7 @@ func TestTaskCommandExecutorSucceed(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
 
-	stackManagerMock.On(GetStackName).Return(&Stack{}, nil)
+	stackManagerMock.On(GetStackName).Return(&common.Stack{}, nil)
 	ecsMock.On(RunTaskName).Return(&ecs.RunTaskOutput{}, nil)
 
 	executeManager := ecsTaskManager{
@@ -75,7 +76,7 @@ func TestTaskListViewSucceed(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
 	serviceList := []*string{aws.String(TestSvc)}
-	stackManagerMock.On(GetStackName).Return(&Stack{}, nil)
+	stackManagerMock.On(GetStackName).Return(&common.Stack{}, nil)
 	ecsMock.On(ListTasks).Return(&ecs.ListTasksOutput{TaskArns: serviceList}, nil)
 	ecsMock.On(ListServices).Return(&ecs.ListServicesOutput{ServiceArns: serviceList}, nil)
 	ecsMock.On(DescribeTasks).Return(&ecs.DescribeTasksOutput{Tasks: []*ecs.Task{{ContainerInstanceArn: aws.String(TestEnv), TaskArn: aws.String(TestTaskARN), Containers: []*ecs.Container{{ContainerArn: aws.String(TestCmd), Name: aws.String(TestEnv)}}}}}, nil)
@@ -102,7 +103,7 @@ func TestTaskCommandExecutorFailRun(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 	ecsMock := new(mockedECS)
 
-	stackManagerMock.On(GetStackName).Return(&Stack{}, nil)
+	stackManagerMock.On(GetStackName).Return(&common.Stack{}, nil)
 	ecsMock.On(RunTaskName).Return(&ecs.RunTaskOutput{}, errors.New(Empty))
 
 	executeManager := ecsTaskManager{
@@ -124,7 +125,7 @@ func TestTaskCommandExecutorFailStack(t *testing.T) {
 	assertion := assert.New(t)
 	stackManagerMock := new(mockedStackManager)
 
-	stackManagerMock.On(GetStackName).Return(&Stack{}, errors.New(Empty))
+	stackManagerMock.On(GetStackName).Return(&common.Stack{}, errors.New(Empty))
 	taskManager := ecsTaskManager{
 		stackManager: stackManagerMock,
 	}
@@ -141,11 +142,11 @@ func TestRunInputSucceed(t *testing.T) {
 	stackManagerMock := new(mockedStackManager)
 	outputs := make(map[string]string)
 	parameters := make(map[string]string)
-	outputs[ECSClusterOutputKey] = ClusterFlag
-	outputs[ECSTaskDefinitionOutputKey] = TaskFlag
-	ecsStackName := CreateStackName(StackTypeService, TestEnv, TestSvc)
+	outputs[ECSClusterOutputKey] = "clusterKey"
+	outputs[ECSTaskDefinitionOutputKey] = "taskKey"
+	ecsStackName := common.CreateStackName(common.StackTypeService, TestEnv, TestSvc)
 	parameters[ECSServiceNameParameterKey] = ecsStackName
-	stackManagerMock.On(GetStackName).Return(&Stack{Outputs: outputs, Parameters: parameters}, nil)
+	stackManagerMock.On(GetStackName).Return(&common.Stack{Outputs: outputs, Parameters: parameters}, nil)
 	executeManager := ecsTaskManager{
 		ecsAPI:       nil,
 		stackManager: stackManagerMock,
@@ -154,8 +155,8 @@ func TestRunInputSucceed(t *testing.T) {
 	runInput, err := executeManager.getTaskRunInput(task)
 	assertion.NotNil(runInput)
 	assertion.Nil(err)
-	assertion.Equal(*runInput.Cluster, ClusterFlag)
-	assertion.Equal(*runInput.TaskDefinition, TaskFlag)
+	assertion.Equal(*runInput.Cluster, "clusterKey")
+	assertion.Equal(*runInput.TaskDefinition, "taskKey")
 	assertion.Equal(*runInput.Overrides.ContainerOverrides[Zero].Name, ecsStackName)
 	assertion.Equal(*runInput.Overrides.ContainerOverrides[Zero].Command[Zero], TestCmd)
 
@@ -166,7 +167,7 @@ func TestRunInputSucceed(t *testing.T) {
 func TestRunInputFail(t *testing.T) {
 	assertion := assert.New(t)
 	stackManagerMock := new(mockedStackManager)
-	stackManagerMock.On(GetStackName).Return(&Stack{}, errors.New(Empty))
+	stackManagerMock.On(GetStackName).Return(&common.Stack{}, errors.New(Empty))
 	task := getTestTask()
 	executeManager := ecsTaskManager{
 		ecsAPI:       nil,
@@ -179,8 +180,8 @@ func TestRunInputFail(t *testing.T) {
 	stackManagerMock.AssertNumberOfCalls(t, GetStackName, 1)
 }
 
-func getTestTask() Task {
-	return Task{
+func getTestTask() common.Task {
+	return common.Task{
 		Environment: TestEnv,
 		Service:     TestSvc,
 		Command:     TestCmd,

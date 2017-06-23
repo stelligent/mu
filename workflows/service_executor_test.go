@@ -42,9 +42,9 @@ func TestNewServiceExecutorFail(t *testing.T) {
 	taskManagerMock.On("ExecuteCommand").Return(nil, errors.New(common.Empty))
 
 	task := common.Task{
-		Environment: common.TestEnv,
-		Service:     common.TestSvc,
-		Command:     common.TestCmd,
+		Environment: TestEnv,
+		Service:     TestSvc,
+		Command:     TestCmd,
 	}
 	executor := newServiceExecutor(taskManagerMock, task)
 	assertion.NotNil(executor)
@@ -58,9 +58,9 @@ func TestNewServiceExecutor(t *testing.T) {
 	taskManagerMock.On("ExecuteCommand").Return(nil, nil)
 
 	task := common.Task{
-		Environment: common.TestEnv,
-		Service:     common.TestSvc,
-		Command:     common.TestCmd,
+		Environment: TestEnv,
+		Service:     TestSvc,
+		Command:     TestCmd,
 	}
 	executor := newServiceExecutor(taskManagerMock, task)
 	assertion.NotNil(executor)

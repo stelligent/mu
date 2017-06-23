@@ -63,18 +63,18 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 				entityURL := common.StringValue(actionState.EntityUrl)
 
 				if matches := codeCommitRegex.FindStringSubmatch(entityURL); matches != nil {
-					gitInfo.provider = "CodeCommit"
-					gitInfo.repoName = matches[2]
-					gitInfo.slug = gitInfo.repoName
+					gitInfo.Provider = "CodeCommit"
+					gitInfo.RepoName = matches[2]
+					gitInfo.Slug = gitInfo.RepoName
 				} else if matches := gitHubRegex.FindStringSubmatch(entityURL); matches != nil {
-					gitInfo.provider = "GitHub"
-					gitInfo.repoName = matches[3]
-					gitInfo.slug = fmt.Sprintf("%s/%s", matches[2], matches[3])
+					gitInfo.Provider = "GitHub"
+					gitInfo.RepoName = matches[3]
+					gitInfo.Slug = fmt.Sprintf("%s/%s", matches[2], matches[3])
 				} else {
 					return gitInfo, fmt.Errorf("Unable to parse entity url: %s", entityURL)
 				}
 
-				gitInfo.revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
+				gitInfo.Revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
 				return gitInfo, nil
 			}
 		}

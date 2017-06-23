@@ -24,15 +24,15 @@ func (workflow *pipelineWorkflow) pipelineLister(stackLister common.StackLister,
 			return err
 		}
 
-		table := common.CreateTableSection(writer, common.PipeLineServiceHeader)
+		table := CreateTableSection(writer, PipeLineServiceHeader)
 		for _, stack := range stacks {
 
 			table.Append([]string{
-				common.Bold(stack.Tags[common.SvcCmd]),
+				Bold(stack.Tags[SvcTagKey]),
 				stack.Name,
-				fmt.Sprintf(common.KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
-				stack.LastUpdateTime.Local().Format(common.LastUpdateTime),
-				stack.Tags[common.SvcVersionKey],
+				fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
+				stack.LastUpdateTime.Local().Format(LastUpdateTime),
+				stack.Tags[SvcVersionKey],
 			})
 		}
 

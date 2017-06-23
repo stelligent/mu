@@ -20,4 +20,3 @@ type ClusterManager interface {
 	ClusterInstanceLister
 	RepositoryAuthenticator
 }
-

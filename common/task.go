@@ -22,4 +22,3 @@ type TaskManager interface {
 	TaskContainerLister
 	TaskCommandExecutor
 }
-

@@ -15,4 +15,3 @@ type ParamManager interface {
 	ParamGetter
 	ParamSetter
 }
-

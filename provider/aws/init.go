@@ -70,12 +70,6 @@ func InitializeContext(ctx *common.Context, profile string, region string, dryru
 		return err
 	}
 
-	// initialize DockerManager
-	ctx.DockerManager, err = newClientDockerManager()
-	if err != nil {
-		return err
-	}
-
 	// initialize TaskManager
 	ctx.TaskManager, err = newTaskManager(sess, &ctx.StackManager)
 	if err != nil {

@@ -65,4 +65,3 @@ type StackManager interface {
 	StackDeleter
 	ImageFinder
 }
-

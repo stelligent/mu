@@ -11,9 +11,9 @@ import (
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:    common.SvcCmd,
-		Aliases: []string{common.SvcAlias},
-		Usage:   common.SvcUsage,
+		Name:    SvcCmd,
+		Aliases: []string{SvcAlias},
+		Usage:   SvcUsage,
 		Subcommands: []cli.Command{
 			*newServicesShowCommand(ctx),
 			*newServicesPushCommand(ctx),
@@ -29,9 +29,9 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 
 func newServicesShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.ShowCmd,
-		Usage:     common.SvcShowUsage,
-		ArgsUsage: common.SvcShowUsage,
+		Name:      ShowCmd,
+		Usage:     SvcShowUsage,
+		ArgsUsage: SvcShowUsage,
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
 			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
@@ -44,16 +44,16 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 
 func newServicesPushCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  common.PushCmd,
-		Usage: common.SvcPushCmdUsage,
+		Name:  PushCmd,
+		Usage: SvcPushCmdUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  common.TagFlagName,
-				Usage: common.SvcPushTagFlagUsage,
+				Name:  TagFlagName,
+				Usage: SvcPushTagFlagUsage,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			tag := c.String(common.Tag)
+			tag := c.String(Tag)
 			workflow := workflows.NewServicePusher(ctx, tag, ctx.DockerOut)
 			return workflow()
 		},
@@ -64,22 +64,22 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 
 func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.DeployCmd,
-		Usage:     common.SvcDeployCmdUsage,
-		ArgsUsage: common.EnvArgUsage,
+		Name:      DeployCmd,
+		Usage:     SvcDeployCmdUsage,
+		ArgsUsage: EnvArgUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  common.TagFlagName,
-				Usage: common.SvcDeployTagFlagUsage,
+				Name:  TagFlagName,
+				Usage: SvcDeployTagFlagUsage,
 			},
 		},
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.DeployCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, DeployCmd)
+				return errors.New(NoEnvValidation)
 			}
-			tag := c.String(common.Tag)
+			tag := c.String(Tag)
 			workflow := workflows.NewServiceDeployer(ctx, environmentName, tag)
 			return workflow()
 		},
@@ -90,16 +90,16 @@ func newServicesDeployCommand(ctx *common.Context) *cli.Command {
 
 func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.UndeployCmd,
-		Usage:     common.SvcUndeployCmdUsage,
-		ArgsUsage: common.SvcUndeployArgsUsage,
+		Name:      UndeployCmd,
+		Usage:     SvcUndeployCmdUsage,
+		ArgsUsage: SvcUndeployArgsUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.UndeployCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, UndeployCmd)
+				return errors.New(NoEnvValidation)
 			}
-			serviceName := c.Args().Get(common.SvcUndeploySvcFlagIndex)
+			serviceName := c.Args().Get(SvcUndeploySvcFlagIndex)
 			workflow := workflows.NewServiceUndeployer(ctx, serviceName, environmentName)
 			return workflow()
 		},
@@ -110,33 +110,33 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 
 func newServicesLogsCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  common.LogsCmd,
-		Usage: common.SvcLogUsage,
+		Name:  LogsCmd,
+		Usage: SvcLogUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  common.ServiceFlag,
-				Usage: common.SvcLogServiceFlagUsage,
+				Name:  ServiceFlag,
+				Usage: SvcLogServiceFlagUsage,
 			},
 			cli.BoolFlag{
-				Name:  common.FollowFlag,
-				Usage: common.FollowUsage,
+				Name:  FollowFlag,
+				Usage: FollowUsage,
 			},
 			cli.DurationFlag{
-				Name:  common.SearchDurationFlag,
-				Usage: common.SearchDurationUsage,
-				Value: common.DefaultLogDurationValue,
+				Name:  SearchDurationFlag,
+				Usage: SearchDurationUsage,
+				Value: DefaultLogDurationValue,
 			},
 		},
-		ArgsUsage: common.SvcLogArgUsage,
+		ArgsUsage: SvcLogArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.LogsCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, LogsCmd)
+				return errors.New(NoEnvValidation)
 			}
-			serviceName := c.String(common.SvcCmd)
+			serviceName := c.String(SvcCmd)
 
-			workflow := workflows.NewServiceLogViewer(ctx, c.Duration(common.SearchDuration), c.Bool(common.Follow), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), common.Space))
+			workflow := workflows.NewServiceLogViewer(ctx, c.Duration(SearchDuration), c.Bool(Follow), environmentName, serviceName, os.Stdout, strings.Join(c.Args().Tail(), Space))
 			return workflow()
 		},
 	}
@@ -148,40 +148,40 @@ func validateExecuteArguments(ctx *cli.Context) error {
 	environmentName := ctx.Args().First()
 	argLength := len(ctx.Args())
 
-	if argLength == common.Zero || len(strings.TrimSpace(environmentName)) == common.Zero {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.NoEnvValidation)
+	if argLength == Zero || len(strings.TrimSpace(environmentName)) == Zero {
+		cli.ShowCommandHelp(ctx, ExeCmd)
+		return errors.New(NoEnvValidation)
 	}
-	if argLength == common.ExeArgsCmdIndex {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.NoCmdValidation)
+	if argLength == ExeArgsCmdIndex {
+		cli.ShowCommandHelp(ctx, ExeCmd)
+		return errors.New(NoCmdValidation)
 	}
-	if len(strings.TrimSpace(ctx.Args().Get(common.ExeArgsCmdIndex))) == common.Zero {
-		cli.ShowCommandHelp(ctx, common.ExeCmd)
-		return errors.New(common.EmptyCmdValidation)
+	if len(strings.TrimSpace(ctx.Args().Get(ExeArgsCmdIndex))) == Zero {
+		cli.ShowCommandHelp(ctx, ExeCmd)
+		return errors.New(EmptyCmdValidation)
 	}
 	return nil
 }
 
 func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.ExeCmd,
-		Usage:     common.ExeUsage,
-		ArgsUsage: common.ExeArgs,
+		Name:      ExeCmd,
+		Usage:     ExeUsage,
+		ArgsUsage: ExeArgs,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  common.ServiceFlag,
-				Usage: common.SvcExeServiceFlagUsage,
+				Name:  ServiceFlag,
+				Usage: SvcExeServiceFlagUsage,
 			},
 			cli.StringFlag{
-				Name:   common.TaskFlag,
-				Usage:  common.SvcExeTaskFlagUsage,
-				Hidden: common.TaskFlagVisible,
+				Name:   TaskFlag,
+				Usage:  SvcExeTaskFlagUsage,
+				Hidden: TaskFlagVisible,
 			},
 			cli.StringFlag{
-				Name:   common.ClusterFlag,
-				Usage:  common.SvcExeClusterFlagUsage,
-				Hidden: common.ClusterFlagVisible,
+				Name:   ClusterFlag,
+				Usage:  SvcExeClusterFlagUsage,
+				Hidden: ClusterFlagVisible,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -203,12 +203,12 @@ func newTask(c *cli.Context) (*common.Task, error) {
 		return nil, err
 	}
 	environmentName := c.Args().First()
-	command := strings.Join(c.Args()[common.ExeArgsCmdIndex:], common.Space)
+	command := strings.Join(c.Args()[ExeArgsCmdIndex:], Space)
 	return &common.Task{
 		Environment:    environmentName,
 		Command:        command,
-		Service:        c.String(common.SvcCmd),
-		TaskDefinition: c.String(common.TaskFlagName),
-		Cluster:        c.String(common.ClusterFlagName),
+		Service:        c.String(SvcCmd),
+		TaskDefinition: c.String(TaskFlagName),
+		Cluster:        c.String(ClusterFlagName),
 	}, nil
 }

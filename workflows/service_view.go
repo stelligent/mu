@@ -29,24 +29,24 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, s
 		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
 		pipelineStack, err := stackGetter.GetStack(pipelineStackName)
 		if err == nil {
-			fmt.Fprint(writer, common.NewLine)
-			fmt.Fprintf(writer, common.SvcPipelineFormat, common.Bold(common.SvcPipelineURLLabel), pipelineStack.Outputs[common.SvcCodePipelineURLKey])
+			fmt.Fprint(writer, NewLine)
+			fmt.Fprintf(writer, SvcPipelineFormat, Bold(SvcPipelineURLLabel), pipelineStack.Outputs[SvcCodePipelineURLKey])
 
-			states, err := pipelineStateLister.ListState(pipelineStack.Outputs[common.SvcCodePipelineNameKey])
+			states, err := pipelineStateLister.ListState(pipelineStack.Outputs[SvcCodePipelineNameKey])
 			if err != nil {
 				return err
 			}
 
 			stateTable := buildPipelineStateTable(writer, states)
 			stateTable.Render()
-			fmt.Fprint(writer, common.NewLine)
+			fmt.Fprint(writer, NewLine)
 
 		} else {
-			fmt.Fprint(writer, common.NewLine)
-			fmt.Fprintf(writer, common.SvcPipelineFormat, common.Bold(common.SvcPipelineURLLabel), common.NA)
+			fmt.Fprint(writer, NewLine)
+			fmt.Fprintf(writer, SvcPipelineFormat, Bold(SvcPipelineURLLabel), NA)
 		}
 
-		fmt.Fprintf(writer, common.SvcDeploymentsFormat, common.Bold(common.SvcDeploymentsLabel))
+		fmt.Fprintf(writer, SvcDeploymentsFormat, Bold(SvcDeploymentsLabel))
 
 		table := buildEnvTable(writer, stacks, workflow.serviceName)
 		table.Render()
@@ -58,29 +58,29 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, s
 }
 
 func buildPipelineStateTable(writer io.Writer, stages []common.PipelineStageState) *tablewriter.Table {
-	table := common.CreateTableSection(writer, common.SvcPipelineTableHeader)
+	table := CreateTableSection(writer, SvcPipelineTableHeader)
 
 	for _, stage := range stages {
 		for _, action := range stage.ActionStates {
-			revision := common.LineChar
+			revision := LineChar
 			if action.CurrentRevision != nil {
 				revision = common.StringValue(action.CurrentRevision.RevisionId)
 			}
-			status := common.LineChar
+			status := LineChar
 			message := common.Empty
-			lastUpdate := common.LineChar
+			lastUpdate := LineChar
 			if action.LatestExecution != nil {
-				lastUpdate = common.TimeValue(action.LatestExecution.LastStatusChange).Local().Format(common.LastUpdateTime)
+				lastUpdate = common.TimeValue(action.LatestExecution.LastStatusChange).Local().Format(LastUpdateTime)
 				status = common.StringValue(action.LatestExecution.Status)
 				if action.LatestExecution.ErrorDetails != nil {
 					message = common.StringValue(action.LatestExecution.ErrorDetails.Message)
 				}
 			}
 			table.Append([]string{
-				common.Bold(common.StringValue(stage.StageName)),
+				Bold(common.StringValue(stage.StageName)),
 				common.StringValue(action.ActionName),
 				revision,
-				fmt.Sprintf(common.KeyValueFormat, colorizeActionStatus(status), message),
+				fmt.Sprintf(KeyValueFormat, colorizeActionStatus(status), message),
 				lastUpdate,
 			})
 		}
@@ -90,20 +90,20 @@ func buildPipelineStateTable(writer io.Writer, stages []common.PipelineStageStat
 }
 
 func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string) *tablewriter.Table {
-	table := common.CreateTableSection(writer, common.SvcEnvironmentTableHeader)
+	table := CreateTableSection(writer, SvcEnvironmentTableHeader)
 
 	for _, stack := range stacks {
-		if stack.Tags[common.SvcCmd] != serviceName {
+		if stack.Tags[SvcTagKey] != serviceName {
 			continue
 		}
 
 		table.Append([]string{
-			common.Bold(stack.Tags[common.EnvCmd]),
+			Bold(stack.Tags[EnvTagKey]),
 			stack.Name,
-			stack.Parameters[common.SvcImageURLKey],
-			fmt.Sprintf(common.KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
-			stack.LastUpdateTime.Local().Format(common.LastUpdateTime),
-			stack.Tags[common.SvcVersionKey],
+			stack.Parameters[SvcImageURLKey],
+			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
+			stack.LastUpdateTime.Local().Format(LastUpdateTime),
+			stack.Tags[SvcVersionKey],
 		})
 	}
 	return table
@@ -111,18 +111,18 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 
 func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
 	for _, stack := range stacks {
-		if stack.Tags[common.SvcCmd] != serviceName && len(serviceName) != common.Zero {
+		if stack.Tags[SvcTagKey] != serviceName && len(serviceName) != Zero {
 			continue
 		}
-		if len(serviceName) == common.Zero {
-			serviceName = stack.Tags[common.SvcCmd]
+		if len(serviceName) == Zero {
+			serviceName = stack.Tags[SvcTagKey]
 		}
-		tasks, err := taskManager.ListTasks(stack.Tags[common.EnvCmd], serviceName)
+		tasks, err := taskManager.ListTasks(stack.Tags[EnvTagKey], serviceName)
 		if err != nil {
 			return err
 		}
 
-		fmt.Fprintf(writer, common.SvcContainersFormat, common.Bold(common.SvcContainersLabel), common.Bold(serviceName))
+		fmt.Fprintf(writer, SvcContainersFormat, Bold(SvcContainersLabel), Bold(serviceName))
 		containersTable := buildTaskTable(tasks, writer)
 		containersTable.Render()
 	}
@@ -131,11 +131,11 @@ func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*commo
 }
 
 func buildTaskTable(tasks []common.Task, writer io.Writer) *tablewriter.Table {
-	table := common.CreateTableSection(writer, common.SvcTaskContainerHeader)
+	table := CreateTableSection(writer, SvcTaskContainerHeader)
 	for _, task := range tasks {
 		for _, container := range task.Containers {
 			table.Append([]string{
-				common.Bold(task.Name),
+				Bold(task.Name),
 				container.Name,
 				container.Instance,
 			})

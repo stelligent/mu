@@ -16,4 +16,3 @@ type ElbRuleLister interface {
 type ElbManager interface {
 	ElbRuleLister
 }
-

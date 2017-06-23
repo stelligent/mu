@@ -2,9 +2,10 @@ package cli
 
 import (
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/provider/aws"
 	"github.com/urfave/cli"
 	"io/ioutil"
-	"github.com/stelligent/mu/provider/aws"
+	"os"
 )
 
 // NewApp creates a new CLI app
@@ -37,19 +38,21 @@ func NewApp() *cli.App {
 		}
 
 		// initialize context
-		err := context.InitializeContext(c.String("profile"), c.String("region"), c.Bool("dryrun"))
+		err := context.InitializeContext()
 		if err != nil {
 			return err
 		}
 
 		// TODO: support initializing context from other cloud providers?
-		err := aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
+		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
 		if err != nil {
 			return err
 		}
 
 		if c.Bool("silent") {
 			context.DockerOut = ioutil.Discard
+		} else {
+			context.DockerOut = os.Stdout
 		}
 
 		err = context.InitializeConfigFromFile(c.String("config"))
