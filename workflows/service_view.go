@@ -100,16 +100,16 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 		table.Append([]string{
 			Bold(stack.Tags[EnvTagKey]),
 			stack.Name,
-			stack.Parameters[SvcImageURLKey],
+			simplifyRepoURL(stack.Parameters[SvcImageURLKey]),
 			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
 			stack.LastUpdateTime.Local().Format(LastUpdateTime),
-			stack.Tags[SvcVersionKey],
 		})
 	}
 	return table
 }
 
 func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
+	containersTable := CreateTableSection(writer, SvcTaskContainerHeader)
 	for _, stack := range stacks {
 		if stack.Tags[SvcTagKey] != serviceName && len(serviceName) != Zero {
 			continue
@@ -122,24 +122,21 @@ func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*commo
 			return err
 		}
 
-		fmt.Fprintf(writer, SvcContainersFormat, Bold(SvcContainersLabel), Bold(serviceName))
-		containersTable := buildTaskTable(tasks, writer)
-		containersTable.Render()
+		for _, task := range tasks {
+			for _, container := range task.Containers {
+				containersTable.Append([]string{
+					stack.Tags[EnvTagKey],
+					container.Name,
+					Bold(task.Name),
+					container.Instance,
+				})
+			}
+		}
+
 	}
+
+	fmt.Fprintf(writer, SvcContainersFormat, Bold(SvcContainersLabel), Bold(serviceName))
+	containersTable.Render()
 
 	return nil
-}
-
-func buildTaskTable(tasks []common.Task, writer io.Writer) *tablewriter.Table {
-	table := CreateTableSection(writer, SvcTaskContainerHeader)
-	for _, task := range tasks {
-		for _, container := range task.Containers {
-			table.Append([]string{
-				Bold(task.Name),
-				container.Name,
-				container.Instance,
-			})
-		}
-	}
-	return table
 }

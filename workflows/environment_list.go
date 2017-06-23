@@ -32,7 +32,6 @@ func (workflow *environmentWorkflow) environmentLister(stackLister common.StackL
 				stack.Name,
 				fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
 				stack.LastUpdateTime.Local().Format(LastUpdateTime),
-				stack.Tags[SvcVersionKey],
 			})
 		}
 

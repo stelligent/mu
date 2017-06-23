@@ -5,6 +5,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
 	"io"
+	"strings"
 )
 
 var log = logging.MustGetLogger("workflows")
@@ -16,22 +17,22 @@ var Bold = color.New(color.Bold).SprintFunc()
 var SvcPipelineTableHeader = []string{SvcStageHeader, SvcActionHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcEnvironmentTableHeader is the header array for the environment table
-var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcTaskContainerHeader is the header for container task detail
-var SvcTaskContainerHeader = []string{"Task", "Container", "Instance"}
+var SvcTaskContainerHeader = []string{"Environment", "Container", "Task", "Instance"}
 
 // PipeLineServiceHeader is the header for the pipeline service table
-var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // EnvironmentAMITableHeader is the header for the instance details
 var EnvironmentAMITableHeader = []string{EC2Instance, TypeHeader, AMI, PrivateIP, AZ, ConnectedHeader, SvcStatusHeader, NumTasks, CPUAvail, MEMAvail}
 
 // ServiceTableHeader is the header for the service table
-var ServiceTableHeader = []string{SvcServiceHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+var ServiceTableHeader = []string{SvcServiceHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // EnvironmentShowHeader is the header for the environment table
-var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader, SvcMuVersionHeader}
+var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // Constants to prevent multiple updates when making changes.
 const (
@@ -115,4 +116,13 @@ func CreateTableSection(writer io.Writer, header []string) *tablewriter.Table {
 	table.SetBorder(true)
 	table.SetAutoWrapText(false)
 	return table
+}
+func simplifyRepoURL(url string) string {
+	slashIndex := strings.Index(url, "/")
+
+	if slashIndex == -1 {
+		return url
+	}
+
+	return url[slashIndex+1:]
 }

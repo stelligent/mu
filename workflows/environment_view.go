@@ -48,9 +48,6 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 	return func() error {
 		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
 		lbStack, err := stackGetter.GetStack(lbStackName)
-		if err != nil {
-			return err
-		}
 
 		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
@@ -70,18 +67,21 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BastionHost), vpcStack.Outputs[BastionHostKey])
 		}
 
-		fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), lbStack.Outputs[BaseURLValueKey])
+		if lbStack != nil {
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), lbStack.Outputs[BaseURLValueKey])
+		} else {
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
+		}
 		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
-		fmt.Fprint(writer, NewLine)
 
 		containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
 		if err != nil {
 			return err
 		}
 
-		var instanceIds []string
-		for _, containerInstance := range containerInstances {
-			instanceIds = append(instanceIds, common.StringValue(containerInstance.Ec2InstanceId))
+		instanceIds := make([]string, len(containerInstances))
+		for i, containerInstance := range containerInstances {
+			instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
 		}
 
 		instances, err := instanceLister.ListInstances(instanceIds...)
@@ -94,7 +94,6 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 
 		fmt.Fprint(writer, NewLine)
 		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ServicesHeader))
-		fmt.Fprint(writer, NewLine)
 		stacks, err := stackLister.ListStacks(common.StackTypeService)
 		if err != nil {
 			return err
@@ -129,10 +128,9 @@ func buildServiceTable(stacks []*common.Stack, environmentName string, writer io
 
 		table.Append([]string{
 			Bold(stackValues.Tags[SvcTagKey]),
-			stackValues.Parameters[SvcImageURLKey],
+			simplifyRepoURL(stackValues.Parameters[SvcImageURLKey]),
 			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stackValues.Status), stackValues.StatusReason),
 			stackValues.LastUpdateTime.Local().Format(LastUpdateTime),
-			stackValues.Tags[SvcVersionKey],
 		})
 	}
 

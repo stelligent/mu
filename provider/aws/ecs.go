@@ -58,8 +58,8 @@ func (ecsMgr *ecsClusterManager) ListInstances(clusterName string) ([]common.Con
 	describeOut, _ := ecsAPI.DescribeContainerInstances(describeParams)
 
 	instances := make([]common.ContainerInstance, len(describeOut.ContainerInstances))
-	for _, instance := range describeOut.ContainerInstances {
-		instances = append(instances, instance)
+	for i, instance := range describeOut.ContainerInstances {
+		instances[i] = instance
 	}
 	return instances, nil
 }
