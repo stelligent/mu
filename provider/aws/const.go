@@ -16,10 +16,7 @@ const (
 	DescribeContainerInstances  = "DescribeContainerInstances"
 	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinition"
 	ECSClusterOutputKey         = "EcsCluster"
-	SvcCmdTaskExecutingLog      = "Creating service executor...\n"
-	SvcCmdTaskResultLog         = "Service executor complete with result:\n%s\n"
 	SvcCmdStackLog              = "Getting stack '%s'..."
-	SvcCmdTaskErrorLog          = "The following error has occurred executing the command:  '%v'"
 	EcsConnectionLog            = "Connecting to ECS service"
 	ExecuteCommandStartLog      = "Executing command '[%s]' on environment '%s' for service '%s'\n"
 	ExecuteCommandFinishLog     = "Command execution complete\n"
@@ -28,7 +25,6 @@ const (
 	ExecuteECSResultContentsLog = "ECS Result Contents: %s, %s\n"
 	SvcGetTaskInfoLog           = "Getting task info for task: %s"
 	SvcTaskDetailLog            = "Task Detail: %s"
-	SvcInstancePrivateIPLog     = "Instance Private IP for Instance ID %s: %s"
 	SvcListTasksLog             = "Listing tasks for Environment: %s, Cluster: %s, Service: %s"
 	TaskARNSeparator            = ForwardSlash
 )

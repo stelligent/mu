@@ -89,7 +89,6 @@ const (
 	SvcActionHeader        = "Action"
 	SvcStatusHeader        = "Status"
 	SvcRevisionHeader      = "Revision"
-	SvcMuVersionHeader     = "Mu Version"
 	SvcImageHeader         = "Image"
 	EnvironmentHeader      = "Environment"
 	SvcStackHeader         = "Stack"
