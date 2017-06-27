@@ -1,0 +1,15 @@
+---
+
+environments:
+  - name: ec2-dev
+    provider: ec2
+
+service:
+  name: basic-example
+  healthEndpoint: /
+  port: 80
+  pathPatterns:
+    - /*
+  pipeline:
+    source:
+      repo: cplee/aftp-mu
