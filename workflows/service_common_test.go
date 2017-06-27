@@ -97,6 +97,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "foo"
+	workflow.envProvider = common.EnvProviderEcs
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
@@ -108,4 +109,23 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
+func TestServiceRepoUpserter_Ec2Provider(t *testing.T) {
+	assert := assert.New(t)
+
+	svc := new(common.Service)
+
+	workflow := new(serviceWorkflow)
+	workflow.serviceName = "foo"
+	workflow.envProvider = common.EnvProviderEc2
+
+	stackManager := new(mockedStackManagerForUpsert)
+
+	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
 }

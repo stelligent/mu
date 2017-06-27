@@ -10,6 +10,7 @@ import (
 )
 
 type serviceWorkflow struct {
+	envProvider  common.EnvProvider
 	serviceName  string
 	serviceTag   string
 	serviceImage string
@@ -63,6 +64,11 @@ func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName s
 
 func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+		if !strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEcs)) {
+			log.Debugf("Skipping ECR for provider of type '%s'", workflow.envProvider)
+			return nil
+		}
+
 		if service.ImageRepository != "" {
 			log.Noticef("Using repo '%s' for service '%s'", service.ImageRepository, workflow.serviceName)
 			workflow.serviceImage = service.ImageRepository
@@ -81,7 +87,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, workflow.envProvider, common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}

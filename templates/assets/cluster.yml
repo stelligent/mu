@@ -41,6 +41,9 @@ Parameters:
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
   HttpProxy:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
@@ -107,6 +110,25 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Ref AWS::StackName
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Microservice Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
+  Host2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
   EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
@@ -276,6 +298,7 @@ Resources:
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
+      - !Ref InstanceSecurityGroup
       - !Ref ElbSecurityGroup
       - Fn::If:
           - HasConsulClientSG

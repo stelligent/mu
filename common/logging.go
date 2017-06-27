@@ -28,7 +28,7 @@ func SetupLogging(verbosity int) {
 			`%{color}%{message}%{color:reset}`,
 		)
 		infoFormatter := logging.NewBackendFormatter(infoBackend, infoFormat)
-		infoLeveled := logging.AddModuleLevel(notToExceedLevel(logging.INFO, infoFormatter))
+		infoLeveled := logging.AddModuleLevel(notToExceedLevel(logging.NOTICE, infoFormatter))
 		infoLeveled.SetLevel(logging.INFO, "")
 
 		if verbosity >= 2 {

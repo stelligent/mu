@@ -75,7 +75,8 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &common.Environment{
-		Name: "foo",
+		Name:     "foo",
+		Provider: common.EnvProviderEcs,
 	}
 
 	vpcInputParams := make(map[string]string)
@@ -128,7 +129,7 @@ func TestEnvironmentElbUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-loadbalancer-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.environmentElbUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentElbUpserter(vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -206,7 +207,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -231,7 +232,7 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -267,7 +268,7 @@ environments:
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
-	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err = workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-target-dev-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])

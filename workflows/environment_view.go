@@ -51,15 +51,15 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 
 		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
-		if err != nil {
-			return err
-		}
 
 		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
 		vpcStack, _ := stackGetter.GetStack(vpcStackName)
 
 		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), environmentName)
-		fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), clusterStack.Name, colorizeStackStatus(clusterStack.Status))
+		if clusterStack != nil {
+			fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), clusterStack.Name, colorizeStackStatus(clusterStack.Status))
+		}
+
 		if vpcStack == nil {
 			fmt.Fprintf(writer, UnmanagedStackFormat, Bold(VPCStack))
 		} else {
@@ -69,28 +69,29 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 
 		if lbStack != nil {
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), lbStack.Outputs[BaseURLValueKey])
-		} else {
+		} else if clusterStack != nil {
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
 		}
-		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
 
-		containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
-		if err != nil {
-			return err
+		if clusterStack != nil {
+			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
+			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
+			if err != nil {
+				return err
+			}
+
+			instanceIds := make([]string, len(containerInstances))
+			for i, containerInstance := range containerInstances {
+				instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
+			}
+			instances, err := instanceLister.ListInstances(instanceIds...)
+			if err != nil {
+				return err
+			}
+
+			table := buildInstanceTable(writer, containerInstances, instances)
+			table.Render()
 		}
-
-		instanceIds := make([]string, len(containerInstances))
-		for i, containerInstance := range containerInstances {
-			instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
-		}
-
-		instances, err := instanceLister.ListInstances(instanceIds...)
-		if err != nil {
-			return err
-		}
-
-		table := buildInstanceTable(writer, containerInstances, instances)
-		table.Render()
 
 		fmt.Fprint(writer, NewLine)
 		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ServicesHeader))
@@ -98,7 +99,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 		if err != nil {
 			return err
 		}
-		table = buildServiceTable(stacks, environmentName, writer)
+		table := buildServiceTable(stacks, environmentName, writer)
 		table.Render()
 
 		buildContainerTable(taskManager, stacks, environmentName, writer)

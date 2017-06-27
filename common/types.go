@@ -38,7 +38,7 @@ type Config struct {
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
 	Name         string      `yaml:"name,omitempty"`
-	Provider     EnvProvider `yaml:"strategy,omitempty"`
+	Provider     EnvProvider `yaml:"provider,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`

@@ -27,7 +27,7 @@ Parameters:
     Type: String
     Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
     Default: ''
-Metadata:
+Conditions:
   HasElbDomainName:
     "Fn::Not":
       - "Fn::Equals":
@@ -48,17 +48,12 @@ Metadata:
       - !Ref ElbInternal
       - 'true'
 Resources:
-  HostSG:
+  ElbInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
-      GroupDescription: Microservice Host Security Group
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: !Ref SshAllow
+      GroupDescription: Microservice Host Security Group allowing ELB access
   ElbSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -74,14 +69,6 @@ Resources:
         FromPort: '443'
         ToPort: '443'
         CidrIp: 0.0.0.0/0
-  Host2HostRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: tcp
-      FromPort: '0'
-      ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt HostSG.GroupId
-      GroupId: !GetAtt HostSG.GroupId
   ELB2HostRule:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -89,14 +76,14 @@ Resources:
       FromPort: '0'
       ToPort: '65535'
       SourceSecurityGroupId: !GetAtt ElbSG.GroupId
-      GroupId: !GetAtt HostSG.GroupId
+      GroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
   Host2ELBRule:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
       FromPort: '0'
       ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt HostSG.GroupId
+      SourceSecurityGroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
       GroupId: !GetAtt ElbSG.GroupId
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -185,8 +172,8 @@ Outputs:
     Description: VPC ID for the microservice cluster
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  InstanceSecurityGroup:
-    Value: !Ref HostSG
+  ElbInstanceSecurityGroup:
+    Value: !Ref ElbInstanceSecurityGroup
     Description: Security Group ID for the microservice instances
     Export:
       Name: !Sub ${AWS::StackName}-InstanceSecurityGroup
