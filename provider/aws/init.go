@@ -76,6 +76,12 @@ func InitializeContext(ctx *common.Context, profile string, region string, dryru
 		return err
 	}
 
+	// initialize ArtifactManager
+	ctx.ArtifactManager, err = newArtifactManager(sess)
+	if err != nil {
+		return err
+	}
+
 	ctx.DockerOut = os.Stdout
 
 	return nil

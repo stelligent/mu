@@ -6,22 +6,25 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"os"
 	"strings"
 )
 
 type serviceWorkflow struct {
-	envProvider  common.EnvProvider
-	serviceName  string
-	serviceTag   string
-	serviceImage string
-	registryAuth string
-	priority     int
-	codeRevision string
-	repoName     string
+	envProvider      common.EnvProvider
+	artifactProvider common.ArtifactProvider
+	serviceName      string
+	serviceTag       string
+	serviceImage     string
+	registryAuth     string
+	priority         int
+	codeRevision     string
+	repoName         string
+	serviceBucket    string
 }
 
 // Find a service in config, by name and set the reference
-func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) Executor {
+func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, provider string) Executor {
 	return func() error {
 		err := workflow.serviceInput(ctx, "")()
 		if err != nil {
@@ -41,8 +44,47 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string) 
 		workflow.repoName = ctx.Config.Repo.Slug
 		workflow.priority = ctx.Config.Service.Priority
 
+		if provider == "" {
+			dockerfile := ctx.Config.Service.Dockerfile
+			if dockerfile == "" {
+				dockerfile = "Dockerfile"
+			}
+
+			if _, err := os.Stat(fmt.Sprintf("%s/%s", ctx.Config.Basedir, dockerfile)); os.IsExist(err) {
+				workflow.artifactProvider = common.ArtifactProviderEcr
+			} else {
+				workflow.artifactProvider = common.ArtifactProviderS3
+			}
+		} else {
+			workflow.artifactProvider = common.ArtifactProvider(provider)
+		}
+
 		log.Debugf("Working with service:'%s' tag:'%s'", workflow.serviceName, workflow.serviceTag)
 		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) isEcrProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.artifactProvider), string(common.ArtifactProviderEcr))
+	}
+}
+
+func (workflow *serviceWorkflow) isS3Provider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.artifactProvider), string(common.ArtifactProviderS3))
+	}
+}
+
+func (workflow *serviceWorkflow) isEcsProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEcs))
+	}
+}
+
+func (workflow *serviceWorkflow) isEc2Provider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEc2))
 	}
 }
 
@@ -101,6 +143,36 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 		workflow.serviceImage = fmt.Sprintf("%s:%s", stack.Outputs["RepoUrl"], workflow.serviceTag)
+		return nil
+	}
+}
+func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codedeploy")
+		overrides := common.GetStackOverrides(bucketStackName)
+		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
+		if err != nil {
+			return err
+		}
+		log.Noticef("Upserting Bucket for CodeDeploy")
+		bucketParams := make(map[string]string)
+		bucketParams["BucketPrefix"] = "codedeploy"
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+		stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", bucketStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		workflow.serviceBucket = stack.Outputs["Bucket"]
+
 		return nil
 	}
 }

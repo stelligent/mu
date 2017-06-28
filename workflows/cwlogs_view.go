@@ -18,7 +18,7 @@ func NewEnvironmentLogViewer(ctx *common.Context, searchDuration time.Duration, 
 
 	logGroup := common.CreateStackName(common.StackTypeCluster, environmentName)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
 	)
 }
@@ -33,7 +33,7 @@ func NewServiceLogViewer(ctx *common.Context, searchDuration time.Duration, foll
 
 	logGroup := common.CreateStackName(common.StackTypeService, serviceName, environmentName)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
 	)
 }
@@ -53,7 +53,7 @@ func NewPipelineLogViewer(ctx *common.Context, searchDuration time.Duration, fol
 		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/mu-pipeline-%s-%s", serviceName, job))
 	}
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroups...),
 	)
 }

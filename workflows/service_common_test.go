@@ -19,10 +19,11 @@ func TestServiceLoader_FromConfig(t *testing.T) {
 	ctx.Config.Service.Name = "myservice"
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceLoader(ctx, "2.0.0")()
+	err := workflow.serviceLoader(ctx, "2.0.0", "ecr")()
 	assert.Nil(err)
 	assert.Equal("myservice", workflow.serviceName)
 	assert.Equal("2.0.0", workflow.serviceTag)
+	assert.Equal(common.ArtifactProviderEcr, workflow.artifactProvider)
 }
 
 func TestServiceLoader_FromRepo(t *testing.T) {
@@ -34,10 +35,11 @@ func TestServiceLoader_FromRepo(t *testing.T) {
 	ctx.Config.Repo.Revision = "1.0.0"
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceLoader(ctx, "")()
+	err := workflow.serviceLoader(ctx, "", "ecr")()
 	assert.Nil(err)
 	assert.Equal("myrepo", workflow.serviceName)
 	assert.Equal("1.0.0", workflow.serviceTag)
+	assert.Equal(common.ArtifactProviderEcr, workflow.artifactProvider)
 }
 
 type mockedRepositoryAuthenticator struct {

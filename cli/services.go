@@ -51,10 +51,15 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 				Name:  TagFlagName,
 				Usage: SvcPushTagFlagUsage,
 			},
+			cli.StringFlag{
+				Name:  ProviderFlagName,
+				Usage: SvcPushProviderFlagUsage,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			tag := c.String(Tag)
-			workflow := workflows.NewServicePusher(ctx, tag, ctx.DockerOut)
+			provider := c.String(Provider)
+			workflow := workflows.NewServicePusher(ctx, tag, provider, ctx.DockerOut)
 			return workflow()
 		},
 	}

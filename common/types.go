@@ -19,6 +19,7 @@ type Context struct {
 	DockerManager   DockerManager
 	DockerOut       io.Writer
 	TaskManager     TaskManager
+	ArtifactManager ArtifactManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -209,6 +210,15 @@ type EnvProvider string
 const (
 	EnvProviderEcs EnvProvider = "ecs"
 	EnvProviderEc2             = "ec2"
+)
+
+// ArtifactProvider describes supported artifact strategies
+type ArtifactProvider string
+
+// List of valid artifact providers
+const (
+	ArtifactProviderEcr ArtifactProvider = "ecr"
+	ArtifactProviderS3                   = "s3"
 )
 
 // Container describes container details

@@ -20,7 +20,7 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
 	}
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		environmentViewer,
 	)
 }

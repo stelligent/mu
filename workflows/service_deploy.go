@@ -17,8 +17,8 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 
 	ecsImportParams := make(map[string]string)
 
-	return newWorkflow(
-		workflow.serviceLoader(ctx, tag),
+	return newPipelineExecutor(
+		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager, ctx.ParamManager),
 		workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 		workflow.serviceDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager),
@@ -55,6 +55,12 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 			workflow.envProvider = common.EnvProvider(ecsStack.Tags["provider"])
 		} else {
 			return fmt.Errorf("Unable to find stack '%s' for environment '%s'", ecsStackName, environmentName)
+		}
+
+		if workflow.envProvider == common.EnvProviderEcs {
+			workflow.artifactProvider = common.ArtifactProviderEcr
+		} else {
+			workflow.artifactProvider = common.ArtifactProviderS3
 		}
 
 		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
@@ -116,6 +122,43 @@ func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackP
 func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) error {
 	log.Noticef("Deploying service '%s' to '%s'", workflow.serviceName, environmentName)
 
+	stackParams["ServiceName"] = workflow.serviceName
+	stackParams["ImageUrl"] = workflow.serviceImage
+	if service.Port != 0 {
+		stackParams["ServicePort"] = strconv.Itoa(service.Port)
+	}
+	if service.HealthEndpoint != "" {
+		stackParams["ServiceHealthEndpoint"] = service.HealthEndpoint
+	}
+	if service.DesiredCount != 0 {
+		stackParams["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
+	}
+	if len(service.PathPatterns) > 0 {
+		stackParams["PathPattern"] = strings.Join(service.PathPatterns, ",")
+	}
+
+	svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+
+	resolveServiceEnvironment(service, environmentName)
+	overrides := common.GetStackOverrides(svcStackName)
+	template, err := templates.NewTemplate("service-ec2.yml", service, overrides)
+	if err != nil {
+		return err
+	}
+
+	err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envProvider, common.StackTypeService, workflow.codeRevision, workflow.repoName))
+	if err != nil {
+		return err
+	}
+	log.Debugf("Waiting for stack '%s' to complete", svcStackName)
+	stack := stackWaiter.AwaitFinalStatus(svcStackName)
+	if stack == nil {
+		return fmt.Errorf("Unable to create stack %s", svcStackName)
+	}
+	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+
 	return nil
 }
 
@@ -147,7 +190,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, sta
 
 	resolveServiceEnvironment(service, environmentName)
 	overrides := common.GetStackOverrides(svcStackName)
-	template, err := templates.NewTemplate("service.yml", service, overrides)
+	template, err := templates.NewTemplate("service-ecs.yml", service, overrides)
 	if err != nil {
 		return err
 	}

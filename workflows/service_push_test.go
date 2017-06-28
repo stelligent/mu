@@ -12,7 +12,7 @@ import (
 func TestNewServicePusher(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
-	upserter := NewServicePusher(ctx, "foo", os.Stdout)
+	upserter := NewServicePusher(ctx, "foo", "", os.Stdout)
 	assert.NotNil(upserter)
 }
 
@@ -45,7 +45,7 @@ func TestServiceBuilder(t *testing.T) {
 	config := new(common.Config)
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceBuilder(builder, config, os.Stdout)()
+	err := workflow.serviceImageBuilder(builder, config, os.Stdout)()
 	assert.Nil(err)
 
 	builder.AssertExpectations(t)
@@ -60,7 +60,7 @@ func TestServicePusher(t *testing.T) {
 	pusher.On("ImagePush").Return(nil)
 
 	workflow := new(serviceWorkflow)
-	err := workflow.servicePusher(pusher, os.Stdout)()
+	err := workflow.serviceImagePusher(pusher, os.Stdout)()
 	assert.Nil(err)
 
 	pusher.AssertExpectations(t)

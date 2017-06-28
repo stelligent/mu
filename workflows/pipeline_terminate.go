@@ -11,7 +11,7 @@ func NewPipelineTerminator(ctx *common.Context, serviceName string) Executor {
 
 	workflow := new(pipelineWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceFinder(serviceName, ctx),
 		workflow.pipelineTerminator(ctx.StackManager, ctx.StackManager),
 	)

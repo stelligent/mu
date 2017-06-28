@@ -16,7 +16,7 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
 		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),

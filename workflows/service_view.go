@@ -12,7 +12,7 @@ func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer)
 
 	workflow := new(serviceWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
 		workflow.serviceViewer(ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, writer),
 	)

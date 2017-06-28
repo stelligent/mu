@@ -48,7 +48,7 @@ func TestNewServicesPushCommand(t *testing.T) {
 
 	assertion.NotNil(command)
 	assertion.Equal(PushCmd, command.Name, NameMessage)
-	assertion.Equal(SvcAliasCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(SvcFlagsCount, len(command.Flags), FlagLenMessage)
 	assertion.Equal(TagFlagName, command.Flags[SvcPushTagFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }

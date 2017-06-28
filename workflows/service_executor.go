@@ -12,7 +12,7 @@ func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 		task.Service = ctx.Config.Service.Name
 	}
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceTaskExecutor(ctx.TaskManager, task),
 	)
 }
@@ -20,7 +20,7 @@ func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 func newServiceExecutor(taskManager common.TaskManager, task common.Task) Executor {
 	workflow := new(environmentWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceTaskExecutor(taskManager, task),
 	)
 }

@@ -11,7 +11,7 @@ func NewPipelineLister(ctx *common.Context, writer io.Writer) Executor {
 
 	workflow := new(pipelineWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.pipelineLister(ctx.StackManager, writer),
 	)
 }

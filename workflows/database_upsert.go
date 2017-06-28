@@ -17,7 +17,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	ecsImportParams := make(map[string]string)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.databaseInput(ctx, ""),
 		workflow.databaseEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
 		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),

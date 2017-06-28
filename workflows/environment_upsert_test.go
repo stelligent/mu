@@ -51,6 +51,7 @@ func TestNewEnvironmentUpserter(t *testing.T) {
 
 type mockedStackManagerForUpsert struct {
 	mock.Mock
+	common.StackManager
 }
 
 func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common.Stack {
@@ -94,25 +95,20 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
-func TestEnvironmentEcsUpserter_Ec2Provider(t *testing.T) {
+func TestEnvironmentProviderConditionals(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(environmentWorkflow)
-	workflow.environment = &common.Environment{
-		Name:     "foo",
-		Provider: common.EnvProviderEc2,
-	}
+	workflow.environment = new(common.Environment)
+	workflow.environment.Provider = common.EnvProviderEcs
 
-	vpcInputParams := make(map[string]string)
+	assert.True(workflow.isEcsProvider()())
+	assert.False(workflow.isEc2Provider()())
 
-	stackManager := new(mockedStackManagerForUpsert)
+	workflow.environment.Provider = common.EnvProviderEc2
 
-	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
-	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+	assert.False(workflow.isEcsProvider()())
+	assert.True(workflow.isEc2Provider()())
 }
 
 func TestEnvironmentElbUpserter(t *testing.T) {
@@ -137,24 +133,17 @@ func TestEnvironmentElbUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
-func TestEnvironmentConsulUpserter_nilProvider(t *testing.T) {
+func TestEnvironmentConsulConditional(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(environmentWorkflow)
-	workflow.environment = &common.Environment{
-		Name: "foo",
-	}
+	workflow.environment = new(common.Environment)
+	workflow.environment.Discovery.Provider = ""
 
-	vpcInputParams := make(map[string]string)
+	assert.False(workflow.isConsulEnabled()())
 
-	stackManager := new(mockedStackManagerForUpsert)
-
-	err := workflow.environmentConsulUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
-	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+	workflow.environment.Discovery.Provider = "consul"
+	assert.True(workflow.isConsulEnabled()())
 }
 
 func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {

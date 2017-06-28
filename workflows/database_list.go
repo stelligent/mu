@@ -11,7 +11,7 @@ func NewDatabaseLister(ctx *common.Context, writer io.Writer) Executor {
 
 	workflow := new(databaseWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.databaseLister(ctx.StackManager, writer),
 	)
 }

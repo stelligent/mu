@@ -11,7 +11,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 
 	workflow := new(environmentWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentDbTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),

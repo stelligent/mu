@@ -21,12 +21,12 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
 		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
+		newConditionalExecutor(workflow.isEcsProvider(), workflow.environmentEcsUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
 	)
 }
 
@@ -125,10 +125,6 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 
 func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		if !strings.EqualFold(workflow.environment.Discovery.Provider, "consul") {
-			return nil
-		}
-
 		environment := workflow.environment
 		consulStackName := common.CreateStackName(common.StackTypeConsul, environment.Name)
 
@@ -237,9 +233,6 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
-		if !strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEcs)) {
-			return nil
-		}
 
 		environment := workflow.environment
 		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
