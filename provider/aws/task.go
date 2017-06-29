@@ -93,7 +93,7 @@ func (taskMgr *ecsTaskManager) ExecuteCommand(task common.Task) (common.ECSRunTa
 
 // ExecuteCommand runs a command for a specific environment
 func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string) ([]common.Task, error) {
-	cluster := common.CreateStackName(common.StackTypeCluster, environment)
+	cluster := common.CreateStackName(common.StackTypeEnv, environment)
 	serviceInputParameters := &ecs.ListServicesInput{
 		Cluster: aws.String(cluster),
 	}

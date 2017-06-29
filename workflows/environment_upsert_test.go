@@ -83,11 +83,11 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-cluster-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-environment-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

@@ -17,7 +17,7 @@ var Bold = color.New(color.Bold).SprintFunc()
 var SvcPipelineTableHeader = []string{SvcStageHeader, SvcActionHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcEnvironmentTableHeader is the header array for the environment table
-var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader}
+var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcTaskContainerHeader is the header for container task detail
 var SvcTaskContainerHeader = []string{"Environment", "Container", "Task", "Instance"}
@@ -29,7 +29,7 @@ var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatus
 var EnvironmentAMITableHeader = []string{EC2Instance, TypeHeader, AMI, PrivateIP, AZ, ConnectedHeader, SvcStatusHeader, NumTasks, CPUAvail, MEMAvail}
 
 // ServiceTableHeader is the header for the service table
-var ServiceTableHeader = []string{SvcServiceHeader, SvcImageHeader, SvcStatusHeader, SvcLastUpdateHeader}
+var ServiceTableHeader = []string{SvcServiceHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // EnvironmentShowHeader is the header for the environment table
 var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}

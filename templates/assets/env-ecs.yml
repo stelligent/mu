@@ -90,11 +90,6 @@ Conditions:
       - "Fn::Equals":
         - !Ref KeyName
         - ''
-  HasHttpProxy:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref HttpProxy
-        - ''
   HasConsulServer:
     "Fn::Not":
       - "Fn::Equals":
@@ -522,6 +517,12 @@ Outputs:
     Description: Subnet Ids for the ECS cluster
     Export:
       Name: !Sub ${AWS::StackName}-InstanceSubnetIds
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: Vpc Id for the environment
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
   EcsCluster:
     Value: !Ref EcsCluster
     Description: Name of the ECS cluster.

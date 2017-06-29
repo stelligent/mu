@@ -15,13 +15,25 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
-	ecsImportParams := make(map[string]string)
+	stackParams := make(map[string]string)
 
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
-		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager, ctx.ParamManager),
-		workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-		workflow.serviceDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager),
+		workflow.serviceApplyCommonParams(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
+		newConditionalExecutor(workflow.isEcsProvider(),
+			newPipelineExecutor(
+				workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams),
+				workflow.serviceEcsDeployer(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+			),
+			newPipelineExecutor(
+				workflow.serviceBucketUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceAppUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceApplyEc2Params(stackParams),
+				workflow.serviceEc2Deployer(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+			),
+		),
 	)
 }
 
@@ -41,174 +53,192 @@ func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int 
 	return maxPriority
 }
 
-func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
+func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
-		lbStack := stackWaiter.AwaitFinalStatus(lbStackName)
+		workflow.lbStack = stackWaiter.AwaitFinalStatus(lbStackName)
 
-		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
-		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
+		envStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		workflow.envStack = stackWaiter.AwaitFinalStatus(envStackName)
 
-		if lbStack != nil {
-			workflow.envProvider = common.EnvProvider(lbStack.Tags["provider"])
-		} else if ecsStack != nil {
-			workflow.envProvider = common.EnvProvider(ecsStack.Tags["provider"])
-		} else {
-			return fmt.Errorf("Unable to find stack '%s' for environment '%s'", ecsStackName, environmentName)
+		if workflow.envStack == nil {
+			return fmt.Errorf("Unable to find stack '%s' for environment '%s'", envStackName, environmentName)
 		}
 
-		if workflow.envProvider == common.EnvProviderEcs {
+		if workflow.isEcsProvider()() {
 			workflow.artifactProvider = common.ArtifactProviderEcr
 		} else {
 			workflow.artifactProvider = common.ArtifactProviderS3
-		}
-
-		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
-		ecsImportParams["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", ecsStackName)
-
-		nextAvailablePriority := 0
-		if lbStack.Outputs["ElbHttpListenerArn"] != "" {
-			ecsImportParams["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", ecsStackName)
-			nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, lbStack.Outputs["ElbHttpListenerArn"])
-		}
-		if lbStack.Outputs["ElbHttpsListenerArn"] != "" {
-			ecsImportParams["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", ecsStackName)
-			if nextAvailablePriority == 0 {
-				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, lbStack.Outputs["ElbHttpsListenerArn"])
-			}
-		}
-
-		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
-		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
-		if dbStack != nil {
-			ecsImportParams["DatabaseName"] = dbStack.Outputs["DatabaseName"]
-			ecsImportParams["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
-			ecsImportParams["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
-			ecsImportParams["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
-
-			dbPass, _ := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
-			ecsImportParams["DatabaseMasterPassword"] = dbPass
-		}
-
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
-		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
-		if workflow.priority > 0 {
-			ecsImportParams["ListenerRulePriority"] = strconv.Itoa(workflow.priority)
-		} else if svcStack != nil {
-			// no value in config, and this is an update...use prior value
-			ecsImportParams["ListenerRulePriority"] = ""
-		} else {
-			// no value in config, and this is a create...use next available
-			ecsImportParams["ListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
 		}
 
 		return nil
 	}
 }
 
-func (workflow *serviceWorkflow) serviceDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string) Executor {
 	return func() error {
-		log.Debugf("Deploying service with provider '%s'", workflow.envProvider)
-		if workflow.envProvider == "" || strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEcs)) {
-			return workflow.serviceEcsDeployer(service, stackParams, environmentName, stackUpserter, stackWaiter)
-		} else if strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEc2)) {
-			return workflow.serviceEc2Deployer(service, stackParams, environmentName, stackUpserter, stackWaiter)
-		} else {
-			return fmt.Errorf("Unknown provider '%s'", workflow.envProvider)
+
+		params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
+		params["ImageUrl"] = workflow.serviceImage
+
+		if service.CPU != 0 {
+			params["ServiceCpu"] = strconv.Itoa(service.CPU)
 		}
+		if service.Memory != 0 {
+			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+		}
+
+		return nil
 	}
 }
 
-func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) error {
-	log.Noticef("Deploying service '%s' to '%s'", workflow.serviceName, environmentName)
+func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string) Executor {
+	return func() error {
 
-	stackParams["ServiceName"] = workflow.serviceName
-	stackParams["ImageUrl"] = workflow.serviceImage
-	if service.Port != 0 {
-		stackParams["ServicePort"] = strconv.Itoa(service.Port)
-	}
-	if service.HealthEndpoint != "" {
-		stackParams["ServiceHealthEndpoint"] = service.HealthEndpoint
-	}
-	if service.DesiredCount != 0 {
-		stackParams["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
-	}
-	if len(service.PathPatterns) > 0 {
-		stackParams["PathPattern"] = strings.Join(service.PathPatterns, ",")
-	}
+		params["AppName"] = workflow.appName
+		params["RevisionBucket"] = workflow.appRevisionBucket
+		params["RevisionKey"] = workflow.appRevisionKey
+		params["RevisionBundleType"] = "zip"
 
-	svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		for _, key := range [...]string{
+			"SshAllow",
+			"InstanceType",
+			"ImageId",
+			"MaxSize",
+			"KeyName",
+			"ScaleInThreshold",
+			"ScaleOutThreshold",
+			"HttpProxy",
+			"ConsulServerAutoScalingGroup",
+			"ElbSecurityGroup",
+			"ConsulRpcClientSecurityGroup",
+			"InstanceSubnetIds",
+		} {
+			params[key] = workflow.envStack.Parameters[key]
+		}
 
-	resolveServiceEnvironment(service, environmentName)
-	overrides := common.GetStackOverrides(svcStackName)
-	template, err := templates.NewTemplate("service-ec2.yml", service, overrides)
-	if err != nil {
-		return err
+		return nil
 	}
-
-	err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envProvider, common.StackTypeService, workflow.codeRevision, workflow.repoName))
-	if err != nil {
-		return err
-	}
-	log.Debugf("Waiting for stack '%s' to complete", svcStackName)
-	stack := stackWaiter.AwaitFinalStatus(svcStackName)
-	if stack == nil {
-		return fmt.Errorf("Unable to create stack %s", svcStackName)
-	}
-	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
-	}
-
-	return nil
 }
 
-func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) error {
-	log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
+func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
+	return func() error {
+		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
-	stackParams["ServiceName"] = workflow.serviceName
-	stackParams["ImageUrl"] = workflow.serviceImage
-	if service.Port != 0 {
-		stackParams["ServicePort"] = strconv.Itoa(service.Port)
+		nextAvailablePriority := 0
+		if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
+			params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
+			nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+		}
+		if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
+			params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
+			if nextAvailablePriority == 0 {
+				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
+			}
+		}
+
+		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
+		if dbStack != nil {
+			params["DatabaseName"] = dbStack.Outputs["DatabaseName"]
+			params["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
+			params["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
+			params["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
+
+			dbPass, _ := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			params["DatabaseMasterPassword"] = dbPass
+		}
+
+		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if workflow.priority > 0 {
+			params["ListenerRulePriority"] = strconv.Itoa(workflow.priority)
+		} else if svcStack != nil {
+			// no value in config, and this is an update...use prior value
+			params["ListenerRulePriority"] = ""
+		} else {
+			// no value in config, and this is a create...use next available
+			params["ListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
+		}
+
+		params["ServiceName"] = workflow.serviceName
+		if service.Port != 0 {
+			params["ServicePort"] = strconv.Itoa(service.Port)
+		}
+		if service.HealthEndpoint != "" {
+			params["ServiceHealthEndpoint"] = service.HealthEndpoint
+		}
+		if service.DesiredCount != 0 {
+			params["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
+		}
+		if len(service.PathPatterns) > 0 {
+			params["PathPattern"] = strings.Join(service.PathPatterns, ",")
+		}
+
+		return nil
 	}
-	if service.HealthEndpoint != "" {
-		stackParams["ServiceHealthEndpoint"] = service.HealthEndpoint
+}
+
+func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+
+		log.Noticef("Deploying service '%s' to '%s'", workflow.serviceName, environmentName)
+
+		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+
+		resolveServiceEnvironment(service, environmentName)
+		overrides := common.GetStackOverrides(svcStackName)
+		template, err := templates.NewTemplate("service-ec2.yml", service, overrides)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+		log.Debugf("Waiting for stack '%s' to complete", svcStackName)
+		stack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", svcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		return nil
 	}
-	if service.CPU != 0 {
-		stackParams["ServiceCpu"] = strconv.Itoa(service.CPU)
-	}
-	if service.Memory != 0 {
-		stackParams["ServiceMemory"] = strconv.Itoa(service.Memory)
-	}
-	if service.DesiredCount != 0 {
-		stackParams["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
-	}
-	if len(service.PathPatterns) > 0 {
-		stackParams["PathPattern"] = strings.Join(service.PathPatterns, ",")
+}
+
+func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
+
+		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+
+		resolveServiceEnvironment(service, environmentName)
+		overrides := common.GetStackOverrides(svcStackName)
+		template, err := templates.NewTemplate("service-ecs.yml", service, overrides)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+		log.Debugf("Waiting for stack '%s' to complete", svcStackName)
+		stack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", svcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		return nil
 	}
 
-	svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
-
-	resolveServiceEnvironment(service, environmentName)
-	overrides := common.GetStackOverrides(svcStackName)
-	template, err := templates.NewTemplate("service-ecs.yml", service, overrides)
-	if err != nil {
-		return err
-	}
-
-	err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envProvider, common.StackTypeService, workflow.codeRevision, workflow.repoName))
-	if err != nil {
-		return err
-	}
-	log.Debugf("Waiting for stack '%s' to complete", svcStackName)
-	stack := stackWaiter.AwaitFinalStatus(svcStackName)
-	if stack == nil {
-		return fmt.Errorf("Unable to create stack %s", svcStackName)
-	}
-	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
-	}
-
-	return nil
 }
 
 func resolveServiceEnvironment(service *common.Service, environment string) {
@@ -234,11 +264,11 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 	}
 }
 
-func buildServiceTags(serviceName string, environmentName string, envProvider common.EnvProvider, stackType common.StackType, codeRevision string, repoName string) map[string]string {
+func buildServiceTags(serviceName string, environmentName string, envProvider string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
-		"provider":    string(envProvider),
+		"provider":    envProvider,
 		"service":     serviceName,
 		"revision":    codeRevision,
 		"repo":        repoName,

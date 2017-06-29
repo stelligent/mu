@@ -10,7 +10,7 @@ import (
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
-var bastionImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
+var ec2ImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
@@ -26,7 +26,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
-		newConditionalExecutor(workflow.isEcsProvider(), workflow.environmentEcsUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
+		workflow.environmentUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -74,7 +74,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 			}
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
-				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(bastionImagePattern)
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImagePattern)
 				if err != nil {
 					return err
 				}
@@ -224,22 +224,32 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		ecsStackParams["ElbSecurityGroup"] = stack.Outputs["InstanceSecurityGroup"]
+		ecsStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
 
 		environment := workflow.environment
-		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
+		envStackName := common.CreateStackName(common.StackTypeEnv, environment.Name)
 
-		log.Noticef("Upserting ECS environment '%s' ...", environment.Name)
+		var templateName string
+		var imagePattern string
+		if environment.Provider == common.EnvProviderEcs {
+			templateName = "env-ecs.yml"
+			imagePattern = ecsImagePattern
+		} else if environment.Provider == common.EnvProviderEc2 {
+			templateName = "env-ec2.yml"
+			imagePattern = ec2ImagePattern
+		}
+
+		log.Noticef("Upserting environment '%s' ...", environment.Name)
 		overrides := common.GetStackOverrides(envStackName)
-		template, err := templates.NewTemplate("cluster.yml", environment, overrides)
+		template, err := templates.NewTemplate(templateName, environment, overrides)
 		if err != nil {
 			return err
 		}
@@ -255,7 +265,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
-			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
 			if err != nil {
 				return err
 			}
@@ -280,7 +290,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeCluster, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}

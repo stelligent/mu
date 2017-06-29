@@ -19,7 +19,7 @@ func NewEnvironmentLister(ctx *common.Context, writer io.Writer) Executor {
 func (workflow *environmentWorkflow) environmentLister(stackLister common.StackLister, writer io.Writer) Executor {
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypeCluster)
+		stacks, err := stackLister.ListStacks(common.StackTypeEnv)
 		if err != nil {
 			return err
 		}

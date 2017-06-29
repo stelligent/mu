@@ -18,7 +18,7 @@ func TestNewTemplate(t *testing.T) {
 
 	environment := new(common.Environment)
 
-	templates := []string{"cluster.yml", "vpc.yml"}
+	templates := []string{"elb.yml", "vpc.yml"}
 	for _, templateName := range templates {
 		templateBodyReader, err := NewTemplate(templateName, environment, nil)
 
@@ -162,7 +162,7 @@ func TestNewTemplate_assets(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-	templates := []string{"bucket.yml", "cluster.yml", "pipeline.yml", "repo.yml", "service-ecs.yml", "vpc.yml", "vpc-target.yml"}
+	templates := []string{"bucket.yml", "env-ec2.yml", "env-ecs.yml", "pipeline.yml", "repo.yml", "app.yml", "service-ecs.yml", "database.yml", "elb.yml", "service-ec2.yml", "vpc.yml", "vpc-target.yml"}
 	for _, templateName := range templates {
 		templateBodyReader, err := NewTemplate(templateName, nil, overrides)
 

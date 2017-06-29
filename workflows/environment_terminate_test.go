@@ -40,8 +40,8 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
-	stackManager.On("DeleteStack", "mu-cluster-foo").Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
+	stackManager.On("DeleteStack", "mu-environment-foo").Return(nil)
 
 	err := workflow.environmentEcsTerminator("foo", stackManager, stackManager)()
 	assert.Nil(err)

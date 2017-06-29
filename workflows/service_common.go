@@ -11,16 +11,19 @@ import (
 )
 
 type serviceWorkflow struct {
-	envProvider      common.EnvProvider
-	artifactProvider common.ArtifactProvider
-	serviceName      string
-	serviceTag       string
-	serviceImage     string
-	registryAuth     string
-	priority         int
-	codeRevision     string
-	repoName         string
-	serviceBucket    string
+	envStack          *common.Stack
+	lbStack           *common.Stack
+	artifactProvider  common.ArtifactProvider
+	serviceName       string
+	serviceTag        string
+	serviceImage      string
+	registryAuth      string
+	priority          int
+	codeRevision      string
+	repoName          string
+	appName           string
+	appRevisionBucket string
+	appRevisionKey    string
 }
 
 // Find a service in config, by name and set the reference
@@ -39,6 +42,7 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 		} else {
 			workflow.serviceTag = "latest"
 		}
+		workflow.appRevisionKey = fmt.Sprintf("%s/%s.zip", workflow.serviceName, workflow.serviceTag)
 
 		workflow.codeRevision = ctx.Config.Repo.Revision
 		workflow.repoName = ctx.Config.Repo.Slug
@@ -78,13 +82,13 @@ func (workflow *serviceWorkflow) isS3Provider() Conditional {
 
 func (workflow *serviceWorkflow) isEcsProvider() Conditional {
 	return func() bool {
-		return strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEcs))
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcs))
 	}
 }
 
 func (workflow *serviceWorkflow) isEc2Provider() Conditional {
 	return func() bool {
-		return strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEc2))
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEc2))
 	}
 }
 
@@ -106,11 +110,6 @@ func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName s
 
 func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		if !strings.EqualFold(string(workflow.envProvider), string(common.EnvProviderEcs)) {
-			log.Debugf("Skipping ECR for provider of type '%s'", workflow.envProvider)
-			return nil
-		}
-
 		if service.ImageRepository != "" {
 			log.Noticef("Using repo '%s' for service '%s'", service.ImageRepository, workflow.serviceName)
 			workflow.serviceImage = service.ImageRepository
@@ -129,7 +128,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, workflow.envProvider, common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -143,6 +142,36 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 		workflow.serviceImage = fmt.Sprintf("%s:%s", stack.Outputs["RepoUrl"], workflow.serviceTag)
+		return nil
+	}
+}
+func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Upsert app for service '%s'", workflow.serviceName)
+
+		appStackName := common.CreateStackName(common.StackTypeApp, workflow.serviceName)
+		overrides := common.GetStackOverrides(appStackName)
+		template, err := templates.NewTemplate("app.yml", nil, overrides)
+		if err != nil {
+			return err
+		}
+
+		stackParams := make(map[string]string)
+
+		err = stackUpserter.UpsertStack(appStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Waiting for stack '%s' to complete", appStackName)
+		stack := stackWaiter.AwaitFinalStatus(appStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", appStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+		workflow.appName = stack.Outputs["ApplicationName"]
 		return nil
 	}
 }
@@ -171,7 +200,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, 
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		workflow.serviceBucket = stack.Outputs["Bucket"]
+		workflow.appRevisionBucket = stack.Outputs["Bucket"]
 
 		return nil
 	}

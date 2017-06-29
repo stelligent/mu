@@ -100,7 +100,7 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 		table.Append([]string{
 			Bold(stack.Tags[EnvTagKey]),
 			stack.Name,
-			simplifyRepoURL(stack.Parameters[SvcImageURLKey]),
+			stack.Tags["revision"],
 			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
 			stack.LastUpdateTime.Local().Format(LastUpdateTime),
 		})

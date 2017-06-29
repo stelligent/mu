@@ -27,7 +27,7 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 
 func (workflow *environmentWorkflow) environmentViewerJSON(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	return func() error {
-		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
 		lbStack, err := stackGetter.GetStack(lbStackName)
 
-		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 
 		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
@@ -73,7 +73,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
 		}
 
-		if clusterStack != nil {
+		if clusterStack.Outputs["provider"] == string(common.EnvProviderEcs) {
 			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
 			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
 			if err != nil {
@@ -129,7 +129,7 @@ func buildServiceTable(stacks []*common.Stack, environmentName string, writer io
 
 		table.Append([]string{
 			Bold(stackValues.Tags[SvcTagKey]),
-			simplifyRepoURL(stackValues.Parameters[SvcImageURLKey]),
+			stackValues.Tags["revision"],
 			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stackValues.Status), stackValues.StatusReason),
 			stackValues.LastUpdateTime.Local().Format(LastUpdateTime),
 		})

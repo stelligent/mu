@@ -47,7 +47,7 @@ func (workflow *serviceWorkflow) serviceImagePusher(imagePusher common.DockerIma
 
 func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifactCreator common.ArtifactCreator) Executor {
 	return func() error {
-		destURL := fmt.Sprintf("s3://%s/%s/%s.zip", workflow.serviceBucket, workflow.serviceName, workflow.serviceTag)
+		destURL := fmt.Sprintf("s3://%s/%s", workflow.appRevisionBucket, workflow.appRevisionKey)
 		log.Noticef("Pushing archive '%s' to '%s'", basedir, destURL)
 
 		zipfile, err := zipDir(basedir)

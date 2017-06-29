@@ -23,14 +23,13 @@ func (m *mockedElbManager) ListRules(listenerArn string) ([]common.ElbRule, erro
 	return args.Get(0).([]common.ElbRule), nil
 }
 
-func TestServiceEnvironmentLoader_Create(t *testing.T) {
+func TestServiceApplyCommon_Create(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)
 	outputs := make(map[string]string)
 	outputs["ElbHttpListenerArn"] = "foo"
 	outputs["ElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
+
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(nil).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
@@ -43,31 +42,31 @@ func TestServiceEnvironmentLoader_Create(t *testing.T) {
 		{Priority: stringRef("10")},
 	})
 
+	service := new(common.Service)
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
+	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
-	assert.Equal("mu-cluster-dev-VpcId", params["VpcId"])
-	assert.Equal("mu-cluster-dev-EcsCluster", params["EcsCluster"])
-	assert.Equal("mu-cluster-dev-ElbHttpListenerArn", params["ElbHttpListenerArn"])
-	assert.Equal("mu-cluster-dev-ElbHttpsListenerArn", params["ElbHttpsListenerArn"])
+	assert.Equal("mu-environment-dev-VpcId", params["VpcId"])
+	assert.Equal("mu-loadbalancer-dev-ElbHttpListenerArn", params["ElbHttpListenerArn"])
+	assert.Equal("mu-loadbalancer-dev-ElbHttpsListenerArn", params["ElbHttpsListenerArn"])
 	assert.Equal("16", params["ListenerRulePriority"])
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 4)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
 	elbRuleLister.AssertExpectations(t)
 	elbRuleLister.AssertNumberOfCalls(t, "ListRules", 1)
 }
-func TestServiceEnvironmentLoader_Update(t *testing.T) {
+func TestServiceApplyCommon_Update(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)
 	outputs := make(map[string]string)
 	outputs["ElbHttpListenerArn"] = "foo"
 	outputs["ElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
@@ -80,27 +79,28 @@ func TestServiceEnvironmentLoader_Update(t *testing.T) {
 		{Priority: stringRef("10")},
 	})
 
+	service := new(common.Service)
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
+	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("", params["ListenerRulePriority"])
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 4)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
 	elbRuleLister.AssertExpectations(t)
 	elbRuleLister.AssertNumberOfCalls(t, "ListRules", 1)
 }
-func TestServiceEnvironmentLoader_StaticPriority(t *testing.T) {
+func TestServiceApplyCommon_StaticPriority(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)
 	outputs := make(map[string]string)
 	outputs["ElbHttpListenerArn"] = "foo"
 	outputs["ElbHttpsListenerArn"] = "foo"
-	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-service-myservice-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: outputs}).Once()
 	stackManager.On("AwaitFinalStatus", "mu-database-myservice-dev").Return(nil).Once()
 
@@ -113,42 +113,37 @@ func TestServiceEnvironmentLoader_StaticPriority(t *testing.T) {
 		{Priority: stringRef("10")},
 	})
 
+	service := new(common.Service)
 	params := make(map[string]string)
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "myservice"
+	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.priority = 77
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
+	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("77", params["ListenerRulePriority"])
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 4)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
 	elbRuleLister.AssertExpectations(t)
 	elbRuleLister.AssertNumberOfCalls(t, "ListRules", 1)
 }
 
-func TestServiceEnvironmentLoader_NotFound(t *testing.T) {
+func TestServiceEnvLoader_NotFound(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(nil)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-dev").Return(nil)
-
-	paramManager := new(mockedParamManager)
-
-	elbRuleLister := new(mockedElbManager)
-	elbRuleLister.On("ListRules", "foo").Return(nil)
-
-	params := make(map[string]string)
+	stackManager.On("AwaitFinalStatus", "mu-environment-dev").Return(nil).Once()
+	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(nil).Once()
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceEnvironmentLoader("dev", stackManager, params, elbRuleLister, paramManager)()
+	err := workflow.serviceEnvironmentLoader("dev", stackManager)()
 
 	assert.NotNil(err)
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
-	stackManager.AssertNumberOfCalls(t, "ListRules", 0)
 }
 
 func TestServiceGetMaxPriority(t *testing.T) {
@@ -170,7 +165,7 @@ func TestServiceGetMaxPriority(t *testing.T) {
 
 }
 
-func TestServiceDeployer(t *testing.T) {
+func TestServiceEcsDeployer(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
@@ -184,8 +179,11 @@ func TestServiceDeployer(t *testing.T) {
 
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "foo"
-	workflow.envProvider = common.EnvProviderEcs
-	err := workflow.serviceDeployer(&config.Service, params, "dev", stackManager, stackManager)()
+	outputs := make(map[string]string)
+	outputs["provider"] = "ecs"
+	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	err := workflow.serviceEcsDeployer(&config.Service, params, "dev", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

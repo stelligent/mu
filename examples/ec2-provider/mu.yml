@@ -3,6 +3,8 @@
 environments:
   - name: ec2-dev
     provider: ec2
+    cluster:
+      keyName: mu-key
 
 service:
   name: basic-example

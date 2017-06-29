@@ -193,10 +193,11 @@ type StackType string
 const (
 	StackTypeVpc          StackType = "vpc"
 	StackTypeTarget                 = "target"
-	StackTypeCluster                = "cluster"
+	StackTypeEnv                    = "environment"
 	StackTypeLoadBalancer           = "loadbalancer"
 	StackTypeConsul                 = "consul"
 	StackTypeRepo                   = "repo"
+	StackTypeApp                    = "app"
 	StackTypeService                = "service"
 	StackTypePipeline               = "pipeline"
 	StackTypeDatabase               = "database"

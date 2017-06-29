@@ -26,7 +26,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
-		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		ecsStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
 
 		if ecsStack == nil {

@@ -95,7 +95,7 @@ func (workflow *environmentWorkflow) environmentConsulTerminator(environmentName
 func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating ECS environment '%s' ...", environmentName)
-		envStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		envStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {
 			return err

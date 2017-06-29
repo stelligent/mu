@@ -1,0 +1,12 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU application in CodeDeploy
+Resources:
+  Application:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Ref AWS::StackName
+Outputs:
+  ApplicationName:
+    Description: Name of the application
+    Value: !Ref Application
