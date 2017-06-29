@@ -296,7 +296,7 @@ func assetsServiceEc2Yml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 17896, mode: os.FileMode(420), modTime: time.Unix(1498716391, 0)}
+	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 17896, mode: os.FileMode(420), modTime: time.Unix(1498719522, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

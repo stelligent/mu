@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // NewServicePusher create a new workflow for pushing a service to a repo
@@ -50,7 +51,7 @@ func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifact
 		destURL := fmt.Sprintf("s3://%s/%s", workflow.appRevisionBucket, workflow.appRevisionKey)
 		log.Noticef("Pushing archive '%s' to '%s'", basedir, destURL)
 
-		zipfile, err := zipDir(basedir)
+		zipfile, err := zipDir(fmt.Sprintf("%s/",basedir))
 		if err != nil {
 			return err
 		}
@@ -81,16 +82,22 @@ func zipDir(basedir string) (*os.File, error) {
 			return err
 		}
 
-		log.Debugf(" ..Adding file '%s'", path)
 
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err
 		}
 
+		header.Name = strings.TrimPrefix(path, basedir)
+
+		if header.Name == "" {
+			return nil
+		}
+
 		if info.IsDir() {
 			header.Name += "/"
 		} else {
+			log.Debugf(" ..Adding file '%s'", header.Name)
 			header.Method = zip.Deflate
 		}
 
