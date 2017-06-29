@@ -9,7 +9,7 @@ environments:
 service:
   name: basic-example
   healthEndpoint: /
-  port: 80
+  port: 8000
   pathPatterns:
     - /*
   pipeline:

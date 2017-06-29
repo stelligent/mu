@@ -51,7 +51,7 @@ func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifact
 		destURL := fmt.Sprintf("s3://%s/%s", workflow.appRevisionBucket, workflow.appRevisionKey)
 		log.Noticef("Pushing archive '%s' to '%s'", basedir, destURL)
 
-		zipfile, err := zipDir(fmt.Sprintf("%s/",basedir))
+		zipfile, err := zipDir(fmt.Sprintf("%s/", basedir))
 		if err != nil {
 			return err
 		}
@@ -81,7 +81,6 @@ func zipDir(basedir string) (*os.File, error) {
 		if err != nil {
 			return err
 		}
-
 
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
