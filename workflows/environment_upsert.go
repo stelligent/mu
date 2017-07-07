@@ -18,14 +18,15 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	workflow := new(environmentWorkflow)
 	ecsStackParams := make(map[string]string)
 	elbStackParams := make(map[string]string)
+	consulStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
+		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -47,7 +48,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -119,11 +120,15 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 		elbStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		elbStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
 
+		consulStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		consulStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
+		consulStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams map[string]string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		consulStackName := common.CreateStackName(common.StackTypeConsul, environment.Name)
@@ -135,7 +140,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams ma
 			return err
 		}
 
-		stackParams := ecsStackParams
+		stackParams := consulStackParams
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow

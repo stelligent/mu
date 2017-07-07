@@ -5,6 +5,14 @@ environments:
     provider: ec2
     cluster:
       keyName: mu-key
+    discovery:
+      provider: consul
+  - name: ecs-dev
+    provider: ecs
+    cluster:
+      keyName: mu-key
+    discovery:
+      provider: consul
 
 service:
   name: basic-example
