@@ -9,4 +9,3 @@ artifacts:
   files:
     - index.html
     - mu.yml
-    - Dockerfile

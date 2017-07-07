@@ -34,7 +34,6 @@ import:
   subpackages:
   - ssh
 - package: github.com/briandowns/spinner
-- package: github.com/speedata/gogit
 - package: github.com/speedata/mmap-go
 - package: gopkg.in/ini.v1
   version: ~1.26.0
