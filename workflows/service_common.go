@@ -54,7 +54,10 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 				dockerfile = "Dockerfile"
 			}
 
-			if _, err := os.Stat(fmt.Sprintf("%s/%s", ctx.Config.Basedir, dockerfile)); os.IsExist(err) {
+			dockerfilePath := fmt.Sprintf("%s/%s", ctx.Config.Basedir, dockerfile)
+			log.Debugf("Determining repo provider by checking for existence of '%s'", dockerfilePath)
+
+			if _, err := os.Stat(dockerfilePath); !os.IsNotExist(err) {
 				workflow.artifactProvider = common.ArtifactProviderEcr
 			} else {
 				workflow.artifactProvider = common.ArtifactProviderS3

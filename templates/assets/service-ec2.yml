@@ -69,6 +69,10 @@ Parameters:
     Description: Threshold at which a scale in event will be initiated
     Type: Number
     Default: '30'
+  ConsulUrl:
+    Description: URL for downloading Consul
+    Type: String
+    Default: 'https://releases.hashicorp.com/consul/0.8.5/consul_0.8.5_linux_amd64.zip'
   ImageId:
     Description: EC2 AMI to launch
     Type: String
@@ -119,6 +123,14 @@ Parameters:
     Type: String
     Description: Endpoint port of database
     Default: ""
+  ConsulServerAutoScalingGroup:
+    Type: String
+    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
+    Default: ''
+  ConsulRpcClientSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for access to consul (optional)
+    Default: ''
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -150,6 +162,11 @@ Conditions:
     "Fn::Not":
       - "Fn::Equals":
         - !Ref ConsulRpcClientSecurityGroup
+        - ''
+  HasConsulServer:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ConsulServerAutoScalingGroup
         - ''
 Resources:
   InstanceSecurityGroup:
@@ -252,6 +269,8 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         config:
+          sources:
+            "/opt/consul/bin": !Ref ConsulUrl
           packages:
             yum:
               awslogs: []
@@ -271,6 +290,44 @@ Resources:
               mode: '000755'
               owner: root
               group: root
+            "/etc/init/consul.conf":
+              content: !Sub |
+                description "Consul Client process"
+
+                start on (local-filesystems and net-device-up IFACE=eth0)
+                stop on runlevel [!12345]
+
+                respawn
+
+                exec /opt/consul/bin/consul agent -config-dir /opt/consul/config
+              mode: '000755'
+              owner: root
+              group: root
+            "/opt/consul/config/service.json":
+              content: !Sub |
+                {
+                  "datacenter": "${AWS::Region}",
+                  "data_dir": "/opt/consul/data",
+                  "retry_join_ec2": {
+                    "tag_key": "aws:autoscaling:groupName",
+                    "tag_value": "${ConsulServerAutoScalingGroup}"
+                  },
+                  "service": {
+                    "name": "${ServiceName}",
+                    "tags": ["${ServiceName}"],
+                    "port": ${ServicePort},
+                    "checks": [
+                      {
+                        "id": "health",
+                        "name": "HTTP health on port ${ServicePort}",
+                        "http": "http://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "method": "GET",
+                        "interval": "10s",
+                        "timeout": "1s"
+                      }
+                    ]
+                  }
+                }
             "/etc/codedeploy-agent/conf/codedeployagent.yml":
               content: !Sub |
                 ---
@@ -354,6 +411,8 @@ Resources:
             codedeploy-install:
               command: "./codedeploy-install auto"
               cwd: "/tmp"
+            start-consul:
+              command: "start consul"
           services:
             sysvinit:
               codedeploy-agent:
@@ -442,12 +501,15 @@ Resources:
             - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
           - Effect: Allow
             Action:
-            - s3:GetObject
-            - s3:GetObjectVersion
-            Resource: !Sub arn:aws:s3:::${RevisionBucket}/${RevisionKey}
+            - s3:Get*
+            - s3:List*
+            Resource:
+            - !Sub arn:aws:s3:::${RevisionBucket}
+            - !Sub arn:aws:s3:::${RevisionBucket}/*
           - Effect: Allow
             Action:
             - autoscaling:Describe*
+            - ec2:Describe*
             Resource: '*'
           - Effect: Allow
             Action:
