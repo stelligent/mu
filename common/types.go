@@ -27,10 +27,12 @@ type Config struct {
 	Environments []Environment `yaml:"environments,omitempty"`
 	Service      Service       `yaml:"service,omitempty"`
 	Basedir      string        `yaml:"-"`
+	RelMuFile    string	   `yaml:"-"`
 	Repo         struct {
 		Name     string
 		Slug     string
 		Revision string
+		Branch   string
 		Provider string
 	} `yaml:"-"`
 	Templates map[string]interface{} `yaml:"templates,omitempty"`

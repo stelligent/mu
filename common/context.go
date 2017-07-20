@@ -44,6 +44,11 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
 	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
 
+	ctx.Config.RelMuFile, err = getRelMuFile(absMuFile)
+	if err != nil {
+		return err
+	}
+
 	// Get the git revision from the .git folder
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
@@ -59,6 +64,13 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 			}
 		} else {
 			log.Warningf("Unable to determine git remote url: %s", err.Error())
+		}
+
+		gitBranch, err := findGitBranch(ctx.Config.Basedir)
+		if err == nil {
+			ctx.Config.Repo.Branch = gitBranch
+		} else {
+			log.Warningf("Unable to determine git branch: %s", err.Error())
 		}
 	} else {
 
@@ -102,6 +114,35 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	}()
 
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
+}
+
+func getRelMuFile(absMuFile string) (string, error) {
+	var repoDir string
+	gitDir, error := findGitDirectory(absMuFile)
+	if error != nil {
+		repoDir, error = os.Getwd()
+		if error != nil {
+			return "", error
+		}
+	} else {
+		repoDir = filepath.Dir(gitDir)
+	}
+
+	absRepoDir, error := filepath.Abs(repoDir)
+	if error != nil {
+		return "", error
+	}
+
+	relMuFile, error := filepath.Rel(absRepoDir, absMuFile)
+	if error != nil {
+		return "", error
+	}
+
+	log.Debugf("Absolute repodir: %s", absRepoDir)
+	log.Debugf("Absolute mu file: %s", absMuFile)
+	log.Debugf("Relative mu file: %s", relMuFile)
+
+	return relMuFile, nil
 }
 
 // InitializeConfig loads config object

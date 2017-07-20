@@ -7,8 +7,10 @@ import (
 
 type pipelineWorkflow struct {
 	serviceName    string
+	muFile 	       string
 	pipelineConfig *common.Pipeline
 	codeRevision   string
+	codeBranch     string
 	repoName       string
 }
 
@@ -42,6 +44,8 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
 		workflow.codeRevision = ctx.Config.Repo.Revision
+		workflow.codeBranch = ctx.Config.Repo.Branch
+		workflow.muFile = ctx.Config.RelMuFile
 
 		repoName := ctx.Config.Repo.Slug
 		if workflow.pipelineConfig.Source.Repo == "" {

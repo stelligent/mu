@@ -16,6 +16,4 @@ service:
   port: 8000
   pathPatterns:
     - /*
-  pipeline:
-    source:
-      repo: cplee/aftp-mu
+

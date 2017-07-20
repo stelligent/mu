@@ -11,9 +11,40 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 )
 
 func findGitRevision(file string) (string, error) {
+	gitDir, err := findGitDirectory(file)
+	if err != nil {
+		return "", err
+	}
+
+	head, err := findGitHead(file)
+	if err != nil {
+		return "", err
+	}
+	// load commitid ref
+	refBuf, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", gitDir, head))
+	if err != nil {
+		return "", err
+	}
+	return string(string(refBuf)[:7]), nil
+}
+
+func findGitBranch(file string) (string, error) {
+	head, err := findGitHead(file)
+	if err != nil {
+		return "", err
+	}
+
+	// get branch name
+	branch := strings.TrimPrefix(head, "refs/heads/")
+	log.Debugf("Found branch: %s", branch)
+	return branch, nil
+}
+
+func findGitHead(file string) (string, error) {
 	gitDir, err := findGitDirectory(file)
 	if err != nil {
 		return "", err
@@ -36,12 +67,7 @@ func findGitRevision(file string) (string, error) {
 
 	log.Debugf("HEAD points to '%s'", head["ref"])
 
-	// load commitid ref
-	refBuf, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", gitDir, head["ref"]))
-	if err != nil {
-		return "", err
-	}
-	return string(string(refBuf)[:7]), nil
+	return head["ref"], nil
 }
 
 func findGitRemoteURL(file string) (string, error) {
