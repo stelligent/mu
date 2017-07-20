@@ -10,21 +10,24 @@ import (
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
-var bastionImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
+var ec2ImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
 	ecsStackParams := make(map[string]string)
+	elbStackParams := make(map[string]string)
+	consulStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentConsulUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentElbUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
+		workflow.environmentUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -34,6 +37,9 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	return func() error {
 		for _, e := range config.Environments {
 			if strings.EqualFold(e.Name, environmentName) {
+				if e.Provider == "" {
+					e.Provider = common.EnvProviderEcs
+				}
 				workflow.environment = &e
 				return nil
 			}
@@ -42,7 +48,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -69,7 +75,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 			}
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
-				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(bastionImagePattern)
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImagePattern)
 				if err != nil {
 					return err
 				}
@@ -89,11 +95,11 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
 			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
-			vpcStackParams["EcsSubnetIds"] = strings.Join(environment.VpcTarget.EcsSubnetIds, ",")
+			vpcStackParams["InstanceSubnetIds"] = strings.Join(environment.VpcTarget.InstanceSubnetIds, ",")
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -109,19 +115,21 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 		}
 
 		ecsStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		ecsStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
-		ecsStackParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", vpcStackName)
+		ecsStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
+
+		elbStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		elbStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+
+		consulStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		consulStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
+		consulStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams map[string]string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		if !strings.EqualFold(workflow.environment.Discovery.Provider, "consul") {
-			return nil
-		}
-
 		environment := workflow.environment
 		consulStackName := common.CreateStackName(common.StackTypeConsul, environment.Name)
 
@@ -132,7 +140,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams ma
 			return err
 		}
 
-		stackParams := ecsStackParams
+		stackParams := consulStackParams
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
@@ -156,7 +164,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams ma
 
 		}
 
-		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -177,14 +185,76 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(ecsStackParams ma
 	}
 }
 
-func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
-		envStackName := common.CreateStackName(common.StackTypeCluster, environment.Name)
+		envStackName := common.CreateStackName(common.StackTypeLoadBalancer, environment.Name)
 
-		log.Noticef("Upserting ECS environment '%s' ...", environment.Name)
+		log.Noticef("Upserting ELB environment '%s' ...", environment.Name)
 		overrides := common.GetStackOverrides(envStackName)
-		template, err := templates.NewTemplate("cluster.yml", environment, overrides)
+		template, err := templates.NewTemplate("elb.yml", environment, overrides)
+		if err != nil {
+			return err
+		}
+
+		stackParams := elbStackParams
+
+		if environment.Loadbalancer.Certificate != "" {
+			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
+		}
+
+		if environment.Loadbalancer.HostedZone != "" {
+			stackParams["ElbDomainName"] = environment.Loadbalancer.HostedZone
+
+			if environment.Loadbalancer.Name != "" {
+				stackParams["ElbHostName"] = environment.Loadbalancer.Name
+			} else {
+				stackParams["ElbHostName"] = environment.Name
+			}
+		}
+
+		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
+
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+		log.Debugf("Waiting for stack '%s' to complete", envStackName)
+		stack := stackWaiter.AwaitFinalStatus(envStackName)
+
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", envStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+
+		ecsStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
+
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
+
+		environment := workflow.environment
+		envStackName := common.CreateStackName(common.StackTypeEnv, environment.Name)
+
+		var templateName string
+		var imagePattern string
+		if environment.Provider == common.EnvProviderEcs {
+			templateName = "env-ecs.yml"
+			imagePattern = ecsImagePattern
+		} else if environment.Provider == common.EnvProviderEc2 {
+			templateName = "env-ec2.yml"
+			imagePattern = ec2ImagePattern
+		}
+
+		log.Noticef("Upserting environment '%s' ...", environment.Name)
+		overrides := common.GetStackOverrides(envStackName)
+		template, err := templates.NewTemplate(templateName, environment, overrides)
 		if err != nil {
 			return err
 		}
@@ -200,7 +270,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
-			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
 			if err != nil {
 				return err
 			}
@@ -225,23 +295,7 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		if environment.Loadbalancer.Certificate != "" {
-			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
-		}
-
-		if environment.Loadbalancer.HostedZone != "" {
-			stackParams["ElbDomainName"] = environment.Loadbalancer.HostedZone
-
-			if environment.Loadbalancer.Name != "" {
-				stackParams["ElbHostName"] = environment.Loadbalancer.Name
-			} else {
-				stackParams["ElbHostName"] = environment.Name
-			}
-		}
-
-		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
-
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, common.StackTypeCluster, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName))
 		if err != nil {
 			return err
 		}
@@ -259,10 +313,11 @@ func (workflow *environmentWorkflow) environmentEcsUpserter(ecsStackParams map[s
 	}
 }
 
-func buildEnvironmentTags(environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
+func buildEnvironmentTags(environmentName string, envProvider common.EnvProvider, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
 		"type":        string(stackType),
 		"environment": environmentName,
+		"provider":    string(envProvider),
 		"revision":    codeRevision,
 		"repo":        repoName,
 	}

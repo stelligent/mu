@@ -17,7 +17,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	ecsImportParams := make(map[string]string)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.databaseInput(ctx, ""),
 		workflow.databaseEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
 		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
@@ -26,7 +26,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
-		ecsStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		ecsStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
 
 		if ecsStack == nil {
@@ -34,8 +34,8 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName stri
 		}
 
 		ecsImportParams["VpcId"] = fmt.Sprintf("%s-VpcId", ecsStackName)
-		ecsImportParams["EcsInstanceSecurityGroup"] = fmt.Sprintf("%s-EcsInstanceSecurityGroup", ecsStackName)
-		ecsImportParams["EcsSubnetIds"] = fmt.Sprintf("%s-EcsSubnetIds", ecsStackName)
+		ecsImportParams["InstanceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", ecsStackName)
+		ecsImportParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", ecsStackName)
 
 		return nil
 	}

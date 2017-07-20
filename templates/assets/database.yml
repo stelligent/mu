@@ -28,12 +28,12 @@ Parameters:
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  EcsSubnetIds:
+  InstanceSubnetIds:
     Type: String
-    Description: Name of the value to import for the ecs subnet ids
-  EcsInstanceSecurityGroup:
+    Description: Name of the value to import for the subnet ids
+  InstanceSecurityGroup:
     Type: String
-    Description: Name of the value to import for the ecs security group id
+    Description: Name of the value to import for the security group id
 Conditions:
   IsClustered:
     "Fn::Equals":
@@ -52,7 +52,7 @@ Resources:
       SubnetIds:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${EcsSubnetIds}
+        - Fn::ImportValue: !Sub ${InstanceSubnetIds}
   DBSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -64,22 +64,22 @@ Resources:
           FromPort: '5432'
           ToPort: '5432'
           SourceSecurityGroupId:
-            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+            Fn::ImportValue: !Sub ${InstanceSecurityGroup}
         - IpProtocol: tcp
           FromPort: '3306'
           ToPort: '3306'
           SourceSecurityGroupId:
-            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+            Fn::ImportValue: !Sub ${InstanceSecurityGroup}
         - IpProtocol: tcp
           FromPort: '1433'
           ToPort: '1433'
           SourceSecurityGroupId:
-            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+            Fn::ImportValue: !Sub ${InstanceSecurityGroup}
         - IpProtocol: tcp
           FromPort: '1521'
           ToPort: '1521'
           SourceSecurityGroupId:
-            Fn::ImportValue: !Sub ${EcsInstanceSecurityGroup}
+            Fn::ImportValue: !Sub ${InstanceSecurityGroup}
   DBCluster:
     Type: AWS::RDS::DBCluster
     Condition: IsClustered

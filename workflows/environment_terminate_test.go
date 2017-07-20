@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -41,8 +40,8 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
-	stackManager.On("DeleteStack", "mu-cluster-foo").Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
+	stackManager.On("DeleteStack", "mu-environment-foo").Return(nil)
 
 	err := workflow.environmentEcsTerminator("foo", stackManager, stackManager)()
 	assert.Nil(err)
@@ -61,7 +60,7 @@ func TestNewEnvironmentConsulTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
+	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-consul-foo").Return(nil)
 
 	err := workflow.environmentConsulTerminator("foo", stackManager, stackManager)()
@@ -81,8 +80,8 @@ func TestNewEnvironmentVpcTerminator(t *testing.T) {
 	}
 
 	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-target-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusDeleteComplete})
+	stackManager.On("AwaitFinalStatus", "mu-target-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-target-foo").Return(nil)
 	stackManager.On("DeleteStack", "mu-vpc-foo").Return(nil)
 

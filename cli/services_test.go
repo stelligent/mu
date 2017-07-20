@@ -18,11 +18,11 @@ func TestNewServicesCommand(t *testing.T) {
 	command := newServicesCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.SvcCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.SvcAliasCount, len(command.Aliases), common.AliasLenMessage)
-	assertion.Equal(common.SvcAlias, command.Aliases[common.SingleAliasIndex], common.AliasMessage)
-	assertion.Equal(common.SvcUsage, command.Usage, common.UsageMessage)
-	assertion.Equal(common.SvcSubCmdCount, len(command.Subcommands), common.SubCmdLenMessage)
+	assertion.Equal(SvcCmd, command.Name, NameMessage)
+	assertion.Equal(SvcAliasCount, len(command.Aliases), AliasLenMessage)
+	assertion.Equal(SvcAlias, command.Aliases[SingleAliasIndex], AliasMessage)
+	assertion.Equal(SvcUsage, command.Usage, UsageMessage)
+	assertion.Equal(SvcSubCmdCount, len(command.Subcommands), SubCmdLenMessage)
 }
 
 func TestNewServicesShowCommand(t *testing.T) {
@@ -33,9 +33,9 @@ func TestNewServicesShowCommand(t *testing.T) {
 	command := newServicesShowCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.ShowCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.Zero, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.SvcShowUsage, command.ArgsUsage, common.ArgsUsageMessage)
+	assertion.Equal(ShowCmd, command.Name, NameMessage)
+	assertion.Equal(Zero, len(command.Flags), FlagLenMessage)
+	assertion.Equal(SvcShowUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -47,9 +47,9 @@ func TestNewServicesPushCommand(t *testing.T) {
 	command := newServicesPushCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.PushCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.SvcAliasCount, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.TagFlagName, command.Flags[common.SvcPushTagFlagIndex].GetName(), common.FlagMessage)
+	assertion.Equal(PushCmd, command.Name, NameMessage)
+	assertion.Equal(SvcFlagsCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(TagFlagName, command.Flags[SvcPushTagFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -61,10 +61,10 @@ func TestNewServicesDeployCommand(t *testing.T) {
 	command := newServicesDeployCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.DeployCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvArgUsage, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.SvcAliasCount, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.TagFlagName, command.Flags[common.SvcDeployTagFlagIndex].GetName(), common.FlagMessage)
+	assertion.Equal(DeployCmd, command.Name, NameMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(SvcAliasCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(TagFlagName, command.Flags[SvcDeployTagFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -75,9 +75,9 @@ func TestNewUndeployCommand(t *testing.T) {
 
 	command := newServicesUndeployCommand(ctx)
 
-	assertion.Equal(common.UndeployCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.SvcUndeployArgsUsage, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.Zero, len(command.Flags), common.FlagLenMessage)
+	assertion.Equal(UndeployCmd, command.Name, NameMessage)
+	assertion.Equal(SvcUndeployArgsUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(Zero, len(command.Flags), FlagLenMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -89,18 +89,18 @@ func TestNewServicesLogsCommand(t *testing.T) {
 	command := newServicesLogsCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.LogsCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.SvcLogArgUsage, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.SvcLogFlagCount, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.ServiceFlag, command.Flags[common.SvcLogServiceFlagIndex].GetName(), common.FlagMessage)
-	assertion.Equal(common.FollowFlag, command.Flags[common.SvcLogFollowFlagIndex].GetName(), common.FlagMessage)
-	assertion.Equal(common.SearchDurationFlag, command.Flags[common.SvcLogDurationFlagIndex].GetName(), common.FlagMessage)
+	assertion.Equal(LogsCmd, command.Name, NameMessage)
+	assertion.Equal(SvcLogArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(SvcLogFlagCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(ServiceFlag, command.Flags[SvcLogServiceFlagIndex].GetName(), FlagMessage)
+	assertion.Equal(FollowFlag, command.Flags[SvcLogFollowFlagIndex].GetName(), FlagMessage)
+	assertion.Equal(SearchDurationFlag, command.Flags[SvcLogDurationFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }
 
 func TestExecuteTaskCreation(t *testing.T) {
 	assertion := assert.New(t)
-	args := []string{common.EnvCmd, common.Help}
+	args := []string{EnvCmd, Help}
 	ctx := getTestExecuteContext(args)
 	assertion.NotNil(ctx)
 	task, err := newTask(ctx)
@@ -122,23 +122,23 @@ func TestNewServiceExecuteCommandNoEnv(t *testing.T) {
 	assertion := assert.New(t)
 	testBaseServiceExecute(t)
 
-	assertion.Equal(errors.New(common.NoEnvValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{})))
-	assertion.Equal(errors.New(common.NoEnvValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.Spaces})))
+	assertion.Equal(errors.New(NoEnvValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{})))
+	assertion.Equal(errors.New(NoEnvValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{Spaces})))
 }
 
 func TestNewServiceExecuteCommandNoCmd(t *testing.T) {
 	assertion := assert.New(t)
 	testBaseServiceExecute(t)
 
-	assertion.Equal(errors.New(common.NoCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv})))
-	assertion.Equal(errors.New(common.EmptyCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.Spaces})))
+	assertion.Equal(errors.New(NoCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{TestEnv})))
+	assertion.Equal(errors.New(EmptyCmdValidation), validateExecuteArguments(getTestExecuteContext(cli.Args{TestEnv, Spaces})))
 }
 
 func TestNewServiceExecuteCommand(t *testing.T) {
 	assertion := assert.New(t)
 	testBaseServiceExecute(t)
 
-	assertion.Nil(validateExecuteArguments(getTestExecuteContext(cli.Args{common.TestEnv, common.TestSvc, common.TestCmd})))
+	assertion.Nil(validateExecuteArguments(getTestExecuteContext(cli.Args{TestEnv, TestSvc, TestCmd})))
 }
 
 func testBaseServiceExecute(t *testing.T) {
@@ -147,16 +147,16 @@ func testBaseServiceExecute(t *testing.T) {
 	command := newServicesExecuteCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.ExeCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.ExeArgs, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.ExeUsage, command.Usage, common.UsageMessage)
+	assertion.Equal(ExeCmd, command.Name, NameMessage)
+	assertion.Equal(ExeArgs, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(ExeUsage, command.Usage, UsageMessage)
 	assertion.NotNil(command.Action)
 }
 
 func getTestExecuteContext(args cli.Args) *cli.Context {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
-	set := flag.NewFlagSet(common.Test, common.Zero)
+	set := flag.NewFlagSet(Test, Zero)
 	set.Parse(args)
 
 	return cli.NewContext(app, set, nil)

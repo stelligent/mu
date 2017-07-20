@@ -195,7 +195,7 @@ Resources:
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
-          version: 0.1
+          version: 0.2
           phases:
             build:
               commands:
@@ -222,9 +222,9 @@ Resources:
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
-          version: 0.1
-          environment_variables:
-            plaintext:
+          version: 0.2
+          env:
+            variables:
               DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
@@ -272,9 +272,9 @@ Resources:
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
-          version: 0.1
-          environment_variables:
-            plaintext:
+          version: 0.2
+          env:
+            variables:
               DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:

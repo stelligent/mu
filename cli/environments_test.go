@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
@@ -17,13 +16,13 @@ func TestNewEnvironmentsCommand(t *testing.T) {
 	command := newEnvironmentsCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.EnvCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvAliasCount, len(command.Aliases), common.AliasLenMessage)
-	assertion.Equal(common.EnvAlias, command.Aliases[common.SingleAliasIndex], common.AliasMessage)
-	assertion.Equal(common.EnvUsage, command.Usage, common.UsageMessage)
-	assertion.Equal(common.EnvSubCmdCount, len(command.Subcommands), common.SubCmdLenMessage)
+	assertion.Equal(EnvCmd, command.Name, NameMessage)
+	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
+	assertion.Equal(EnvAlias, command.Aliases[SingleAliasIndex], AliasMessage)
+	assertion.Equal(EnvUsage, command.Usage, UsageMessage)
+	assertion.Equal(EnvSubCmdCount, len(command.Subcommands), SubCmdLenMessage)
 
-	args := []string{common.EnvCmd, common.Help}
+	args := []string{EnvCmd, Help}
 	err := runCommand(command, args)
 	assertion.Nil(err)
 }
@@ -34,21 +33,21 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	command := newEnvironmentsUpsertCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.UpsertCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvAliasCount, len(command.Aliases), common.AliasLenMessage)
-	assertion.Equal(common.UpsertAlias, command.Aliases[common.SingleAliasIndex], common.AliasMessage)
-	assertion.Equal(common.EnvArgUsage, command.ArgsUsage, common.ArgsUsageMessage)
+	assertion.Equal(UpsertCmd, command.Name, NameMessage)
+	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
+	assertion.Equal(UpsertAlias, command.Aliases[SingleAliasIndex], AliasMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 
-	args := []string{common.UpsertCmd}
+	args := []string{UpsertCmd}
 	err := runCommand(command, args)
 	assertion.NotNil(err)
-	assertion.Equal(common.FailExitCode, lastExitCode)
+	assertion.Equal(FailExitCode, lastExitCode)
 
-	args = []string{common.UpsertCmd, common.TestEnv}
+	args = []string{UpsertCmd, TestEnv}
 	err = runCommand(command, args)
 	assertion.NotNil(err)
-	assertion.Equal(common.FailExitCode, lastExitCode)
+	assertion.Equal(FailExitCode, lastExitCode)
 }
 
 func TestNewEnvironmentsListCommand(t *testing.T) {
@@ -57,10 +56,10 @@ func TestNewEnvironmentsListCommand(t *testing.T) {
 	command := newEnvironmentsListCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.ListCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvAliasCount, len(command.Aliases), common.AliasLenMessage)
-	assertion.Equal(common.ListAlias, command.Aliases[common.SingleAliasIndex], common.AliasMessage)
-	assertion.Equal(common.ListUsage, command.Usage, common.UsageMessage)
+	assertion.Equal(ListCmd, command.Name, NameMessage)
+	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
+	assertion.Equal(ListAlias, command.Aliases[SingleAliasIndex], AliasMessage)
+	assertion.Equal(ListUsage, command.Usage, UsageMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -70,10 +69,10 @@ func TestNewEnvironmentsShowCommand(t *testing.T) {
 	command := newEnvironmentsShowCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.ShowCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvArgUsage, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.ShowFlagCount, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.FormatFlag, command.Flags[common.SvcShowFormatFlagIndex].GetName(), common.FlagMessage)
+	assertion.Equal(ShowCmd, command.Name, NameMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(ShowFlagCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(FormatFlag, command.Flags[SvcShowFormatFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -83,10 +82,10 @@ func TestNewEnvironmentsTerminateCommand(t *testing.T) {
 	command := newEnvironmentsTerminateCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.TerminateCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.EnvAliasCount, len(command.Aliases), common.AliasLenMessage)
-	assertion.Equal(common.TerminateAlias, command.Aliases[common.SingleAliasIndex], common.AliasMessage)
-	assertion.Equal(common.EnvArgUsage, command.ArgsUsage, common.ArgsUsageMessage)
+	assertion.Equal(TerminateCmd, command.Name, NameMessage)
+	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
+	assertion.Equal(TerminateAlias, command.Aliases[SingleAliasIndex], AliasMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -96,11 +95,11 @@ func TestNewEnvironmentsLogsCommand(t *testing.T) {
 	command := newEnvironmentsLogsCommand(ctx)
 
 	assertion.NotNil(command)
-	assertion.Equal(common.LogsCmd, command.Name, common.NameMessage)
-	assertion.Equal(common.LogsArgs, command.ArgsUsage, common.ArgsUsageMessage)
-	assertion.Equal(common.EnvLogsFlagCount, len(command.Flags), common.FlagLenMessage)
-	assertion.Equal(common.FollowFlag, command.Flags[common.EnvLogFollowFlagIndex].GetName(), common.FlagMessage)
-	assertion.Equal(common.SearchDurationFlag, command.Flags[common.EnvLogDurationFlagIndex].GetName(), common.FlagMessage)
+	assertion.Equal(LogsCmd, command.Name, NameMessage)
+	assertion.Equal(LogsArgs, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(EnvLogsFlagCount, len(command.Flags), FlagLenMessage)
+	assertion.Equal(FollowFlag, command.Flags[EnvLogFollowFlagIndex].GetName(), FlagMessage)
+	assertion.Equal(SearchDurationFlag, command.Flags[EnvLogDurationFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }
 
@@ -119,8 +118,4 @@ var (
 func init() {
 	cli.OsExiter = fakeOsExiter
 	cli.ErrWriter = fakeErrWriter
-}
-
-type mockedCloudFormation struct {
-	cloudformationiface.CloudFormationAPI
 }

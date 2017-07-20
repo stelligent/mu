@@ -3,8 +3,6 @@ package common
 import (
 	"bufio"
 	"bytes"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
@@ -46,6 +44,11 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	ctx.Config.Repo.Name = path.Base(ctx.Config.Basedir)
 	ctx.Config.Repo.Revision = time.Now().Format("20060102150405")
 
+	ctx.Config.RelMuFile, err = getRelMuFile(absMuFile)
+	if err != nil {
+		return err
+	}
+
 	// Get the git revision from the .git folder
 	gitRevision, err := findGitRevision(ctx.Config.Basedir)
 	if err == nil {
@@ -61,6 +64,13 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 			}
 		} else {
 			log.Warningf("Unable to determine git remote url: %s", err.Error())
+		}
+
+		gitBranch, err := findGitBranch(ctx.Config.Basedir)
+		if err == nil {
+			ctx.Config.Repo.Branch = gitBranch
+		} else {
+			log.Warningf("Unable to determine git branch: %s", err.Error())
 		}
 	} else {
 
@@ -78,10 +88,10 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 					log.Warningf("Unable to determine git information from CodeBuild initiator: %s", initiator)
 				}
 
-				ctx.Config.Repo.Provider = gitInfo.provider
-				ctx.Config.Repo.Revision = string(gitInfo.revision[:7])
-				ctx.Config.Repo.Name = gitInfo.repoName
-				ctx.Config.Repo.Slug = gitInfo.slug
+				ctx.Config.Repo.Provider = gitInfo.Provider
+				ctx.Config.Repo.Revision = string(gitInfo.Revision[:7])
+				ctx.Config.Repo.Name = gitInfo.RepoName
+				ctx.Config.Repo.Slug = gitInfo.Slug
 			} else {
 				log.Warningf("Unable to process CodeBuild initiator: %s", initiator)
 			}
@@ -106,6 +116,35 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }
 
+func getRelMuFile(absMuFile string) (string, error) {
+	var repoDir string
+	gitDir, error := findGitDirectory(absMuFile)
+	if error != nil {
+		repoDir, error = os.Getwd()
+		if error != nil {
+			return "", error
+		}
+	} else {
+		repoDir = filepath.Dir(gitDir)
+	}
+
+	absRepoDir, error := filepath.Abs(repoDir)
+	if error != nil {
+		return "", error
+	}
+
+	relMuFile, error := filepath.Rel(absRepoDir, absMuFile)
+	if error != nil {
+		return "", error
+	}
+
+	log.Debugf("Absolute repodir: %s", absRepoDir)
+	log.Debugf("Absolute mu file: %s", absMuFile)
+	log.Debugf("Relative mu file: %s", relMuFile)
+
+	return relMuFile, nil
+}
+
 // InitializeConfig loads config object
 func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 
@@ -122,75 +161,14 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 }
 
 // InitializeContext loads manager objects
-func (ctx *Context) InitializeContext(profile string, region string, dryrun bool) error {
-	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-	if region != Empty {
-		sessOptions.Config = aws.Config{Region: aws.String(region)}
-	}
-	if profile != Empty {
-		sessOptions.Profile = profile
-	}
-	log.Debugf("Creating AWS session profile:%s region:%s", profile, region)
-	sess, err := session.NewSessionWithOptions(sessOptions)
-	if err != nil {
-		return err
-	}
-
-	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess, dryrun)
-	if err != nil {
-		return err
-	}
-
-	// initialize ClusterManager
-	ctx.ClusterManager, err = newClusterManager(sess)
-	if err != nil {
-		return err
-	}
-
-	// initialize ElbManager
-	ctx.ElbManager, err = newElbv2Manager(sess)
-	if err != nil {
-		return err
-	}
-
-	// initialize RdsManager
-	ctx.RdsManager, err = newRdsManager(sess)
-	if err != nil {
-		return err
-	}
-
-	// initialize ParamManager
-	ctx.ParamManager, err = newParamManager(sess)
-	if err != nil {
-		return err
-	}
-
-	// initialize CodePipelineManager
-	ctx.PipelineManager, err = newPipelineManager(sess)
-	if err != nil {
-		return err
-	}
-
-	// initialize CloudWatchLogs
-	ctx.LogsManager, err = newLogsManager(sess)
-	if err != nil {
-		return err
-	}
+func (ctx *Context) InitializeContext() error {
+	var err error
 
 	// initialize DockerManager
 	ctx.DockerManager, err = newClientDockerManager()
 	if err != nil {
 		return err
 	}
-
-	// initialize TaskManager
-	ctx.TaskManager, err = newTaskManager(sess, dryrun)
-	if err != nil {
-		return err
-	}
-
-	ctx.DockerOut = os.Stdout
 
 	return nil
 }

@@ -15,6 +15,5 @@ service:
   pathPatterns:
     - /*
   pipeline:
-    muVersion: 0.1.10-develop
     source:
       repo: cplee/aftp-mu

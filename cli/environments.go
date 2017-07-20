@@ -12,9 +12,9 @@ import (
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
 	cmd := &cli.Command{
-		Name:    common.EnvCmd,
-		Aliases: []string{common.EnvAlias},
-		Usage:   common.EnvUsage,
+		Name:    EnvCmd,
+		Aliases: []string{EnvAlias},
+		Usage:   EnvUsage,
 		Subcommands: []cli.Command{
 			*newEnvironmentsListCommand(ctx),
 			*newEnvironmentsShowCommand(ctx),
@@ -29,15 +29,15 @@ func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.UpsertCmd,
-		Aliases:   []string{common.UpsertAlias},
-		Usage:     common.UpsertUsage,
-		ArgsUsage: common.EnvArgUsage,
+		Name:      UpsertCmd,
+		Aliases:   []string{UpsertAlias},
+		Usage:     UpsertUsage,
+		ArgsUsage: EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.UpsertCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, UpsertCmd)
+				return errors.New(NoEnvValidation)
 			}
 
 			workflow := workflows.NewEnvironmentUpserter(ctx, environmentName)
@@ -50,9 +50,9 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:    common.ListCmd,
-		Aliases: []string{common.ListAlias},
-		Usage:   common.ListUsage,
+		Name:    ListCmd,
+		Aliases: []string{ListAlias},
+		Usage:   ListUsage,
 		Action: func(c *cli.Context) error {
 			workflow := workflows.NewEnvironmentLister(ctx, os.Stdout)
 			return workflow()
@@ -64,23 +64,23 @@ func newEnvironmentsListCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  common.ShowCmd,
-		Usage: common.ShowCmdUsage,
+		Name:  ShowCmd,
+		Usage: ShowCmdUsage,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  common.FormatFlag,
-				Usage: common.FormatFlagUsage,
-				Value: common.FormatFlagDefault,
+				Name:  FormatFlag,
+				Usage: FormatFlagUsage,
+				Value: FormatFlagDefault,
 			},
 		},
-		ArgsUsage: common.EnvArgUsage,
+		ArgsUsage: EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.ShowCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, ShowCmd)
+				return errors.New(NoEnvValidation)
 			}
-			workflow := workflows.NewEnvironmentViewer(ctx, c.String(common.Format), environmentName, os.Stdout)
+			workflow := workflows.NewEnvironmentViewer(ctx, c.String(Format), environmentName, os.Stdout)
 			return workflow()
 		},
 	}
@@ -90,15 +90,15 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:      common.TerminateCmd,
-		Aliases:   []string{common.TerminateAlias},
-		Usage:     common.TerminateUsage,
-		ArgsUsage: common.EnvArgUsage,
+		Name:      TerminateCmd,
+		Aliases:   []string{TerminateAlias},
+		Usage:     TerminateUsage,
+		ArgsUsage: EnvArgUsage,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.TerminateCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, TerminateCmd)
+				return errors.New(NoEnvValidation)
 			}
 			workflow := workflows.NewEnvironmentTerminator(ctx, environmentName)
 			return workflow()
@@ -110,28 +110,28 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 
 func newEnvironmentsLogsCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
-		Name:  common.LogsCmd,
-		Usage: common.LogsUsage,
+		Name:  LogsCmd,
+		Usage: LogsUsage,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
-				Name:  common.FollowFlag,
-				Usage: common.FollowUsage,
+				Name:  FollowFlag,
+				Usage: FollowUsage,
 			},
 			cli.DurationFlag{
-				Name:  common.SearchDurationFlag,
-				Usage: common.SearchDurationUsage,
-				Value: common.DefaultLogDurationValue,
+				Name:  SearchDurationFlag,
+				Usage: SearchDurationUsage,
+				Value: DefaultLogDurationValue,
 			},
 		},
-		ArgsUsage: common.LogsArgs,
+		ArgsUsage: LogsArgs,
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
-			if len(environmentName) == common.Zero {
-				cli.ShowCommandHelp(c, common.LogsCmd)
-				return errors.New(common.NoEnvValidation)
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, LogsCmd)
+				return errors.New(NoEnvValidation)
 			}
 
-			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Duration(common.SearchDuration), c.Bool(common.Follow), environmentName, os.Stdout, strings.Join(c.Args().Tail(), common.Space))
+			workflow := workflows.NewEnvironmentLogViewer(ctx, c.Duration(SearchDuration), c.Bool(Follow), environmentName, os.Stdout, strings.Join(c.Args().Tail(), Space))
 			return workflow()
 		},
 	}
