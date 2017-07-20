@@ -7,7 +7,7 @@ import (
 
 type pipelineWorkflow struct {
 	serviceName    string
-	muFile 	       string
+	muFile         string
 	pipelineConfig *common.Pipeline
 	codeRevision   string
 	codeBranch     string
