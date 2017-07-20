@@ -1,10 +1,11 @@
-package common
+package aws
 
 import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"strings"
@@ -166,12 +167,12 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 			cb(&cloudformation.DescribeStacksOutput{
 				Stacks: []*cloudformation.Stack{
 					{
-						StackName:   aws.String("mu-cluster-dev"),
+						StackName:   aws.String("mu-environment-dev"),
 						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
 						Tags: []*cloudformation.Tag{
 							{
 								Key:   aws.String("mu:type"),
-								Value: aws.String("cluster"),
+								Value: aws.String("environment"),
 							},
 						},
 					},
@@ -191,7 +192,7 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 						Tags: []*cloudformation.Tag{
 							{
 								Key:   aws.String("mu:type"),
-								Value: aws.String("cluster"),
+								Value: aws.String("environment"),
 							},
 						},
 					},
@@ -202,13 +203,13 @@ func TestCloudformationStackManager_ListStacks(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	stacks, err := stackManager.ListStacks(StackTypeCluster)
+	stacks, err := stackManager.ListStacks(common.StackTypeEnv)
 
 	assert.Nil(err)
 	assert.NotNil(stacks)
 	assert.Equal(1, len(stacks))
-	assert.Equal("mu-cluster-dev", stacks[0].Name)
-	assert.Equal("cluster", stacks[0].Tags["type"])
+	assert.Equal("mu-environment-dev", stacks[0].Name)
+	assert.Equal("environment", stacks[0].Tags["type"])
 	assert.Equal(cloudformation.StackStatusCreateComplete, stacks[0].Status)
 	cfn.AssertExpectations(t)
 	cfn.AssertNumberOfCalls(t, "DescribeStacksPages", 1)
@@ -259,13 +260,13 @@ func TestBuildStack(t *testing.T) {
 	assert := assert.New(t)
 
 	stackDetails := cloudformation.Stack{
-		StackName:       aws.String("mu-cluster-dev"),
+		StackName:       aws.String("mu-environment-dev"),
 		StackStatus:     aws.String(cloudformation.StackStatusCreateComplete),
 		LastUpdatedTime: aws.Time(time.Now()),
 		Tags: []*cloudformation.Tag{
 			{
 				Key:   aws.String("mu:type"),
-				Value: aws.String("cluster"),
+				Value: aws.String("environment"),
 			},
 		},
 	}
@@ -273,8 +274,8 @@ func TestBuildStack(t *testing.T) {
 	stack := buildStack(&stackDetails)
 
 	assert.NotNil(stack)
-	assert.Equal("mu-cluster-dev", stack.Name)
-	assert.Equal("cluster", stack.Tags["type"])
+	assert.Equal("mu-environment-dev", stack.Name)
+	assert.Equal("environment", stack.Tags["type"])
 	assert.Equal(cloudformation.StackStatusCreateComplete, stack.Status)
 	assert.Equal(aws.TimeValue(stackDetails.LastUpdatedTime), stack.LastUpdateTime)
 }
@@ -283,7 +284,7 @@ func TestBuildStack_NoUpdateTime(t *testing.T) {
 	assert := assert.New(t)
 
 	stackDetails := cloudformation.Stack{
-		StackName:    aws.String("mu-cluster-dev"),
+		StackName:    aws.String("mu-environment-dev"),
 		CreationTime: aws.Time(time.Now()),
 		Tags:         []*cloudformation.Tag{},
 	}

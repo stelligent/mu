@@ -1,0 +1,98 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU environment for EC2 microservices
+Parameters:
+  InstanceType:
+    Type: String
+    Description: Instance type to use.
+    Default: t2.micro
+  DesiredCapacity:
+    Type: Number
+    Default: '1'
+    Description: Number of instances to launch in your ECS cluster
+  MaxSize:
+    Type: Number
+    Default: '2'
+    Description: Maximum number of instances that can be launched in your ECS cluster
+  KeyName:
+    Type: String
+    Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
+    Default: ''
+  SshAllow:
+    Description: Subnet from which to allow SSH access.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  ScaleOutThreshold:
+    Description: Threshold at which a scale out event will be initiated
+    Type: Number
+    Default: '75'
+  ScaleInThreshold:
+    Description: Threshold at which a scale in event will be initiated
+    Type: Number
+    Default: '30'
+  ImageId:
+    Description: ECS AMI to launch
+    Type: String
+    Default: ''
+  InstanceSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  HttpProxy:
+    Type: String
+    Description: Proxy to use from ECS cluster instances (host:port)
+    Default: ''
+  ConsulServerAutoScalingGroup:
+    Type: String
+    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
+    Default: ''
+  ElbSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for ELB access
+  ConsulRpcClientSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for access to consul (optional)
+    Default: ''
+Resources:
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+Outputs:
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: Vpc Id for the environment
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  KeyName:
+    Value: !Ref KeyName
+  InstanceType:
+    Value: !Ref InstanceType
+  DesiredCapacity:
+    Value: !Ref DesiredCapacity
+  MaxSize:
+    Value: !Ref MaxSize
+  SshAllow:
+    Value: !Ref SshAllow
+  ScaleOutThreshold:
+    Value: !Ref ScaleOutThreshold
+  ScaleInThreshold:
+    Value: !Ref ScaleInThreshold
+  ImageId:
+    Value: !Ref ImageId
+  InstanceSubnetIds:
+    Value: !Ref InstanceSubnetIds
+  HttpProxy:
+    Value: !Ref HttpProxy
+  ConsulServerAutoScalingGroup:
+    Value: !Ref ConsulServerAutoScalingGroup
+  ElbSecurityGroup:
+    Value: !Ref ElbSecurityGroup
+  ConsulRpcClientSecurityGroup:
+    Value: !Ref ConsulRpcClientSecurityGroup
+

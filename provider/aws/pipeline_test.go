@@ -1,4 +1,4 @@
-package common
+package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
@@ -73,10 +73,10 @@ func TestCodePipelineManager_GetGetInfo(t *testing.T) {
 
 	gitInfo, err := pipelineManager.GetGitInfo("foo")
 	assert.Nil(err)
-	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", gitInfo.revision)
-	assert.Equal("GitHub", gitInfo.provider)
-	assert.Equal("aftp-mu", gitInfo.repoName)
-	assert.Equal("dmurawsky/aftp-mu", gitInfo.slug)
+	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", gitInfo.Revision)
+	assert.Equal("GitHub", gitInfo.Provider)
+	assert.Equal("aftp-mu", gitInfo.RepoName)
+	assert.Equal("dmurawsky/aftp-mu", gitInfo.Slug)
 }
 
 func TestCodePipelineManager_GetGetInfo_CodeCommit(t *testing.T) {
@@ -112,8 +112,8 @@ func TestCodePipelineManager_GetGetInfo_CodeCommit(t *testing.T) {
 
 	gitInfo, err := pipelineManager.GetGitInfo("foo")
 	assert.Nil(err)
-	assert.Equal("CodeCommit", gitInfo.provider)
-	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", gitInfo.revision)
-	assert.Equal("banana-service", gitInfo.repoName)
-	assert.Equal("banana-service", gitInfo.slug)
+	assert.Equal("CodeCommit", gitInfo.Provider)
+	assert.Equal("4e934a1e51476d88d715f421ecd86d93dad02c5b", gitInfo.Revision)
+	assert.Equal("banana-service", gitInfo.RepoName)
+	assert.Equal("banana-service", gitInfo.Slug)
 }

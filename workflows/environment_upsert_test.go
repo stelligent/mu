@@ -2,7 +2,6 @@ package workflows
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -52,6 +51,7 @@ func TestNewEnvironmentUpserter(t *testing.T) {
 
 type mockedStackManagerForUpsert struct {
 	mock.Mock
+	common.StackManager
 }
 
 func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common.Stack {
@@ -76,17 +76,18 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &common.Environment{
-		Name: "foo",
+		Name:     "foo",
+		Provider: common.EnvProviderEcs,
 	}
 
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-cluster-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
-	stackManager.On("UpsertStack", "mu-cluster-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-environment-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentEcsUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -94,7 +95,23 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
-func TestEnvironmentConsulUpserter_nilProvider(t *testing.T) {
+func TestEnvironmentProviderConditionals(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = new(common.Environment)
+	workflow.environment.Provider = common.EnvProviderEcs
+
+	assert.True(workflow.isEcsProvider()())
+	assert.False(workflow.isEc2Provider()())
+
+	workflow.environment.Provider = common.EnvProviderEc2
+
+	assert.False(workflow.isEcsProvider()())
+	assert.True(workflow.isEc2Provider()())
+}
+
+func TestEnvironmentElbUpserter(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(environmentWorkflow)
@@ -105,13 +122,28 @@ func TestEnvironmentConsulUpserter_nilProvider(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-loadbalancer-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.environmentConsulUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentElbUpserter(vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 0)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 0)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
+func TestEnvironmentConsulConditional(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = new(common.Environment)
+	workflow.environment.Discovery.Provider = ""
+
+	assert.False(workflow.isConsulEnabled()())
+
+	workflow.environment.Discovery.Provider = "consul"
+	assert.True(workflow.isConsulEnabled()())
 }
 
 func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
@@ -123,11 +155,12 @@ func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
 	}
 	workflow.environment.Discovery.Provider = "consul"
 
-	vpcInputParams := make(map[string]string)
+	consulInputParams := make(map[string]string)
+	ecsInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackResult := &common.Stack{
-		Status: cloudformation.StackStatusCreateComplete,
+		Status: common.StackStatusCreateComplete,
 		Outputs: map[string]string{
 			"ConsulServerAutoScalingGroup": "test-asg",
 			"ConsulRpcClientSecurityGroup": "test-sg",
@@ -137,15 +170,15 @@ func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
 	stackManager.On("UpsertStack", "mu-consul-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentConsulUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentConsulUpserter(consulInputParams, ecsInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 
-	assert.Equal("test-asg", vpcInputParams["ConsulServerAutoScalingGroup"])
-	assert.Equal("test-sg", vpcInputParams["ConsulRpcClientSecurityGroup"])
+	assert.Equal("test-asg", ecsInputParams["ConsulServerAutoScalingGroup"])
+	assert.Equal("test-sg", ecsInputParams["ConsulRpcClientSecurityGroup"])
 }
 
 func TestEnvironmentVpcUpserter(t *testing.T) {
@@ -160,14 +193,14 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -186,13 +219,13 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	vpcInputParams := make(map[string]string)
 
 	stackManager := new(mockedStackManagerForUpsert)
-	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-vpc-foo-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -209,7 +242,7 @@ environments:
   - name: dev
     vpcTarget:
       vpcId: myVpcId
-      ecsSubnetIds:
+      instanceSubnetIds:
         - mySubnetId1
         - mySubnetId2
 `
@@ -220,15 +253,15 @@ environments:
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("UpsertStack", "mu-target-dev", mock.AnythingOfType("map[string]string")).Return(nil)
-	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: cloudformation.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
-	err = workflow.environmentVpcUpserter(vpcInputParams, stackManager, stackManager, stackManager)()
+	err = workflow.environmentVpcUpserter(vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
-	assert.Equal("mu-target-dev-EcsSubnetIds", vpcInputParams["EcsSubnetIds"])
+	assert.Equal("mu-target-dev-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)

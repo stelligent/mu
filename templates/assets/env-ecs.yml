@@ -38,42 +38,23 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
-  ElbInternal:
-    Description: Should ELB be internal?
+  InstanceSubnetIds:
     Type: String
-    Default: false
-    AllowedValues:
-      - true
-      - false
+    Description: Name of the value to import for the ecs subnet ids
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
-  EcsSubnetIds:
-    Type: String
-    Description: Name of the value to import for the ecs subnet ids
-  ElbSubnetIds:
-    Type: String
-    Description: Name of the value to import for the elb subnet ids
   HttpProxy:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
-    Default: ''
-  ElbDomainName:
-    Type: String
-    Description: The domain name to use for the ELB DNS.  Assumes you have the zone for this DomainName hosted in Route53.  Leave blank to not use DNS for Elb.
-    Default: ''
-  ElbHostName:
-    Type: String
-    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
-    Default: ''
-  ElbCert:
-    Type: String
-    Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
     Default: ''
   ConsulServerAutoScalingGroup:
     Type: String
     Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
     Default: ''
+  ElbSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for ELB access
   ConsulRpcClientSecurityGroup:
     Type: String
     Description: The security group to add to the ECS instance for access to consul (optional)
@@ -109,30 +90,6 @@ Conditions:
       - "Fn::Equals":
         - !Ref KeyName
         - ''
-  HasHttpProxy:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref HttpProxy
-        - ''
-  HasElbDomainName:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ElbDomainName
-        - ''
-  HasElbHostName:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ElbHostName
-        - ''
-  HasElbCert:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ElbCert
-        - ''
-  IsElbInternal:
-    "Fn::Equals":
-      - !Ref ElbInternal
-      - 'true'
   HasConsulServer:
     "Fn::Not":
       - "Fn::Equals":
@@ -148,7 +105,26 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: !Ref AWS::StackName
-  ECSAutoScalingGroup:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Microservice Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
+  Host2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
     - ClusterLogGroup
@@ -156,7 +132,7 @@ Resources:
       VPCZoneIdentifier:
         Fn::Split:
         - ","
-        - Fn::ImportValue: !Sub ${EcsSubnetIds}
+        - Fn::ImportValue: !Sub ${InstanceSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
       MinSize: '1'
       MaxSize: !Ref MaxSize
@@ -178,14 +154,14 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
       ScalingAdjustment: 1
   ScaleInPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ECSAutoScalingGroup
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
       ScalingAdjustment: -1
   MemoryAlarmHigh:
@@ -317,7 +293,8 @@ Resources:
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
-      - !Ref HostSG
+      - !Ref InstanceSecurityGroup
+      - !Ref ElbSecurityGroup
       - Fn::If:
           - HasConsulClientSG
           - !Ref ConsulRpcClientSecurityGroup
@@ -371,7 +348,7 @@ Resources:
 
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
           Content-Type: text/text/upstart-job; charset="us-ascii"
@@ -458,117 +435,6 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Ref AWS::StackName
-  HostSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId:
-        Fn::ImportValue: !Sub ${VpcId}
-      GroupDescription: ECS Host Security Group
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: !Ref SshAllow
-  ElbSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId:
-        Fn::ImportValue: !Sub ${VpcId}
-      GroupDescription: ELB Security Group
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: '443'
-        ToPort: '443'
-        CidrIp: 0.0.0.0/0
-  Host2HostRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: tcp
-      FromPort: '0'
-      ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt HostSG.GroupId
-      GroupId: !GetAtt HostSG.GroupId
-  ELB2HostRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: tcp
-      FromPort: '0'
-      ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt ElbSG.GroupId
-      GroupId: !GetAtt HostSG.GroupId
-  Host2ELBRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      IpProtocol: tcp
-      FromPort: '0'
-      ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt HostSG.GroupId
-      GroupId: !GetAtt ElbSG.GroupId
-  EcsElb:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
-      Subnets:
-        Fn::Split:
-        - ","
-        - Fn::ImportValue: !Sub ${ElbSubnetIds}
-      Tags:
-      - Key: Name
-        Value: !Ref AWS::StackName
-      SecurityGroups:
-      - !Ref ElbSG
-  EcsElbHttpListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref EcsElb
-      DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref EcsElbDefaultTargetGroup
-      Port: '80'
-      Protocol: HTTP
-  EcsElbHttpsListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Condition: HasElbCert
-    Properties:
-      LoadBalancerArn: !Ref EcsElb
-      DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref EcsElbDefaultTargetGroup
-      Certificates:
-        - CertificateArn: !Sub "arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
-      Port: '443'
-      Protocol: HTTPS
-  EcsElbDefaultTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Port: '8080'
-      Protocol: HTTP
-      VpcId:
-        Fn::ImportValue: !Sub ${VpcId}
-      Tags:
-      - Key: Name
-        Value: !Sub ${AWS::StackName}-default
-  ElbDns:
-    Type: AWS::Route53::RecordSetGroup
-    Condition: HasElbDomainName
-    Properties:
-      HostedZoneName: !Sub ${ElbDomainName}.
-      Comment: DNS for ELB in ${AWS::StackName}
-      RecordSets:
-      - Name:
-          Fn::If:
-          - HasElbHostName
-          - !Sub ${ElbHostName}.${ElbDomainName}.
-          - !Sub ${ElbDomainName}.
-        Type: A
-        AliasTarget:
-          HostedZoneId: !GetAtt EcsElb.CanonicalHostedZoneID
-          DNSName: !GetAtt EcsElb.DNSName
-          EvaluateTargetHealth: true
   ConsulTaskRole:
     Type: AWS::IAM::Role
     Condition: HasConsulServer
@@ -645,53 +511,18 @@ Resources:
             SourcePath: /var/run/docker.sock
       TaskRoleArn: !GetAtt ConsulTaskRole.Arn
 Outputs:
-  BaseUrl:
+  InstanceSubnetIds:
     Value:
-      Fn::If:
-      - HasElbCert
-      - Fn::If:
-        - HasElbDomainName
-        - Fn::If:
-          - HasElbHostName
-          - !Sub https://${ElbHostName}.${ElbDomainName}
-          - !Sub https://${ElbDomainName}
-        - !Sub https://${EcsElb.DNSName}
-      - Fn::If:
-        - HasElbDomainName
-        - Fn::If:
-          - HasElbHostName
-          - !Sub http://${ElbHostName}.${ElbDomainName}
-          - !Sub http://${ElbDomainName}
-        - !Sub http://${EcsElb.DNSName}
-    Description: ELB URL
+      Fn::ImportValue: !Sub ${InstanceSubnetIds}
+    Description: Subnet Ids for the ECS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSubnetIds
   VpcId:
     Value:
       Fn::ImportValue: !Sub ${VpcId}
-    Description: VPC ID for the ECS cluster
+    Description: Vpc Id for the environment
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsInstanceSecurityGroup:
-    Value: !Ref HostSG
-    Description: Security Group ID for the ECS cluster
-    Export:
-      Name: !Sub ${AWS::StackName}-EcsInstanceSecurityGroup
-  EcsSubnetIds:
-    Value:
-      Fn::ImportValue: !Sub ${EcsSubnetIds}
-    Description: Subnet Ids for the ECS cluster
-    Export:
-      Name: !Sub ${AWS::StackName}-EcsSubnetIds
-  EcsElbHttpListenerArn:
-    Value: !Ref EcsElbHttpListener
-    Description: Arn of the ELB HTTP Listener.
-    Export:
-      Name: !Sub ${AWS::StackName}-EcsElbHttpListenerArn
-  EcsElbHttpsListenerArn:
-    Condition: HasElbCert
-    Value: !Ref EcsElbHttpsListener
-    Description: Arn of the ELB HTTPS Listener.
-    Export:
-      Name: !Sub ${AWS::StackName}-EcsElbHttpsListenerArn
   EcsCluster:
     Value: !Ref EcsCluster
     Description: Name of the ECS cluster.

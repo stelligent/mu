@@ -11,7 +11,7 @@ func NewServiceUndeployer(ctx *common.Context, serviceName string, environmentNa
 
 	workflow := new(serviceWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
 		workflow.serviceUndeployer(environmentName, ctx.StackManager, ctx.StackManager),
 	)

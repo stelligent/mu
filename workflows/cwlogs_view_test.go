@@ -25,7 +25,7 @@ func TestNewEnvironmentLogViewer(t *testing.T) {
 	ctx.Config.Service.Name = "my-service"
 
 	logsManager := new(mockedLogsManager)
-	logsManager.On("ViewLogs", "mu-cluster-my-env").Return(nil)
+	logsManager.On("ViewLogs", "mu-environment-my-env").Return(nil)
 	ctx.LogsManager = logsManager
 
 	searchDuration := 5 * time.Minute

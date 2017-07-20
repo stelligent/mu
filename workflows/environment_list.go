@@ -11,7 +11,7 @@ func NewEnvironmentLister(ctx *common.Context, writer io.Writer) Executor {
 
 	workflow := new(environmentWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.environmentLister(ctx.StackManager, writer),
 	)
 }
@@ -19,20 +19,19 @@ func NewEnvironmentLister(ctx *common.Context, writer io.Writer) Executor {
 func (workflow *environmentWorkflow) environmentLister(stackLister common.StackLister, writer io.Writer) Executor {
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypeCluster)
+		stacks, err := stackLister.ListStacks(common.StackTypeEnv)
 		if err != nil {
 			return err
 		}
 
-		table := common.CreateTableSection(writer, common.EnvironmentShowHeader)
+		table := CreateTableSection(writer, EnvironmentShowHeader)
 
 		for _, stack := range stacks {
 			table.Append([]string{
-				common.Bold(stack.Tags[common.EnvCmd]),
+				Bold(stack.Tags[EnvTagKey]),
 				stack.Name,
-				fmt.Sprintf(common.KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
-				stack.LastUpdateTime.Local().Format(common.LastUpdateTime),
-				stack.Tags[common.SvcVersionKey],
+				fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
+				stack.LastUpdateTime.Local().Format(LastUpdateTime),
 			})
 		}
 

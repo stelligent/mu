@@ -1,0 +1,13 @@
+---
+
+environments:
+  - name: dev
+    provider: ec2
+
+service:
+  name: basic-example
+  healthEndpoint: /
+  port: 8000
+  pathPatterns:
+    - /*
+

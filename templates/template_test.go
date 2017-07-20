@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
@@ -17,7 +18,7 @@ func TestNewTemplate(t *testing.T) {
 
 	environment := new(common.Environment)
 
-	templates := []string{"cluster.yml", "vpc.yml"}
+	templates := []string{"elb.yml", "vpc.yml"}
 	for _, templateName := range templates {
 		templateBodyReader, err := NewTemplate(templateName, environment, nil)
 
@@ -161,7 +162,7 @@ func TestNewTemplate_assets(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-	templates := []string{"bucket.yml", "cluster.yml", "pipeline.yml", "repo.yml", "service.yml", "vpc.yml", "vpc-target.yml"}
+	templates := []string{"bucket.yml", "env-ec2.yml", "env-ecs.yml", "pipeline.yml", "repo.yml", "app.yml", "service-ecs.yml", "database.yml", "elb.yml", "service-ec2.yml", "vpc.yml", "vpc-target.yml"}
 	for _, templateName := range templates {
 		templateBodyReader, err := NewTemplate(templateName, nil, overrides)
 
@@ -182,6 +183,12 @@ func TestNewTemplate_assets(t *testing.T) {
 
 			_, err := svc.ValidateTemplate(params)
 			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok {
+					if awsErr.Code() == "RequestError" && awsErr.Message() == "send request failed" {
+						return
+					}
+					assert.Fail(awsErr.Code(), awsErr.Message(), templateName)
+				}
 				assert.Fail(err.Error(), templateName)
 			}
 

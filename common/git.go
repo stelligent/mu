@@ -1,13 +1,17 @@
 package common
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/go-ini/ini"
-	"github.com/speedata/gogit"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
+	"strings"
 )
 
 func findGitRevision(file string) (string, error) {
@@ -15,21 +19,55 @@ func findGitRevision(file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	head, err := findGitHead(file)
+	if err != nil {
+		return "", err
+	}
+	// load commitid ref
+	refBuf, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", gitDir, head))
+	if err != nil {
+		return "", err
+	}
+	return string(string(refBuf)[:7]), nil
+}
+
+func findGitBranch(file string) (string, error) {
+	head, err := findGitHead(file)
+	if err != nil {
+		return "", err
+	}
+
+	// get branch name
+	branch := strings.TrimPrefix(head, "refs/heads/")
+	log.Debugf("Found branch: %s", branch)
+	return branch, nil
+}
+
+func findGitHead(file string) (string, error) {
+	gitDir, err := findGitDirectory(file)
+	if err != nil {
+		return "", err
+	}
 	log.Debugf("Loading revision from git directory '%s'", gitDir)
 
-	repository, err := gogit.OpenRepository(gitDir)
+	// load HEAD ref
+	headFile, err := os.Open(fmt.Sprintf("%s/HEAD", gitDir))
 	if err != nil {
 		return "", err
 	}
-	ref, err := repository.LookupReference("HEAD")
-	if err != nil {
-		return "", err
-	}
-	ci, err := repository.LookupCommit(ref.Oid)
-	if err != nil {
-		return "", err
-	}
-	return string(ci.Id().String()[:7]), nil
+	defer func() {
+		headFile.Close()
+	}()
+
+	headBuffer := new(bytes.Buffer)
+	headBuffer.ReadFrom(bufio.NewReader(headFile))
+	head := make(map[string]string)
+	yaml.Unmarshal(headBuffer.Bytes(), head)
+
+	log.Debugf("HEAD points to '%s'", head["ref"])
+
+	return head["ref"], nil
 }
 
 func findGitRemoteURL(file string) (string, error) {

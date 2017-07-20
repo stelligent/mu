@@ -3,8 +3,6 @@ package workflows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 	"io"
@@ -16,28 +14,28 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	workflow := new(environmentWorkflow)
 
 	var environmentViewer func() error
-	if format == common.JSON {
+	if format == JSON {
 		environmentViewer = workflow.environmentViewerJSON(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.TaskManager, writer)
+		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
 	}
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		environmentViewer,
 	)
 }
 
 func (workflow *environmentWorkflow) environmentViewerJSON(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	return func() error {
-		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 		if err != nil {
 			return err
 		}
 
 		output := common.JSONOutput{}
-		output.Values[common.FirstValueIndex].Key = common.BaseURLKey
-		output.Values[common.FirstValueIndex].Value = clusterStack.Outputs[common.BaseURLValueKey]
+		output.Values[FirstValueIndex].Key = BaseURLKey
+		output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
 
 		enc := json.NewEncoder(writer)
 		enc.Encode(&output)
@@ -46,51 +44,67 @@ func (workflow *environmentWorkflow) environmentViewerJSON(environmentName strin
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
 	return func() error {
-		clusterStackName := common.CreateStackName(common.StackTypeCluster, environmentName)
+		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStack, err := stackGetter.GetStack(lbStackName)
+
+		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
-		if err != nil {
-			return err
-		}
 
 		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
 		vpcStack, _ := stackGetter.GetStack(vpcStackName)
 
-		fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.EnvironmentHeader), environmentName)
-		fmt.Fprintf(writer, common.StackFormat, common.Bold(common.ClusterStack), clusterStack.Name, colorizeStackStatus(clusterStack.Status))
+		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), environmentName)
+		if clusterStack != nil {
+			fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), clusterStack.Name, colorizeStackStatus(clusterStack.Status))
+		}
+
 		if vpcStack == nil {
-			fmt.Fprintf(writer, common.UnmanagedStackFormat, common.Bold(common.VPCStack))
+			fmt.Fprintf(writer, UnmanagedStackFormat, Bold(VPCStack))
 		} else {
-			fmt.Fprintf(writer, common.StackFormat, common.Bold(common.VPCStack), vpcStack.Name, colorizeStackStatus(vpcStack.Status))
-			fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.BastionHost), vpcStack.Outputs[common.BastionHostKey])
+			fmt.Fprintf(writer, StackFormat, Bold(VPCStack), vpcStack.Name, colorizeStackStatus(vpcStack.Status))
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BastionHost), vpcStack.Outputs[BastionHostKey])
 		}
 
-		fmt.Fprintf(writer, common.HeaderValueFormat, common.Bold(common.BaseURLHeader), clusterStack.Outputs[common.BaseURLValueKey])
-		fmt.Fprintf(writer, common.HeadNewlineHeader, common.Bold(common.ContainerInstances))
-		fmt.Fprint(writer, common.NewLine)
-
-		instances, err := instanceLister.ListInstances(clusterStack.Outputs[common.ECSClusterKey])
-		if err != nil {
-			return err
+		if lbStack != nil {
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), lbStack.Outputs[BaseURLValueKey])
+		} else if clusterStack != nil {
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
 		}
 
-		table := buildInstanceTable(writer, instances)
-		table.Render()
+		if clusterStack != nil && clusterStack.Outputs["provider"] == string(common.EnvProviderEcs) {
+			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
+			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
+			if err != nil {
+				return err
+			}
 
-		fmt.Fprint(writer, common.NewLine)
-		fmt.Fprintf(writer, common.HeadNewlineHeader, common.Bold(common.ServicesHeader))
-		fmt.Fprint(writer, common.NewLine)
+			instanceIds := make([]string, len(containerInstances))
+			for i, containerInstance := range containerInstances {
+				instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
+			}
+			instances, err := instanceLister.ListInstances(instanceIds...)
+			if err != nil {
+				return err
+			}
+
+			table := buildInstanceTable(writer, containerInstances, instances)
+			table.Render()
+		}
+
+		fmt.Fprint(writer, NewLine)
+		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ServicesHeader))
 		stacks, err := stackLister.ListStacks(common.StackTypeService)
 		if err != nil {
 			return err
 		}
-		table = buildServiceTable(stacks, environmentName, writer)
+		table := buildServiceTable(stacks, environmentName, writer)
 		table.Render()
 
 		buildContainerTable(taskManager, stacks, environmentName, writer)
 
-		fmt.Fprint(writer, common.NewLine)
+		fmt.Fprint(writer, NewLine)
 
 		return nil
 	}
@@ -98,70 +112,75 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 
 func buildContainerTable(taskManager common.TaskManager, stacks []*common.Stack, environmentName string, writer io.Writer) {
 	for _, stackValues := range stacks {
-		if stackValues.Tags[common.EnvCmd] != environmentName {
+		if stackValues.Tags[EnvTagKey] != environmentName {
 			continue
 		}
-		viewTasks(taskManager, writer, stacks, stackValues.Tags[common.SvcCmd])
+		viewTasks(taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
 	}
 }
 
 func buildServiceTable(stacks []*common.Stack, environmentName string, writer io.Writer) *tablewriter.Table {
-	table := common.CreateTableSection(writer, common.ServiceTableHeader)
+	table := CreateTableSection(writer, ServiceTableHeader)
 
 	for _, stackValues := range stacks {
-		if stackValues.Tags[common.EnvCmd] != environmentName {
+		if stackValues.Tags[EnvTagKey] != environmentName {
 			continue
 		}
 
 		table.Append([]string{
-			common.Bold(stackValues.Tags[common.SvcCmd]),
-			stackValues.Parameters[common.SvcImageURLKey],
-			fmt.Sprintf(common.KeyValueFormat, colorizeStackStatus(stackValues.Status), stackValues.StatusReason),
-			stackValues.LastUpdateTime.Local().Format(common.LastUpdateTime),
-			stackValues.Tags[common.SvcVersionKey],
+			Bold(stackValues.Tags[SvcTagKey]),
+			stackValues.Tags["revision"],
+			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stackValues.Status), stackValues.StatusReason),
+			stackValues.LastUpdateTime.Local().Format(LastUpdateTime),
 		})
 	}
 
 	return table
 }
 
-func buildInstanceTable(writer io.Writer, instances []*ecs.ContainerInstance) *tablewriter.Table {
-	table := common.CreateTableSection(writer, common.EnvironmentAMITableHeader)
+func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerInstance, instances []common.Instance) *tablewriter.Table {
+	table := CreateTableSection(writer, EnvironmentAMITableHeader)
 
+	instanceIps := make(map[string]string)
 	for _, instance := range instances {
-		instanceType := common.UnknownValue
-		availZone := common.UnknownValue
-		amiID := common.UnknownValue
+		instanceIps[common.StringValue(instance.InstanceId)] = common.StringValue(instance.PrivateIpAddress)
+	}
+
+	for _, instance := range containerInstances {
+		instanceType := UnknownValue
+		availZone := UnknownValue
+		amiID := UnknownValue
 		for _, attr := range instance.Attributes {
-			switch aws.StringValue(attr.Name) {
-			case common.ECSAvailabilityZoneKey:
-				availZone = aws.StringValue(attr.Value)
-			case common.ECSInstanceTypeKey:
-				instanceType = aws.StringValue(attr.Value)
-			case common.ECSAMIKey:
-				amiID = aws.StringValue(attr.Value)
+			switch common.StringValue(attr.Name) {
+			case ECSAvailabilityZoneKey:
+				availZone = common.StringValue(attr.Value)
+			case ECSInstanceTypeKey:
+				instanceType = common.StringValue(attr.Value)
+			case ECSAMIKey:
+				amiID = common.StringValue(attr.Value)
 			}
 		}
 		var cpuAvail int64
 		var memAvail int64
 		for _, resource := range instance.RemainingResources {
-			switch aws.StringValue(resource.Name) {
-			case common.CPU:
-				cpuAvail = aws.Int64Value(resource.IntegerValue)
-			case common.MEMORY:
-				memAvail = aws.Int64Value(resource.IntegerValue)
+			switch common.StringValue(resource.Name) {
+			case CPU:
+				cpuAvail = common.Int64Value(resource.IntegerValue)
+			case MEMORY:
+				memAvail = common.Int64Value(resource.IntegerValue)
 			}
 		}
 		table.Append([]string{
-			aws.StringValue(instance.Ec2InstanceId),
+			common.StringValue(instance.Ec2InstanceId),
 			instanceType,
 			amiID,
+			instanceIps[common.StringValue(instance.Ec2InstanceId)],
 			availZone,
-			fmt.Sprintf(common.BoolStringFormat, aws.BoolValue(instance.AgentConnected)),
-			aws.StringValue(instance.Status),
-			fmt.Sprintf(common.IntStringFormat, aws.Int64Value(instance.RunningTasksCount)),
-			fmt.Sprintf(common.IntStringFormat, cpuAvail),
-			fmt.Sprintf(common.IntStringFormat, memAvail),
+			fmt.Sprintf(BoolStringFormat, common.BoolValue(instance.AgentConnected)),
+			common.StringValue(instance.Status),
+			fmt.Sprintf(IntStringFormat, common.Int64Value(instance.RunningTasksCount)),
+			fmt.Sprintf(IntStringFormat, cpuAvail),
+			fmt.Sprintf(IntStringFormat, memAvail),
 		})
 	}
 

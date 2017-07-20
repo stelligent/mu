@@ -1,0 +1,621 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service in a specific environment containing an ALB target group with EC2 AutoScaling group
+Parameters:
+  ServiceName:
+    Type: String
+    Description: Name of service
+  AppName:
+    Type: String
+    Description: Name of app in CodeDeploy
+  RevisionBucket:
+    Type: String
+    Description: Name of bucket for application revision
+  RevisionKey:
+    Type: String
+    Description: Name of object key for application revision
+  RevisionBundleType:
+    Type: String
+    Description: Type of bundle
+    Default: 'zip'
+  ServicePort:
+    Type: String
+    Description: Port exposed in service
+    Default: '8080'
+  ServiceHealthEndpoint:
+    Type: String
+    Description: Endpoint to test service health
+    Default: '/health'
+  ServiceDesiredCount:
+    Type: Number
+    Default: '2'
+    Description: Number of instances for ASG
+  PathPattern:
+    Type: CommaDelimitedList
+    Description: List of paths to route to the service.
+    Default: ''
+  ListenerRulePriority:
+    Type: Number
+    Description: The priority of the rule being added to the listener
+    Default: '1'
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  InstanceType:
+    Type: String
+    Description: Instance type to use.
+    Default: t2.micro
+  MaxSize:
+    Type: Number
+    Default: '2'
+    Description: Maximum number of instances that can be launched in your ECS cluster
+  KeyName:
+    Type: String
+    Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
+    Default: ''
+  SshAllow:
+    Description: Subnet from which to allow SSH access.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  ScaleOutThreshold:
+    Description: Threshold at which a scale out event will be initiated
+    Type: Number
+    Default: '75'
+  ScaleInThreshold:
+    Description: Threshold at which a scale in event will be initiated
+    Type: Number
+    Default: '30'
+  ConsulUrl:
+    Description: URL for downloading Consul
+    Type: String
+    Default: 'https://releases.hashicorp.com/consul/0.8.5/consul_0.8.5_linux_amd64.zip'
+  ImageId:
+    Description: EC2 AMI to launch
+    Type: String
+    Default: ''
+  InstanceSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+  HttpProxy:
+    Type: String
+    Description: Proxy to use from ECS cluster instances (host:port)
+    Default: ''
+  ConsulServerAutoScalingGroup:
+    Type: String
+    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
+    Default: ''
+  ElbSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for ELB access
+  ConsulRpcClientSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for access to consul (optional)
+    Default: ''
+  ElbHttpListenerArn:
+    Type: String
+    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+  ElbHttpsListenerArn:
+    Type: String
+    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+    Default: ''
+  DatabaseName:
+    Type: String
+    Description: Name of database
+    Default: ""
+  DatabaseMasterUsername:
+    Type: String
+    Description: Username of database
+    Default: ""
+  DatabaseMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Password of database
+    Default: ""
+  DatabaseEndpointAddress:
+    Type: String
+    Description: Endpoint address of database
+    Default: ""
+  DatabaseEndpointPort:
+    Type: String
+    Description: Endpoint port of database
+    Default: ""
+  ConsulServerAutoScalingGroup:
+    Type: String
+    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
+    Default: ''
+  ConsulRpcClientSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for access to consul (optional)
+    Default: ''
+Conditions:
+  HasPathPattern:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join":
+          - ''
+          - !Ref PathPattern
+        - ''
+  HasElbHttpListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpListenerArn}
+         - ''
+    - !Condition HasPathPattern
+  HasElbHttpsListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpsListenerArn}
+         - ''
+    - !Condition HasPathPattern
+  HasKeyName:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref KeyName
+        - ''
+  HasConsulClientSG:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ConsulRpcClientSecurityGroup
+        - ''
+  HasConsulServer:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ConsulServerAutoScalingGroup
+        - ''
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Microservice Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
+  Host2HostRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  ServiceAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+    - ServiceLogGroup
+    Properties:
+      VPCZoneIdentifier:
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${InstanceSubnetIds}
+      LaunchConfigurationName: !Ref ServiceInstances
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 600
+      TargetGroupARNs:
+        - !Ref ElbTargetGroup
+      MinSize: '1'
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref ServiceDesiredCount
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+        PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
+  ScaleOutPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: 1
+  ScaleInPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: -1
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub Scale-out if CPU > ${ScaleOutThreshold}% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref ScaleOutThreshold
+      AlarmActions:
+      - !Ref ScaleOutPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value: !Ref ServiceAutoScalingGroup
+      ComparisonOperator: GreaterThanThreshold
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Sub Scale-in if CPU < ${ScaleInThreshold}% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref ScaleInThreshold
+      AlarmActions:
+      - !Ref ScaleInPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value: !Ref ServiceAutoScalingGroup
+      ComparisonOperator: LessThanThreshold
+  ServiceInstances:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          sources:
+            "/opt/consul/bin": !Ref ConsulUrl
+          packages:
+            yum:
+              awslogs: []
+              aws-cli: []
+              ruby: []
+          files:
+            "/etc/environment":
+              content: !Sub |
+                # created via mu
+              {{with .Environment}}
+              {{range $key, $val := .}}
+                {{$key}}={{$val}}
+              {{end}}
+              {{end}}
+            "/tmp/codedeploy-install":
+              source: !Sub https://aws-codedeploy-${AWS::Region}.s3.amazonaws.com/latest/install
+              mode: '000755'
+              owner: root
+              group: root
+            "/etc/init/consul.conf":
+              content: !Sub |
+                description "Consul Client process"
+
+                start on (local-filesystems and net-device-up IFACE=eth0)
+                stop on runlevel [!12345]
+
+                respawn
+
+                exec /opt/consul/bin/consul agent -config-dir /opt/consul/config
+              mode: '000755'
+              owner: root
+              group: root
+            "/opt/consul/config/service.json":
+              content: !Sub |
+                {
+                  "datacenter": "${AWS::Region}",
+                  "data_dir": "/opt/consul/data",
+                  "retry_join_ec2": {
+                    "tag_key": "aws:autoscaling:groupName",
+                    "tag_value": "${ConsulServerAutoScalingGroup}"
+                  },
+                  "service": {
+                    "name": "${ServiceName}",
+                    "tags": ["${ServiceName}"],
+                    "port": ${ServicePort},
+                    "checks": [
+                      {
+                        "id": "health",
+                        "name": "HTTP health on port ${ServicePort}",
+                        "http": "http://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "method": "GET",
+                        "interval": "10s",
+                        "timeout": "1s"
+                      }
+                    ]
+                  }
+                }
+            "/etc/codedeploy-agent/conf/codedeployagent.yml":
+              content: !Sub |
+                ---
+                :log_aws_wire: false
+                :log_dir: '/var/log/aws/codedeploy-agent/'
+                :pid_dir: '/opt/codedeploy-agent/state/.pid/'
+                :program_name: codedeploy-agent
+                :root_dir: '/opt/codedeploy-agent/deployment-root'
+                :verbose: false
+                :wait_between_runs: 1
+                :max_revisions: 5
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: '000400'
+              owner: root
+              group: root
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ServiceInstances.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region}
+                runas=root
+            "/etc/awslogs/etc/proxy.conf":
+              content: !Sub |
+                HTTP_PROXY=http://${HttpProxy}/
+                HTTPS_PROXY=http://${HttpProxy}/
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+            "/etc/awslogs/awslogs.conf":
+              content: !Sub |
+                [general]
+                state_file = /var/lib/awslogs/agent-state
+
+                [dmesg]
+                file = /var/log/dmesg
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/dmesg/{instance_id}
+
+                [messages]
+                file = /var/log/messages
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/messages/{instance_id}
+                datetime_format = %b %d %H:%M:%S
+
+                [cloud-init]
+                file = /var/log/cloud-init*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/cloud-init/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                [cfn-init]
+                file = /var/log/cfn-init*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/cfn-init/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+
+                [codedeploy-agent-logs]
+                datetime_format = %Y-%m-%d %H:%M:%S
+                file = /var/log/aws/codedeploy-agent/codedeploy-agent.log
+                log_stream_name = instance/codedeploy-agent/{instance_id}
+                log_group_name = ${AWS::StackName}
+
+                [codedeploy-updater-logs]
+                file = /tmp/codedeploy-agent.update.log
+                log_stream_name = instance/codedeploy-updater/{instance_id}
+                log_group_name = ${AWS::StackName}
+
+                [codedeploy-deployment-logs]
+                file = /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
+                log_stream_name = instance/codedeploy-deployments/{instance_id}
+                log_group_name = ${AWS::StackName}
+          commands:
+            codedeploy-install:
+              command: "./codedeploy-install auto"
+              cwd: "/tmp"
+            start-consul:
+              command: "start consul"
+          services:
+            sysvinit:
+              codedeploy-agent:
+                enabled: 'true'
+                ensureRunning: 'true'
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+    Properties:
+      ImageId: !Ref ImageId
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      - !Ref ElbSecurityGroup
+      - Fn::If:
+          - HasConsulClientSG
+          - !Ref ConsulRpcClientSecurityGroup
+          - !Ref "AWS::NoValue"
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      KeyName:
+        Fn::If:
+          - HasKeyName
+          - !Ref KeyName
+          - !Ref "AWS::NoValue"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+
+          CFN_PROXY_ARGS=""
+          if [[ ! -z "${HttpProxy}" ]]; then
+            echo "Configuring HTTP_PROXY=${HttpProxy}"
+
+            # Set Yum HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
+              echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
+            fi
+
+            CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
+          fi
+
+          yum -y update
+
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref EC2Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: service-access
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
+          - Effect: Allow
+            Action:
+            - s3:Get*
+            - s3:List*
+            Resource:
+            - !Sub arn:aws:s3:::${RevisionBucket}
+            - !Sub arn:aws:s3:::${RevisionBucket}/*
+          - Effect: Allow
+            Action:
+            - autoscaling:Describe*
+            - ec2:Describe*
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - cloudformation:Describe*
+            - cloudformation:GetTemplate
+            Resource:
+            - !Sub ${AWS::StackId}
+            - !Sub ${AWS::StackId}/*
+  DeployGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref AppName
+      Deployment:
+        IgnoreApplicationStopFailures: true
+        Revision:
+          RevisionType: S3
+          S3Location:
+            Bucket: !Ref RevisionBucket
+            Key: !Ref RevisionKey
+            BundleType: !Ref RevisionBundleType
+      AutoScalingGroups:
+      - !Ref ServiceAutoScalingGroup
+      ServiceRoleArn: !Sub ${CodeDeployRole.Arn}
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+  CodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - !Sub codedeploy.${AWS::Region}.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      #ManagedPolicyArns:
+      #- arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      Policies:
+      - PolicyName: codedeploy-access
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - autoscaling:CompleteLifecycleAction
+            - autoscaling:DeleteLifecycleHook
+            - autoscaling:PutLifecycleHook
+            - autoscaling:RecordLifecycleActionHeartbeat
+            Resource: '*'
+            #- !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ServiceAutoScalingGroup}
+          - Effect: Allow
+            Action:
+            - autoscaling:Describe*
+            - ec2:Describe*
+            Resource: '*'
+  ServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
+  ElbHttpListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: path-pattern
+        Values: !Ref PathPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpListenerArn}
+      Priority: !Ref ListenerRulePriority
+  ElbHttpsListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpsListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: path-pattern
+        Values: !Ref PathPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpsListenerArn}
+      Priority: !Ref ListenerRulePriority
+  ElbTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: HasPathPattern
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: !Ref ServiceHealthEndpoint
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 3
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-299
+      Port: !Ref ServicePort
+      Protocol: HTTP
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 60
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+

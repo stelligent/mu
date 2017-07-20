@@ -15,7 +15,7 @@ func NewConfigInitializer(ctx *common.Context, createEnvironment bool, listenPor
 
 	workflow := new(configWorkflow)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.configInitialize(&ctx.Config, createEnvironment, listenPort, forceOverwrite),
 	)
 }

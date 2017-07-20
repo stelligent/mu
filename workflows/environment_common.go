@@ -26,3 +26,21 @@ func colorizeStackStatus(stackStatus string) string {
 	}
 	return color(stackStatus)
 }
+
+func (workflow *environmentWorkflow) isConsulEnabled() Conditional {
+	return func() bool {
+		return strings.EqualFold(workflow.environment.Discovery.Provider, "consul")
+	}
+}
+
+func (workflow *environmentWorkflow) isEcsProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEcs))
+	}
+}
+
+func (workflow *environmentWorkflow) isEc2Provider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEc2))
+	}
+}

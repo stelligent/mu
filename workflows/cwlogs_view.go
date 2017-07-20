@@ -16,9 +16,9 @@ type logsWorkflow struct {
 func NewEnvironmentLogViewer(ctx *common.Context, searchDuration time.Duration, follow bool, environmentName string, writer io.Writer, filter string) Executor {
 	workflow := new(logsWorkflow)
 
-	logGroup := common.CreateStackName(common.StackTypeCluster, environmentName)
+	logGroup := common.CreateStackName(common.StackTypeEnv, environmentName)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
 	)
 }
@@ -33,7 +33,7 @@ func NewServiceLogViewer(ctx *common.Context, searchDuration time.Duration, foll
 
 	logGroup := common.CreateStackName(common.StackTypeService, serviceName, environmentName)
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
 	)
 }
@@ -53,7 +53,7 @@ func NewPipelineLogViewer(ctx *common.Context, searchDuration time.Duration, fol
 		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/mu-pipeline-%s-%s", serviceName, job))
 	}
 
-	return newWorkflow(
+	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroups...),
 	)
 }
@@ -62,7 +62,7 @@ func (workflow *logsWorkflow) logsViewer(logsViewer common.LogsViewer, writer io
 
 	return func() error {
 		cb := func(logStream string, message string, timestamp int64) {
-			fmt.Fprintf(writer, "[%s] %s\n", common.Bold(logStream), strings.TrimSpace(message))
+			fmt.Fprintf(writer, "[%s] %s\n", Bold(logStream), strings.TrimSpace(message))
 		}
 
 		var wg sync.WaitGroup
