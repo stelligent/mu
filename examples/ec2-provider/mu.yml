@@ -1,14 +1,8 @@
 ---
 
 environments:
-  - name: ec2-dev
+  - name: dev
     provider: ec2
-    cluster:
-      keyName: mu-key
-  - name: ecs-dev
-    provider: ecs
-    cluster:
-      keyName: mu-key
 
 service:
   name: basic-example
