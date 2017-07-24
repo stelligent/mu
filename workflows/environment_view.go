@@ -27,15 +27,20 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 
 func (workflow *environmentWorkflow) environmentViewerJSON(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	return func() error {
+		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStack, _ := stackGetter.GetStack(lbStackName)
+
 		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
-		clusterStack, err := stackGetter.GetStack(clusterStackName)
-		if err != nil {
-			return err
-		}
+		clusterStack, _ := stackGetter.GetStack(clusterStackName)
 
 		output := common.JSONOutput{}
-		output.Values[FirstValueIndex].Key = BaseURLKey
-		output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
+		if lbStack != nil {
+			output.Values[FirstValueIndex].Key = BaseURLKey
+			output.Values[FirstValueIndex].Value = lbStack.Outputs[BaseURLValueKey]
+		} else if clusterStack != nil {
+			output.Values[FirstValueIndex].Key = BaseURLKey
+			output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
+		}
 
 		enc := json.NewEncoder(writer)
 		enc.Encode(&output)
