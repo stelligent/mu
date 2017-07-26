@@ -84,6 +84,7 @@ type Service struct {
 	Memory          int                    `yaml:"memory,omitempty"`
 	Environment     map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
 	Priority        int                    `yaml:"priority,omitempty"`
 	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
 	Database        Database               `yaml:"database,omitempty"`

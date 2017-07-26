@@ -36,10 +36,18 @@ Parameters:
     Type: CommaDelimitedList
     Description: List of paths to route to the service.
     Default: ''
-  ListenerRulePriority:
+  PathListenerRulePriority:
     Type: Number
-    Description: The priority of the rule being added to the listener
+    Description: The priority of the path rule being added to the listener
     Default: '1'
+  HostPattern:
+    Type: CommaDelimitedList
+    Description: List of hosts to route to the service.
+    Default: ''
+  HostListenerRulePriority:
+    Type: Number
+    Description: The priority of the host rule being added to the listener
+    Default: '2'
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
@@ -82,20 +90,45 @@ Conditions:
           - ''
           - !Ref PathPattern
         - ''
-  HasElbHttpListener:
+  HasHostPattern:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join":
+          - ''
+          - !Ref HostPattern
+        - ''
+  HasTargetGroup:
+    "Fn::Or":
+    - !Condition HasPathPattern
+    - !Condition HasHostPattern
+  HasElbHttpPathListener:
     "Fn::And":
     - "Fn::Not":
        - "Fn::Equals":
          - !Sub ${ElbHttpListenerArn}
          - ''
     - !Condition HasPathPattern
-  HasElbHttpsListener:
+  HasElbHttpsPathListener:
     "Fn::And":
     - "Fn::Not":
        - "Fn::Equals":
          - !Sub ${ElbHttpsListenerArn}
          - ''
     - !Condition HasPathPattern
+  HasElbHttpHostListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpListenerArn}
+         - ''
+    - !Condition HasHostPattern
+  HasElbHttpsHostListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpsListenerArn}
+         - ''
+    - !Condition HasHostPattern
 
 Resources:
   EcsService:
@@ -109,14 +142,14 @@ Resources:
         MinimumHealthyPercent: 0
       LoadBalancers:
         - Fn::If:
-          - HasPathPattern
+          - HasTargetGroup
           - ContainerName: !Ref ServiceName
             ContainerPort: !Ref ServicePort
             TargetGroupArn: !Ref ElbTargetGroup
           - !Ref AWS::NoValue
       Role:
         Fn::If:
-          - HasPathPattern
+          - HasTargetGroup
           - !Ref EcsServiceRole
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
@@ -200,9 +233,9 @@ Resources:
           ContainerPort: !Ref ServicePort
       Volumes: []
       TaskRoleArn: !GetAtt EcsTaskRole.Arn
-  ElbHttpListenerRule:
+  ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasElbHttpListener
+    Condition: HasElbHttpPathListener
     Properties:
       Actions:
       - Type: forward
@@ -212,10 +245,10 @@ Resources:
         Values: !Ref PathPattern
       ListenerArn:
         Fn::ImportValue: !Sub ${ElbHttpListenerArn}
-      Priority: !Ref ListenerRulePriority
-  ElbHttpsListenerRule:
+      Priority: !Ref PathListenerRulePriority
+  ElbHttpsPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasElbHttpsListener
+    Condition: HasElbHttpsPathListener
     Properties:
       Actions:
       - Type: forward
@@ -225,10 +258,36 @@ Resources:
         Values: !Ref PathPattern
       ListenerArn:
         Fn::ImportValue: !Sub ${ElbHttpsListenerArn}
-      Priority: !Ref ListenerRulePriority
+      Priority: !Ref PathListenerRulePriority
+  ElbHttpHostListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpHostListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: host-header
+        Values: !Ref HostPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpListenerArn}
+      Priority: !Ref HostListenerRulePriority
+  ElbHttpsHostListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpsHostListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: host-header
+        Values: !Ref HostPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpsListenerArn}
+      Priority: !Ref HostListenerRulePriority
   ElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Condition: HasPathPattern
+    Condition: HasTargetGroup
     Properties:
       HealthCheckIntervalSeconds: 30
       HealthCheckPath: !Ref ServiceHealthEndpoint
