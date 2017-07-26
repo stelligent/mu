@@ -27,11 +27,7 @@ func NewEnvironmentLogViewer(ctx *common.Context, searchDuration time.Duration, 
 func NewServiceLogViewer(ctx *common.Context, searchDuration time.Duration, follow bool, environmentName string, serviceName string, writer io.Writer, filter string) Executor {
 	workflow := new(logsWorkflow)
 
-	if serviceName == "" {
-		serviceName = ctx.Config.Service.Name
-	}
-
-	logGroup := common.CreateStackName(common.StackTypeService, serviceName, environmentName)
+	logGroup := common.CreateStackName(common.StackTypeService, getServiceName(ctx, serviceName), environmentName)
 
 	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
@@ -42,20 +38,27 @@ func NewServiceLogViewer(ctx *common.Context, searchDuration time.Duration, foll
 func NewPipelineLogViewer(ctx *common.Context, searchDuration time.Duration, follow bool, serviceName string, writer io.Writer, filter string) Executor {
 	workflow := new(logsWorkflow)
 
-	if serviceName == "" {
-		serviceName = ctx.Config.Service.Name
-	}
-
 	var jobs = [...]string{"artifact", "image", "deploy-acceptance", "test-acceptance", "deploy-production", "test-production"}
 	var logGroups []string
 
 	for _, job := range jobs {
-		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/mu-pipeline-%s-%s", serviceName, job))
+		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/mu-pipeline-%s-%s", getServiceName(ctx, serviceName), job))
 	}
 
 	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroups...),
 	)
+}
+
+func getServiceName(ctx *common.Context, serviceName string) string {
+	if serviceName == "" {
+		if ctx.Config.Service.Name != "" {
+			serviceName = ctx.Config.Service.Name
+		} else if ctx.Config.Repo.Name != "" {
+			serviceName = ctx.Config.Repo.Name
+		}
+	}
+	return serviceName
 }
 
 func (workflow *logsWorkflow) logsViewer(logsViewer common.LogsViewer, writer io.Writer, filter string, searchDuration time.Duration, follow bool, logGroups ...string) Executor {

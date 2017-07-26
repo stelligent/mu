@@ -54,7 +54,7 @@ func TestServiceApplyCommon_Create(t *testing.T) {
 	assert.Equal("mu-environment-dev-VpcId", params["VpcId"])
 	assert.Equal("mu-loadbalancer-dev-ElbHttpListenerArn", params["ElbHttpListenerArn"])
 	assert.Equal("mu-loadbalancer-dev-ElbHttpsListenerArn", params["ElbHttpsListenerArn"])
-	assert.Equal("16", params["ListenerRulePriority"])
+	assert.Equal("16", params["PathListenerRulePriority"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
@@ -123,7 +123,7 @@ func TestServiceApplyCommon_StaticPriority(t *testing.T) {
 	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
-	assert.Equal("77", params["ListenerRulePriority"])
+	assert.Equal("77", params["PathListenerRulePriority"])
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)

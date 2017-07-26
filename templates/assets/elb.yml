@@ -146,6 +146,16 @@ Resources:
           HostedZoneId: !GetAtt Elb.CanonicalHostedZoneID
           DNSName: !GetAtt Elb.DNSName
           EvaluateTargetHealth: true
+      - Name:
+          Fn::If:
+          - HasElbHostName
+          - !Sub '*.${ElbHostName}.${ElbDomainName}.'
+          - !Sub '*.${ElbDomainName}.'
+        Type: A
+        AliasTarget:
+          HostedZoneId: !GetAtt Elb.CanonicalHostedZoneID
+          DNSName: !GetAtt Elb.DNSName
+          EvaluateTargetHealth: true
 Outputs:
   BaseUrl:
     Value:

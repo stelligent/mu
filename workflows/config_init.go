@@ -56,7 +56,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 
 		if createEnvironment && len(config.Environments) == 0 {
 			config.Environments = append(config.Environments,
-				common.Environment{Name: "dev"},
+				common.Environment{Name: "acceptance"},
 				common.Environment{Name: "production"})
 		}
 

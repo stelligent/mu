@@ -22,6 +22,13 @@ Parameters:
     Type: String
     Description: Port exposed in service
     Default: '8080'
+  ServiceProtocol:
+    Type: String
+    Description: Protocol for port exposed in service
+    Default: 'HTTP'
+    AllowedValues:
+    - HTTP
+    - HTTPS
   ServiceHealthEndpoint:
     Type: String
     Description: Endpoint to test service health
@@ -34,10 +41,18 @@ Parameters:
     Type: CommaDelimitedList
     Description: List of paths to route to the service.
     Default: ''
-  ListenerRulePriority:
+  PathListenerRulePriority:
     Type: Number
-    Description: The priority of the rule being added to the listener
+    Description: The priority of the path rule being added to the listener
     Default: '1'
+  HostPattern:
+    Type: CommaDelimitedList
+    Description: List of hosts to route to the service.
+    Default: ''
+  HostListenerRulePriority:
+    Type: Number
+    Description: The priority of the host rule being added to the listener
+    Default: '2'
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
@@ -139,20 +154,45 @@ Conditions:
           - ''
           - !Ref PathPattern
         - ''
-  HasElbHttpListener:
+  HasHostPattern:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join":
+          - ''
+          - !Ref HostPattern
+        - ''
+  HasTargetGroup:
+    "Fn::Or":
+    - !Condition HasPathPattern
+    - !Condition HasHostPattern
+  HasElbHttpPathListener:
     "Fn::And":
     - "Fn::Not":
        - "Fn::Equals":
          - !Sub ${ElbHttpListenerArn}
          - ''
     - !Condition HasPathPattern
-  HasElbHttpsListener:
+  HasElbHttpsPathListener:
     "Fn::And":
     - "Fn::Not":
        - "Fn::Equals":
          - !Sub ${ElbHttpsListenerArn}
          - ''
     - !Condition HasPathPattern
+  HasElbHttpHostListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpListenerArn}
+         - ''
+    - !Condition HasHostPattern
+  HasElbHttpsHostListener:
+    "Fn::And":
+    - "Fn::Not":
+       - "Fn::Equals":
+         - !Sub ${ElbHttpsListenerArn}
+         - ''
+    - !Condition HasHostPattern
   HasKeyName:
     "Fn::Not":
       - "Fn::Equals":
@@ -319,8 +359,9 @@ Resources:
                     "checks": [
                       {
                         "id": "health",
-                        "name": "HTTP health on port ${ServicePort}",
-                        "http": "http://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "name": "${ServiceProtocol} health on port ${ServicePort}",
+                        "http": "${ServiceProtocol}://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "tls_skip_verify": true,
                         "method": "GET",
                         "interval": "10s",
                         "timeout": "1s"
@@ -570,9 +611,9 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Ref AWS::StackName
-  ElbHttpListenerRule:
+  ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasElbHttpListener
+    Condition: HasElbHttpPathListener
     Properties:
       Actions:
       - Type: forward
@@ -582,10 +623,10 @@ Resources:
         Values: !Ref PathPattern
       ListenerArn:
         Fn::ImportValue: !Sub ${ElbHttpListenerArn}
-      Priority: !Ref ListenerRulePriority
-  ElbHttpsListenerRule:
+      Priority: !Ref PathListenerRulePriority
+  ElbHttpsPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    Condition: HasElbHttpsListener
+    Condition: HasElbHttpsHostListener
     Properties:
       Actions:
       - Type: forward
@@ -595,20 +636,46 @@ Resources:
         Values: !Ref PathPattern
       ListenerArn:
         Fn::ImportValue: !Sub ${ElbHttpsListenerArn}
-      Priority: !Ref ListenerRulePriority
+      Priority: !Ref PathListenerRulePriority
+  ElbHttpHostListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpHostListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: host-header
+        Values: !Ref HostPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpListenerArn}
+      Priority: !Ref HostListenerRulePriority
+  ElbHttpsHostListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasElbHttpsHostListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref ElbTargetGroup
+      Conditions:
+      - Field: host-header
+        Values: !Ref HostPattern
+      ListenerArn:
+        Fn::ImportValue: !Sub ${ElbHttpsListenerArn}
+      Priority: !Ref HostListenerRulePriority
   ElbTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Condition: HasPathPattern
+    Condition: HasTargetGroup
     Properties:
       HealthCheckIntervalSeconds: 30
       HealthCheckPath: !Ref ServiceHealthEndpoint
-      HealthCheckProtocol: HTTP
+      HealthCheckProtocol: !Ref ServiceProtocol
       HealthCheckTimeoutSeconds: 3
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: 200-299
       Port: !Ref ServicePort
-      Protocol: HTTP
+      Protocol: !Ref ServiceProtocol
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName
