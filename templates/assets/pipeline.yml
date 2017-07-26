@@ -75,10 +75,10 @@ Parameters:
     Type: String
     Description: Path to mu.yml, relative to GitHubRepo
     Default: "mu.yml"
-  TestEnv:
+  AcptEnv:
     Type: String
     Description: Name of mu environment to deploy to for testing
-    Default: "dev"
+    Default: "acceptance"
   ProdEnv:
     Type: String
     Description: Name of mu environment to deploy to for production
@@ -231,10 +231,10 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${TestEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${TestEnv}
-                - mu env show ${TestEnv} -f json > env.json
+                - mu -c ${MuFile} env up ${AcptEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} svc deploy ${AcptEnv}
+                - mu env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
