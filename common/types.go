@@ -78,11 +78,13 @@ type Service struct {
 	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
 	ImageRepository string                 `yaml:"imageRepository,omitempty"`
 	Port            int                    `yaml:"port,omitempty"`
+	Protocol        string                 `yaml:"protocol,omitempty"`
 	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
 	CPU             int                    `yaml:"cpu,omitempty"`
 	Memory          int                    `yaml:"memory,omitempty"`
 	Environment     map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
 	Priority        int                    `yaml:"priority,omitempty"`
 	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
 	Database        Database               `yaml:"database,omitempty"`
@@ -106,17 +108,20 @@ type Pipeline struct {
 		Branch   string `yaml:"branch,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Environment string `yaml:"environment,omitempty"`
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
 	} `yaml:"acceptance,omitempty"`
 	Production struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Environment string `yaml:"environment,omitempty"`
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`

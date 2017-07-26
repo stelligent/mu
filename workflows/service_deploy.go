@@ -151,19 +151,26 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 
 		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
+
 		if workflow.priority > 0 {
-			params["ListenerRulePriority"] = strconv.Itoa(workflow.priority)
+			params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
+			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
 		} else if svcStack != nil {
 			// no value in config, and this is an update...use prior value
-			params["ListenerRulePriority"] = ""
+			params["PathListenerRulePriority"] = ""
+			params["HostListenerRulePriority"] = ""
 		} else {
 			// no value in config, and this is a create...use next available
-			params["ListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
+			params["PathListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
+			params["HostListenerRulePriority"] = strconv.Itoa(nextAvailablePriority + 1)
 		}
 
 		params["ServiceName"] = workflow.serviceName
 		if service.Port != 0 {
 			params["ServicePort"] = strconv.Itoa(service.Port)
+		}
+		if service.Protocol != "" {
+			params["ServiceProtocol"] = strings.ToUpper(service.Protocol)
 		}
 		if service.HealthEndpoint != "" {
 			params["ServiceHealthEndpoint"] = service.HealthEndpoint
@@ -173,6 +180,9 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 		}
 		if len(service.PathPatterns) > 0 {
 			params["PathPattern"] = strings.Join(service.PathPatterns, ",")
+		}
+		if len(service.HostPatterns) > 0 {
+			params["HostPattern"] = strings.Join(service.HostPatterns, ",")
 		}
 
 		return nil

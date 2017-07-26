@@ -75,14 +75,35 @@ Parameters:
     Type: String
     Description: Path to mu.yml, relative to GitHubRepo
     Default: "mu.yml"
-  TestEnv:
+  AcptEnv:
     Type: String
     Description: Name of mu environment to deploy to for testing
-    Default: "dev"
+    Default: "acceptance"
   ProdEnv:
     Type: String
     Description: Name of mu environment to deploy to for production
     Default: "production"
+  EnableBuildStage:
+    Type: String
+    Description: Enable build stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableAcptStage:
+    Type: String
+    Description: Enable acceptance stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableProdStage:
+    Type: String
+    Description: Enable prod stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
 Conditions:
   IsCodeCommit:
     "Fn::Equals":
@@ -92,6 +113,18 @@ Conditions:
     "Fn::Equals":
       - !Ref SourceProvider
       - 'GitHub'
+  IsBuildEnabled:
+    "Fn::Equals":
+      - !Ref EnableBuildStage
+      - 'true'
+  IsAcptEnabled:
+    "Fn::Equals":
+      - !Ref EnableAcptStage
+      - 'true'
+  IsProdEnabled:
+    "Fn::Equals":
+      - !Ref EnableProdStage
+      - 'true'
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -162,6 +195,7 @@ Resources:
           Version: '2012-10-17'
   CodeBuildArtifact:
     Type: AWS::CodeBuild::Project
+    Condition: IsBuildEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-artifact
@@ -178,6 +212,7 @@ Resources:
       TimeoutInMinutes: 30
   CodeBuildImage:
     Type: AWS::CodeBuild::Project
+    Condition: IsBuildEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-image
@@ -208,6 +243,7 @@ Resources:
       TimeoutInMinutes: 30
   DeployAcceptance:
     Type: AWS::CodeBuild::Project
+    Condition: IsAcptEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-deploy-acceptance
@@ -231,10 +267,10 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${TestEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${TestEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${TestEnv}
-                - mu env show ${TestEnv} -f json > env.json
+                - mu -c ${MuFile} env up ${AcptEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} svc deploy ${AcptEnv}
+                - mu env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -242,6 +278,7 @@ Resources:
       TimeoutInMinutes: 30
   TestAcceptance:
     Type: AWS::CodeBuild::Project
+    Condition: IsAcptEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-test-acceptance
@@ -258,6 +295,7 @@ Resources:
       TimeoutInMinutes: 30
   DeployProduction:
     Type: AWS::CodeBuild::Project
+    Condition: IsProdEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-deploy-production
@@ -292,6 +330,7 @@ Resources:
       TimeoutInMinutes: 30
   TestProduction:
     Type: AWS::CodeBuild::Project
+    Condition: IsProdEnabled
     DependsOn: CodeBuildRole
     Properties:
       Name: !Sub ${AWS::StackName}-test-production
@@ -338,99 +377,108 @@ Resources:
             - RepositoryName: !Ref SourceRepo
               BranchName: !Ref SourceBranch
           RunOrder: 1
-      - Name: Build
-        Actions:
-        - Name: Artifact
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: SourceOutput
-          OutputArtifacts:
-          - Name: ArtifactOutput
-          Configuration:
-            ProjectName: !Ref CodeBuildArtifact
-          RunOrder: 1
-        - Name: Image
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: ArtifactOutput
-          OutputArtifacts:
-          - Name: ImageOutput
-          Configuration:
-            ProjectName: !Ref CodeBuildImage
-          RunOrder: 2
-      - Name: Acceptance
-        Actions:
-        - Name: Deploy
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: SourceOutput
-          OutputArtifacts:
-          - Name: DeployAcceptanceOutput
-          Configuration:
-            ProjectName: !Ref DeployAcceptance
-          RunOrder: 1
-        - Name: Test
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: DeployAcceptanceOutput
-          OutputArtifacts:
-          - Name: TestAcceptanceOutput
-          Configuration:
-            ProjectName: !Ref TestAcceptance
-          RunOrder: 2
-      - Name: Production
-        Actions:
-        - Name: Approve
-          ActionTypeId:
-            Category: Approval
-            Owner: AWS
-            Version: '1'
-            Provider: Manual
-          Configuration:
-            CustomData: Approve deployment to production
-          RunOrder: 1
-        - Name: Deploy
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: SourceOutput
-          OutputArtifacts:
-          - Name: DeployProductionOutput
-          Configuration:
-            ProjectName: !Ref DeployProduction
-          RunOrder: 2
-        - Name: Test
-          ActionTypeId:
-            Category: Build
-            Owner: AWS
-            Version: '1'
-            Provider: CodeBuild
-          InputArtifacts:
-          - Name: DeployProductionOutput
-          OutputArtifacts:
-          - Name: TestProductionOutput
-          Configuration:
-            ProjectName: !Ref TestProduction
-          RunOrder: 3
+      - !If
+        - IsBuildEnabled
+        - Name: Build
+          Actions:
+          - Name: Artifact
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: SourceOutput
+            OutputArtifacts:
+            - Name: ArtifactOutput
+            Configuration:
+              ProjectName: !Ref CodeBuildArtifact
+            RunOrder: 1
+          - Name: Image
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: ArtifactOutput
+            OutputArtifacts:
+            - Name: ImageOutput
+            Configuration:
+              ProjectName: !Ref CodeBuildImage
+            RunOrder: 2
+        - !Ref AWS::NoValue
+      - !If
+        - IsAcptEnabled
+        - Name: Acceptance
+          Actions:
+          - Name: Deploy
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: SourceOutput
+            OutputArtifacts:
+            - Name: DeployAcceptanceOutput
+            Configuration:
+              ProjectName: !Ref DeployAcceptance
+            RunOrder: 1
+          - Name: Test
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: DeployAcceptanceOutput
+            OutputArtifacts:
+            - Name: TestAcceptanceOutput
+            Configuration:
+              ProjectName: !Ref TestAcceptance
+            RunOrder: 2
+        - !Ref AWS::NoValue
+      - !If
+        - IsProdEnabled
+        - Name: Production
+          Actions:
+          - Name: Approve
+            ActionTypeId:
+              Category: Approval
+              Owner: AWS
+              Version: '1'
+              Provider: Manual
+            Configuration:
+              CustomData: Approve deployment to production
+            RunOrder: 1
+          - Name: Deploy
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: SourceOutput
+            OutputArtifacts:
+            - Name: DeployProductionOutput
+            Configuration:
+              ProjectName: !Ref DeployProduction
+            RunOrder: 2
+          - Name: Test
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            InputArtifacts:
+            - Name: DeployProductionOutput
+            OutputArtifacts:
+            - Name: TestProductionOutput
+            Configuration:
+              ProjectName: !Ref TestProduction
+            RunOrder: 3
+        - !Ref AWS::NoValue
       ArtifactStore:
         Type: S3
         Location: !ImportValue mu-bucket-codepipeline
