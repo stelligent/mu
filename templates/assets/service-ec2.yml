@@ -22,6 +22,10 @@ Parameters:
     Type: String
     Description: Port exposed in service
     Default: '8080'
+  ServiceProtocol:
+    Type: String
+    Description: Protocol for port exposed in service
+    Default: 'HTTP'
   ServiceHealthEndpoint:
     Type: String
     Description: Endpoint to test service health
@@ -319,8 +323,9 @@ Resources:
                     "checks": [
                       {
                         "id": "health",
-                        "name": "HTTP health on port ${ServicePort}",
-                        "http": "http://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "name": "${ServiceProtocol} health on port ${ServicePort}",
+                        "http": "${ServiceProtocol}://localhost:${ServicePort}${ServiceHealthEndpoint}",
+                        "tls_skip_verify": true,
                         "method": "GET",
                         "interval": "10s",
                         "timeout": "1s"
@@ -602,13 +607,13 @@ Resources:
     Properties:
       HealthCheckIntervalSeconds: 30
       HealthCheckPath: !Ref ServiceHealthEndpoint
-      HealthCheckProtocol: HTTP
+      HealthCheckProtocol: !Ref ServiceProtocol
       HealthCheckTimeoutSeconds: 3
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: 200-299
       Port: !Ref ServicePort
-      Protocol: HTTP
+      Protocol: !Ref ServiceProtocol
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName

@@ -165,6 +165,9 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 		if service.Port != 0 {
 			params["ServicePort"] = strconv.Itoa(service.Port)
 		}
+		if service.Protocol != "" {
+			params["ServiceProtocol"] = strings.ToUpper(service.Protocol)
+		}
 		if service.HealthEndpoint != "" {
 			params["ServiceHealthEndpoint"] = service.HealthEndpoint
 		}
