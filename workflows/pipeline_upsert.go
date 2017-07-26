@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -99,7 +100,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		}
 
 		if workflow.pipelineConfig.Acceptance.Environment != "" {
-			pipelineParams["TestEnv"] = workflow.pipelineConfig.Acceptance.Environment
+			pipelineParams["AcptEnv"] = workflow.pipelineConfig.Acceptance.Environment
 		}
 
 		if workflow.pipelineConfig.Production.Environment != "" {
@@ -109,6 +110,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if workflow.pipelineConfig.MuBaseurl != "" {
 			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
 		}
+
+		pipelineParams["EnableBuildStage"] = strconv.FormatBool(!workflow.pipelineConfig.Build.Disabled)
+		pipelineParams["EnableAcptStage"] = strconv.FormatBool(!workflow.pipelineConfig.Acceptance.Disabled)
+		pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
 
 		// get default buildspec
 		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)

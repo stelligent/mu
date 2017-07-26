@@ -108,17 +108,20 @@ type Pipeline struct {
 		Branch   string `yaml:"branch,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Environment string `yaml:"environment,omitempty"`
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
 	} `yaml:"acceptance,omitempty"`
 	Production struct {
+		Disabled    bool   `yaml:"disabled,omitempty"`
 		Environment string `yaml:"environment,omitempty"`
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`

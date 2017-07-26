@@ -26,6 +26,9 @@ Parameters:
     Type: String
     Description: Protocol for port exposed in service
     Default: 'HTTP'
+    AllowedValues:
+    - HTTP
+    - HTTPS
   ServiceHealthEndpoint:
     Type: String
     Description: Endpoint to test service health
