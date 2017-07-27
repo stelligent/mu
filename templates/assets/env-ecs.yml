@@ -528,4 +528,9 @@ Outputs:
     Description: Name of the ECS cluster.
     Export:
       Name: !Sub ${AWS::StackName}-EcsCluster
+  InstanceSecurityGroup:
+    Value: !Ref InstanceSecurityGroup
+    Description: Security Group ID for the microservice instances
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSecurityGroup
 
