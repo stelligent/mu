@@ -184,6 +184,6 @@ func getTestTask() common.Task {
 	return common.Task{
 		Environment: TestEnv,
 		Service:     TestSvc,
-		Command:     TestCmd,
+		Command:     []string{TestCmd},
 	}
 }
