@@ -21,8 +21,8 @@ Parameters:
     Default: ''
   ElbHostName:
     Type: String
-    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName.  Leave blank to create apex record.
-    Default: ''
+    Description: The host name to use for the ELB DNS.  Prepends in front of ElbDomainName. Pass '.' to create apex record.
+    Default: '.'
   ElbCert:
     Type: String
     Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
@@ -34,10 +34,15 @@ Conditions:
         - !Ref ElbDomainName
         - ''
   HasElbHostName:
-    "Fn::Not":
+    "Fn::And":
+    - "Fn::Not":
       - "Fn::Equals":
         - !Ref ElbHostName
-        - ''
+        - '.'
+    - "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ElbHostName
+        - '.'
   HasElbCert:
     "Fn::Not":
       - "Fn::Equals":
