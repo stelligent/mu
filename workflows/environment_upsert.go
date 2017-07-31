@@ -206,10 +206,14 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 		if environment.Loadbalancer.HostedZone != "" {
 			stackParams["ElbDomainName"] = environment.Loadbalancer.HostedZone
 
-			if environment.Loadbalancer.Name != "" {
-				stackParams["ElbHostName"] = environment.Loadbalancer.Name
-			} else {
+			if environment.Loadbalancer.Name == "" {
+				// default to env name
 				stackParams["ElbHostName"] = environment.Name
+			} else if environment.Loadbalancer.Name == "." {
+				// Create apex record
+				stackParams["ElbHostName"] = ""
+			} else {
+				stackParams["ElbHostName"] = environment.Loadbalancer.Name
 			}
 		}
 
