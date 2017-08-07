@@ -72,6 +72,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 			}
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
+			} else {
+				vpcStackParams["SshAllow"] = "0.0.0.0/0"
 			}
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
@@ -144,6 +146,8 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
+		} else {
+			stackParams["SshAllow"] = "0.0.0.0/0"
 		}
 		if environment.Cluster.KeyName != "" {
 			stackParams["KeyName"] = environment.Cluster.KeyName
@@ -264,6 +268,8 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow
+		} else {
+			stackParams["SshAllow"] = "0.0.0.0/0"
 		}
 		if environment.Cluster.InstanceType != "" {
 			stackParams["InstanceType"] = environment.Cluster.InstanceType
