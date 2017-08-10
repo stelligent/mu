@@ -113,6 +113,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string)
 			"ElbSecurityGroup",
 			"ConsulRpcClientSecurityGroup",
 			"InstanceSubnetIds",
+			"InstanceSecurityGroup",
 		} {
 			params[key] = workflow.envStack.Parameters[key]
 		}

@@ -49,6 +49,11 @@ func (taskMgr *ecsTaskManager) getTaskRunInput(task common.Task) (*ecs.RunTaskIn
 	ecsServiceName := ecsStack.Parameters[ECSServiceNameParameterKey]
 	log.Debugf(ExecuteECSInputParameterLog, task.Environment, ecsServiceName, ecsCluster, ecsTaskDefinition)
 
+	command := make([]*string, len(task.Command))
+	for i, commandPart := range task.Command {
+		command[i] = aws.String(strings.TrimSpace(commandPart))
+	}
+
 	ecsRunTaskInput := &ecs.RunTaskInput{
 		Cluster:        aws.String(ecsCluster),
 		TaskDefinition: aws.String(ecsTaskDefinition),
@@ -56,10 +61,8 @@ func (taskMgr *ecsTaskManager) getTaskRunInput(task common.Task) (*ecs.RunTaskIn
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{
-					Name: aws.String(ecsServiceName),
-					Command: []*string{
-						aws.String(strings.TrimSpace(task.Command)),
-					},
+					Name:    aws.String(ecsServiceName),
+					Command: command,
 				},
 			},
 		},

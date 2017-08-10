@@ -242,7 +242,7 @@ type Task struct {
 	Service        string
 	TaskDefinition string
 	Cluster        string
-	Command        string
+	Command        []string
 	Containers     []Container
 }
 

@@ -208,7 +208,7 @@ func newTask(c *cli.Context) (*common.Task, error) {
 		return nil, err
 	}
 	environmentName := c.Args().First()
-	command := strings.Join(c.Args()[ExeArgsCmdIndex:], Space)
+	command := c.Args()[ExeArgsCmdIndex:]
 	return &common.Task{
 		Environment:    environmentName,
 		Command:        command,
