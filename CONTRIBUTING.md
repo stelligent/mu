@@ -1,5 +1,6 @@
 <img src="https://github.com/stelligent/mu/wiki/img/mu.png" width="150">
 <br/>
+
 # Contributing to Mu
 
 Help wanted!  We'd love your contributions to Mu.  Please review the following guidelines before contributing.  Also, feel free to propose changes to these guidelines by updating this file and submitting a pull request.
