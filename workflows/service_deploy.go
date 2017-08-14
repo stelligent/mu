@@ -115,7 +115,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string)
 			"InstanceSubnetIds",
 			"InstanceSecurityGroup",
 		} {
-			params[key] = workflow.envStack.Parameters[key]
+			params[key] = workflow.envStack.Outputs[key]
 		}
 
 		return nil
