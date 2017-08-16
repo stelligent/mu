@@ -217,7 +217,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 0
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: Public
@@ -293,7 +293,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 0
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: Private
@@ -309,7 +309,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 1
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: Private
@@ -325,7 +325,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 2
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: Private
@@ -463,7 +463,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 0
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -479,7 +479,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 1
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]
@@ -495,7 +495,7 @@ Resources:
       AvailabilityZone:
         Fn::Select:
         - 2
-        - !GetAZs ''
+        - Fn::GetAZs: ""
       Tags:
       - Key: Network
         Value: !If [ IsPublicElb, "Public", "Private" ]

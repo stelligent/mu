@@ -1,3 +1,6 @@
+<img src="https://github.com/stelligent/mu/wiki/img/mu.png" width="150">
+<br/>
+
 [![Build Status](https://circleci.com/gh/stelligent/mu.svg?style=shield)](https://circleci.com/gh/stelligent/mu) [![Join the chat at https://gitter.im/stelligent/mu](https://badges.gitter.im/stelligent/mu.svg)](https://gitter.im/stelligent/mu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Go Report Card](https://goreportcard.com/badge/github.com/stelligent/mu)](https://goreportcard.com/report/github.com/stelligent/mu)
 
 
@@ -35,6 +38,7 @@ Check out the [examples](examples) to see snippets of `mu.yml` configuration fil
 * **[HTTPS](examples/elb-https)** - Enable HTTPS on the ALB for an environment
 * **[DNS](examples/elb-dns)** - Associate Route53 resource record with ALB for an environment
 * **[VPC Target](examples/vpc-target)** - Targeting an existing VPC for an environment
+* **[VPN Connection](examples/vpn)** - Demonstration of adding VPN via CloudFormation
 * **[Custom CloudFormation](examples/custom-cloudformation)** - Demonstration of adding custom AWS resources via CloudFormation
 * **[Traditional Infrastructure](examples/ec2-provider)** - Demonstration of using EC2 + CodeDeploy rather than ECS for running services
 

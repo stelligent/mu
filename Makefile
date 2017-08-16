@@ -34,6 +34,11 @@ lint: fmt
 	go vet $(SRC_FILES)
 	glide novendor | xargs -n1 golint -set_exit_status
 
+nag:
+	@echo "=== cfn_nag ==="
+	grep -l AWSTemplateFormatVersion: templates/assets/*.yml |xargs -t -n 1 cfn_nag
+
+
 test: lint gen
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
