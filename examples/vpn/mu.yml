@@ -1,0 +1,70 @@
+---
+
+environments:
+  - name: prod
+
+templates:
+  mu-vpc-prod:
+    Resources:
+      CustomerGateway:
+        Type: "AWS::EC2::CustomerGateway"
+        Properties:
+          BgpAsn: 65000
+          IpAddress: 1.1.1.1 # Public IP of remote VPN device
+          Type: ipsec.1
+      VirtualPrivateGateway:
+        Type: "AWS::EC2::VPNGateway"
+        Properties: 
+          Type: ipsec.1
+      VPNconnection:
+        Type: "AWS::EC2::VPNConnection"
+        Properties: 
+          Type: ipsec.1
+          CustomerGatewayId:
+            Ref: CustomerGateway
+          StaticRoutesOnly: true
+          VpnGatewayId:
+            Ref: VirtualPrivateGateway
+        DependsOn: VPCGatewayAttachment
+      VPCGatewayAttachment:
+        Type: "AWS::EC2::VPCGatewayAttachment"
+        Properties: 
+          VpcId: 
+            Ref: VPC
+          VpnGatewayId: 
+            Ref: VirtualPrivateGateway
+        DependsOn: VirtualPrivateGateway
+      VPNInstanceInboundNetworkAclEntry1:
+        Type: AWS::EC2::NetworkAclEntry
+        Properties:
+          NetworkAclId: 
+            Ref: InstanceNetworkAcl
+          RuleNumber: '105'
+          Protocol: '6'
+          RuleAction: allow
+          Egress: 'false'
+          CidrBlock: 10.50.0.0/24 # CIDR at remote network
+          PortRange:
+            From: '0'
+            To: '65535'
+      VPNInstanceOutboundUdpNetworkAclEntry1:
+        Type: AWS::EC2::NetworkAclEntry
+        Properties:
+          NetworkAclId: 
+            Ref: InstanceNetworkAcl
+          RuleNumber: '105'
+          Protocol: '17'
+          RuleAction: allow
+          Egress: 'true'
+          CidrBlock: 10.50.0.0/24 # CIDR at remote network
+          PortRange:
+            From: '0'
+            To: '65535'
+      VPNRoutePropagation:
+        Type: "AWS::EC2::VPNGatewayRoutePropagation"
+        DependsOn: VPCGatewayAttachment
+        Properties: 
+          RouteTableIds:
+          - Ref: InstanceRouteTable
+          VpnGatewayId: 
+            Ref: VirtualPrivateGateway
