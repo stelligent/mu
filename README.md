@@ -53,6 +53,10 @@ Refer to the wiki for complete details on the configuration of `mu.yml` and the 
 * **[Service Discovery](https://github.com/stelligent/mu/wiki/Service-Discovery)** - details about configuring and using service discovery
 * **[Traditional Infrastructure](https://github.com/stelligent/mu/wiki/Traditional-Infrastructure)** - details about using traditional infrastructure (EC2 instances) for running services, rather than ECS and Docker.
 
+# Support
+
+Need help?  Check out the [FAQ](https://github.com/stelligent/mu/wiki/FAQ) to try to find an answer to your question.  If you can't find an answer there, ask on [Gitter](https://gitter.im/stelligent/mu)!
+
 # Contributing
 
 Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CONTRIBUTING.md) to get involved.
