@@ -162,8 +162,13 @@ func TestNewTemplate_assets(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-	templates := []string{"bucket.yml", "env-ec2.yml", "env-ecs.yml", "pipeline.yml", "repo.yml", "app.yml", "service-ecs.yml", "database.yml", "elb.yml", "service-ec2.yml", "vpc.yml", "vpc-target.yml"}
+
+	templates, _ := AssetDir("assets")
 	for _, templateName := range templates {
+		if templateName == "buildspec.yml" {
+			continue
+		}
+
 		templateBodyReader, err := NewTemplate(templateName, nil, overrides)
 
 		assert.Nil(err, templateName)
