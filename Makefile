@@ -23,8 +23,8 @@ deps:
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
-	#go get -t -d -v $(SRC_FILES)
 	glide install
+	gem install cfn-nag
 
 gen:
 	go generate $(SRC_FILES)
@@ -36,10 +36,20 @@ lint: fmt
 
 nag:
 	@echo "=== cfn_nag ==="
-	grep -l AWSTemplateFormatVersion: templates/assets/*.yml |xargs -t -n 1 cfn_nag
+	@mkdir -p $(BUILD_DIR)/cfn_nag
+	@grep -l AWSTemplateFormatVersion: templates/assets/*.yml | while read -r line; do \
+		filename=`basename $$line` ;\
+		grep -v '{{' $$line > $(BUILD_DIR)/cfn_nag/$$filename ;\
+		output=`cfn_nag_scan --input-path $(BUILD_DIR)/cfn_nag/$$filename 2>&1` ;\
+		if [ $$? -ne 0 ]; then \
+			echo "$$output\n" ;\
+		fi ;\
+	done | grep ".*" ;\
+    if [ $$? -eq 0 ]; then \
+    	exit 1 ;\
+    fi
 
-
-test: lint gen
+test: lint gen nag
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/unit

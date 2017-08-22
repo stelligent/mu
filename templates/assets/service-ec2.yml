@@ -510,6 +510,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
       Policies:
       - PolicyName: service-access
         PolicyDocument:
@@ -525,19 +527,27 @@ Resources:
             - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
           - Effect: Allow
             Action:
-            - s3:Get*
-            - s3:List*
+            - s3:GetBucketAcl
+            - s3:GetBucketLocation
+            - s3:GetBucketPolicy
+            - s3:GetBucketTagging
+            - s3:GetBucketVersioning
+            - s3:GetObject
+            - s3:GetObjectAcl
+            - s3:GetObjectVersion
+            - s3:ListBucket
+            - s3:ListBucketMultipartUploads
+            - s3:ListBucketVersions
+            - s3:ListMultipartUploadParts
             Resource:
             - !Sub arn:aws:s3:::${RevisionBucket}
             - !Sub arn:aws:s3:::${RevisionBucket}/*
           - Effect: Allow
             Action:
-            - autoscaling:Describe*
-            - ec2:Describe*
-            Resource: '*'
-          - Effect: Allow
-            Action:
-            - cloudformation:Describe*
+            - cloudformation:DescribeStacks
+            - cloudformation:DescribeStackEvents
+            - cloudformation:DescribeStackResource
+            - cloudformation:DescribeStackResources
             - cloudformation:GetTemplate
             Resource:
             - !Sub ${AWS::StackId}
@@ -570,25 +580,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
-      #ManagedPolicyArns:
-      #- arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-      Policies:
-      - PolicyName: codedeploy-access
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - autoscaling:CompleteLifecycleAction
-            - autoscaling:DeleteLifecycleHook
-            - autoscaling:PutLifecycleHook
-            - autoscaling:RecordLifecycleActionHeartbeat
-            Resource: '*'
-            #- !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ServiceAutoScalingGroup}
-          - Effect: Allow
-            Action:
-            - autoscaling:Describe*
-            - ec2:Describe*
-            Resource: '*'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete

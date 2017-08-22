@@ -168,22 +168,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
-      Policies:
-      - PolicyName: ecs-service
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ec2:Describe*
-            - elasticloadbalancing:Describe*
-            Resource: "*"
-          - Effect: Allow
-            Action:
-            - elasticloadbalancing:DeregisterTargets
-            - elasticloadbalancing:DescribeTargetGroups
-            - elasticloadbalancing:DescribeTargetHealth
-            - elasticloadbalancing:RegisterTargets
-            Resource: "*"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
   EcsTaskRole:
     Type: AWS::IAM::Role
     Properties:

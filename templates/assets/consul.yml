@@ -324,7 +324,6 @@ Resources:
           - Effect: Allow
             Action:
             - ecs:DiscoverPollEndpoint
-            - ecr:*
             Resource: "*"
           - Effect: Allow
             Action:
@@ -378,7 +377,11 @@ Resources:
         FromPort: '443'
         ToPort: '443'
         CidrIp: 0.0.0.0/0
-  ConsulApiClientHttpRule:
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '127.0.0.1/32'
+
+  ConsulApiClientHttpRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -386,7 +389,15 @@ Resources:
       ToPort: !Ref ConsulHttpPort
       SourceSecurityGroupId: !GetAtt ConsulApiClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulApiClientDnsRule:
+  ConsulApiClientHttpRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulHttpPort
+      ToPort: !Ref ConsulHttpPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulApiClientSG.GroupId
+  ConsulApiClientDnsRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -394,7 +405,16 @@ Resources:
       ToPort: !Ref ConsulDnsPort
       SourceSecurityGroupId: !GetAtt ConsulApiClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientHttpRule:
+  ConsulApiClientDnsRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulDnsPort
+      ToPort: !Ref ConsulDnsPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulApiClientSG.GroupId
+
+  ConsulRpcClientHttpRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -402,7 +422,16 @@ Resources:
       ToPort: !Ref ConsulHttpPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientDnsRule:
+  ConsulRpcClientHttpRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulHttpPort
+      ToPort: !Ref ConsulHttpPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
+
+  ConsulRpcClientDnsRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -410,7 +439,16 @@ Resources:
       ToPort: !Ref ConsulDnsPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientRpcRule:
+  ConsulRpcClientDnsRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulDnsPort
+      ToPort: !Ref ConsulDnsPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
+
+  ConsulRpcClientRpcRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -418,7 +456,16 @@ Resources:
       ToPort: !Ref ConsulRpcPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientSerfTcpRule:
+  ConsulRpcClientRpcRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulRpcPort
+      ToPort: !Ref ConsulRpcPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
+
+  ConsulRpcClientSerfTcpRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -426,7 +473,16 @@ Resources:
       ToPort: !Ref ConsulSerfWanPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientSerfUdpRule:
+  ConsulRpcClientSerfTcpRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: !Ref ConsulSerfLanPort
+      ToPort: !Ref ConsulSerfWanPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
+
+  ConsulRpcClientSerfUdpRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: udp
@@ -434,7 +490,16 @@ Resources:
       ToPort: !Ref ConsulSerfWanPort
       SourceSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
       GroupId: !GetAtt ConsulServerSG.GroupId
-  ConsulRpcClientSerfUdpReplyRule:
+  ConsulRpcClientSerfUdpRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: udp
+      FromPort: !Ref ConsulSerfLanPort
+      ToPort: !Ref ConsulSerfWanPort
+      DestinationSecurityGroupId: !GetAtt ConsulServerSG.GroupId
+      GroupId: !GetAtt ConsulRpcClientSG.GroupId
+
+  ConsulRpcClientSerfUdpReplyRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: udp
@@ -442,6 +507,15 @@ Resources:
       ToPort: !Ref ConsulSerfWanPort
       SourceSecurityGroupId: !GetAtt ConsulServerSG.GroupId
       GroupId: !GetAtt ConsulRpcClientSG.GroupId
+  ConsulRpcClientSerfUdpReplyRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: udp
+      FromPort: !Ref ConsulSerfLanPort
+      ToPort: !Ref ConsulSerfWanPort
+      DestinationSecurityGroupId: !GetAtt ConsulRpcClientSG.GroupId
+      GroupId: !GetAtt ConsulServerSG.GroupId
+
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -510,22 +584,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
-      Policies:
-      - PolicyName: ecs-service
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ec2:Describe*
-            - elasticloadbalancing:Describe*
-            Resource: "*"
-          - Effect: Allow
-            Action:
-            - elasticloadbalancing:DeregisterTargets
-            - elasticloadbalancing:DescribeTargetGroups
-            - elasticloadbalancing:DescribeTargetHealth
-            - elasticloadbalancing:RegisterTargets
-            Resource: "*"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
   ConsulTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -538,14 +598,12 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
       Policies:
       - PolicyName: ecs-task
         PolicyDocument:
           Statement:
-          - Effect: Allow
-            Action:
-            - ec2:Describe*
-            Resource: "*"
           - Effect: Allow
             Action:
             - ecs:DescribeTasks

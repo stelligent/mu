@@ -162,7 +162,6 @@ func TestNewTemplate_assets(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-
 	templates, _ := AssetDir("assets")
 	for _, templateName := range templates {
 		if templateName == "buildspec.yml" {

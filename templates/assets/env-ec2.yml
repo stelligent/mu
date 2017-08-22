@@ -70,13 +70,26 @@ Resources:
         FromPort: '22'
         ToPort: '22'
         CidrIp: !Ref SshAllow
-  Host2HostRule:
+      SecurityGroupEgress:
+      - IpProtocol: '-1'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIp: '0.0.0.0/0'
+  Host2HostRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
       FromPort: '0'
       ToPort: '65535'
       SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  Host2HostRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      DestinationSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
       GroupId: !GetAtt InstanceSecurityGroup.GroupId
 Outputs:
   VpcId:

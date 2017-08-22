@@ -142,9 +142,30 @@ Resources:
       - PolicyName: codebuild-service
         PolicyDocument:
           Statement:
-          - Effect: Allow
-            Action: "*"
-            Resource: "*"
+          - Action:
+            - codepipeline:GetPipelineState
+            - codepipeline:GetJobDetails
+            - codepipeline:PollForJobs
+            - codepipeline:AcknowledgeJob
+            - codepipeline:PutJobFailureResult
+            - codepipeline:PutJobSuccessResult
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:GetRepositoryPolicy
+            - ecr:DescribeRepositories
+            - ecr:ListImages
+            - ecr:DescribeImages
+            - ecr:BatchGetImage
+            - ecr:InitiateLayerUpload
+            - ecr:UploadLayerPart
+            - ecr:CompleteLayerUpload
+            - ecr:PutImage
+            Effect: Allow
+            Resource: '*'
           Version: '2012-10-17'
   CodePipelineRole:
     Type: AWS::IAM::Role
@@ -163,34 +184,67 @@ Resources:
         PolicyDocument:
           Statement:
           - Action:
-            - codebuild:*
-            Resource: "*"
+            - codebuild:StartBuild
+            - codebuild:StopBuild
+            - codebuild:BatchGetProjects
+            - codebuild:BatchGetBuilds
             Effect: Allow
-          - Action:
-            - codecommit:GetBranch
-            - codecommit:GetCommit
-            - codecommit:UploadArchive
-            - codecommit:GetUploadArchiveStatus
-            - codecommit:CancelUploadArchive
-            Resource: "*"
-            Effect: Allow
+            Resource:
+            - !If
+              - IsBuildEnabled
+              - !GetAtt CodeBuildArtifact.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsBuildEnabled
+              - !GetAtt CodeBuildImage.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsAcptEnabled
+              - !GetAtt DeployAcceptance.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsAcptEnabled
+              - !GetAtt TestAcceptance.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsProdEnabled
+              - !GetAtt DeployProduction.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsProdEnabled
+              - !GetAtt TestProduction.Arn
+              - !Ref AWS::NoValue
+          - !If
+            - IsCodeCommit
+            - Action:
+              - codecommit:GetBranch
+              - codecommit:GetCommit
+              - codecommit:UploadArchive
+              - codecommit:GetUploadArchiveStatus
+              - codecommit:CancelUploadArchive
+              Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
+              Effect: Allow
+            - !Ref AWS::NoValue
           - Action:
             - s3:GetObject
             - s3:GetObjectVersion
-            - s3:GetBucketVersioning
-            Resource: "*"
-            Effect: Allow
-          - Action:
             - s3:PutObject
             Resource:
-            - arn:aws:s3:::codepipeline*
+            - !Sub
+              - arn:aws:s3:::${BucketName}/*
+              - BucketName: !ImportValue mu-bucket-codepipeline
             Effect: Allow
           - Action:
-            - s3:*
-            - cloudformation:*
-            - ecs:*
+            - s3:GetBucketVersioning
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}
+              - BucketName: !ImportValue mu-bucket-codepipeline
+            Effect: Allow
+          - Action:
             - iam:PassRole
-            Resource: "*"
+            Resource:
+            - !GetAtt CodeBuildRole.Arn
             Effect: Allow
           Version: '2012-10-17'
   CodeBuildArtifact:
@@ -349,6 +403,7 @@ Resources:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       RoleArn: !GetAtt CodePipelineRole.Arn
+      Name: !Ref AWS::StackName
       Stages:
       - Name: Source
         Actions:

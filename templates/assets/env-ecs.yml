@@ -115,13 +115,26 @@ Resources:
         FromPort: '22'
         ToPort: '22'
         CidrIp: !Ref SshAllow
-  Host2HostRule:
+      SecurityGroupEgress:
+      - IpProtocol: '-1'
+        FromPort: '-1'
+        ToPort: '-1'
+        CidrIp: '0.0.0.0/0'
+  Host2HostRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
       FromPort: '0'
       ToPort: '65535'
       SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  Host2HostRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      DestinationSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
       GroupId: !GetAtt InstanceSecurityGroup.GroupId
   EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -389,6 +402,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
       - PolicyName: ecs-service
         PolicyDocument:
@@ -418,7 +433,6 @@ Resources:
           - Effect: Allow
             Action:
             - ecs:DiscoverPollEndpoint
-            - ecr:*
             Resource: "*"
           - Effect: Allow
             Action:
@@ -447,14 +461,12 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
       Policies:
       - PolicyName: ecs-task
         PolicyDocument:
           Statement:
-          - Effect: Allow
-            Action:
-            - ec2:Describe*
-            Resource: "*"
           - Effect: Allow
             Action:
             - ecs:DescribeTasks

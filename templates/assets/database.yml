@@ -80,6 +80,9 @@ Resources:
           ToPort: '1521'
           SourceSecurityGroupId:
             Fn::ImportValue: !Sub ${InstanceSecurityGroup}
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '127.0.0.1/32'
   DBCluster:
     Type: AWS::RDS::DBCluster
     Condition: IsClustered
