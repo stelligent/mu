@@ -6,16 +6,8 @@ import (
 )
 
 // DatabaseSetPassword sets a database password for an environment
-func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceNameIn string, newPassword string) Executor {
+func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceName string, newPassword string) Executor {
 	return func() error {
-		workflow := new(databaseWorkflow)
-		workflow.codeRevision = ctx.Config.Repo.Revision
-		workflow.repoName = ctx.Config.Repo.Slug
-		serviceName := serviceNameIn
-		if serviceName == "" {
-			serviceName = workflow.serviceName
-		}
-
 		dbStackName := common.CreateStackName(common.StackTypeDatabase, serviceName, environmentName)
 		log.Noticef("Storing password for dbStackName:%s", dbStackName)
 		if err := ctx.ParamManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), newPassword); err != nil {
@@ -26,16 +18,8 @@ func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceNam
 }
 
 // DatabaseGetPassword gets a database password for an environment
-func DatabaseGetPassword(ctx *common.Context, environmentName string, serviceNameIn string) Executor {
+func DatabaseGetPassword(ctx *common.Context, environmentName string, serviceName string) Executor {
 	return func() error {
-		workflow := new(databaseWorkflow)
-		workflow.codeRevision = ctx.Config.Repo.Revision
-		workflow.repoName = ctx.Config.Repo.Slug
-		serviceName := serviceNameIn
-		if serviceName == "" {
-			serviceName = workflow.serviceName
-		}
-
 		dbStackName := common.CreateStackName(common.StackTypeDatabase, serviceName, environmentName)
 		dbPass, _ := ctx.ParamManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		log.Noticef("%s", dbPass)
