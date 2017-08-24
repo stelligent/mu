@@ -31,12 +31,10 @@ func DatabaseGetPassword(ctx *common.Context, environmentName string, serviceNam
 		workflow := new(databaseWorkflow)
 		workflow.codeRevision = ctx.Config.Repo.Revision
 		workflow.repoName = ctx.Config.Repo.Slug
-		fmt.Printf("ServiceName is %s\n", serviceNameIn)
 		serviceName := serviceNameIn
 		if serviceName == "" {
 			serviceName = workflow.serviceName
 		}
-		fmt.Printf("ServiceName is %s\n", serviceName)
 
 		dbStackName := common.CreateStackName(common.StackTypeDatabase, serviceName, environmentName)
 		dbPass, _ := ctx.ParamManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
