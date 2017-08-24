@@ -3,28 +3,27 @@
 package e2e
 
 import (
-	"github.com/stretchr/testify/assert"
-	"testing"
-	"io/ioutil"
+	"bytes"
+	hm "crypto/hmac"
+	"crypto/sha256"
 	"fmt"
-	"os"
-	"github.com/stelligent/mu/common"
-	"github.com/termie/go-shutil"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
+	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/provider/aws"
+	"github.com/stretchr/testify/assert"
+	"github.com/termie/go-shutil"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"path/filepath"
-	"time"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"bytes"
+	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
-	"crypto/sha256"
-	hm "crypto/hmac"
-
+	"testing"
+	"time"
 )
 
 var contexts []*common.Context
@@ -52,7 +51,7 @@ func TestMain(m *testing.M) {
 		retCode = m.Run()
 	}
 
-	//teardownContexts(sess)
+	teardownContexts(sess)
 	os.RemoveAll(dir)
 	os.Exit(retCode)
 }
@@ -63,16 +62,15 @@ func TestPipelineE2E(t *testing.T) {
 	}
 	assert := assert.New(t)
 
+	for _, ctx := range contexts {
+		fmt.Printf("scenario: %s\n", ctx.Config.Repo.Name)
 
+		// - pipeline up
+		// - wait...
+		// - pipeline term
+		// - env term
+	}
 	assert.Fail("force fail")
-}
-
-func runScenario(name string) {
-	fmt.Printf("scenario: %s", name)
-	// - pipeline up
-	// - wait...
-	// - pipeline term
-	// - env term
 }
 
 func setupContexts(sess *session.Session, basedir string) error {
@@ -84,7 +82,7 @@ func setupContexts(sess *session.Session, basedir string) error {
 	for _, f := range files {
 		if f.IsDir() {
 			// create temp dir for repo
-			dst := fmt.Sprintf("%s/%s",basedir,f.Name())
+			dst := fmt.Sprintf("%s/%s", basedir, f.Name())
 			err = shutil.CopyTree(f.Name(), dst, nil)
 			if err != nil {
 				fmt.Printf("Failure copying repo '%s'\n", f.Name())
@@ -102,7 +100,6 @@ func setupContexts(sess *session.Session, basedir string) error {
 			if err != nil {
 				return err
 			}
-
 
 			contexts = append(contexts, ctx)
 		}
@@ -172,10 +169,10 @@ func setupRepo(sess *session.Session, name string, dir string) error {
 		return err
 	}
 	_, err = wt.Commit("initial commit", &git.CommitOptions{
-		Author:  &object.Signature{
-			Name: "mu-e2e",
+		Author: &object.Signature{
+			Name:  "mu-e2e",
 			Email: "mu@stelligent.com",
-			When: time.Now(),
+			When:  time.Now(),
 		},
 	})
 	if err != nil {
@@ -186,20 +183,19 @@ func setupRepo(sess *session.Session, name string, dir string) error {
 	// git push
 	remote, err := repo.CreateRemote(&config.RemoteConfig{
 		Name: "origin",
-		URL: common.StringValue(resp.RepositoryMetadata.CloneUrlHttp),
+		URL:  common.StringValue(resp.RepositoryMetadata.CloneUrlHttp),
 	})
 	if err != nil {
 		fmt.Printf("Failure create remote '%s'\n", name)
 		return err
 	}
 
-
 	username, password := credentialHelper(sess, common.StringValue(resp.RepositoryMetadata.CloneUrlHttp))
 
 	auth := http.NewBasicAuth(username, password)
 	err = remote.Push(&git.PushOptions{
 		RemoteName: "origin",
-		Auth:  auth,
+		Auth:       auth,
 	})
 	if err != nil {
 		fmt.Printf("Failure pushing '%s'\n", name)
@@ -226,7 +222,7 @@ func gitAddAll(gitdir string, subdir string, wt *git.Worktree) error {
 				return err
 			}
 		} else {
-			_, err =  wt.Add(prefixedName)
+			_, err = wt.Add(prefixedName)
 			if err != nil {
 				return err
 			}
@@ -250,8 +246,9 @@ func teardownRepo(sess *session.Session, ctx *common.Context) error {
 }
 
 var regexpCC = regexp.MustCompile(`git-codecommit\.([^.]+)\.amazonaws\.com.*`)
-func credentialHelper(sess *session.Session, giturl string) (string,string) {
-	u, _ :=  url.Parse(giturl)
+
+func credentialHelper(sess *session.Session, giturl string) (string, string) {
+	u, _ := url.Parse(giturl)
 
 	t := time.Now().UTC()
 	//t, _ := time.Parse("20060102T150405", "20170824T072504") // reference time the comments were generated with
