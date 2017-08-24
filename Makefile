@@ -53,11 +53,19 @@ test: lint gen nag
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
-	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+	go test -v -cover $(SRC_FILES) -short | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
 else
-	go test -cover $(SRC_FILES)
+	go test -cover $(SRC_FILES) -short
 endif
 
+e2e: gen
+	@echo "=== e2e testing ==="
+ifneq ($(CIRCLE_TEST_REPORTS),)
+	mkdir -p $(CIRCLE_TEST_REPORTS)/e2e
+	go test -v ./e2e | go-junit-report > $(CIRCLE_TEST_REPORTS)/e2e/report.xml
+else
+	go test ./e2e
+endif
 
 build: gen $(BUILD_FILES)
 
@@ -112,4 +120,4 @@ fmt:
 	go fmt $(SRC_FILES)
 
 
-.PHONY: default all lint test build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(TARGET_OS)

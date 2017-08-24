@@ -1,0 +1,17 @@
+---
+
+environments:
+  - name: e2e-basic-dev
+    cluster:
+      maxSize: 2
+
+service:
+  healthEndpoint: /
+  port: 80
+  pathPatterns:
+    - /*
+  pipeline:
+    acceptnace:
+      environment: e2e-basic-dev
+    production:
+      disabled: true

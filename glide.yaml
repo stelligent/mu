@@ -43,3 +43,6 @@ testImport:
   subpackages:
   - assert
   - mock
+- package: github.com/termie/go-shutil
+- package: gopkg.in/src-d/go-git.v4
+  version: ~4.0.0-rc9
