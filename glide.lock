@@ -1,5 +1,5 @@
-hash: f5894916511507219fc1be90b5218eccf9e2f025e53b944795b58db2092a7ef2
-updated: 2017-08-23T22:53:34.989503869-07:00
+hash: ffa031ddeab231eb51f816e197677a6c55eadea429e4bebf52984c0a7c7d03e7
+updated: 2017-08-24T09:14:31.84567977-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 96358b8282b1a3aa66836d2f2fe66216cc419668
@@ -145,7 +145,7 @@ imports:
   - context/ctxhttp
   - proxy
 - name: golang.org/x/sys
-  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  version: 07c182904dbd53199946ba614a412c61d3c548f5
   subpackages:
   - unix
   - windows
