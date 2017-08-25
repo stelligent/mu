@@ -18,7 +18,7 @@ func TestNewDatabasesCommand(t *testing.T) {
 	assert.Equal(1, len(command.Aliases), "Aliases len should match")
 	assert.Equal("db", command.Aliases[0], "Aliases should match")
 	assert.Equal("options for managing databases", command.Usage, "Usage should match")
-	assert.Equal(3, len(command.Subcommands), "Subcommands len should match")
+	assert.Equal(5, len(command.Subcommands), "Subcommands len should match")
 }
 
 func TestNewDatabasesUpsertCommand(t *testing.T) {
@@ -56,5 +56,33 @@ func TestNewDatabaseListCommand(t *testing.T) {
 
 	assert.NotNil(command)
 	assert.Equal("list", command.Name, "Name should match")
+	assert.NotNil(command.Action)
+}
+
+func TestNewDatabaseGetPasswordCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newDatabaseGetPasswordCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("get-password", command.Name, "Name should match")
+	assert.Equal("gp", command.Aliases[0], "Aliases should match")
+	assert.Equal("<environment> [<service>]", command.ArgsUsage, "ArgsUsage should match")
+	assert.NotNil(command.Action)
+}
+
+func TestNewDatabaseSetPasswordCommand(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newDatabaseSetPasswordCommand(ctx)
+
+	assert.NotNil(command)
+	assert.Equal("set-password", command.Name, "Name should match")
+	assert.Equal("sp", command.Aliases[0], "Aliases should match")
+	assert.Equal("<environment> [<service>]", command.ArgsUsage, "ArgsUsage should match")
 	assert.NotNil(command.Action)
 }
