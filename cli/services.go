@@ -21,6 +21,7 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 			*newServicesUndeployCommand(ctx),
 			*newServicesLogsCommand(ctx),
 			*newServicesExecuteCommand(ctx),
+			// TODO add newServiceRollingRestartCommand
 		},
 	}
 
@@ -196,6 +197,33 @@ func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 			}
 
 			workflow := workflows.NewServiceExecutor(ctx, *task)
+			return workflow()
+		},
+	}
+	return cmd
+}
+
+func newServiceRestartCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name: RestartCmd,
+		Usage: RestartUsage,
+		ArgsUsage: RestartArgs,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name: ServiceFlag,
+				Usage: SvcRestartServiceFlagUsage,
+			},
+			cli.StringFlag{
+				Name: BatchFlag,
+				Usage: SvcRestartBatchFlagUsage,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			task, err := newTask(c)
+			if err != nil {
+				return err
+			}
+			workflow := workflows.NewServiceRestarter()
 			return workflow()
 		},
 	}
