@@ -12,7 +12,7 @@ var log = logging.MustGetLogger("cli")
 const (
 	EnvSubCmdCount             = 5
 	SingleAliasIndex           = 0
-	SvcSubCmdCount             = 6
+	SvcSubCmdCount             = 7
 	SvcShowFormatFlagIndex     = 0
 	SvcLogFlagCount            = 3
 	EnvLogFollowFlagIndex      = 0
