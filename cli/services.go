@@ -2,11 +2,12 @@ package cli
 
 import (
 	"errors"
+	"os"
+	"strings"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
-	"os"
-	"strings"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -21,7 +22,7 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 			*newServicesUndeployCommand(ctx),
 			*newServicesLogsCommand(ctx),
 			*newServicesExecuteCommand(ctx),
-			// TODO add newServiceRollingRestartCommand
+			*newServicesRestartCommand(ctx),
 		},
 	}
 
@@ -114,6 +115,38 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 	return cmd
 }
 
+func newServicesRestartCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      RestartCmd,
+		Usage:     RestartUsage,
+		ArgsUsage: EnvArgUsage,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  ServiceFlag,
+				Usage: SvcRestartServiceFlagUsage,
+			},
+			cli.StringFlag{
+				Name:  BatchFlag,
+				Usage: SvcRestartBatchFlagUsage,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().First()
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, DeployCmd)
+				return errors.New(NoEnvValidation)
+			}
+
+			serviceName := c.String(SvcCmd)
+			batchSize := c.Int(BatchSize)
+
+			workflow := workflows.NewServiceRestarter(ctx, environmentName, serviceName, batchSize)
+			return workflow()
+		},
+	}
+	return cmd
+}
+
 func newServicesLogsCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
 		Name:  LogsCmd,
@@ -197,33 +230,6 @@ func newServicesExecuteCommand(ctx *common.Context) *cli.Command {
 			}
 
 			workflow := workflows.NewServiceExecutor(ctx, *task)
-			return workflow()
-		},
-	}
-	return cmd
-}
-
-func newServiceRestartCommand(ctx *common.Context) *cli.Command {
-	cmd := &cli.Command{
-		Name: RestartCmd,
-		Usage: RestartUsage,
-		ArgsUsage: RestartArgs,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name: ServiceFlag,
-				Usage: SvcRestartServiceFlagUsage,
-			},
-			cli.StringFlag{
-				Name: BatchFlag,
-				Usage: SvcRestartBatchFlagUsage,
-			},
-		},
-		Action: func(c *cli.Context) error {
-			task, err := newTask(c)
-			if err != nil {
-				return err
-			}
-			workflow := workflows.NewServiceRestarter()
 			return workflow()
 		},
 	}
