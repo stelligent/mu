@@ -3,11 +3,12 @@ package cli
 import (
 	"errors"
 	"flag"
+	"io/ioutil"
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"testing"
 )
 
 func TestNewServicesCommand(t *testing.T) {
@@ -78,6 +79,19 @@ func TestNewUndeployCommand(t *testing.T) {
 	assertion.Equal(UndeployCmd, command.Name, NameMessage)
 	assertion.Equal(SvcUndeployArgsUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.Equal(Zero, len(command.Flags), FlagLenMessage)
+	assertion.NotNil(command.Action)
+}
+
+func TestNewServiceRestartCommand(t *testing.T) {
+	assertion := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newServicesRestartCommand(ctx)
+
+	assertion.Equal(RestartCmd, command.Name, NameMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(2, len(command.Flags), FlagLenMessage)
 	assertion.NotNil(command.Action)
 }
 

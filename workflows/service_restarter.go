@@ -11,10 +11,10 @@ func NewServiceRestarter(ctx *common.Context, environmentName string, serviceNam
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceRestarter(),
+		workflow.serviceRestarter(environmentName),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceRestarter() Executor {
+func (workflow *serviceWorkflow) serviceRestarter(environmentName string) Executor {
 	return nil
 }
