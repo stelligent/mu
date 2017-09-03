@@ -1,11 +1,12 @@
 package workflows
 
 import (
+	"io"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
-	"io"
-	"strings"
 )
 
 var log = logging.MustGetLogger("workflows")
@@ -38,6 +39,7 @@ var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatu
 const (
 	Zero                   = 0
 	FirstValueIndex        = 0
+	PollDelay              = 5
 	LineChar               = "-"
 	NewLine                = "\n"
 	NA                     = "N/A"

@@ -143,8 +143,15 @@ func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string)
 	return tasks, nil
 }
 
-func (taskMgr *ecsTaskManager) StopTask(environmentName string, serviceName string, taskName string) error {
-	return nil
+func (taskMgr *ecsTaskManager) StopTask(environment string, task string) error {
+	cluster := common.CreateStackName(common.StackTypeEnv, environment)
+	stopTaskInput := &ecs.StopTaskInput{
+		Cluster: &cluster,
+		Task:    &task,
+	}
+	_, err := taskMgr.ecsAPI.StopTask(stopTaskInput)
+
+	return err
 }
 
 func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, environment string, serviceName string) (*common.Task, error) {

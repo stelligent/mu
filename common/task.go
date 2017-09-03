@@ -9,6 +9,11 @@ type TaskContainerLister interface {
 	ListTasks(environment string, serviceName string) ([]Task, error)
 }
 
+// TaskRestarter for restarting tasks
+type TaskRestarter interface {
+	StopTask(environment string, task string) error
+}
+
 // ECSRunTaskResult describes the output result from ECS call to RunTask
 type ECSRunTaskResult *ecs.RunTaskOutput
 
@@ -20,5 +25,6 @@ type TaskCommandExecutor interface {
 // TaskManager composite of all task capabilities
 type TaskManager interface {
 	TaskContainerLister
+	TaskRestarter
 	TaskCommandExecutor
 }
