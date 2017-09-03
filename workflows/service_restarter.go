@@ -26,22 +26,23 @@ func (workflow *serviceWorkflow) serviceRestarter(taskManager common.TaskManager
 			return err
 		}
 
-		idx := 0
-
-		for idx < len(tasks) {
-			stopErr := taskManager.StopTask(environmentName, tasks[idx].Name)
+		for taskIdx, task := range tasks {
+			log.Noticef("Stopping task %s in environment %s", task.Name, environmentName)
+			stopErr := taskManager.StopTask(environmentName, task.Name)
 			if stopErr != nil {
 				fmt.Println(stopErr)
 			}
 
 			// Polling for same length task lists
-			newTaskList, _ := taskManager.ListTasks(environmentName, serviceName)
-			for len(newTaskList) != len(tasks) {
-				duration := time.Duration(PollDelay) * time.Second
-				time.Sleep(duration)
-				newTaskList, _ = taskManager.ListTasks(environmentName, serviceName)
+			if (taskIdx+1)%batchSize == 0 {
+
+				newTaskList, _ := taskManager.ListTasks(environmentName, serviceName)
+				for len(newTaskList) != len(tasks) {
+					duration := time.Duration(PollDelay) * time.Second
+					time.Sleep(duration)
+					newTaskList, _ = taskManager.ListTasks(environmentName, serviceName)
+				}
 			}
-			idx++
 		}
 
 		return nil
