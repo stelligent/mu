@@ -1,13 +1,14 @@
 package aws
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
-	"strings"
 )
 
 type ecsTaskManager struct {
@@ -140,6 +141,10 @@ func (taskMgr *ecsTaskManager) ListTasks(environment string, serviceName string)
 		}
 	}
 	return tasks, nil
+}
+
+func (taskMgr *ecsTaskManager) StopTask(environmentName string, serviceName string, taskName string) error {
+	return nil
 }
 
 func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, environment string, serviceName string) (*common.Task, error) {

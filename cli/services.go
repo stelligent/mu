@@ -133,7 +133,7 @@ func newServicesRestartCommand(ctx *common.Context) *cli.Command {
 		Action: func(c *cli.Context) error {
 			environmentName := c.Args().First()
 			if len(environmentName) == Zero {
-				cli.ShowCommandHelp(c, DeployCmd)
+				cli.ShowCommandHelp(c, RestartCmd)
 				return errors.New(NoEnvValidation)
 			}
 
