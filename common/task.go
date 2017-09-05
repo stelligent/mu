@@ -9,8 +9,8 @@ type TaskContainerLister interface {
 	ListTasks(environment string, serviceName string) ([]Task, error)
 }
 
-// TaskRestarter for restarting tasks
-type TaskRestarter interface {
+// TaskStopper for restarting tasks
+type TaskStopper interface {
 	StopTask(environment string, task string) error
 }
 
@@ -25,6 +25,6 @@ type TaskCommandExecutor interface {
 // TaskManager composite of all task capabilities
 type TaskManager interface {
 	TaskContainerLister
-	TaskRestarter
+	TaskStopper
 	TaskCommandExecutor
 }
