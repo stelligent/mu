@@ -3,12 +3,11 @@ package cli
 import (
 	"errors"
 	"flag"
-	"io/ioutil"
-	"testing"
-
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"testing"
 )
 
 func TestNewServicesCommand(t *testing.T) {

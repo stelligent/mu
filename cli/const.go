@@ -1,9 +1,8 @@
 package cli
 
 import (
-	"time"
-
 	"github.com/op/go-logging"
+	"time"
 )
 
 var log = logging.MustGetLogger("cli")

@@ -2,12 +2,11 @@ package cli
 
 import (
 	"errors"
-	"os"
-	"strings"
-
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
+	"os"
+	"strings"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
