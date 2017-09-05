@@ -32,7 +32,7 @@ func (workflow *serviceWorkflow) serviceUndeployer(environmentName string, stack
 				return fmt.Errorf("Ended in failed status %s %s", svcStack.Status, svcStack.StatusReason)
 			}
 		} else {
-			log.Info("  Stack is alredy deleted.")
+			log.Info("  Stack is already deleted.")
 		}
 
 		return nil
