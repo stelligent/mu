@@ -81,6 +81,19 @@ func TestNewUndeployCommand(t *testing.T) {
 	assertion.NotNil(command.Action)
 }
 
+func TestNewServiceRestartCommand(t *testing.T) {
+	assertion := assert.New(t)
+
+	ctx := common.NewContext()
+
+	command := newServicesRestartCommand(ctx)
+
+	assertion.Equal(RestartCmd, command.Name, NameMessage)
+	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(2, len(command.Flags), FlagLenMessage)
+	assertion.NotNil(command.Action)
+}
+
 func TestNewServicesLogsCommand(t *testing.T) {
 	assertion := assert.New(t)
 

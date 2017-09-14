@@ -2,10 +2,14 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 	"os"
+	"strings"
+	"syscall"
 )
 
 func newDatabasesCommand(ctx *common.Context) *cli.Command {
@@ -17,6 +21,8 @@ func newDatabasesCommand(ctx *common.Context) *cli.Command {
 			*newDatabaseListCommand(ctx),
 			*newDatabaseUpsertCommand(ctx),
 			*newDatabaseTerminateCommand(ctx),
+			*newDatabaseGetPasswordCommand(ctx),
+			*newDatabaseSetPasswordCommand(ctx),
 		},
 	}
 
@@ -71,6 +77,55 @@ func newDatabaseUpsertCommand(ctx *common.Context) *cli.Command {
 				return errors.New("environment must be provided")
 			}
 			workflow := workflows.NewDatabaseUpserter(ctx, environmentName)
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+
+func newDatabaseGetPasswordCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      "get-password",
+		Aliases:   []string{"gp"},
+		Usage:     "get-password",
+		ArgsUsage: "<environment> [<service>]",
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().Get(0)
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "database")
+				return errors.New("environment must be provided")
+			}
+			serviceName := c.Args().Get(1)
+			workflow := workflows.DatabaseGetPassword(ctx, environmentName, serviceName)
+			return workflow()
+		},
+	}
+
+	return cmd
+}
+
+func newDatabaseSetPasswordCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      "set-password",
+		Aliases:   []string{"sp"},
+		Usage:     "set-password",
+		ArgsUsage: "<environment> [<service>]",
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().Get(0)
+			if len(environmentName) == 0 {
+				cli.ShowCommandHelp(c, "database")
+				return errors.New("environment must be provided")
+			}
+			var newPassword string
+			fmt.Print("  Database password: ")
+			byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err == nil {
+				newPassword = strings.TrimSpace(string(byteToken))
+				fmt.Println("")
+			}
+			serviceName := c.Args().Get(1)
+			workflow := workflows.DatabaseSetPassword(ctx, environmentName, serviceName, newPassword)
 			return workflow()
 		},
 	}

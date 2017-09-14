@@ -21,6 +21,7 @@ func newServicesCommand(ctx *common.Context) *cli.Command {
 			*newServicesUndeployCommand(ctx),
 			*newServicesLogsCommand(ctx),
 			*newServicesExecuteCommand(ctx),
+			*newServicesRestartCommand(ctx),
 		},
 	}
 
@@ -110,6 +111,38 @@ func newServicesUndeployCommand(ctx *common.Context) *cli.Command {
 		},
 	}
 
+	return cmd
+}
+
+func newServicesRestartCommand(ctx *common.Context) *cli.Command {
+	cmd := &cli.Command{
+		Name:      RestartCmd,
+		Usage:     RestartUsage,
+		ArgsUsage: EnvArgUsage,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  ServiceFlag,
+				Usage: SvcRestartServiceFlagUsage,
+			},
+			cli.StringFlag{
+				Name:  BatchFlag,
+				Usage: SvcRestartBatchFlagUsage,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			environmentName := c.Args().First()
+			if len(environmentName) == Zero {
+				cli.ShowCommandHelp(c, RestartCmd)
+				return errors.New(NoEnvValidation)
+			}
+
+			serviceName := c.String(SvcCmd)
+			batchSize := c.Int(BatchSize)
+
+			workflow := workflows.NewServiceRestarter(ctx, environmentName, serviceName, batchSize)
+			return workflow()
+		},
+	}
 	return cmd
 }
 
