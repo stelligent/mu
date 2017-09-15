@@ -64,7 +64,7 @@ ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/e2e
 	go test -v ./e2e | go-junit-report > $(CIRCLE_TEST_REPORTS)/e2e/report.xml
 else
-	go test ./e2e
+	go test -v ./e2e
 endif
 
 build: gen $(BUILD_FILES)

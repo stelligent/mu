@@ -166,7 +166,46 @@ Resources:
             - ecr:PutImage
             Effect: Allow
             Resource: '*'
+          - Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:PutObject
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}/*
+              - BucketName: !ImportValue mu-bucket-codepipeline
+            Effect: Allow
+          - Action:
+            - s3:GetBucketVersioning
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}
+              - BucketName: !ImportValue mu-bucket-codepipeline
+            Effect: Allow
           Version: '2012-10-17'
+      - PolicyName: mu-deployments
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStacks
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/mu-*
+            Effect: Allow
+          - Action:
+            - ecr:CreateRepository
+            - ecr:SetRepositoryPolicy
+            Effect: Allow
+            Resource: '*'
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:

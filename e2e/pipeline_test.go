@@ -3,25 +3,30 @@
 package e2e
 
 import (
+	"bufio"
 	"bytes"
 	hm "crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
+	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/provider/aws"
-	"github.com/stretchr/testify/assert"
+	mu_aws "github.com/stelligent/mu/provider/aws"
+	"github.com/stelligent/mu/workflows"
 	"github.com/termie/go-shutil"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 )
@@ -60,17 +65,110 @@ func TestPipelineE2E(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping e2e test")
 	}
-	assert := assert.New(t)
-
+	var wg sync.WaitGroup
 	for _, ctx := range contexts {
 		fmt.Printf("scenario: %s\n", ctx.Config.Repo.Name)
 
-		// - pipeline up
-		// - wait...
-		// - pipeline term
-		// - env term
+		wg.Add(1)
+		go func(c *common.Context) {
+			err := validatePipeline(c)
+			if err != nil {
+				t.Errorf("Error on pipeline '%s': %v", c.Config.Repo.Name, err)
+			}
+			wg.Done()
+		}(ctx)
 	}
-	assert.Fail("force fail")
+
+	wg.Wait()
+}
+
+func validatePipeline(ctx *common.Context) error {
+	// - pipeline up
+	err := workflows.NewPipelineUpserter(ctx, nil)()
+	if err != nil {
+		return err
+	}
+
+	// - wait for pipe success...
+	err = waitForPipeline(ctx)
+	if err != nil {
+		return err
+	}
+
+	// - pipeline term
+	err = workflows.NewPipelineTerminator(ctx, "")()
+	if err != nil {
+		fmt.Printf("Error on cleanup pipeline '%s': %v", ctx.Config.Repo.Name, err)
+	}
+
+	// - env term
+	for _, env := range ctx.Config.Environments {
+		err = workflows.NewEnvironmentTerminator(ctx, env.Name)()
+		if err != nil {
+			fmt.Printf("Error on cleanup env '%s': %v", env.Name, err)
+		}
+	}
+
+	return nil
+}
+
+func waitForPipeline(ctx *common.Context) error {
+	isRunning := true
+	for isRunning {
+		time.Sleep(30 * time.Second)
+
+		pipelineName := fmt.Sprintf("mu-pipeline-%s", ctx.Config.Repo.Name)
+		states, err := ctx.PipelineManager.ListState(pipelineName)
+		if err != nil {
+			return err
+		}
+
+		status := codepipeline.ActionExecutionStatusInProgress
+		latestExecutionID := ""
+		latestActionTime := int64(0)
+		for _, state := range states {
+			if state.LatestExecution == nil {
+				break
+			} else if latestExecutionID == "" {
+				latestExecutionID = common.StringValue(state.LatestExecution.PipelineExecutionId)
+			} else if latestExecutionID != common.StringValue(state.LatestExecution.PipelineExecutionId) {
+				break
+			}
+
+			for _, action := range state.ActionStates {
+				if action.LatestExecution == nil {
+					status = codepipeline.ActionExecutionStatusInProgress
+					break
+				} else {
+
+					if latestActionTime <= aws.TimeValue(action.LatestExecution.LastStatusChange).Unix() {
+						latestActionTime = aws.TimeValue(action.LatestExecution.LastStatusChange).Unix()
+						status = common.StringValue(action.LatestExecution.Status)
+					} else {
+						status = codepipeline.ActionExecutionStatusInProgress
+						break
+					}
+
+					if status == codepipeline.ActionExecutionStatusFailed {
+						message := ""
+						if action.LatestExecution.ErrorDetails != nil {
+							message = common.StringValue(action.LatestExecution.ErrorDetails.Message)
+						}
+
+						return fmt.Errorf("failed on stage:%s action:%s - %s",
+							common.StringValue(state.StageName),
+							common.StringValue(action.ActionName), message)
+					} else if status == codepipeline.ActionExecutionStatusInProgress {
+						break
+					}
+				}
+			}
+		}
+
+		isRunning = status == codepipeline.ActionExecutionStatusInProgress
+	}
+
+	return nil
 }
 
 func setupContexts(sess *session.Session, basedir string) error {
@@ -89,6 +187,14 @@ func setupContexts(sess *session.Session, basedir string) error {
 				return err
 			}
 
+			// TODO: need to package and stage the mu source to a public URL
+			// set the mu version and download URL
+			muPath := fmt.Sprintf("%s/mu.yml", dst)
+			err = updateMuYaml(muPath, "https://github.com/stelligent/mu/releases/download", "0.2.6-develop")
+			if err != nil {
+				return err
+			}
+
 			// create a codecommit repo
 			err = setupRepo(sess, f.Name(), dst)
 			if err != nil {
@@ -96,13 +202,40 @@ func setupContexts(sess *session.Session, basedir string) error {
 			}
 
 			// load mu.yml
-			ctx, err := initContext(fmt.Sprintf("%s/mu.yml", dst))
+			ctx, err := initContext(muPath)
 			if err != nil {
 				return err
 			}
 
 			contexts = append(contexts, ctx)
 		}
+	}
+
+	return nil
+}
+
+func updateMuYaml(muConfigFile string, muBaseurl string, muVersion string) error {
+	config := new(common.Config)
+	yamlFile, err := os.Open(muConfigFile)
+
+	yamlBuffer := new(bytes.Buffer)
+	yamlBuffer.ReadFrom(bufio.NewReader(yamlFile))
+	err = yaml.Unmarshal(yamlBuffer.Bytes(), config)
+	if err != nil {
+		return err
+	}
+
+	config.Service.Pipeline.MuBaseurl = muBaseurl
+	config.Service.Pipeline.MuVersion = muVersion
+
+	configBytes, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(muConfigFile, configBytes, 0600)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -116,7 +249,7 @@ func initContext(muConfigFile string) (*common.Context, error) {
 		return nil, err
 	}
 
-	err = aws.InitializeContext(context, "", "", false)
+	err = mu_aws.InitializeContext(context, "", "", false)
 	if err != nil {
 		return nil, err
 	}
