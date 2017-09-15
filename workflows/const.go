@@ -103,6 +103,15 @@ const (
 	ECSAMIKey              = "ecs.ami-id"
 )
 
+// EnvironmentTags used to set default tags in environment
+var EnvironmentTags = map[string]string{
+	"Environment": "environment",
+	"Type":        "type",
+	"Provider":    "provider",
+	"Revision":    "revision",
+	"Repo":        "repo",
+}
+
 // Constants used during testing
 const (
 	TestEnv = "fooenv"

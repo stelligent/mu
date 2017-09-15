@@ -1,12 +1,14 @@
 package workflows
 
 import (
+	"errors"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
@@ -101,7 +103,13 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 		}
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
+
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -168,7 +176,12 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 
 		}
 
-		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -219,8 +232,12 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 		}
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -302,7 +319,12 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -322,10 +344,29 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 
 func buildEnvironmentTags(environmentName string, envProvider common.EnvProvider, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
-		"type":        string(stackType),
-		"environment": environmentName,
-		"provider":    string(envProvider),
-		"revision":    codeRevision,
-		"repo":        repoName,
+		EnvironmentTags["Type"]:        string(stackType),
+		EnvironmentTags["Environment"]: environmentName,
+		EnvironmentTags["Provider"]:    string(envProvider),
+		EnvironmentTags["Revision"]:    codeRevision,
+		EnvironmentTags["Repo"]:        repoName,
 	}
+}
+
+func concatTagMaps(ymlMap map[string]string, constMap map[string]string) (map[string]string, error) {
+
+	for key := range EnvironmentTags {
+		if _, exists := ymlMap[key]; exists {
+			return nil, errors.New("Unable to override tag " + key)
+		}
+	}
+
+	joinedMap := map[string]string{}
+	for key, value := range ymlMap {
+		joinedMap[key] = value
+	}
+	for key, value := range constMap {
+		joinedMap[key] = value
+	}
+
+	return joinedMap, nil
 }
