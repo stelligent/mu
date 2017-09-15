@@ -42,7 +42,7 @@ type Config struct {
 type Environment struct {
 	Name         string            `yaml:"name,omitempty"`
 	Provider     EnvProvider       `yaml:"provider,omitempty"`
-	Tags         map[string]string `yaml:tags,omitempty`
+	Tags         map[string]string `yaml:"tags,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`
