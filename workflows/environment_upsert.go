@@ -362,9 +362,7 @@ func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (m
 
 	joinedMap := map[string]string{}
 	for key, value := range ymlMap {
-		joinedMap["demotag"] = "Inserted By Hard Code"
 		if str, ok := value.(string); ok {
-			log.Noticef(str)
 			joinedMap[key] = str
 		}
 	}
