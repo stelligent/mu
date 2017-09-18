@@ -352,7 +352,7 @@ func buildEnvironmentTags(environmentName string, envProvider common.EnvProvider
 	}
 }
 
-func concatTagMaps(ymlMap map[string]string, constMap map[string]string) (map[string]string, error) {
+func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (map[string]string, error) {
 
 	for key := range EnvironmentTags {
 		if _, exists := ymlMap[key]; exists {
@@ -362,7 +362,11 @@ func concatTagMaps(ymlMap map[string]string, constMap map[string]string) (map[st
 
 	joinedMap := map[string]string{}
 	for key, value := range ymlMap {
-		joinedMap[key] = value
+		joinedMap["demotag"] = "Inserted By Hard Code"
+		if str, ok := value.(string); ok {
+			log.Noticef(str)
+			joinedMap[key] = str
+		}
 	}
 	for key, value := range constMap {
 		joinedMap[key] = value
