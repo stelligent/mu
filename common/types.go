@@ -24,6 +24,7 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
+	Namespace    string        `yaml:"namespace,omitempty"`
 	Environments []Environment `yaml:"environments,omitempty"`
 	Service      Service       `yaml:"service,omitempty"`
 	Basedir      string        `yaml:"-"`

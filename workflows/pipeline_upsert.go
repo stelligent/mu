@@ -20,16 +20,16 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
-		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
-		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineBucket(ctx, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineUpserter(ctx, tokenProvider, ctx.StackManager, ctx.StackManager),
 	)
 }
 
 // Setup the artifact bucket
-func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineBucket(ctx *common.Context, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		bucketStackName := common.CreateStackName(ctx, common.StackTypeBucket, "codepipeline")
 		overrides := common.GetStackOverrides(bucketStackName)
 		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
@@ -56,9 +56,9 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 	}
 }
 
-func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineUpserter(ctx *common.Context, tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
+		pipelineStackName := common.CreateStackName(ctx, common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 		overrides := common.GetStackOverrides(pipelineStackName)
 

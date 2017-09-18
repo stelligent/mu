@@ -10,6 +10,7 @@ import (
 func TestNewPipelineUpserter(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
 	upserter := NewPipelineUpserter(ctx, nil)
 	assert.NotNil(upserter)
 }
@@ -24,7 +25,9 @@ func TestPipelineBucket(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-bucket-codepipeline").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-bucket-codepipeline", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.pipelineBucket(stackManager, stackManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.pipelineBucket(ctx, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -53,7 +56,9 @@ func TestPipelineUpserter(t *testing.T) {
 		return "my-token"
 	}
 
-	err := workflow.pipelineUpserter(tokenProvider, stackManager, stackManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.pipelineUpserter(ctx, tokenProvider, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

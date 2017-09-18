@@ -10,6 +10,7 @@ import (
 func TestNewServiceDeployer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
 	deploye := NewServiceDeployer(ctx, "dev", "foo")
 	assert.NotNil(deploye)
 }
@@ -48,7 +49,9 @@ func TestServiceApplyCommon_Create(t *testing.T) {
 	workflow.serviceName = "myservice"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.serviceApplyCommonParams(ctx, service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("mu-environment-dev-VpcId", params["VpcId"])
@@ -85,7 +88,9 @@ func TestServiceApplyCommon_Update(t *testing.T) {
 	workflow.serviceName = "myservice"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.serviceApplyCommonParams(ctx, service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("", params["ListenerRulePriority"])
@@ -120,7 +125,9 @@ func TestServiceApplyCommon_StaticPriority(t *testing.T) {
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.priority = 77
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.serviceApplyCommonParams(ctx, service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("77", params["PathListenerRulePriority"])
@@ -138,7 +145,9 @@ func TestServiceEnvLoader_NotFound(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(nil).Once()
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceEnvironmentLoader("dev", stackManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.serviceEnvironmentLoader(ctx, "dev", stackManager)()
 
 	assert.NotNil(err)
 
@@ -183,7 +192,9 @@ func TestServiceEcsDeployer(t *testing.T) {
 	outputs["provider"] = "ecs"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceEcsDeployer(&config.Service, params, "dev", stackManager, stackManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.serviceEcsDeployer(ctx, &config.Service, params, "dev", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

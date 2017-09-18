@@ -15,8 +15,7 @@ type logsWorkflow struct {
 // NewEnvironmentLogViewer create a new workflow for following logs environments
 func NewEnvironmentLogViewer(ctx *common.Context, searchDuration time.Duration, follow bool, environmentName string, writer io.Writer, filter string) Executor {
 	workflow := new(logsWorkflow)
-
-	logGroup := common.CreateStackName(common.StackTypeEnv, environmentName)
+	logGroup := common.CreateStackName(ctx, common.StackTypeEnv, environmentName)
 
 	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),
@@ -26,8 +25,7 @@ func NewEnvironmentLogViewer(ctx *common.Context, searchDuration time.Duration, 
 // NewServiceLogViewer create a new workflow for following logs for services
 func NewServiceLogViewer(ctx *common.Context, searchDuration time.Duration, follow bool, environmentName string, serviceName string, writer io.Writer, filter string) Executor {
 	workflow := new(logsWorkflow)
-
-	logGroup := common.CreateStackName(common.StackTypeService, getServiceName(ctx, serviceName), environmentName)
+	logGroup := common.CreateStackName(ctx, common.StackTypeService, getServiceName(ctx, serviceName), environmentName)
 
 	return newPipelineExecutor(
 		workflow.logsViewer(ctx.LogsManager, writer, filter, searchDuration, follow, logGroup),

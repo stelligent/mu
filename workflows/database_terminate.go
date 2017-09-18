@@ -13,14 +13,14 @@ func NewDatabaseTerminator(ctx *common.Context, serviceName string, environmentN
 
 	return newPipelineExecutor(
 		workflow.databaseInput(ctx, serviceName),
-		workflow.databaseTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.databaseTerminator(ctx, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
 
-func (workflow *databaseWorkflow) databaseTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *databaseWorkflow) databaseTerminator(ctx *common.Context, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Undeploying service '%s' from '%s'", workflow.serviceName, environmentName)
-		svcStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(ctx, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 		if svcStack != nil {
 			err := stackDeleter.DeleteStack(svcStackName)

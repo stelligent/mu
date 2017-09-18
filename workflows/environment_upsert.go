@@ -24,10 +24,10 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentVpcUpserter(ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentElbUpserter(ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
-		workflow.environmentUpserter(ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(ctx, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentElbUpserter(ctx, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ctx, consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
+		workflow.environmentUpserter(ctx, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -48,7 +48,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(ctx *common.Context, ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -58,7 +58,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 		var vpcStackName string
 		if environment.VpcTarget.VpcID == "" {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
-			vpcStackName = common.CreateStackName(common.StackTypeVpc, environment.Name)
+			vpcStackName = common.CreateStackName(ctx, common.StackTypeVpc, environment.Name)
 			overrides := common.GetStackOverrides(vpcStackName)
 
 			// no target VPC, we need to create/update the VPC stack
@@ -86,7 +86,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
-			vpcStackName = common.CreateStackName(common.StackTypeTarget, environment.Name)
+			vpcStackName = common.CreateStackName(ctx, common.StackTypeTarget, environment.Name)
 			overrides := common.GetStackOverrides(vpcStackName)
 
 			template, err = templates.NewTemplate("vpc-target.yml", environment, overrides)
@@ -130,10 +130,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 	}
 }
 
-func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams map[string]string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentConsulUpserter(ctx *common.Context, consulStackParams map[string]string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
-		consulStackName := common.CreateStackName(common.StackTypeConsul, environment.Name)
+		consulStackName := common.CreateStackName(ctx, common.StackTypeConsul, environment.Name)
 
 		log.Noticef("Upserting Consul environment '%s' ...", environment.Name)
 		overrides := common.GetStackOverrides(consulStackName)
@@ -189,10 +189,10 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 	}
 }
 
-func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentElbUpserter(ctx *common.Context, ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
-		envStackName := common.CreateStackName(common.StackTypeLoadBalancer, environment.Name)
+		envStackName := common.CreateStackName(ctx, common.StackTypeLoadBalancer, environment.Name)
 
 		log.Noticef("Upserting ELB environment '%s' ...", environment.Name)
 		overrides := common.GetStackOverrides(envStackName)
@@ -240,12 +240,12 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 	}
 }
 
-func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentUpserter(ctx *common.Context, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
 
 		environment := workflow.environment
-		envStackName := common.CreateStackName(common.StackTypeEnv, environment.Name)
+		envStackName := common.CreateStackName(ctx, common.StackTypeEnv, environment.Name)
 
 		var templateName string
 		var imagePattern string

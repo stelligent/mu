@@ -9,6 +9,7 @@ import (
 func TestNewPipelineTerminator(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
 	terminator := NewPipelineTerminator(ctx, "foo")
 	assert.NotNil(terminator)
 }
@@ -23,7 +24,9 @@ func TestPipelineTerminator(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-pipeline-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-pipeline-foo").Return(nil)
 
-	err := workflow.pipelineTerminator(stackManager, stackManager)()
+	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
+	err := workflow.pipelineTerminator(ctx, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

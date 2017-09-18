@@ -14,11 +14,11 @@ func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer)
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceViewer(ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, writer),
+		workflow.serviceViewer(ctx, ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, writer),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, writer io.Writer) Executor {
+func (workflow *serviceWorkflow) serviceViewer(ctx *common.Context, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, writer io.Writer) Executor {
 
 	return func() error {
 		stacks, err := stackLister.ListStacks(common.StackTypeService)
@@ -26,7 +26,7 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, s
 			return err
 		}
 
-		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
+		pipelineStackName := common.CreateStackName(ctx, common.StackTypePipeline, workflow.serviceName)
 		pipelineStack, err := stackGetter.GetStack(pipelineStackName)
 		if err == nil {
 			fmt.Fprint(writer, NewLine)
@@ -51,7 +51,7 @@ func (workflow *serviceWorkflow) serviceViewer(stackLister common.StackLister, s
 		table := buildEnvTable(writer, stacks, workflow.serviceName)
 		table.Render()
 
-		viewTasks(taskManager, writer, stacks, workflow.serviceName)
+		viewTasks(ctx, taskManager, writer, stacks, workflow.serviceName)
 
 		return nil
 	}
@@ -108,7 +108,7 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 	return table
 }
 
-func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
+func viewTasks(ctx *common.Context, taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
 	containersTable := CreateTableSection(writer, SvcTaskContainerHeader)
 	for _, stack := range stacks {
 		if stack.Tags[SvcTagKey] != serviceName && len(serviceName) != Zero {
@@ -117,7 +117,7 @@ func viewTasks(taskManager common.TaskManager, writer io.Writer, stacks []*commo
 		if len(serviceName) == Zero {
 			serviceName = stack.Tags[SvcTagKey]
 		}
-		tasks, err := taskManager.ListTasks(stack.Tags[EnvTagKey], serviceName)
+		tasks, err := taskManager.ListTasks(ctx, stack.Tags[EnvTagKey], serviceName)
 		if err != nil {
 			return err
 		}
