@@ -84,6 +84,7 @@ type Service struct {
 	CPU             int                    `yaml:"cpu,omitempty"`
 	Memory          int                    `yaml:"memory,omitempty"`
 	Environment     map[string]interface{} `yaml:"environment,omitempty"`
+	Tags            map[string]interface{} `yaml:"tags,omitempty"`
 	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
 	Priority        int                    `yaml:"priority,omitempty"`
@@ -103,6 +104,7 @@ type Database struct {
 
 // Pipeline definition
 type Pipeline struct {
+	Tags   map[string]interface{} `yaml:"tags,omitempty"`
 	Source struct {
 		Provider string `yaml:"provider,omitempty"`
 		Repo     string `yaml:"repo,omitempty"`

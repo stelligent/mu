@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -350,25 +349,4 @@ func buildEnvironmentTags(environmentName string, envProvider common.EnvProvider
 		EnvironmentTags["Revision"]:    codeRevision,
 		EnvironmentTags["Repo"]:        repoName,
 	}
-}
-
-func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (map[string]string, error) {
-
-	for key := range EnvironmentTags {
-		if _, exists := ymlMap[key]; exists {
-			return nil, errors.New("Unable to override tag " + key)
-		}
-	}
-
-	joinedMap := map[string]string{}
-	for key, value := range ymlMap {
-		if str, ok := value.(string); ok {
-			joinedMap[key] = str
-		}
-	}
-	for key, value := range constMap {
-		joinedMap[key] = value
-	}
-
-	return joinedMap, nil
 }

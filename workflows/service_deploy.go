@@ -2,10 +2,11 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment
@@ -208,8 +209,8 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
-
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -238,8 +239,12 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
+		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}

@@ -7,6 +7,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
+	"github.com/pkg/errors"
 )
 
 var log = logging.MustGetLogger("workflows")
@@ -135,4 +136,25 @@ func simplifyRepoURL(url string) string {
 	}
 
 	return url[slashIndex+1:]
+}
+
+func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (map[string]string, error) {
+
+	for key := range EnvironmentTags {
+		if _, exists := ymlMap[key]; exists {
+			return nil, errors.New("Unable to override tag " + key)
+		}
+	}
+
+	joinedMap := map[string]string{}
+	for key, value := range ymlMap {
+		if str, ok := value.(string); ok {
+			joinedMap[key] = str
+		}
+	}
+	for key, value := range constMap {
+		joinedMap[key] = value
+	}
+
+	return joinedMap, nil
 }

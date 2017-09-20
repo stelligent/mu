@@ -3,11 +3,12 @@ package workflows
 import (
 	"bytes"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -38,7 +39,13 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+
+		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags)
 		if err != nil {
 			return err
 		}
@@ -137,7 +144,12 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["MuDownloadVersion"] = version
 		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, tags)
 		if err != nil {
 			return err
 		}
