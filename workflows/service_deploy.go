@@ -209,7 +209,7 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
-		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), ServiceTags)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags)
 		if err != nil {
 			return err
@@ -239,7 +239,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
-		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), ServiceTags)
 		if err != nil {
 			return err
 		}
@@ -287,11 +287,11 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 
 func buildServiceTags(serviceName string, environmentName string, envProvider string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
-		"type":        string(stackType),
-		"environment": environmentName,
-		"provider":    envProvider,
-		"service":     serviceName,
-		"revision":    codeRevision,
-		"repo":        repoName,
+		ServiceTags["Type"]:        string(stackType),
+		ServiceTags["Environment"]: environmentName,
+		ServiceTags["Provider"]:    envProvider,
+		ServiceTags["Service"]:     serviceName,
+		ServiceTags["Revision"]:    codeRevision,
+		ServiceTags["Repo"]:        repoName,
 	}
 }

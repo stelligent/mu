@@ -113,6 +113,24 @@ var EnvironmentTags = map[string]string{
 	"Repo":        "repo",
 }
 
+// ServiceTags used to set default tags in service
+var ServiceTags = map[string]string{
+	"Type":        "type",
+	"Environment": "environment",
+	"Provider":    "provider",
+	"Service":     "service",
+	"Revision":    "revision",
+	"Repo":        "repo",
+}
+
+// PipelineTags used to set default tags in pipeline
+var PipelineTags = map[string]string{
+	"Type":     "type",
+	"Service":  "service",
+	"Revision": "revision",
+	"Repo":     "repo",
+}
+
 // Constants used during testing
 const (
 	TestEnv = "fooenv"
@@ -138,9 +156,9 @@ func simplifyRepoURL(url string) string {
 	return url[slashIndex+1:]
 }
 
-func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (map[string]string, error) {
+func concatTagMaps(ymlMap map[string]interface{}, muMap map[string]string, constMap map[string]string) (map[string]string, error) {
 
-	for key := range EnvironmentTags {
+	for key := range constMap {
 		if _, exists := ymlMap[key]; exists {
 			return nil, errors.New("Unable to override tag " + key)
 		}
@@ -152,7 +170,7 @@ func concatTagMaps(ymlMap map[string]interface{}, constMap map[string]string) (m
 			joinedMap[key] = str
 		}
 	}
-	for key, value := range constMap {
+	for key, value := range muMap {
 		joinedMap[key] = value
 	}
 

@@ -169,9 +169,9 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 
 func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
 	return map[string]string{
-		"type":     string(stackType),
-		"service":  serviceName,
-		"revision": codeRevision,
-		"repo":     repoName,
+		PipelineTags["Type"]:     string(stackType),
+		PipelineTags["Service"]:  serviceName,
+		PipelineTags["Revision"]: codeRevision,
+		PipelineTags["Repo"]:     repoName,
 	}
 }

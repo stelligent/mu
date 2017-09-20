@@ -103,7 +103,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName), EnvironmentTags)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 
 		}
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName), EnvironmentTags)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 		}
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName), EnvironmentTags)
 		if err != nil {
 			return err
 		}
@@ -318,7 +318,7 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName), EnvironmentTags)
 		if err != nil {
 			return err
 		}
