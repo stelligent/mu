@@ -40,7 +40,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
 
-		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), PipelineTags)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 			pipelineParams["MuDownloadVersion"] = version
 		}
 
-		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName), PipelineTags)
 		if err != nil {
 			return err
 		}
