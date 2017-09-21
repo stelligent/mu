@@ -13,14 +13,14 @@ func NewServiceUndeployer(ctx *common.Context, serviceName string, environmentNa
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceUndeployer(ctx, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.serviceUndeployer(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceUndeployer(ctx *common.Context, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceUndeployer(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Undeploying service '%s' from '%s'", workflow.serviceName, environmentName)
-		svcStackName := common.CreateStackName(ctx, common.StackTypeService, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 		if svcStack != nil {
 			err := stackDeleter.DeleteStack(svcStackName)

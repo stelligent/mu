@@ -36,8 +36,8 @@ func newTaskManager(sess *session.Session, stackManager *common.StackManager) (c
 	}, nil
 }
 
-func (taskMgr *ecsTaskManager) getTaskRunInput(ctx *common.Context, task common.Task) (*ecs.RunTaskInput, error) {
-	ecsStack, err := taskMgr.getECSStack(ctx, task.Service, task.Environment)
+func (taskMgr *ecsTaskManager) getTaskRunInput(namespace string, task common.Task) (*ecs.RunTaskInput, error) {
+	ecsStack, err := taskMgr.getECSStack(namespace, task.Service, task.Environment)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +83,10 @@ func (taskMgr *ecsTaskManager) runTask(runTaskInput *ecs.RunTaskInput) (common.E
 }
 
 // ExecuteCommand runs a command for a specific environment
-func (taskMgr *ecsTaskManager) ExecuteCommand(ctx *common.Context, task common.Task) (common.ECSRunTaskResult, error) {
+func (taskMgr *ecsTaskManager) ExecuteCommand(namespace string, task common.Task) (common.ECSRunTaskResult, error) {
 	log.Infof(ExecuteCommandStartLog, task.Command, task.Environment, task.Service)
 
-	ecsRunTaskInput, err := taskMgr.getTaskRunInput(ctx, task)
+	ecsRunTaskInput, err := taskMgr.getTaskRunInput(namespace, task)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +95,8 @@ func (taskMgr *ecsTaskManager) ExecuteCommand(ctx *common.Context, task common.T
 }
 
 // ExecuteCommand runs a command for a specific environment
-func (taskMgr *ecsTaskManager) ListTasks(ctx *common.Context, environment string, serviceName string) ([]common.Task, error) {
-	cluster := common.CreateStackName(ctx, common.StackTypeEnv, environment)
+func (taskMgr *ecsTaskManager) ListTasks(namespace string, environment string, serviceName string) ([]common.Task, error) {
+	cluster := common.CreateStackName(namespace, common.StackTypeEnv, environment)
 	serviceInputParameters := &ecs.ListServicesInput{
 		Cluster: aws.String(cluster),
 	}
@@ -142,8 +142,8 @@ func (taskMgr *ecsTaskManager) ListTasks(ctx *common.Context, environment string
 	return tasks, nil
 }
 
-func (taskMgr *ecsTaskManager) StopTask(ctx *common.Context, environment string, task string) error {
-	cluster := common.CreateStackName(ctx, common.StackTypeEnv, environment)
+func (taskMgr *ecsTaskManager) StopTask(namespace string, environment string, task string) error {
+	cluster := common.CreateStackName(namespace, common.StackTypeEnv, environment)
 	stopTaskInput := &ecs.StopTaskInput{
 		Cluster: &cluster,
 		Task:    &task,
@@ -189,8 +189,8 @@ func getContainer(taskMgr *ecsTaskManager, cluster string, instanceARN string, c
 	return common.Container{Name: *container.Name, Instance: ec2InstanceID}
 }
 
-func (taskMgr *ecsTaskManager) getECSStack(ctx *common.Context, serviceName string, environment string) (*common.Stack, error) {
-	envStackName := common.CreateStackName(ctx, common.StackTypeService, serviceName, environment)
+func (taskMgr *ecsTaskManager) getECSStack(namespace string, serviceName string, environment string) (*common.Stack, error) {
+	envStackName := common.CreateStackName(namespace, common.StackTypeService, serviceName, environment)
 	log.Infof(SvcCmdStackLog, envStackName)
 
 	return taskMgr.stackManager.GetStack(envStackName)

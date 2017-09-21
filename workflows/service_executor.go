@@ -13,22 +13,22 @@ func NewServiceExecutor(ctx *common.Context, task common.Task) Executor {
 	}
 
 	return newPipelineExecutor(
-		workflow.serviceTaskExecutor(ctx, ctx.TaskManager, task),
+		workflow.serviceTaskExecutor(ctx.Config.Namespace, ctx.TaskManager, task),
 	)
 }
 
-func newServiceExecutor(ctx *common.Context, taskManager common.TaskManager, task common.Task) Executor {
+func newServiceExecutor(namespace string, taskManager common.TaskManager, task common.Task) Executor {
 	workflow := new(environmentWorkflow)
 
 	return newPipelineExecutor(
-		workflow.serviceTaskExecutor(ctx, taskManager, task),
+		workflow.serviceTaskExecutor(namespace, taskManager, task),
 	)
 }
 
-func (workflow *environmentWorkflow) serviceTaskExecutor(ctx *common.Context, taskManager common.TaskManager, task common.Task) Executor {
+func (workflow *environmentWorkflow) serviceTaskExecutor(namespace string, taskManager common.TaskManager, task common.Task) Executor {
 	return func() error {
 		log.Notice(SvcCmdTaskExecutingLog)
-		result, err := taskManager.ExecuteCommand(ctx, task)
+		result, err := taskManager.ExecuteCommand(namespace, task)
 		if err != nil {
 			log.Noticef(SvcCmdTaskErrorLog, err)
 			return err

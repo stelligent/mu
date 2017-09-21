@@ -44,9 +44,7 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-environment-foo").Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentEcsTerminator(ctx, "foo", stackManager, stackManager)()
+	err := workflow.environmentEcsTerminator("mu", "foo", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -66,9 +64,7 @@ func TestNewEnvironmentConsulTerminator(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-consul-foo").Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentConsulTerminator(ctx, "foo", stackManager, stackManager)()
+	err := workflow.environmentConsulTerminator("mu", "foo", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -90,9 +86,7 @@ func TestNewEnvironmentVpcTerminator(t *testing.T) {
 	stackManager.On("DeleteStack", "mu-target-foo").Return(nil)
 	stackManager.On("DeleteStack", "mu-vpc-foo").Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentVpcTerminator(ctx, "foo", stackManager, stackManager)()
+	err := workflow.environmentVpcTerminator("mu", "foo", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

@@ -23,7 +23,7 @@ func (m *mockedStackManager) GetStack(stackName string) (*common.Stack, error) {
 	return args.Get(0).(*common.Stack), args.Error(1)
 }
 
-func (m *mockedTaskManager) ExecuteCommand(ctx *common.Context, task common.Task) (common.ECSRunTaskResult, error) {
+func (m *mockedTaskManager) ExecuteCommand(namespace string, task common.Task) (common.ECSRunTaskResult, error) {
 	args := m.Called()
 	return nil, args.Error(1)
 }
@@ -46,8 +46,7 @@ func TestNewServiceExecutorFail(t *testing.T) {
 		Service:     TestSvc,
 		Command:     []string{TestCmd},
 	}
-	ctx := common.NewContext()
-	executor := newServiceExecutor(ctx, taskManagerMock, task)
+	executor := newServiceExecutor("mu", taskManagerMock, task)
 	assertion.NotNil(executor)
 	assertion.NotNil(executor())
 }
@@ -63,8 +62,7 @@ func TestNewServiceExecutor(t *testing.T) {
 		Service:     TestSvc,
 		Command:     []string{TestCmd},
 	}
-	ctx := common.NewContext()
-	executor := newServiceExecutor(ctx, taskManagerMock, task)
+	executor := newServiceExecutor("mu", taskManagerMock, task)
 	assertion.NotNil(executor)
 	assertion.Nil(executor())
 

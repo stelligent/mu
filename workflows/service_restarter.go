@@ -14,13 +14,13 @@ func NewServiceRestarter(ctx *common.Context, environmentName string, serviceNam
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceRestarter(ctx, ctx.TaskManager, environmentName, serviceName, batchSize),
+		workflow.serviceRestarter(ctx.Config.Namespace, ctx.TaskManager, environmentName, serviceName, batchSize),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceRestarter(ctx *common.Context, taskManager common.TaskManager, environmentName string, serviceName string, batchSize int) Executor {
+func (workflow *serviceWorkflow) serviceRestarter(namespace string, taskManager common.TaskManager, environmentName string, serviceName string, batchSize int) Executor {
 	return func() error {
-		tasks, err := taskManager.ListTasks(ctx, environmentName, serviceName)
+		tasks, err := taskManager.ListTasks(namespace, environmentName, serviceName)
 
 		if err != nil {
 			return err
@@ -28,7 +28,7 @@ func (workflow *serviceWorkflow) serviceRestarter(ctx *common.Context, taskManag
 
 		for taskIdx, task := range tasks {
 			log.Noticef("Stopping task %s in environment %s", task.Name, environmentName)
-			stopErr := taskManager.StopTask(ctx, environmentName, task.Name)
+			stopErr := taskManager.StopTask(namespace, environmentName, task.Name)
 			if stopErr != nil {
 				fmt.Println(stopErr)
 			}
@@ -36,11 +36,11 @@ func (workflow *serviceWorkflow) serviceRestarter(ctx *common.Context, taskManag
 			// Polling for same length task lists
 			if (taskIdx+1)%batchSize == 0 {
 
-				newTaskList, _ := taskManager.ListTasks(ctx, environmentName, serviceName)
+				newTaskList, _ := taskManager.ListTasks(namespace, environmentName, serviceName)
 				for len(newTaskList) != len(tasks) {
 					duration := time.Duration(PollDelay) * time.Second
 					time.Sleep(duration)
-					newTaskList, _ = taskManager.ListTasks(ctx, environmentName, serviceName)
+					newTaskList, _ = taskManager.ListTasks(namespace, environmentName, serviceName)
 				}
 			}
 		}

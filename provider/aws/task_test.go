@@ -62,8 +62,7 @@ func TestTaskCommandExecutorSucceed(t *testing.T) {
 		stackManager: stackManagerMock,
 	}
 	task := getTestTask()
-	ctx := common.NewContext()
-	result, err := executeManager.ExecuteCommand(ctx, task)
+	result, err := executeManager.ExecuteCommand("mu", task)
 	assertion.NotNil(result)
 	assertion.Nil(err)
 
@@ -88,8 +87,7 @@ func TestTaskListViewSucceed(t *testing.T) {
 		stackManager: stackManagerMock,
 	}
 
-	ctx := common.NewContext()
-	tasks, err := executeManager.ListTasks(ctx, TestEnv, Empty)
+	tasks, err := executeManager.ListTasks("mu", TestEnv, Empty)
 	assert.Nil(t, err)
 	assert.NotNil(t, tasks)
 
@@ -113,8 +111,7 @@ func TestTaskCommandExecutorFailRun(t *testing.T) {
 		stackManager: stackManagerMock,
 	}
 	task := getTestTask()
-	ctx := common.NewContext()
-	result, err := executeManager.ExecuteCommand(ctx, task)
+	result, err := executeManager.ExecuteCommand("mu", task)
 	assertion.NotNil(err)
 	assertion.Nil(result)
 
@@ -135,8 +132,7 @@ func TestTaskCommandExecutorFailStack(t *testing.T) {
 
 	task := getTestTask()
 
-	ctx := common.NewContext()
-	result, err := taskManager.ExecuteCommand(ctx, task)
+	result, err := taskManager.ExecuteCommand("mu", task)
 	assertion.NotNil(err)
 	assertion.Nil(result)
 }
@@ -148,8 +144,7 @@ func TestRunInputSucceed(t *testing.T) {
 	parameters := make(map[string]string)
 	outputs[ECSClusterOutputKey] = "clusterKey"
 	outputs[ECSTaskDefinitionOutputKey] = "taskKey"
-	ctx := common.NewContext()
-	ecsStackName := common.CreateStackName(ctx, common.StackTypeService, TestEnv, TestSvc)
+	ecsStackName := common.CreateStackName("mu", common.StackTypeService, TestEnv, TestSvc)
 	parameters[ECSServiceNameParameterKey] = ecsStackName
 	stackManagerMock.On(GetStackName).Return(&common.Stack{Outputs: outputs, Parameters: parameters}, nil)
 	executeManager := ecsTaskManager{
@@ -157,7 +152,7 @@ func TestRunInputSucceed(t *testing.T) {
 		stackManager: stackManagerMock,
 	}
 	task := getTestTask()
-	runInput, err := executeManager.getTaskRunInput(ctx, task)
+	runInput, err := executeManager.getTaskRunInput("mu", task)
 	assertion.NotNil(runInput)
 	assertion.Nil(err)
 	assertion.Equal(*runInput.Cluster, "clusterKey")
@@ -178,8 +173,7 @@ func TestRunInputFail(t *testing.T) {
 		ecsAPI:       nil,
 		stackManager: stackManagerMock,
 	}
-	ctx := common.NewContext()
-	badInput, inputErr := executeManager.getTaskRunInput(ctx, task)
+	badInput, inputErr := executeManager.getTaskRunInput("mu", task)
 	assertion.NotNil(inputErr)
 	assertion.Nil(badInput)
 	stackManagerMock.AssertExpectations(t)

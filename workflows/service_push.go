@@ -20,13 +20,13 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, dockerWr
 		workflow.serviceLoader(ctx, tag, provider),
 		newConditionalExecutor(workflow.isEcrProvider(),
 			newPipelineExecutor(
-				workflow.serviceRepoUpserter(ctx, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceImageBuilder(ctx.DockerManager, &ctx.Config, dockerWriter),
 				workflow.serviceRegistryAuthenticator(ctx.ClusterManager),
 				workflow.serviceImagePusher(ctx.DockerManager, dockerWriter),
 			),
 			newPipelineExecutor(
-				workflow.serviceBucketUpserter(ctx, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceArchiveUploader(ctx.Config.Basedir, ctx.ArtifactManager),
 			)))
 

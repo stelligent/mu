@@ -106,9 +106,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.serviceRepoUpserter(ctx, svc, stackManager, stackManager)()
+	err := workflow.serviceRepoUpserter("mu", svc, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

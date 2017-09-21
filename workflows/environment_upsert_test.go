@@ -88,9 +88,7 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.On("UpsertStack", "mu-environment-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentUpserter(ctx, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentUpserter("mu", vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -128,9 +126,7 @@ func TestEnvironmentElbUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-loadbalancer-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentElbUpserter(ctx, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentElbUpserter("mu", vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -175,9 +171,7 @@ func TestEnvironmentConsulUpserter_ConsulProvider(t *testing.T) {
 	stackManager.On("UpsertStack", "mu-consul-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentConsulUpserter(ctx, consulInputParams, ecsInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentConsulUpserter("mu", consulInputParams, ecsInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -204,9 +198,7 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentVpcUpserter(ctx, vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -231,9 +223,7 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.environmentVpcUpserter(ctx, vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -269,9 +259,7 @@ environments:
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err = workflow.environmentVpcUpserter(ctx, vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err = workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-target-dev-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])

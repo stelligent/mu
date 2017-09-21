@@ -24,9 +24,7 @@ func TestPipelineTerminator(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-pipeline-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-pipeline-foo").Return(nil)
 
-	ctx := common.NewContext()
-	ctx.Config.Namespace = "mu"
-	err := workflow.pipelineTerminator(ctx, stackManager, stackManager)()
+	err := workflow.pipelineTerminator("mu", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
