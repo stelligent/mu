@@ -3,11 +3,12 @@ package workflows
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
-	"os"
-	"strings"
 )
 
 type serviceWorkflow struct {
@@ -130,8 +131,8 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
-
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
+		tags, err := concatTagMaps(service.Tags, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -160,8 +161,12 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 		}
 
 		stackParams := make(map[string]string)
+		tags, err := concatTagMaps(service.Tags, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(appStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(appStackName, template, stackParams, tags)
 		if err != nil {
 			return err
 		}
@@ -189,7 +194,13 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, 
 		log.Noticef("Upserting Bucket for CodeDeploy")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codedeploy"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+
+		tags, err := concatTagMaps(service.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), ServiceTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags)
 		if err != nil {
 			return err
 		}

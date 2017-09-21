@@ -284,11 +284,30 @@ environments:
 	assert.Nil(err)
 	assert.Equal(config.Environments[0].Name, "dev")
 
-	joinedMap, err := concatTagMaps(config.Environments[0].Tags, buildEnvironmentTags(config.Environments[0].Name, config.Environments[0].Provider, "StackTypeVpc", "CodeRevision", "RepoName"))
+	joinedMap, err := concatTagMaps(config.Environments[0].Tags, buildEnvironmentTags(config.Environments[0].Name, config.Environments[0].Provider, "StackTypeVpc", "CodeRevision", "RepoName"), EnvironmentTags)
 	assert.Nil(err)
 	assert.Equal(len(joinedMap), 7)
 	assert.NotNil(joinedMap["mytag"])
 	assert.Equal(joinedMap["foo"], "bar")
+}
+
+func TestNoTagOverride(t *testing.T) {
+	assert := assert.New(t)
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    tags: 
+      environment: this-should-break
+      foo: bar
+`
+
+	config, err := loadYamlConfig(yamlConfig)
+	assert.Nil(err)
+	_, maperr := concatTagMaps(config.Environments[0].Tags, buildEnvironmentTags(config.Environments[0].Name, config.Environments[0].Provider, "StackTypeVpc", "CodeRevision", "RepoName"), EnvironmentTags)
+
+	assert.NotNil(maperr)
 }
 
 func loadYamlConfig(yamlString string) (*common.Config, error) {
