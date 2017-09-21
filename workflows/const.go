@@ -131,6 +131,15 @@ var PipelineTags = map[string]string{
 	"Repo":     "repo",
 }
 
+// DatabaseTags used to set default tags on a database
+var DatabaseTags = map[string]string{
+	"Type":     	"type",
+	"Environment":  "environment",
+	"Service":  	"service",
+	"Revision":		"revision",
+	"Repo":     	"repo",
+}
+
 // Constants used during testing
 const (
 	TestEnv = "fooenv"
@@ -172,7 +181,7 @@ func concatTagMaps(ymlMap map[string]interface{}, muMap map[string]string, const
 	}
 
 	for key, value := range muMap {
-		joinedMap[key] = value
+		joinedMap["mu:" + key] = value
 	}
 
 	return joinedMap, nil

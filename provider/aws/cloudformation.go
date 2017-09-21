@@ -70,7 +70,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 		if value != "" {
 			stackTags = append(stackTags,
 				&cloudformation.Tag{
-					Key:   aws.String(fmt.Sprintf("mu:%s", key)),
+					Key:   aws.String(key),
 					Value: aws.String(value),
 				})
 		}
