@@ -2,11 +2,10 @@ package workflows
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
+	"strconv"
+	"strings"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment

@@ -2,12 +2,11 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"io"
 	"strconv"
 	"strings"
-
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"

@@ -3,12 +3,11 @@ package workflows
 import (
 	"bytes"
 	"fmt"
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
