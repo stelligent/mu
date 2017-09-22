@@ -7,8 +7,8 @@ import (
 )
 
 // CreateStackName will create a name for a stack
-func CreateStackName(stackType StackType, names ...string) string {
-	return fmt.Sprintf("mu-%s-%s", stackType, strings.Join(names, "-"))
+func CreateStackName(namespace string, stackType StackType, names ...string) string {
+	return fmt.Sprintf("%s-%s-%s", namespace, stackType, strings.Join(names, "-"))
 }
 
 // GetStackOverrides will get the overrides from the config

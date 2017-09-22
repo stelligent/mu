@@ -63,6 +63,24 @@ func NewApp() *cli.App {
 			}
 		}
 
+		// Get the namespace for the stack creation.  This will prefix the stack names
+		// The order of precedence is command-line arg, env variable then config file
+		nameSpace := c.String("namespace")
+		if nameSpace != "" {
+			log.Debug("Using namespace \"%s\"", nameSpace)
+			context.Config.Namespace = nameSpace
+		} else {
+			nameSpace = os.Getenv("MU_NAMESPACE")
+			if nameSpace != "" {
+				log.Debug("Using namespace \"%s\"", nameSpace)
+				context.Config.Namespace = nameSpace
+			}
+		}
+		if context.Config.Namespace == "" {
+			log.Debug("Using namespace \"mu\"")
+			context.Config.Namespace = "mu"
+		}
+
 		return nil
 
 	}
@@ -80,6 +98,10 @@ func NewApp() *cli.App {
 		cli.StringFlag{
 			Name:  "profile, p",
 			Usage: "AWS config profile to use",
+		},
+		cli.StringFlag{
+			Name:  "namespace, n",
+			Usage: "Namespace to use as a prefix for stacks",
 		},
 		cli.BoolFlag{
 			Name:  "silent, s",

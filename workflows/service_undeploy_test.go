@@ -9,6 +9,7 @@ import (
 func TestNewServiceUndeployer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
 	terminator := NewServiceUndeployer(ctx, "foo", "dev")
 	assert.NotNil(terminator)
 }
@@ -23,7 +24,7 @@ func TestServiceUndeployer(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-service-foo-dev").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-service-foo-dev").Return(nil)
 
-	err := workflow.serviceUndeployer("dev", stackManager, stackManager)()
+	err := workflow.serviceUndeployer("mu", "dev", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
