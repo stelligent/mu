@@ -62,9 +62,9 @@ e2e: gen
 	@echo "=== e2e testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/e2e
-	go test -v ./e2e | go-junit-report > $(CIRCLE_TEST_REPORTS)/e2e/report.xml
+	go test -v ./e2e -timeout 60m | go-junit-report > $(CIRCLE_TEST_REPORTS)/e2e/report.xml
 else
-	go test -v ./e2e
+	go test -v ./e2e -timeout 60m
 endif
 
 build: gen $(BUILD_FILES)

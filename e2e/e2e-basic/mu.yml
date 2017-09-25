@@ -11,7 +11,7 @@ service:
   pathPatterns:
     - /*
   pipeline:
-    acceptnace:
+    acceptance:
       environment: e2e-basic-dev
     production:
       disabled: true

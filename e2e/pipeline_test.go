@@ -149,6 +149,11 @@ func waitForPipeline(ctx *common.Context) error {
 						break
 					}
 
+					fmt.Printf("  stage:%s action:%s status:%s\n",
+						common.StringValue(state.StageName),
+						common.StringValue(action.ActionName),
+						status)
+
 					if status == codepipeline.ActionExecutionStatusFailed {
 						message := ""
 						if action.LatestExecution.ErrorDetails != nil {

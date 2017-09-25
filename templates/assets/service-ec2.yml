@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU service in a specific environment containing an ALB target group with EC2 AutoScaling group
 Parameters:
+  EC2InstanceProfileArn:
+    Type: String
+    Description: ARN of instance profile for EC2 instance to assume
+  CodeDeployRoleArn:
+    Type: String
+    Description: ARN of IAM role for CodeDeploy to assume
   ServiceName:
     Type: String
     Description: Name of service
@@ -464,7 +470,7 @@ Resources:
           - !Ref ConsulRpcClientSecurityGroup
           - !Ref "AWS::NoValue"
       InstanceType: !Ref InstanceType
-      IamInstanceProfile: !Ref EC2InstanceProfile
+      IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:
         Fn::If:
           - HasKeyName
@@ -492,66 +498,6 @@ Resources:
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
-  EC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: "/"
-      Roles:
-      - !Ref EC2Role
-  EC2Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
-      Policies:
-      - PolicyName: service-access
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
-          - Effect: Allow
-            Action:
-            - s3:GetBucketAcl
-            - s3:GetBucketLocation
-            - s3:GetBucketPolicy
-            - s3:GetBucketTagging
-            - s3:GetBucketVersioning
-            - s3:GetObject
-            - s3:GetObjectAcl
-            - s3:GetObjectVersion
-            - s3:ListBucket
-            - s3:ListBucketMultipartUploads
-            - s3:ListBucketVersions
-            - s3:ListMultipartUploadParts
-            Resource:
-            - !Sub arn:aws:s3:::${RevisionBucket}
-            - !Sub arn:aws:s3:::${RevisionBucket}/*
-          - Effect: Allow
-            Action:
-            - cloudformation:DescribeStacks
-            - cloudformation:DescribeStackEvents
-            - cloudformation:DescribeStackResource
-            - cloudformation:DescribeStackResources
-            - cloudformation:GetTemplate
-            Resource:
-            - !Sub ${AWS::StackId}
-            - !Sub ${AWS::StackId}/*
   DeployGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
@@ -566,22 +512,8 @@ Resources:
             BundleType: !Ref RevisionBundleType
       AutoScalingGroups:
       - !Ref ServiceAutoScalingGroup
-      ServiceRoleArn: !Sub ${CodeDeployRole.Arn}
+      ServiceRoleArn: !Ref CodeDeployRoleArn
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
-  CodeDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - !Sub codedeploy.${AWS::Region}.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete

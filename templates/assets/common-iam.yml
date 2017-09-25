@@ -1,0 +1,126 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service role CloudFormation
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+Resources:
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${Namespace}-cloudformation-common'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - cloudformation.aws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: deploy-env
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - ec2:CreateVpc
+            - ec2:CreateInternetGateway
+            - ec2:AllocateAddress
+            Resource: '*'
+            Effect: Allow
+      - PolicyName: deploy-service
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - ecs:CreateService
+            - ecs:DeleteService
+            - ecs:UpdateService
+            - ecs:DescribeServices
+            - ecs:ListTaskDefinitions
+            - ecs:RegisterTaskDefinition
+            - ecs:DescribeTaskDefinition
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - logs:CreateLogGroup
+            - logs:DescribeLogGroups
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - elasticloadbalancing:AddTags
+            - elasticloadbalancing:CreateListener
+            - elasticloadbalancing:CreateLoadBlancer
+            - elasticloadbalancing:CreateRule
+            - elasticloadbalancing:CreateTargetGroup
+            - elasticloadbalancing:DeleteListener
+            - elasticloadbalancing:DeleteRule
+            - elasticloadbalancing:DeleteTargetGroup
+            - elasticloadbalancing:DescribeListeners
+            - elasticloadbalancing:DescribeLoadBalancerAttributes
+            - elasticloadbalancing:DescribeLoadBalancers
+            - elasticloadbalancing:DescribeRules
+            - elasticloadbalancing:DescribeSSLPolicies
+            - elasticloadbalancing:DescribeTags
+            - elasticloadbalancing:DescribeTargetGroupAttributes
+            - elasticloadbalancing:DescribeTargetGroups
+            - elasticloadbalancing:DescribeTargetHealth
+            - elasticloadbalancing:ModifyListener
+            - elasticloadbalancing:ModifyLoadBalancerAttributes
+            - elasticloadbalancing:ModifyRule
+            - elasticloadbalancing:ModifyTargetGroup
+            - elasticloadbalancing:ModifyTargetGroupAttributes
+            - elasticloadbalancing:RegisterTargets
+            - elasticloadbalancing:RemoveTags
+            - elasticloadbalancing:SetRulePriorities
+            - elasticloadbalancing:SetSecurityGroups
+            - elasticloadbalancing:SetSubnets
+            Resource: '*'
+            Effect: Allow
+      - PolicyName: deploy-database
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - ec2:CreateSecurityGroup
+            - ec2:DeleteSecurityGroup
+            - ec2:AuthorizeSecurityGroupIngress
+            - ec2:RevokeSecurityGroupIngress
+            - ec2:AuthorizeSecurityGroupEgress
+            - ec2:RevokeSecurityGroupEgress
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - rds:CreateDBClusterParameterGroup
+            - rds:CreateDBClusterSnapshot
+            - rds:CreateDBCluster
+            - rds:CreateDBInstance
+            - rds:CreateDBInstanceReadReplica
+            - rds:CreateDBParameterGroup
+            - rds:CreateDBSecurityGroup
+            - rds:CreateDBSnapshot
+            - rds:CreateDBSubnetGroup
+            - rds:CreateEventSubscription
+            - rds:CreateOptionGroup
+            - rds:AuthorizeDBSecurityGroupIngress
+            - rds:ModifyDBClusterParameterGroup
+            - rds:ModifyDBCluster
+            - rds:ModifyDBInstance
+            - rds:ModifyDBParameterGroup
+            - rds:ModifyDBSnapshotAttribute
+            - rds:ModifyDBSubnetGroup
+            - rds:ModifyEventSubscription
+            - rds:ModifyOptionGroup
+            - rds:DeleteDBParameterGroup
+            - rds:DeleteDBSubnetGroup
+            - rds:DeleteDBClusterParameterGroup
+            - rds:DeleteDBCluster
+            Resource: '*'
+            Effect: Allow
+
+Outputs:
+  CloudFormationRoleArn:
+    Description: Role assummed by CloudFormation
+    Value: !GetAtt CloudFormationRole.Arn

@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU environment containing an ECS cluster and instances for running containers
 Parameters:
+  EC2InstanceProfileArn:
+    Type: String
+    Description: ARN of instance profile for EC2 instance to assume
+  ConsulTaskRoleArn:
+    Type: String
+    Description: ARN of IAM role for consul task to assume
   InstanceType:
     Type: String
     Description: Instance type to use.
@@ -312,7 +318,7 @@ Resources:
           - !Ref ConsulRpcClientSecurityGroup
           - !Ref "AWS::NoValue"
       InstanceType: !Ref InstanceType
-      IamInstanceProfile: !Ref EC2InstanceProfile
+      IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:
         Fn::If:
           - HasKeyName
@@ -384,93 +390,11 @@ Resources:
             aws ecs start-task --cluster ${EcsCluster} --task-definition ${AWS::StackName}-consul-agent --container-instances $instance_arn --started-by $instance_arn --region ${AWS::Region}
           end script
           --==BOUNDARY==--
-  EC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: "/"
-      Roles:
-      - !Ref EC2Role
-  EC2Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      Policies:
-      - PolicyName: ecs-service
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ecs:RegisterContainerInstance
-            - ecs:DeregisterContainerInstance
-            - ecs:SubmitContainerStateChange
-            - ecs:SubmitTaskStateChange
-            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}
-          - Effect: Allow
-            Action:
-            - ecs:StartTelemetrySession
-            - ecs:Poll
-            Resource: "*"
-            Condition:
-              ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}
-          - Effect: Allow
-            Action:
-            - ecs:StartTask
-            Resource: "*"
-            Condition:
-              ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}
-          - Effect: Allow
-            Action:
-            - ecs:DiscoverPollEndpoint
-            Resource: "*"
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
   ClusterLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Ref AWS::StackName
-  ConsulTaskRole:
-    Type: AWS::IAM::Role
-    Condition: HasConsulServer
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ecs-tasks.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
-      Policies:
-      - PolicyName: ecs-task
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ecs:DescribeTasks
-            Resource: "*"
   ConsulAgentTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Condition: HasConsulServer
@@ -520,7 +444,7 @@ Resources:
         - Name: dockersock
           Host:
             SourcePath: /var/run/docker.sock
-      TaskRoleArn: !GetAtt ConsulTaskRole.Arn
+      TaskRoleArn: !Ref ConsulTaskRoleArn
 Outputs:
   InstanceSubnetIds:
     Value:

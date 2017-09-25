@@ -2,12 +2,12 @@ version: 0.1
 
 phases:
   install:
-    command:
+    commands:
       - apt-get install -y jq
 
   build:
     commands:
-      - curl -sfo /dev/null $(jq -r '.values[]|select(.key=="BASE_URL")|.value' env.json)
+      - curl -s $(jq -r '.values[]|select(.key=="BASE_URL")|.value' env.json) | grep 'Automation for the People'
 
 artifacts:
   files:

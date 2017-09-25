@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU service in a specific environment containing an ALB target group with ECS service and task definition
 Parameters:
+  EcsServiceRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS service to assume
+  EcsTaskRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS task to assume
   ServiceName:
     Type: String
     Description: Name of service
@@ -153,43 +159,9 @@ Resources:
       Role:
         Fn::If:
           - HasTargetGroup
-          - !Ref EcsServiceRole
+          - !Ref EcsServiceRoleArn
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
-  EcsServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ecs.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
-  EcsTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ecs-tasks.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: ecs-task
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ecs:DescribeTasks
-            Resource: "*"
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -221,7 +193,7 @@ Resources:
         - HostPort: 0
           ContainerPort: !Ref ServicePort
       Volumes: []
-      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      TaskRoleArn: !Ref EcsTaskRoleArn
   ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Condition: HasElbHttpPathListener
