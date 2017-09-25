@@ -13,6 +13,7 @@ func TestServiceLoader_FromConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Slug = "foo/myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
@@ -30,6 +31,7 @@ func TestServiceLoader_FromRepo(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Slug = "foo/myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
@@ -104,7 +106,7 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
+	err := workflow.serviceRepoUpserter("mu", svc, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

@@ -23,7 +23,7 @@ func TestDatabaseTerminate(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-database-foo-dev").Return(nil)
 
-	err := workflow.databaseTerminator("dev", stackManager, stackManager)()
+	err := workflow.databaseTerminator("mu", "dev", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

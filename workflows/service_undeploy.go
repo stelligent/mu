@@ -13,14 +13,14 @@ func NewServiceUndeployer(ctx *common.Context, serviceName string, environmentNa
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceUndeployer(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.serviceUndeployer(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceUndeployer(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceUndeployer(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Undeploying service '%s' from '%s'", workflow.serviceName, environmentName)
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 		if svcStack != nil {
 			err := stackDeleter.DeleteStack(svcStackName)
@@ -32,7 +32,7 @@ func (workflow *serviceWorkflow) serviceUndeployer(environmentName string, stack
 				return fmt.Errorf("Ended in failed status %s %s", svcStack.Status, svcStack.StatusReason)
 			}
 		} else {
-			log.Info("  Stack is alredy deleted.")
+			log.Info("  Stack is already deleted.")
 		}
 
 		return nil

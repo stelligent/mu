@@ -84,7 +84,7 @@ Resources:
 	assert.Equal("mu-bucket-${BucketPrefix}", nestedMap(finalMap, "Outputs", "Bucket", "Export", "Name")["Fn::Sub"])
 }
 
-func TestTempalate_fixupYaml(t *testing.T) {
+func TestTemplate_fixupYaml(t *testing.T) {
 	assert := assert.New(t)
 
 	rawYaml :=

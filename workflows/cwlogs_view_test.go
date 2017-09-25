@@ -22,6 +22,7 @@ func TestNewEnvironmentLogViewer(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 	ctx.Config.Service.Name = "my-service"
 
 	logsManager := new(mockedLogsManager)
@@ -44,6 +45,7 @@ func TestNewServiceLogViewer(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 
 	logsManager := new(mockedLogsManager)
 	logsManager.On("ViewLogs", "mu-service-my-service-my-env").Return(nil)
