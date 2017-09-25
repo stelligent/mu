@@ -127,7 +127,7 @@ type ServiceT struct {
 }
 
 // PipelineT used to set defaults
-type PiplineT struct {
+type PipelineT struct {
 	Type		string `tag:"type"`
 	Service		string `tag:"service"`
 	Revision	string `tag:"revision"`
