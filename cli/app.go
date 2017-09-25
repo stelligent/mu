@@ -43,6 +43,19 @@ func NewApp() *cli.App {
 			return err
 		}
 
+		err = context.InitializeConfigFromFile(c.String("config"))
+		if err != nil {
+			// ignore errors for init command
+			if c.Args().First() != "init" {
+				log.Warningf("Unable to load mu config: %v", err)
+			}
+		}
+
+		// Allow overriding the `DisableIAM` in config via `--disable-iam` or `-I`
+		if c.Bool("disable-iam") {
+			context.Config.DisableIAM = true
+		}
+
 		// TODO: support initializing context from other cloud providers?
 		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
 		if err != nil {
@@ -53,14 +66,6 @@ func NewApp() *cli.App {
 			context.DockerOut = ioutil.Discard
 		} else {
 			context.DockerOut = os.Stdout
-		}
-
-		err = context.InitializeConfigFromFile(c.String("config"))
-		if err != nil {
-			// ignore errors for init command
-			if c.Args().First() != "init" {
-				log.Warningf("Unable to load mu config: %v", err)
-			}
 		}
 
 		// Get the namespace for the stack creation.  This will prefix the stack names
@@ -114,6 +119,10 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "dryrun, d",
 			Usage: "generate the cloudformation templates without upserting stacks",
+		},
+		cli.BoolFlag{
+			Name:  "disable-iam, I",
+			Usage: "disable the automatic creation of IAM resources",
 		},
 	}
 

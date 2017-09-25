@@ -79,7 +79,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error {
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	// delete stack if in rollback status
@@ -114,12 +114,19 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.CreateStackInput{
 			StackName: aws.String(stackName),
-			Capabilities: []*string{
-				aws.String(cloudformation.CapabilityCapabilityIam),
-			},
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
 			Tags:         stackTags,
+		}
+
+		if roleArn != "" {
+			params.RoleARN = aws.String(roleArn)
+		}
+
+		if tags["type"] == string(common.StackTypeIam) {
+			params.Capabilities = []*string{
+				aws.String(cloudformation.CapabilityCapabilityNamedIam),
+			}
 		}
 
 		if cfnMgr.dryrun {
@@ -148,13 +155,19 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.UpdateStackInput{
 			StackName: aws.String(stackName),
-			Capabilities: []*string{
-				aws.String(cloudformation.CapabilityCapabilityIam),
-			},
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
-
 			Tags: stackTags,
+		}
+
+		if roleArn != "" {
+			params.RoleARN = aws.String(roleArn)
+		}
+
+		if tags["type"] == string(common.StackTypeIam) {
+			params.Capabilities = []*string{
+				aws.String(cloudformation.CapabilityCapabilityNamedIam),
+			}
 		}
 
 		if cfnMgr.dryrun {

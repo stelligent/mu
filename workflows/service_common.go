@@ -24,6 +24,7 @@ type serviceWorkflow struct {
 	appName           string
 	appRevisionBucket string
 	appRevisionKey    string
+	cloudFormationRoleArn string
 }
 
 // Find a service in config, by name and set the reference
@@ -131,7 +132,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -161,7 +162,7 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 
 		stackParams := make(map[string]string)
 
-		err = stackUpserter.UpsertStack(appStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(appStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -189,7 +190,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 		log.Noticef("Upserting Bucket for CodeDeploy")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codedeploy"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

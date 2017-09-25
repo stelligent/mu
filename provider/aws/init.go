@@ -82,6 +82,12 @@ func InitializeContext(ctx *common.Context, profile string, region string, dryru
 		return err
 	}
 
+	// initialize the RolesetManager
+	ctx.RolesetManager, err = newRolesetManager(ctx)
+	if err != nil {
+		return err
+	}
+
 	ctx.DockerOut = os.Stdout
 
 	return nil

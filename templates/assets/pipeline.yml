@@ -117,11 +117,11 @@ Parameters:
     Type: String
     Description: IAM Role for CodeBuild CI actions
     Default: ""
-  CodeBuildAcptRoleArn:
+  CodeBuildCDAcptRoleArn:
     Type: String
     Description: IAM Role for CodeBuild CD actions in ACPT
     Default: ""
-  CodeBuildProdRoleArn:
+  CodeBuildCDProdRoleArn:
     Type: String
     Description: IAM Role for CodeBuild CD actions in PROD
     Default: ""
@@ -207,7 +207,7 @@ Resources:
     Properties:
       Name: !Sub ${Namespace}-${ServiceName}-deploy-acceptance
       Description: Deploy image to test environment
-      ServiceRole: !Ref CodeBuildAcptRoleArn
+      ServiceRole: !Ref CodeBuildCDAcptRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -231,9 +231,9 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${AcptEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${AcptEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${AcptEnv}
+                - mu -c ${MuFile} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --disable-iam svc deploy ${AcptEnv}
                 - mu env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
@@ -262,7 +262,7 @@ Resources:
     Properties:
       Name: !Sub ${Namespace}-${ServiceName}-deploy-production
       Description: Deploy image to prod environment
-      ServiceRole: !Ref CodeBuildProdRoleArn
+      ServiceRole: !Ref CodeBuildCDProdRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -286,9 +286,9 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${ProdEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${ProdEnv}
+                - mu -c ${MuFile} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --disable-iam svc deploy ${ProdEnv}
                 - mu env show ${ProdEnv} -f json > env.json
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:

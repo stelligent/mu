@@ -20,17 +20,18 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
+		workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams),
+				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceApplyEc2Params(stackParams),
+				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 		),
@@ -75,7 +76,30 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, envi
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string) Executor {
+func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, environmentName string) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		commonRoleset, err := rolesetGetter.GetCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
+
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
 		params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
@@ -88,11 +112,20 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			params["ServiceMemory"] = strconv.Itoa(service.Memory)
 		}
 
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Name, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		params["EcsServiceRoleArn"] = serviceRoleset["EcsServiceRoleArn"]
+		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
+		params["ServiceName"] = workflow.serviceName
+
 		return nil
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string) Executor {
+func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
 		params["AppName"] = workflow.appName
@@ -122,6 +155,15 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string)
 		} {
 			params[key] = workflow.envStack.Parameters[key]
 		}
+
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Name, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		params["EC2InstanceProfileArn"] = serviceRoleset["EC2InstanceProfileArn"]
+		params["CodeDeployRoleArn"] = serviceRoleset["CodeDeployRoleArn"]
+		params["ServiceName"] = workflow.serviceName
 
 		return nil
 	}
@@ -209,7 +251,7 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -239,7 +281,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

@@ -18,10 +18,13 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	workflow.codeBranch = ctx.Config.Repo.Branch
 	workflow.repoName = ctx.Config.Repo.Slug
 
+	stackParams := make(map[string]string)
+
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
-		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
+		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams),
 	)
 }
 
@@ -38,7 +41,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), "")
 		if err != nil {
 			return err
 		}
@@ -56,7 +59,65 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 	}
 }
 
-func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, params map[string]string) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		if !workflow.pipelineConfig.Acceptance.Disabled {
+			envName := workflow.pipelineConfig.Acceptance.Environment
+			if envName == "" {
+				envName = "acceptance"
+			}
+			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
+			if err != nil {
+				return err
+			}
+
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		if !workflow.pipelineConfig.Production.Disabled {
+			envName := workflow.pipelineConfig.Production.Environment
+			if envName == "" {
+				envName = "production"
+			}
+			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
+			if err != nil {
+				return err
+			}
+
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		pipelineRoleset, err := rolesetGetter.GetPipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		for roleType, roleArn := range pipelineRoleset {
+			params[roleType] = roleArn
+		}
+
+		return nil
+	}
+}
+
+func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, params map[string]string) Executor {
 	return func() error {
 		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
@@ -67,8 +128,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		if err != nil {
 			return err
 		}
-		pipelineParams := make(map[string]string)
+		pipelineParams := params
 
+		pipelineParams["Namespace"] = namespace
+		pipelineParams["ServiceName"] = workflow.serviceName
 		pipelineParams["MuFile"] = workflow.muFile
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
@@ -137,7 +200,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 			pipelineParams["MuDownloadVersion"] = version
 		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName), "")
 		if err != nil {
 			return err
 		}

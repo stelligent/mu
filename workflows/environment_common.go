@@ -10,6 +10,7 @@ type environmentWorkflow struct {
 	environment  *common.Environment
 	codeRevision string
 	repoName     string
+	cloudFormationRoleArn string
 }
 
 func colorizeStackStatus(stackStatus string) string {

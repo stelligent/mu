@@ -1,0 +1,401 @@
+package aws
+
+import (
+	"github.com/stelligent/mu/common"
+	"strings"
+	"github.com/stelligent/mu/templates"
+	"fmt"
+	"strconv"
+)
+
+type iamRolesetManager struct {
+	context *common.Context
+}
+
+func newRolesetManager(ctx *common.Context) (common.RolesetManager, error) {
+	return &iamRolesetManager{
+		context: ctx,
+	}, nil
+}
+
+func (rolesetMgr *iamRolesetManager) getRolesetFromStack(names ...string) (common.Roleset) {
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, names...)
+	stack, _ := rolesetMgr.context.StackManager.GetStack(stackName)
+
+	if stack == nil {
+		return make(map[string]string)
+	}
+
+	return stack.Outputs
+}
+
+func overrideRole(roleset common.Roleset, roleType string, roleArn string) {
+	if roleArn != "" {
+		roleset[roleType] = roleArn
+	}
+}
+
+func (rolesetMgr *iamRolesetManager) GetCommonRoleset() (common.Roleset, error) {
+	roleset := rolesetMgr.getRolesetFromStack("common")
+
+	overrideRole(roleset, "CloudFormationRoleArn",  common.Config.Roles.CloudFormation)
+
+	return roleset, nil
+}
+
+func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName string) (common.Roleset, error) {
+	roleset := rolesetMgr.getRolesetFromStack("environment", environmentName )
+
+
+	for _, e := range rolesetMgr.context.Config.Environments {
+		if strings.EqualFold(e.Name, environmentName) {
+			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EcsInstance)
+			overrideRole(roleset, "ConsulClientTaskRoleArn",  e.Roles.ConsulClientTask)
+			overrideRole(roleset, "ConsulEC2InstanceProfileArn",  e.Roles.ConsulInstance)
+			overrideRole(roleset, "ConsulServerTaskRoleArn",  e.Roles.ConsulServerTask)
+			break
+		}
+	}
+
+	return roleset, nil
+}
+
+func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, serviceName string) (common.Roleset, error) {
+	roleset := rolesetMgr.getRolesetFromStack("service", serviceName, environmentName )
+
+	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
+	overrideRole(roleset, "CodeDeployRoleArn",  rolesetMgr.context.Config.Service.Roles.CodeDeploy)
+	overrideRole(roleset, "EcsServiceRoleArn",  rolesetMgr.context.Config.Service.Roles.EcsService)
+	overrideRole(roleset, "EcsTaskRoleArn",  rolesetMgr.context.Config.Service.Roles.EcsTask)
+
+	return roleset, nil
+}
+
+func (rolesetMgr *iamRolesetManager) GetPipelineRoleset(serviceName string) (common.Roleset, error) {
+	roleset := rolesetMgr.getRolesetFromStack("pipeline", serviceName)
+
+	overrideRole(roleset, "CodePipelineRoleArn", rolesetMgr.context.Config.Service.Pipeline.Roles.Pipeline)
+	overrideRole(roleset, "CodeBuildCIRoleArn", rolesetMgr.context.Config.Service.Pipeline.Roles.Build)
+	overrideRole(roleset, "CodeBuildCDAcptRoleArn", rolesetMgr.context.Config.Service.Pipeline.Acceptance.Roles.CodeBuild)
+	overrideRole(roleset, "CodeBuildCDProdRoleArn", rolesetMgr.context.Config.Service.Pipeline.Production.Roles.CodeBuild)
+	overrideRole(roleset, "MuAcptRoleArn", rolesetMgr.context.Config.Service.Pipeline.Acceptance.Roles.Mu)
+	overrideRole(roleset, "MuProdRoleArn", rolesetMgr.context.Config.Service.Pipeline.Production.Roles.Mu)
+
+	return roleset, nil
+}
+
+func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping upsert of common IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common")
+	overrides := common.GetStackOverrides(stackName)
+	template, err := templates.NewTemplate("common-iam.yml", nil, overrides)
+	if err != nil {
+		return err
+	}
+	stackTags := map[string]string{
+		"type":        "iam",
+		"revision":    rolesetMgr.context.Config.Repo.Revision,
+		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+	}
+
+	stackParams := map[string]string{
+		"Namespace": rolesetMgr.context.Config.Namespace,
+	}
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack == nil {
+		return fmt.Errorf("Unable to create stack %s", stackName)
+	}
+	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping upsert of environment IAM roles.")
+		return nil
+	}
+
+	var environment *common.Environment
+	for _, e := range rolesetMgr.context.Config.Environments {
+		if strings.EqualFold(e.Name, environmentName) {
+			if e.Provider == "" {
+				e.Provider = common.EnvProviderEcs
+			}
+			environment = &e
+			break
+		}
+	}
+	if environment == nil {
+		return fmt.Errorf("unable to find environment named '%s' in configuration", environmentName)
+	}
+
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "environment", environmentName)
+	overrides := common.GetStackOverrides(stackName)
+	template, err := templates.NewTemplate("environment-iam.yml", environment, overrides)
+	if err != nil {
+		return err
+	}
+	stackTags := map[string]string{
+		"type":        "iam",
+		"environment": environmentName,
+		"provider":    string(environment.Provider),
+		"revision":    rolesetMgr.context.Config.Repo.Revision,
+		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+	}
+
+	stackParams := map[string]string{
+		"Namespace": rolesetMgr.context.Config.Namespace,
+		"EnvironmentName": environmentName,
+	}
+
+	if strings.EqualFold(environment.Discovery.Provider, "consul") {
+		stackParams["EnableConsul"] = "true"
+	}
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack == nil {
+		return fmt.Errorf("Unable to create stack %s", stackName)
+	}
+	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping upsert of service IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "service", serviceName, environmentName)
+	overrides := common.GetStackOverrides(stackName)
+	template, err := templates.NewTemplate("service-iam.yml", rolesetMgr.context.Config.Service, overrides)
+	if err != nil {
+		return err
+	}
+
+	envProvider := ""
+	for _, e := range rolesetMgr.context.Config.Environments {
+		if strings.EqualFold(e.Name, environmentName) {
+			if e.Provider == "" {
+				envProvider = string(common.EnvProviderEcs)
+			} else {
+				envProvider = string(e.Provider)
+			}
+			break
+		}
+	}
+	if envProvider == "" {
+		log.Debugf("unable to find environment named '%s' in configuration...checking for existing stack", environmentName)
+		envStackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeEnv, environmentName)
+		envStack := rolesetMgr.context.StackManager.AwaitFinalStatus(envStackName)
+		if envStack == nil {
+			return fmt.Errorf("unable to find environment stack named '%s'", envStackName)
+		}
+		envProvider = envStack.Tags["provider"]
+	}
+
+	stackTags := map[string]string{
+		"type":        "iam",
+		"environment": environmentName,
+		"provider":    envProvider,
+		"service":     serviceName,
+		"revision":    rolesetMgr.context.Config.Repo.Revision,
+		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+	}
+
+
+	stackParams := map[string]string{
+		"Namespace": rolesetMgr.context.Config.Namespace,
+		"EnvironmentName": environmentName,
+		"ServiceName": serviceName,
+		"Provider": envProvider,
+	}
+
+	// Get the bucket name of the revision bucket
+	if envProvider == common.EnvProviderEc2 {
+		bucketStackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeBucket, "codedeploy")
+		bucketStack := rolesetMgr.context.StackManager.AwaitFinalStatus(bucketStackName)
+		if bucketStack == nil {
+			return fmt.Errorf("unable to find bucket stack named '%s'", bucketStackName)
+		}
+		stackParams["RevisionBucket"] = bucketStack.Outputs["Bucket"]
+	}
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack == nil {
+		return fmt.Errorf("Unable to create stack %s", stackName)
+	}
+	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping upsert of pipeline IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "pipeline", serviceName)
+	overrides := common.GetStackOverrides(stackName)
+	template, err := templates.NewTemplate("pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, overrides)
+	if err != nil {
+		return err
+	}
+	stackTags := map[string]string{
+		"type":        "iam",
+		"service":     serviceName,
+		"revision":    rolesetMgr.context.Config.Repo.Revision,
+		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+	}
+
+	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline
+
+	stackParams := map[string]string{
+		"Namespace": rolesetMgr.context.Config.Namespace,
+		"ServiceName": serviceName,
+		"SourceProvider": pipelineConfig.Source.Provider,
+		"SourceRepo": pipelineConfig.Source.Repo,
+	}
+
+	if pipelineConfig.Acceptance.Environment != "" {
+		stackParams["AcptEnv"] = pipelineConfig.Acceptance.Environment
+	}
+
+	if pipelineConfig.Production.Environment != "" {
+		stackParams["ProdEnv"] = pipelineConfig.Production.Environment
+	}
+
+	stackParams["EnableBuildStage"] = strconv.FormatBool(!pipelineConfig.Build.Disabled)
+	stackParams["EnableAcptStage"] = strconv.FormatBool(!pipelineConfig.Acceptance.Disabled)
+	stackParams["EnableProdStage"] = strconv.FormatBool(!pipelineConfig.Production.Disabled)
+
+
+	commonRoleset, err := rolesetMgr.GetCommonRoleset()
+	if err != nil {
+		return err
+	}
+	stackParams["AcptCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
+	stackParams["ProdCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack == nil {
+		return fmt.Errorf("Unable to create stack %s", stackName)
+	}
+	if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+
+	return nil
+}
+
+
+func (rolesetMgr *iamRolesetManager) DeleteCommonRoleset() (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping delete of common IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common" )
+	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) DeleteEnvironmentRoleset(environmentName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping delete of environment IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "environment", environmentName)
+	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) DeleteServiceRoleset(environmentName string, serviceName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping delete of service IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "service", serviceName, environmentName)
+	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+	return nil
+}
+
+func (rolesetMgr *iamRolesetManager) DeletePipelineRoleset(serviceName string) (error) {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping delete of pipeline IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "pipeline", serviceName)
+	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Waiting for stack '%s' to complete", stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
+	if stack != nil && !strings.HasSuffix(stack.Status, "_COMPLETE") {
+		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+	}
+	return nil
+}

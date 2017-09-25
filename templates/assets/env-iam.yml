@@ -15,7 +15,18 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
+  Provider:
+    Type: String
+    Description: Provider type for services
+    Default: "ecs"
+    AllowedValues:
+      - "ecs"
+      - "ec2"
 Conditions:
+  IsEcsService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs'
   IsConsulEnabled:
     "Fn::Equals":
       - !Ref EnableConsul
@@ -23,12 +34,14 @@ Conditions:
 Resources:
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
+    Condition: IsEcsService
     Properties:
       Path: "/"
       Roles:
       - !Ref EC2Role
   EC2Role:
     Type: AWS::IAM::Role
+    Condition: IsEcsService
     Properties:
       RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-instance'
       AssumeRolePolicyDocument:
@@ -199,11 +212,16 @@ Resources:
             Condition:
               ArnEquals:
                 "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-consul-${EnvironmentName}
-
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
 Outputs:
   EC2InstanceProfileArn:
     Description: Instance profile for ECS container instances
-    Value: !GetAtt EC2InstanceProfile.Arn
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EC2InstanceProfile.Arn
+      - ''
   ConsulClientTaskRoleArn:
     Description: Role assummed Consul client agent task
     Value:
