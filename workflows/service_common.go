@@ -130,7 +130,15 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
-		tags, err := concatTagMaps(service.Tags, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+
+		var envTags TagInterface = &EnvironmentT{
+			Environment: workflow.serviceName,
+			Type: string(common.StackTypeRepo),
+			Provider: "", 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, envTags)
 		if err != nil {
 			return err
 		}
@@ -164,7 +172,16 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 		}
 
 		stackParams := make(map[string]string)
-		tags, err := concatTagMaps(service.Tags, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+
+		var envTags TagInterface = &EnvironmentT{
+			Environment: workflow.serviceName,
+			Type: string(common.StackTypeApp),
+			Provider: "", 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+
+		tags, err := concatTags(service.Tags, envTags)
 		if err != nil {
 			return err
 		}
