@@ -102,7 +102,14 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeVpc, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+		var envTags TagInterface = &EnvironmentT{
+			Environment: environment.Name,
+			Type: string(common.StackTypeVpc),
+			Provider: string(environment.Provider), 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
 			return err
 		}
@@ -174,7 +181,14 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 
 		}
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeConsul, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+		var envTags TagInterface = &EnvironmentT{
+			Environment: environment.Name,
+			Type: string(common.StackTypeConsul),
+			Provider: string(environment.Provider), 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
 			return err
 		}
@@ -230,7 +244,15 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 		}
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeLoadBalancer, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+
+		var envTags TagInterface = &EnvironmentT{
+			Environment: environment.Name,
+			Type: string(common.StackTypeLoadBalancer),
+			Provider: string(environment.Provider), 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
 			return err
 		}
@@ -317,7 +339,14 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		tags, err := concatTagMaps(environment.Tags, buildEnvironmentTags(environment.Name, environment.Provider, common.StackTypeEnv, workflow.codeRevision, workflow.repoName), EnvironmentTags)
+		var envTags TagInterface = &EnvironmentT{
+			Environment: environment.Name,
+			Type: string(common.StackTypeEnv),
+			Provider: string(environment.Provider), 
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
 			return err
 		}
@@ -337,15 +366,5 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 		}
 
 		return nil
-	}
-}
-
-func buildEnvironmentTags(environmentName string, envProvider common.EnvProvider, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		EnvironmentTags["Type"]:        string(stackType),
-		EnvironmentTags["Environment"]: environmentName,
-		EnvironmentTags["Provider"]:    string(envProvider),
-		EnvironmentTags["Revision"]:    codeRevision,
-		EnvironmentTags["Repo"]:        repoName,
 	}
 }
