@@ -127,7 +127,7 @@ environments:
 	assert.Nil(err)
 	assert.Equal(config.Environments[0].Name, "dev")
 
-	var envTags TagInterface = &EnvironmentT{
+	var envTags TagInterface = &EnvironmentTags{
 		Environment: config.Environments[0].Name,
 		Type: "StackType",
 		Provider: string(config.Environments[0].Provider), 
@@ -156,7 +156,7 @@ environments:
 	config, err := loadYamlConfig(yamlConfig)
 	assert.Nil(err)
 
-	var envTags TagInterface = &EnvironmentT{
+	var envTags TagInterface = &EnvironmentTags{
 		Environment: config.Environments[0].Name,
 		Type: "StackType",
 		Provider: string(config.Environments[0].Provider), 

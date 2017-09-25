@@ -102,7 +102,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(ecsStackParams map[s
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
 			Type: string(common.StackTypeVpc),
 			Provider: string(environment.Provider), 
@@ -181,7 +181,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(consulStackParams
 
 		}
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
 			Type: string(common.StackTypeConsul),
 			Provider: string(environment.Provider), 
@@ -245,7 +245,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(ecsStackParams map[s
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
 			Type: string(common.StackTypeLoadBalancer),
 			Provider: string(environment.Provider), 
@@ -339,7 +339,7 @@ func (workflow *environmentWorkflow) environmentUpserter(ecsStackParams map[stri
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
 			Type: string(common.StackTypeEnv),
 			Provider: string(environment.Provider), 

@@ -104,9 +104,11 @@ const (
 	ECSAMIKey              = "ecs.ami-id"
 )
 
+// TagInterface used to conform tag structs
 type TagInterface interface{}
 
-type EnvironmentT struct {
+// EnvironmentTags used to set defaults
+type EnvironmentTags struct {
 	Environment string `tag:"environment"`
 	Type		string `tag:"type"`
 	Provider	string `tag:"provider"`
@@ -114,6 +116,7 @@ type EnvironmentT struct {
 	Repo		string `tag:"repo"`
 }
 
+// ServiceT used to set defaults
 type ServiceT struct {
 	Service 	string `tag:"service"`
 	Environment string `tag:"environment"`
@@ -123,6 +126,7 @@ type ServiceT struct {
 	Repo		string `tag:"repo"`
 }
 
+// PipelineT used to set defaults
 type PiplineT struct {
 	Type		string `tag:"type"`
 	Service		string `tag:"service"`
@@ -130,21 +134,13 @@ type PiplineT struct {
 	Repo		string `tag:"repo"`
 }
 
+// DatabaseT used to set defaults
 type DatabaseT struct {
 	Environment string `tag:"environment"`
 	Type		string `tag:"type"`
 	Service 	string `tag:"service"`
 	Revision	string `tag:"revision"`
 	Repo		string `tag:"repo"`
-}
-
-// EnvironmentTags used to set default tags in environment
-var EnvironmentTags = map[string]string{
-	"Environment": "environment",
-	"Type":        "type",
-	"Provider":    "provider",
-	"Revision":    "revision",
-	"Repo":        "repo",
 }
 
 // ServiceTags used to set default tags in service

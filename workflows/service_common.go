@@ -131,7 +131,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = workflow.serviceName
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
 			Type: string(common.StackTypeRepo),
 			Provider: "", 
@@ -173,7 +173,7 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 
 		stackParams := make(map[string]string)
 
-		var envTags TagInterface = &EnvironmentT{
+		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
 			Type: string(common.StackTypeApp),
 			Provider: "", 
