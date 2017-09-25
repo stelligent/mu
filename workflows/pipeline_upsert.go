@@ -39,7 +39,13 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
 
-		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), PipelineTags)
+		var pipeTags TagInterface = &PipelineTags{
+			Type: common.StackTypeBucket,
+			Service: workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {
 			return err
 		}
@@ -142,8 +148,13 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if version != "" {
 			pipelineParams["MuDownloadVersion"] = version
 		}
-
-		tags, err := concatTagMaps(workflow.pipelineConfig.Tags, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName), PipelineTags)
+		var pipeTags TagInterface = &PipelineTags{
+			Type: common.StackTypePipeline,
+			Service: workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {
 			return err
 		}
@@ -163,14 +174,5 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		}
 
 		return nil
-	}
-}
-
-func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		PipelineTags["Type"]:     string(stackType),
-		PipelineTags["Service"]:  serviceName,
-		PipelineTags["Revision"]: codeRevision,
-		PipelineTags["Repo"]:     repoName,
 	}
 }

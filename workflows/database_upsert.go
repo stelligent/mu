@@ -86,7 +86,14 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 		}
 		stackParams["DatabaseMasterPassword"] = dbPass
 
-		tags, err := concatTagMaps(service.Database.Tags, buildDatabaseTags(workflow.serviceName, environmentName, common.StackTypeDatabase, workflow.codeRevision, workflow.repoName), DatabaseTags)
+		var dbTags TagInterface = &DatabaseTags{
+			Environment: environmentName,
+			Type: common.StackTypeDatabase,
+			Service: workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(service.Database.Tags, dbTags)
 
 		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, tags)
 		if err != nil {
@@ -103,15 +110,6 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 
 		// update IAM Authentication
 		return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
-	}
-}
-func buildDatabaseTags(serviceName string, environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		DatabaseTags["Type"]:        string(stackType),
-		DatabaseTags["Environment"]: environmentName,
-		DatabaseTags["Service"]:     serviceName,
-		DatabaseTags["Revision"]:    codeRevision,
-		DatabaseTags["Repo"]:        repoName,
 	}
 }
 

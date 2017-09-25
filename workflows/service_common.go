@@ -215,7 +215,13 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, 
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codedeploy"
 
-		tags, err := concatTagMaps(service.Tags, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName), ServiceTags)
+		var pipeTags TagInterface = &PipelineTags{
+			Type: common.StackTypeBucket,
+			Service: workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, pipeTags)
 		if err != nil {
 			return err
 		}

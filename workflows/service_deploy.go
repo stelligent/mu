@@ -208,7 +208,16 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
-		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), ServiceTags)
+
+		var svcTags TagInterface = &ServiceTags{
+			Service: workflow.serviceName,
+			Environment: environmentName,
+			Type: common.StackTypeService,
+			Provider: workflow.envStack.Outputs["provider"],
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags)
 		if err != nil {
 			return err
@@ -238,7 +247,16 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, sta
 		if err != nil {
 			return err
 		}
-		tags, err := concatTagMaps(service.Tags, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), ServiceTags)
+
+		var svcTags TagInterface = &ServiceTags{
+			Service: workflow.serviceName,
+			Environment: environmentName,
+			Type: common.StackTypeService,
+			Provider: workflow.envStack.Outputs["provider"],
+			Revision: workflow.codeRevision,
+			Repo: workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
 		if err != nil {
 			return err
 		}
@@ -281,16 +299,5 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 			log.Warningf("Unable to resolve environment '%s': %v", key, value)
 		}
 
-	}
-}
-
-func buildServiceTags(serviceName string, environmentName string, envProvider string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		ServiceTags["Type"]:        string(stackType),
-		ServiceTags["Environment"]: environmentName,
-		ServiceTags["Provider"]:    envProvider,
-		ServiceTags["Service"]:     serviceName,
-		ServiceTags["Revision"]:    codeRevision,
-		ServiceTags["Repo"]:        repoName,
 	}
 }

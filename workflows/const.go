@@ -116,8 +116,8 @@ type EnvironmentTags struct {
 	Repo		string `tag:"repo"`
 }
 
-// ServiceT used to set defaults
-type ServiceT struct {
+// ServiceTags used to set defaults
+type ServiceTags struct {
 	Service 	string `tag:"service"`
 	Environment string `tag:"environment"`
 	Type		string `tag:"type"`
@@ -126,48 +126,21 @@ type ServiceT struct {
 	Repo		string `tag:"repo"`
 }
 
-// PipelineT used to set defaults
-type PipelineT struct {
+// PipelineTags used to set defaults
+type PipelineTags struct {
 	Type		string `tag:"type"`
 	Service		string `tag:"service"`
 	Revision	string `tag:"revision"`
 	Repo		string `tag:"repo"`
 }
 
-// DatabaseT used to set defaults
-type DatabaseT struct {
+// DatabaseTags used to set defaults
+type DatabaseTags struct {
 	Environment string `tag:"environment"`
 	Type		string `tag:"type"`
 	Service 	string `tag:"service"`
 	Revision	string `tag:"revision"`
 	Repo		string `tag:"repo"`
-}
-
-// ServiceTags used to set default tags in service
-var ServiceTags = map[string]string{
-	"Type":        "type",
-	"Environment": "environment",
-	"Provider":    "provider",
-	"Service":     "service",
-	"Revision":    "revision",
-	"Repo":        "repo",
-}
-
-// PipelineTags used to set default tags in pipeline
-var PipelineTags = map[string]string{
-	"Type":     "type",
-	"Service":  "service",
-	"Revision": "revision",
-	"Repo":     "repo",
-}
-
-// DatabaseTags used to set default tags on a database
-var DatabaseTags = map[string]string{
-	"Type":     	"type",
-	"Environment":  "environment",
-	"Service":  	"service",
-	"Revision":		"revision",
-	"Repo":     	"repo",
 }
 
 // Constants used during testing
