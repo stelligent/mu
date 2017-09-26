@@ -3,8 +3,6 @@ version: 2
 jobs:
   build:
     machine: true
-      - image: circleci/golang:1.8.1
-        environment:
 
     ## Don't build when new release tags are pushed
     branches:
