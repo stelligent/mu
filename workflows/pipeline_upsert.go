@@ -110,7 +110,9 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 		}
 
 		for roleType, roleArn := range pipelineRoleset {
-			params[roleType] = roleArn
+			if roleArn != "" {
+				params[roleType] = roleArn
+			}
 		}
 
 		return nil

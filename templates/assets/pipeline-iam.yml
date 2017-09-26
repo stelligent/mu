@@ -96,7 +96,7 @@ Resources:
             - codebuild:BatchGetBuilds
             Effect: Allow
             Resource:
-            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${ServiceName}-*'
+            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-${ServiceName}-*'
           - !If
             - IsCodeCommit
             - Action:
@@ -150,15 +150,15 @@ Resources:
       Roles:
       - !If
         - IsBuildEnabled
-        - !GetAtt CodeBuildCIRole.Arn
+        - !Ref CodeBuildCIRole
         - !Ref AWS::NoValue
       - !If
         - IsAcptEnabled
-        - !GetAtt CodeBuildCDAcptRole.Arn
+        - !Ref CodeBuildCDAcptRole
         - !Ref AWS::NoValue
       - !If
         - IsProdEnabled
-        - !GetAtt CodeBuildCDProdRole.Arn
+        - !Ref CodeBuildCDProdRole
         - !Ref AWS::NoValue
       PolicyDocument:
         Version: '2012-10-17'
@@ -399,7 +399,7 @@ Outputs:
     Description: Role assummed by CodeBuild for deploying to PROD
     Value:
       Fn::If:
-      - IsAcptEnabled
+      - IsProdEnabled
       - !GetAtt CodeBuildCDProdRole.Arn
       - ''
   MuAcptRoleArn:

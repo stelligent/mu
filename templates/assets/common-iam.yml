@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU service role CloudFormation
+Description: MU IAM role for CloudFormation
 Parameters:
   Namespace:
     Type: String
@@ -15,7 +15,7 @@ Resources:
         - Effect: Allow
           Principal:
             Service:
-            - cloudformation.aws.com
+            - cloudformation.amazonaws.com
           Action:
           - sts:AssumeRole
       Path: "/"

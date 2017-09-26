@@ -108,6 +108,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEcsService
     Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-service'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -124,6 +125,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEcsService
     Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-task'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
