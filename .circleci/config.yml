@@ -17,17 +17,20 @@ jobs:
             sudo apt-get update
             sudo apt-get install glide -y
 
+      - checkout:
+
       - run:
           name: Setup Source
           command: |
-            echo "export APP_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" >> $BASH_ENV
-
-      - checkout:
-          path: $APP_PATH
+            IMPORT_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME
+            APP_PATH=$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME
+            mkdir -p $IMPORT_PATH
+            ln -sf "$(pwd)" $APP_PATH
+            echo "export APP_PATH=$APP_PATH" >> $BASH_ENV
 
       - run:
           name: Dependencies
-          command: make deps
+          command: cd $APP_PATH && make deps
           working_directory: $APP_PATH
 
       - run:
