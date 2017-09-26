@@ -1,11 +1,11 @@
 package aws
 
 import (
-	"github.com/stelligent/mu/common"
-	"strings"
-	"github.com/stelligent/mu/templates"
 	"fmt"
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"strconv"
+	"strings"
 )
 
 type iamRolesetManager struct {
@@ -18,7 +18,7 @@ func newRolesetManager(ctx *common.Context) (common.RolesetManager, error) {
 	}, nil
 }
 
-func (rolesetMgr *iamRolesetManager) getRolesetFromStack(names ...string) (common.Roleset) {
+func (rolesetMgr *iamRolesetManager) getRolesetFromStack(names ...string) common.Roleset {
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, names...)
 	stack, _ := rolesetMgr.context.StackManager.GetStack(stackName)
 
@@ -38,21 +38,20 @@ func overrideRole(roleset common.Roleset, roleType string, roleArn string) {
 func (rolesetMgr *iamRolesetManager) GetCommonRoleset() (common.Roleset, error) {
 	roleset := rolesetMgr.getRolesetFromStack("common")
 
-	overrideRole(roleset, "CloudFormationRoleArn",  common.Config.Roles.CloudFormation)
+	overrideRole(roleset, "CloudFormationRoleArn", rolesetMgr.context.Config.Roles.CloudFormation)
 
 	return roleset, nil
 }
 
 func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName string) (common.Roleset, error) {
-	roleset := rolesetMgr.getRolesetFromStack("environment", environmentName )
-
+	roleset := rolesetMgr.getRolesetFromStack("environment", environmentName)
 
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
 			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EcsInstance)
-			overrideRole(roleset, "ConsulClientTaskRoleArn",  e.Roles.ConsulClientTask)
-			overrideRole(roleset, "ConsulEC2InstanceProfileArn",  e.Roles.ConsulInstance)
-			overrideRole(roleset, "ConsulServerTaskRoleArn",  e.Roles.ConsulServerTask)
+			overrideRole(roleset, "ConsulClientTaskRoleArn", e.Roles.ConsulClientTask)
+			overrideRole(roleset, "ConsulEC2InstanceProfileArn", e.Roles.ConsulInstance)
+			overrideRole(roleset, "ConsulServerTaskRoleArn", e.Roles.ConsulServerTask)
 			break
 		}
 	}
@@ -61,12 +60,12 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 }
 
 func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, serviceName string) (common.Roleset, error) {
-	roleset := rolesetMgr.getRolesetFromStack("service", serviceName, environmentName )
+	roleset := rolesetMgr.getRolesetFromStack("service", serviceName, environmentName)
 
 	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
-	overrideRole(roleset, "CodeDeployRoleArn",  rolesetMgr.context.Config.Service.Roles.CodeDeploy)
-	overrideRole(roleset, "EcsServiceRoleArn",  rolesetMgr.context.Config.Service.Roles.EcsService)
-	overrideRole(roleset, "EcsTaskRoleArn",  rolesetMgr.context.Config.Service.Roles.EcsTask)
+	overrideRole(roleset, "CodeDeployRoleArn", rolesetMgr.context.Config.Service.Roles.CodeDeploy)
+	overrideRole(roleset, "EcsServiceRoleArn", rolesetMgr.context.Config.Service.Roles.EcsService)
+	overrideRole(roleset, "EcsTaskRoleArn", rolesetMgr.context.Config.Service.Roles.EcsTask)
 
 	return roleset, nil
 }
@@ -84,7 +83,7 @@ func (rolesetMgr *iamRolesetManager) GetPipelineRoleset(serviceName string) (com
 	return roleset, nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() (error) {
+func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of common IAM roles.")
 		return nil
@@ -96,9 +95,9 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() (error) {
 		return err
 	}
 	stackTags := map[string]string{
-		"type":        "iam",
-		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+		"type":     "iam",
+		"revision": rolesetMgr.context.Config.Repo.Revision,
+		"repo":     rolesetMgr.context.Config.Repo.Name,
 	}
 
 	stackParams := map[string]string{
@@ -122,7 +121,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() (error) {
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName string) (error) {
+func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of environment IAM roles.")
 		return nil
@@ -144,7 +143,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "environment", environmentName)
 	overrides := common.GetStackOverrides(stackName)
-	template, err := templates.NewTemplate("environment-iam.yml", environment, overrides)
+	template, err := templates.NewTemplate("env-iam.yml", environment, overrides)
 	if err != nil {
 		return err
 	}
@@ -153,11 +152,11 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		"environment": environmentName,
 		"provider":    string(environment.Provider),
 		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+		"repo":        rolesetMgr.context.Config.Repo.Name,
 	}
 
 	stackParams := map[string]string{
-		"Namespace": rolesetMgr.context.Config.Namespace,
+		"Namespace":       rolesetMgr.context.Config.Namespace,
 		"EnvironmentName": environmentName,
 	}
 
@@ -182,7 +181,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string) (error) {
+func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of service IAM roles.")
 		return nil
@@ -221,15 +220,14 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"provider":    envProvider,
 		"service":     serviceName,
 		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+		"repo":        rolesetMgr.context.Config.Repo.Name,
 	}
 
-
 	stackParams := map[string]string{
-		"Namespace": rolesetMgr.context.Config.Namespace,
+		"Namespace":       rolesetMgr.context.Config.Namespace,
 		"EnvironmentName": environmentName,
-		"ServiceName": serviceName,
-		"Provider": envProvider,
+		"ServiceName":     serviceName,
+		"Provider":        envProvider,
 	}
 
 	// Get the bucket name of the revision bucket
@@ -259,7 +257,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) (error) {
+func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of pipeline IAM roles.")
 		return nil
@@ -271,19 +269,19 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) (
 		return err
 	}
 	stackTags := map[string]string{
-		"type":        "iam",
-		"service":     serviceName,
-		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":    	   rolesetMgr.context.Config.Repo.Name,
+		"type":     "iam",
+		"service":  serviceName,
+		"revision": rolesetMgr.context.Config.Repo.Revision,
+		"repo":     rolesetMgr.context.Config.Repo.Name,
 	}
 
 	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline
 
 	stackParams := map[string]string{
-		"Namespace": rolesetMgr.context.Config.Namespace,
-		"ServiceName": serviceName,
+		"Namespace":      rolesetMgr.context.Config.Namespace,
+		"ServiceName":    serviceName,
 		"SourceProvider": pipelineConfig.Source.Provider,
-		"SourceRepo": pipelineConfig.Source.Repo,
+		"SourceRepo":     pipelineConfig.Source.Repo,
 	}
 
 	if pipelineConfig.Acceptance.Environment != "" {
@@ -297,7 +295,6 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) (
 	stackParams["EnableBuildStage"] = strconv.FormatBool(!pipelineConfig.Build.Disabled)
 	stackParams["EnableAcptStage"] = strconv.FormatBool(!pipelineConfig.Acceptance.Disabled)
 	stackParams["EnableProdStage"] = strconv.FormatBool(!pipelineConfig.Production.Disabled)
-
 
 	commonRoleset, err := rolesetMgr.GetCommonRoleset()
 	if err != nil {
@@ -323,13 +320,12 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) (
 	return nil
 }
 
-
-func (rolesetMgr *iamRolesetManager) DeleteCommonRoleset() (error) {
+func (rolesetMgr *iamRolesetManager) DeleteCommonRoleset() error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping delete of common IAM roles.")
 		return nil
 	}
-	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common" )
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common")
 	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
 	if err != nil {
 		return err
@@ -343,7 +339,7 @@ func (rolesetMgr *iamRolesetManager) DeleteCommonRoleset() (error) {
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) DeleteEnvironmentRoleset(environmentName string) (error) {
+func (rolesetMgr *iamRolesetManager) DeleteEnvironmentRoleset(environmentName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping delete of environment IAM roles.")
 		return nil
@@ -362,7 +358,7 @@ func (rolesetMgr *iamRolesetManager) DeleteEnvironmentRoleset(environmentName st
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) DeleteServiceRoleset(environmentName string, serviceName string) (error) {
+func (rolesetMgr *iamRolesetManager) DeleteServiceRoleset(environmentName string, serviceName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping delete of service IAM roles.")
 		return nil
@@ -381,7 +377,7 @@ func (rolesetMgr *iamRolesetManager) DeleteServiceRoleset(environmentName string
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) DeletePipelineRoleset(serviceName string) (error) {
+func (rolesetMgr *iamRolesetManager) DeletePipelineRoleset(serviceName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping delete of pipeline IAM roles.")
 		return nil

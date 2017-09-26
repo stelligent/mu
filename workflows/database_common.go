@@ -6,9 +6,9 @@ import (
 )
 
 type databaseWorkflow struct {
-	serviceName  string
-	codeRevision string
-	repoName     string
+	serviceName           string
+	codeRevision          string
+	repoName              string
 	cloudFormationRoleArn string
 }
 

@@ -11,19 +11,19 @@ import (
 )
 
 type serviceWorkflow struct {
-	envStack          *common.Stack
-	lbStack           *common.Stack
-	artifactProvider  common.ArtifactProvider
-	serviceName       string
-	serviceTag        string
-	serviceImage      string
-	registryAuth      string
-	priority          int
-	codeRevision      string
-	repoName          string
-	appName           string
-	appRevisionBucket string
-	appRevisionKey    string
+	envStack              *common.Stack
+	lbStack               *common.Stack
+	artifactProvider      common.ArtifactProvider
+	serviceName           string
+	serviceTag            string
+	serviceImage          string
+	registryAuth          string
+	priority              int
+	codeRevision          string
+	repoName              string
+	appName               string
+	appRevisionBucket     string
+	appRevisionKey        string
 	cloudFormationRoleArn string
 }
 

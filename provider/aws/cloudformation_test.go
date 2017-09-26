@@ -120,7 +120,7 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil)
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -146,7 +146,7 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil)
+	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)

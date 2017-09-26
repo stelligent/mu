@@ -5,10 +5,10 @@ type Roleset map[string]string
 
 // RolesetUpserter for managing a roleset
 type RolesetUpserter interface {
-	UpsertCommonRoleset() (error)
-	UpsertEnvironmentRoleset(environmentName string) (error)
-	UpsertServiceRoleset(environmentName string, serviceName string) (error)
-	UpsertPipelineRoleset(serviceName string) (error)
+	UpsertCommonRoleset() error
+	UpsertEnvironmentRoleset(environmentName string) error
+	UpsertServiceRoleset(environmentName string, serviceName string) error
+	UpsertPipelineRoleset(serviceName string) error
 }
 
 // RolesetGetter for getting a roleset
@@ -21,10 +21,10 @@ type RolesetGetter interface {
 
 // RolesetDeleter for deleting a roleset
 type RolesetDeleter interface {
-	DeleteCommonRoleset() (error)
-	DeleteEnvironmentRoleset(environmentName string) (error)
-	DeleteServiceRoleset(environmentName string, serviceName string) (error)
-	DeletePipelineRoleset(serviceName string) (error)
+	DeleteCommonRoleset() error
+	DeleteEnvironmentRoleset(environmentName string) error
+	DeleteServiceRoleset(environmentName string, serviceName string) error
+	DeletePipelineRoleset(serviceName string) error
 }
 
 // RolesetManager composite of all roleset capabilities

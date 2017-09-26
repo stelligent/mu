@@ -113,7 +113,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.CreateStackInput{
-			StackName: aws.String(stackName),
+			StackName:    aws.String(stackName),
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
 			Tags:         stackTags,
@@ -154,10 +154,10 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.UpdateStackInput{
-			StackName: aws.String(stackName),
+			StackName:    aws.String(stackName),
 			Parameters:   stackParameters,
 			TemplateBody: templateBody,
-			Tags: stackTags,
+			Tags:         stackTags,
 		}
 
 		if roleArn != "" {
