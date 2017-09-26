@@ -26,18 +26,15 @@ jobs:
 
       - run:
           name: Dependencies
-          command: make deps
-          working_directory: $APP_PATH
+          command: cd $APP_PATH && make deps
 
       - run:
           name: Compile
-          command: make build
-          working_directory: $APP_PATH
+          command: cd $APP_PATH && make build
 
       - run:
           name: Test
-          command: make test
-          working_directory: $APP_PATH
+          command: cd $APP_PATH && make test
 
 
       ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
@@ -51,12 +48,12 @@ jobs:
       - deploy:
           name: Deploy
           command: |
+            cd $APP_PATH
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               make dev-release
             elif [ "${CIRCLE_BRANCH}" == "master" ]; then
               make release
             fi
-          working_directory: $APP_PATH
 
 
 
