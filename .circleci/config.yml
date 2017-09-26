@@ -46,6 +46,10 @@ jobs:
       - store_artifacts:
           path: artifacts
 
+      - add_ssh_keys:
+          fingerprints:
+            - "53:1f:d0:6f:24:2a:bf:cb:92:0f:bc:1e:14:6e:1d:72"
+
       ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
       ##  a token created from https://github.com/settings/tokens
       ##
