@@ -1,9 +1,9 @@
 version: 2
 
 jobs:
-  machine: true
-
   build:
+    machine: true
+
     ## Don't build when new release tags are pushed
     branches:
       ignore:
