@@ -2,8 +2,6 @@ version: 2
 
 jobs:
   build:
-    machine: true
-
     ## Don't build when new release tags are pushed
     branches:
       ignore:
@@ -20,11 +18,9 @@ jobs:
       - run:
           name: Setup Source
           command: |
-            IMPORT_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME
-            APP_PATH=$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME
-            mkdir -p "$IMPORT_PATH"
-            ln -sf "$(pwd)" "$APP_PATH"
-            echo "export APP_PATH=" >> $BASH_ENV
+            mkdir -p /home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME
+            ln -sf "$(pwd)" /home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+            echo "export APP_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" >> $BASH_ENV
 
       - run:
           name: Dependencies
