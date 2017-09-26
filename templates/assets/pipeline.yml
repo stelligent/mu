@@ -221,21 +221,21 @@ Resources:
           env:
             variables:
               DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
-              AWS_PROFILE: mu
           phases:
             pre_build:
               commands:
                 - pip install --upgrade awscli
-                - aws configure --profile mu set source_profile default
-                - aws configure --profile mu set role_arn ${MuAcptRoleArn}
+                - aws configure set default.region ${AWS::Region}
+                - aws configure set profile.mu.source_profile default
+                - aws configure set profile.mu.role_arn ${MuAcptRoleArn}
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} --disable-iam svc deploy ${AcptEnv}
-                - mu env show ${AcptEnv} -f json > env.json
+                - mu -p mu -c ${MuFile} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
+                - mu -p mu -c ${MuFile} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -p mu -c ${MuFile} --disable-iam svc deploy ${AcptEnv}
+                - mu -p mu env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -277,21 +277,21 @@ Resources:
           env:
             variables:
               DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
-              AWS_PROFILE: mu
           phases:
             pre_build:
               commands:
                 - pip install --upgrade awscli
-                - aws configure --profile mu set source_profile default
-                - aws configure --profile mu set role_arn ${MuProdRoleArn}
+                - aws configure set default.region ${AWS::Region}
+                - aws configure set profile.mu.source_profile default
+                - aws configure set profile.mu.role_arn ${MuProdRoleArn}
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} --disable-iam svc deploy ${ProdEnv}
-                - mu env show ${ProdEnv} -f json > env.json
+                - mu -p mu -c ${MuFile} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
+                - mu -p mu -c ${MuFile} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
+                - mu -p mu -c ${MuFile} --disable-iam svc deploy ${ProdEnv}
+                - mu -p mu env show ${ProdEnv} -f json > env.json
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
