@@ -413,20 +413,20 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"assets/app.yml": assetsAppYml,
-	"assets/bucket.yml": assetsBucketYml,
-	"assets/buildspec.yml": assetsBuildspecYml,
-	"assets/consul.yml": assetsConsulYml,
-	"assets/database.yml": assetsDatabaseYml,
-	"assets/elb.yml": assetsElbYml,
-	"assets/env-ec2.yml": assetsEnvEc2Yml,
-	"assets/env-ecs.yml": assetsEnvEcsYml,
-	"assets/pipeline.yml": assetsPipelineYml,
-	"assets/repo.yml": assetsRepoYml,
+	"assets/app.yml":         assetsAppYml,
+	"assets/bucket.yml":      assetsBucketYml,
+	"assets/buildspec.yml":   assetsBuildspecYml,
+	"assets/consul.yml":      assetsConsulYml,
+	"assets/database.yml":    assetsDatabaseYml,
+	"assets/elb.yml":         assetsElbYml,
+	"assets/env-ec2.yml":     assetsEnvEc2Yml,
+	"assets/env-ecs.yml":     assetsEnvEcsYml,
+	"assets/pipeline.yml":    assetsPipelineYml,
+	"assets/repo.yml":        assetsRepoYml,
 	"assets/service-ec2.yml": assetsServiceEc2Yml,
 	"assets/service-ecs.yml": assetsServiceEcsYml,
-	"assets/vpc-target.yml": assetsVpcTargetYml,
-	"assets/vpc.yml": assetsVpcYml,
+	"assets/vpc-target.yml":  assetsVpcTargetYml,
+	"assets/vpc.yml":         assetsVpcYml,
 }
 
 // AssetDir returns the file names below a certain
@@ -468,22 +468,23 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"assets": &bintree{nil, map[string]*bintree{
-		"app.yml": &bintree{assetsAppYml, map[string]*bintree{}},
-		"bucket.yml": &bintree{assetsBucketYml, map[string]*bintree{}},
-		"buildspec.yml": &bintree{assetsBuildspecYml, map[string]*bintree{}},
-		"consul.yml": &bintree{assetsConsulYml, map[string]*bintree{}},
-		"database.yml": &bintree{assetsDatabaseYml, map[string]*bintree{}},
-		"elb.yml": &bintree{assetsElbYml, map[string]*bintree{}},
-		"env-ec2.yml": &bintree{assetsEnvEc2Yml, map[string]*bintree{}},
-		"env-ecs.yml": &bintree{assetsEnvEcsYml, map[string]*bintree{}},
-		"pipeline.yml": &bintree{assetsPipelineYml, map[string]*bintree{}},
-		"repo.yml": &bintree{assetsRepoYml, map[string]*bintree{}},
+		"app.yml":         &bintree{assetsAppYml, map[string]*bintree{}},
+		"bucket.yml":      &bintree{assetsBucketYml, map[string]*bintree{}},
+		"buildspec.yml":   &bintree{assetsBuildspecYml, map[string]*bintree{}},
+		"consul.yml":      &bintree{assetsConsulYml, map[string]*bintree{}},
+		"database.yml":    &bintree{assetsDatabaseYml, map[string]*bintree{}},
+		"elb.yml":         &bintree{assetsElbYml, map[string]*bintree{}},
+		"env-ec2.yml":     &bintree{assetsEnvEc2Yml, map[string]*bintree{}},
+		"env-ecs.yml":     &bintree{assetsEnvEcsYml, map[string]*bintree{}},
+		"pipeline.yml":    &bintree{assetsPipelineYml, map[string]*bintree{}},
+		"repo.yml":        &bintree{assetsRepoYml, map[string]*bintree{}},
 		"service-ec2.yml": &bintree{assetsServiceEc2Yml, map[string]*bintree{}},
 		"service-ecs.yml": &bintree{assetsServiceEcsYml, map[string]*bintree{}},
-		"vpc-target.yml": &bintree{assetsVpcTargetYml, map[string]*bintree{}},
-		"vpc.yml": &bintree{assetsVpcYml, map[string]*bintree{}},
+		"vpc-target.yml":  &bintree{assetsVpcTargetYml, map[string]*bintree{}},
+		"vpc.yml":         &bintree{assetsVpcYml, map[string]*bintree{}},
 	}},
 }}
 
@@ -533,4 +534,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
