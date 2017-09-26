@@ -9,7 +9,8 @@ VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 SRC_FILES = $(shell glide nv)
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
-BUILD_DIR = $(if $(CIRCLE_ARTIFACTS),$(CIRCLE_ARTIFACTS),.release)
+BUILD_DIR = .release
+BUILD_DIR = $(if $(CIRCLE_WORKING_DIRECTORY),$(CIRCLE_WORKING_DIRECTORY)/artifacts,.release)
 BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
@@ -41,9 +42,9 @@ nag:
 
 test: lint gen
 	@echo "=== testing ==="
-ifneq ($(CIRCLE_TEST_REPORTS),)
-	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
-	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+ifneq ($(CIRCLE_WORKING_DIRECTORY),)
+	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
+	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
 else
 	go test -cover $(SRC_FILES)
 endif

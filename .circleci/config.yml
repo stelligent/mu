@@ -40,6 +40,11 @@ jobs:
           name: Test
           command: cd $APP_PATH && make test
 
+      - store_test_results:
+          path: test-results
+
+      - store_artifacts:
+          path: artifacts
 
       ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
       ##  a token created from https://github.com/settings/tokens
