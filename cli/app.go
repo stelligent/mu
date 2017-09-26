@@ -62,7 +62,6 @@ func NewApp() *cli.App {
 			context.Config.DisableIAM = true
 		}
 
-
 		if c.Bool("silent") {
 			context.DockerOut = ioutil.Discard
 		} else {
