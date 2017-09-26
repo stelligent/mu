@@ -251,7 +251,16 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
+		var svcTags TagInterface = &ServiceTags{
+			Service:     workflow.serviceName,
+			Environment: environmentName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -281,7 +290,20 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName), workflow.cloudFormationRoleArn)
+		var svcTags TagInterface = &ServiceTags{
+			Service:     workflow.serviceName,
+			Environment: environmentName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -319,16 +341,5 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 			log.Warningf("Unable to resolve environment '%s': %v", key, value)
 		}
 
-	}
-}
-
-func buildServiceTags(serviceName string, environmentName string, envProvider string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		"type":        string(stackType),
-		"environment": environmentName,
-		"provider":    envProvider,
-		"service":     serviceName,
-		"revision":    codeRevision,
-		"repo":        repoName,
 	}
 }

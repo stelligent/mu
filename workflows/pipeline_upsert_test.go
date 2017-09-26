@@ -20,6 +20,7 @@ func TestPipelineBucket(t *testing.T) {
 
 	workflow := new(pipelineWorkflow)
 	workflow.serviceName = "my-service"
+	workflow.pipelineConfig = new(common.Pipeline)
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-bucket-codepipeline").Return(&common.Stack{Status: common.StackStatusCreateComplete})
