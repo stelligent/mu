@@ -140,8 +140,8 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 	assert := assert.New(t)
 	rolesetManager := new(mockedRolesetManagerForService)
 
-	rolesetManager.On("UpsertCommonRoleset" ).Return(nil)
-	rolesetManager.On("GetCommonRoleset" ).Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("UpsertCommonRoleset").Return(nil)
+	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
 
 	workflow := new(databaseWorkflow)
 	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager)()

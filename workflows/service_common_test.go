@@ -77,6 +77,7 @@ type mockedRolesetManagerForService struct {
 	mock.Mock
 	common.RolesetManager
 }
+
 func (m *mockedRolesetManagerForService) GetCommonRoleset() (common.Roleset, error) {
 	args := m.Called()
 	roleset := args.Get(0)
@@ -85,11 +86,11 @@ func (m *mockedRolesetManagerForService) GetCommonRoleset() (common.Roleset, err
 	}
 	return roleset.(common.Roleset), args.Error(1)
 }
-func (m *mockedRolesetManagerForService) UpsertCommonRoleset() (error) {
+func (m *mockedRolesetManagerForService) UpsertCommonRoleset() error {
 	args := m.Called()
 	return args.Error(0)
 }
-func (m *mockedRolesetManagerForService) UpsertServiceRoleset(env string, svc string) (error) {
+func (m *mockedRolesetManagerForService) UpsertServiceRoleset(env string, svc string) error {
 	args := m.Called(env, svc)
 	return args.Error(0)
 }
