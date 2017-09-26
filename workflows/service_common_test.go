@@ -73,6 +73,27 @@ func TestServiceRegistryAuthenticator(t *testing.T) {
 	authn.AssertNumberOfCalls(t, "AuthenticateRepository", 1)
 }
 
+type mockedRolesetManagerForService struct {
+	mock.Mock
+	common.RolesetManager
+}
+func (m *mockedRolesetManagerForService) GetCommonRoleset() (common.Roleset, error) {
+	args := m.Called()
+	roleset := args.Get(0)
+	if roleset == nil {
+		return nil, args.Error(1)
+	}
+	return roleset.(common.Roleset), args.Error(1)
+}
+func (m *mockedRolesetManagerForService) UpsertCommonRoleset() (error) {
+	args := m.Called()
+	return args.Error(0)
+}
+func (m *mockedRolesetManagerForService) UpsertServiceRoleset(env string, svc string) (error) {
+	args := m.Called(env, svc)
+	return args.Error(0)
+}
+
 type mockedStackManagerForService struct {
 	mock.Mock
 }

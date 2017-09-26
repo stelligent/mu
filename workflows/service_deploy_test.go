@@ -196,3 +196,24 @@ func TestServiceEcsDeployer(t *testing.T) {
 func stringRef(v string) *string {
 	return &v
 }
+
+func TestServiceDeployer_serviceRolesetUpserter(t *testing.T) {
+	assert := assert.New(t)
+	rolesetManager := new(mockedRolesetManagerForService)
+
+	rolesetManager.On("UpsertCommonRoleset").Return(nil)
+	rolesetManager.On("GetCommonRoleset" ).Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("UpsertServiceRoleset","env1", "svc20" ).Return(nil)
+
+	workflow := new(serviceWorkflow)
+	workflow.serviceName = "svc20"
+	err := workflow.serviceRolesetUpserter(rolesetManager, rolesetManager, "env1")()
+	assert.Nil(err)
+	assert.Equal("bar", workflow.cloudFormationRoleArn)
+
+	rolesetManager.AssertExpectations(t)
+	rolesetManager.AssertNumberOfCalls(t, "UpsertCommonRoleset", 1)
+	rolesetManager.AssertNumberOfCalls(t, "GetCommonRoleset", 1)
+	rolesetManager.AssertNumberOfCalls(t, "UpsertServiceRoleset", 1)
+
+}
