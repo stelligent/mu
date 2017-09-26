@@ -38,7 +38,19 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+
+		var pipeTags TagInterface = &PipelineTags{
+			Type:     common.StackTypeBucket,
+			Service:  workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo:     workflow.repoName,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags)
 		if err != nil {
 			return err
 		}
@@ -136,8 +148,18 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		if version != "" {
 			pipelineParams["MuDownloadVersion"] = version
 		}
+		var pipeTags TagInterface = &PipelineTags{
+			Type:     common.StackTypePipeline,
+			Service:  workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo:     workflow.repoName,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, tags)
 		if err != nil {
 			return err
 		}
@@ -152,14 +174,5 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		}
 
 		return nil
-	}
-}
-
-func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		"type":     string(stackType),
-		"service":  serviceName,
-		"revision": codeRevision,
-		"repo":     repoName,
 	}
 }

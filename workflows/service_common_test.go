@@ -113,3 +113,59 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
+
+func TestEnvironmentTags(t *testing.T) {
+	assert := assert.New(t)
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    tags: 
+      mytag: first-tag
+      foo: bar
+`
+	config, err := loadYamlConfig(yamlConfig)
+	assert.Nil(err)
+	assert.Equal(config.Environments[0].Name, "dev")
+
+	var envTags TagInterface = &EnvironmentTags{
+		Environment: config.Environments[0].Name,
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
+	}
+	joinedMap, err := concatTags(config.Environments[0].Tags, envTags)
+	assert.Nil(err)
+	assert.Equal(len(joinedMap), 7)
+	assert.NotNil(joinedMap["mytag"])
+	assert.Equal(joinedMap["foo"], "bar")
+}
+
+func TestNoTagOverride(t *testing.T) {
+	assert := assert.New(t)
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    tags: 
+      environment: this-should-break
+      foo: bar
+`
+
+	config, err := loadYamlConfig(yamlConfig)
+	assert.Nil(err)
+
+	var envTags TagInterface = &EnvironmentTags{
+		Environment: config.Environments[0].Name,
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
+	}
+	_, maperr := concatTags(config.Environments[0].Tags, envTags)
+
+	assert.NotNil(maperr)
+}

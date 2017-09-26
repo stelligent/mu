@@ -19,10 +19,7 @@ func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceNam
 func (workflow *databaseWorkflow) databaseSetPassword(ctx *common.Context, environmentName string, newPassword string) Executor {
 	return func() error {
 		dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
-		if err := ctx.ParamManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), newPassword); err != nil {
-			return err
-		}
-		return nil
+		return ctx.ParamManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), newPassword)
 	}
 }
 

@@ -41,8 +41,9 @@ type Config struct {
 
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string      `yaml:"name,omitempty"`
-	Provider     EnvProvider `yaml:"provider,omitempty"`
+	Name         string                 `yaml:"name,omitempty"`
+	Provider     EnvProvider            `yaml:"provider,omitempty"`
+	Tags         map[string]interface{} `yaml:"tags,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`
@@ -84,6 +85,7 @@ type Service struct {
 	CPU             int                    `yaml:"cpu,omitempty"`
 	Memory          int                    `yaml:"memory,omitempty"`
 	Environment     map[string]interface{} `yaml:"environment,omitempty"`
+	Tags            map[string]interface{} `yaml:"tags,omitempty"`
 	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
 	Priority        int                    `yaml:"priority,omitempty"`
@@ -93,16 +95,18 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string `yaml:"name,omitempty"`
-	InstanceClass     string `yaml:"instanceClass,omitempty"`
-	Engine            string `yaml:"engine,omitempty"`
-	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
+	Name              string                 `yaml:"name,omitempty"`
+	Tags              map[string]interface{} `yaml:"tags,omitempty"`
+	InstanceClass     string                 `yaml:"instanceClass,omitempty"`
+	Engine            string                 `yaml:"engine,omitempty"`
+	IamAuthentication bool                   `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string                 `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string                 `yaml:"allocatedStorage,omitempty"`
 }
 
 // Pipeline definition
 type Pipeline struct {
+	Tags   map[string]interface{} `yaml:"tags,omitempty"`
 	Source struct {
 		Provider string `yaml:"provider,omitempty"`
 		Repo     string `yaml:"repo,omitempty"`
