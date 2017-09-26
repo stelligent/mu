@@ -225,6 +225,7 @@ Resources:
           phases:
             pre_build:
               commands:
+                - pip install --upgrade awscli
                 - aws configure --profile mu set source_profile default
                 - aws configure --profile mu set role_arn ${MuAcptRoleArn}
             build:
@@ -280,6 +281,7 @@ Resources:
           phases:
             pre_build:
               commands:
+                - pip install --upgrade awscli
                 - aws configure --profile mu set source_profile default
                 - aws configure --profile mu set role_arn ${MuProdRoleArn}
             build:

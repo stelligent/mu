@@ -43,6 +43,12 @@ func NewApp() *cli.App {
 			return err
 		}
 
+		// TODO: support initializing context from other cloud providers?
+		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
+		if err != nil {
+			return err
+		}
+
 		err = context.InitializeConfigFromFile(c.String("config"))
 		if err != nil {
 			// ignore errors for init command
@@ -56,11 +62,6 @@ func NewApp() *cli.App {
 			context.Config.DisableIAM = true
 		}
 
-		// TODO: support initializing context from other cloud providers?
-		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
-		if err != nil {
-			return err
-		}
 
 		if c.Bool("silent") {
 			context.DockerOut = ioutil.Discard

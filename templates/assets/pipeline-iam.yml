@@ -166,7 +166,7 @@ Resources:
         - Action:
           - codepipeline:GetPipelineState
           Effect: Allow
-          Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${ServiceName}
+          Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
         - Action:
           - codepipeline:GetJobDetails
           - codepipeline:PollForJobs
@@ -224,9 +224,9 @@ Resources:
             - cloudformation:UpdateStack
             - cloudformation:DescribeStacks
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
             - s3:CreateBucket
@@ -247,7 +247,7 @@ Resources:
             - ecr:CompleteLayerUpload
             - ecr:PutImage
             Effect: Allow
-            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:respository/${ServiceName}
+            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ServiceName}
           - Action:
             - ecr:GetAuthorizationToken
             Effect: Allow
@@ -331,12 +331,12 @@ Resources:
             - cloudformation:UpdateStack
             - cloudformation:DescribeStacks
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}/*
             Effect: Allow
           - Action:
             - iam:PassRole
@@ -366,12 +366,12 @@ Resources:
             - cloudformation:UpdateStack
             - cloudformation:DescribeStacks
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}/*
             Effect: Allow
           - Action:
             - iam:PassRole

@@ -128,10 +128,12 @@ func waitForPipeline(ctx *common.Context) error {
 		latestActionTime := int64(0)
 		for _, state := range states {
 			if state.LatestExecution == nil {
+				status = codepipeline.ActionExecutionStatusInProgress
 				break
 			} else if latestExecutionID == "" {
 				latestExecutionID = common.StringValue(state.LatestExecution.PipelineExecutionId)
 			} else if latestExecutionID != common.StringValue(state.LatestExecution.PipelineExecutionId) {
+				status = codepipeline.ActionExecutionStatusInProgress
 				break
 			}
 
@@ -192,10 +194,10 @@ func setupContexts(sess *session.Session, basedir string) error {
 				return err
 			}
 
-			// TODO: need to package and stage the mu source to a public URL
 			// set the mu version and download URL
 			muPath := fmt.Sprintf("%s/mu.yml", dst)
-			err = updateMuYaml(muPath, "https://github.com/stelligent/mu/releases/download", "0.2.6-develop")
+			err = updateMuYaml(muPath, os.Getenv("MU_BASEURL"), os.Getenv("MU_VERSION"))
+
 			if err != nil {
 				return err
 			}
@@ -222,6 +224,8 @@ func setupContexts(sess *session.Session, basedir string) error {
 func updateMuYaml(muConfigFile string, muBaseurl string, muVersion string) error {
 	config := new(common.Config)
 	yamlFile, err := os.Open(muConfigFile)
+
+	fmt.Printf("Updating mu.yaml with baseurl=%s and version=%s\n", muBaseurl, muVersion)
 
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(bufio.NewReader(yamlFile))
