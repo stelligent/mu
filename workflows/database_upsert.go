@@ -88,10 +88,10 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 
 		var dbTags TagInterface = &DatabaseTags{
 			Environment: environmentName,
-			Type: common.StackTypeDatabase,
-			Service: workflow.serviceName,
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        common.StackTypeDatabase,
+			Service:     workflow.serviceName,
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(service.Database.Tags, dbTags)
 

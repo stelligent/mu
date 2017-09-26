@@ -104,10 +104,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
-			Type: string(common.StackTypeVpc),
-			Provider: string(environment.Provider), 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeVpc),
+			Provider:    string(environment.Provider),
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
@@ -183,10 +183,10 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string,
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
-			Type: string(common.StackTypeConsul),
-			Provider: string(environment.Provider), 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeConsul),
+			Provider:    string(environment.Provider),
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
@@ -247,10 +247,10 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
-			Type: string(common.StackTypeLoadBalancer),
-			Provider: string(environment.Provider), 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeLoadBalancer),
+			Provider:    string(environment.Provider),
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {
@@ -341,10 +341,10 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: environment.Name,
-			Type: string(common.StackTypeEnv),
-			Provider: string(environment.Provider), 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeEnv),
+			Provider:    string(environment.Provider),
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(environment.Tags, envTags)
 		if err != nil {

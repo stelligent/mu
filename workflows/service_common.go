@@ -1,11 +1,11 @@
 package workflows
 
 import (
+	"encoding/base64"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
-	"encoding/base64"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -133,10 +133,10 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
-			Type: string(common.StackTypeRepo),
-			Provider: "", 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeRepo),
+			Provider:    "",
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(service.Tags, envTags)
 		if err != nil {
@@ -175,10 +175,10 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
-			Type: string(common.StackTypeApp),
-			Provider: "", 
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        string(common.StackTypeApp),
+			Provider:    "",
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 
 		tags, err := concatTags(service.Tags, envTags)
@@ -216,10 +216,10 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 		bucketParams["BucketPrefix"] = "codedeploy"
 
 		var pipeTags TagInterface = &PipelineTags{
-			Type: common.StackTypeBucket,
-			Service: workflow.serviceName,
+			Type:     common.StackTypeBucket,
+			Service:  workflow.serviceName,
 			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Repo:     workflow.repoName,
 		}
 		tags, err := concatTags(service.Tags, pipeTags)
 		if err != nil {

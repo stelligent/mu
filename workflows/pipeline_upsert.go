@@ -40,10 +40,10 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 		bucketParams["BucketPrefix"] = "codepipeline"
 
 		var pipeTags TagInterface = &PipelineTags{
-			Type: common.StackTypeBucket,
-			Service: workflow.serviceName,
+			Type:     common.StackTypeBucket,
+			Service:  workflow.serviceName,
 			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Repo:     workflow.repoName,
 		}
 		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {
@@ -149,10 +149,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 			pipelineParams["MuDownloadVersion"] = version
 		}
 		var pipeTags TagInterface = &PipelineTags{
-			Type: common.StackTypePipeline,
-			Service: workflow.serviceName,
+			Type:     common.StackTypePipeline,
+			Service:  workflow.serviceName,
 			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Repo:     workflow.repoName,
 		}
 		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {

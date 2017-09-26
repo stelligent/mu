@@ -1,13 +1,13 @@
 package workflows
 
 import (
-	"io"
-	"strings"
-	"reflect"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
+	"io"
+	"reflect"
+	"strings"
 )
 
 var log = logging.MustGetLogger("workflows")
@@ -110,37 +110,37 @@ type TagInterface interface{}
 // EnvironmentTags used to set defaults
 type EnvironmentTags struct {
 	Environment string `tag:"environment"`
-	Type		string `tag:"type"`
-	Provider	string `tag:"provider"`
-	Revision	string `tag:"revision"`
-	Repo		string `tag:"repo"`
+	Type        string `tag:"type"`
+	Provider    string `tag:"provider"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
 }
 
 // ServiceTags used to set defaults
 type ServiceTags struct {
-	Service 	string `tag:"service"`
+	Service     string `tag:"service"`
 	Environment string `tag:"environment"`
-	Type		string `tag:"type"`
-	Provider	string `tag:"provider"`
-	Revision	string `tag:"revision"`
-	Repo		string `tag:"repo"`
+	Type        string `tag:"type"`
+	Provider    string `tag:"provider"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
 }
 
 // PipelineTags used to set defaults
 type PipelineTags struct {
-	Type		string `tag:"type"`
-	Service		string `tag:"service"`
-	Revision	string `tag:"revision"`
-	Repo		string `tag:"repo"`
+	Type     string `tag:"type"`
+	Service  string `tag:"service"`
+	Revision string `tag:"revision"`
+	Repo     string `tag:"repo"`
 }
 
 // DatabaseTags used to set defaults
 type DatabaseTags struct {
 	Environment string `tag:"environment"`
-	Type		string `tag:"type"`
-	Service 	string `tag:"service"`
-	Revision	string `tag:"revision"`
-	Repo		string `tag:"repo"`
+	Type        string `tag:"type"`
+	Service     string `tag:"service"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
 }
 
 // Constants used during testing
@@ -179,7 +179,7 @@ func reflectToMap(tagI TagInterface) map[string]string {
 	return tagMap
 }
 
-func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]string, error){
+func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]string, error) {
 	joinedMap := map[string]string{}
 	interfaceTags := reflectToMap(tagI)
 
@@ -192,7 +192,7 @@ func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]st
 	}
 
 	for key, value := range interfaceTags {
-		joinedMap["mu:" + key] = value
+		joinedMap["mu:"+key] = value
 	}
 
 	return joinedMap, nil
@@ -214,7 +214,7 @@ func concatTagMaps(ymlMap map[string]interface{}, muMap map[string]string, const
 	}
 
 	for key, value := range muMap {
-		joinedMap["mu:" + key] = value
+		joinedMap["mu:"+key] = value
 	}
 
 	return joinedMap, nil

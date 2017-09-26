@@ -131,10 +131,10 @@ environments:
 
 	var envTags TagInterface = &EnvironmentTags{
 		Environment: config.Environments[0].Name,
-		Type: "StackType",
-		Provider: string(config.Environments[0].Provider), 
-		Revision: "Revision",
-		Repo: "Repo",
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
 	}
 	joinedMap, err := concatTags(config.Environments[0].Tags, envTags)
 	assert.Nil(err)
@@ -160,10 +160,10 @@ environments:
 
 	var envTags TagInterface = &EnvironmentTags{
 		Environment: config.Environments[0].Name,
-		Type: "StackType",
-		Provider: string(config.Environments[0].Provider), 
-		Revision: "Revision",
-		Repo: "Repo",
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
 	}
 	_, maperr := concatTags(config.Environments[0].Tags, envTags)
 

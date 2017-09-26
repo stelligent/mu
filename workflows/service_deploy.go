@@ -210,12 +210,12 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 		}
 
 		var svcTags TagInterface = &ServiceTags{
-			Service: workflow.serviceName,
+			Service:     workflow.serviceName,
 			Environment: environmentName,
-			Type: common.StackTypeService,
-			Provider: workflow.envStack.Outputs["provider"],
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(service.Tags, svcTags)
 		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags)
@@ -249,12 +249,12 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		}
 
 		var svcTags TagInterface = &ServiceTags{
-			Service: workflow.serviceName,
+			Service:     workflow.serviceName,
 			Environment: environmentName,
-			Type: common.StackTypeService,
-			Provider: workflow.envStack.Outputs["provider"],
-			Revision: workflow.codeRevision,
-			Repo: workflow.repoName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
 		}
 		tags, err := concatTags(service.Tags, svcTags)
 		if err != nil {
