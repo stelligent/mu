@@ -14,10 +14,10 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	return newPipelineExecutor(
 		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentDbTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsTerminator(environmentName, ctx.StackManager, ctx.StackManager),
-		workflow.environmentConsulTerminator(environmentName, ctx.StackManager, ctx.StackManager),
-		workflow.environmentElbTerminator(environmentName, ctx.StackManager, ctx.StackManager),
-		workflow.environmentVpcTerminator(environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentEcsTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentConsulTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentElbTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -75,10 +75,10 @@ func (workflow *environmentWorkflow) environmentDbTerminator(environmentName str
 		return nil
 	}
 }
-func (workflow *environmentWorkflow) environmentConsulTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentConsulTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating Consul environment '%s' ...", environmentName)
-		envStackName := common.CreateStackName(common.StackTypeConsul, environmentName)
+		envStackName := common.CreateStackName(namespace, common.StackTypeConsul, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {
 			return err
@@ -92,10 +92,10 @@ func (workflow *environmentWorkflow) environmentConsulTerminator(environmentName
 		return nil
 	}
 }
-func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentEcsTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating ECS environment '%s' ...", environmentName)
-		envStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {
 			return err
@@ -109,10 +109,10 @@ func (workflow *environmentWorkflow) environmentEcsTerminator(environmentName st
 		return nil
 	}
 }
-func (workflow *environmentWorkflow) environmentElbTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentElbTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating ELB environment '%s' ...", environmentName)
-		envStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		envStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {
 			return err
@@ -126,10 +126,10 @@ func (workflow *environmentWorkflow) environmentElbTerminator(environmentName st
 		return nil
 	}
 }
-func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating VPC environment '%s' ...", environmentName)
-		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
+		vpcStackName := common.CreateStackName(namespace, common.StackTypeVpc, environmentName)
 		err := stackDeleter.DeleteStack(vpcStackName)
 		if err != nil {
 			log.Debugf("Unable to delete VPC, but ignoring error: %v", err)
@@ -140,7 +140,7 @@ func (workflow *environmentWorkflow) environmentVpcTerminator(environmentName st
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		targetStackName := common.CreateStackName(common.StackTypeTarget, environmentName)
+		targetStackName := common.CreateStackName(namespace, common.StackTypeTarget, environmentName)
 		err = stackDeleter.DeleteStack(targetStackName)
 		if err != nil {
 			log.Debugf("Unable to delete VPC target, but ignoring error: %v", err)

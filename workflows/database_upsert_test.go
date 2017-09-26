@@ -50,7 +50,7 @@ func TestDatabaseUpserter_NoName(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -83,7 +83,7 @@ func TestDatabaseUpserter(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -120,7 +120,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

@@ -111,7 +111,7 @@ func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName s
 	}
 }
 
-func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		if service.ImageRepository != "" {
 			log.Noticef("Using repo '%s' for service '%s'", service.ImageRepository, workflow.serviceName)
@@ -121,7 +121,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 
 		log.Noticef("Upsert repo for service '%s'", workflow.serviceName)
 
-		ecrStackName := common.CreateStackName(common.StackTypeRepo, workflow.serviceName)
+		ecrStackName := common.CreateStackName(namespace, common.StackTypeRepo, workflow.serviceName)
 		overrides := common.GetStackOverrides(ecrStackName)
 		template, err := templates.NewTemplate("repo.yml", nil, overrides)
 		if err != nil {
@@ -160,11 +160,11 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Upsert app for service '%s'", workflow.serviceName)
 
-		appStackName := common.CreateStackName(common.StackTypeApp, workflow.serviceName)
+		appStackName := common.CreateStackName(namespace, common.StackTypeApp, workflow.serviceName)
 		overrides := common.GetStackOverrides(appStackName)
 		template, err := templates.NewTemplate("app.yml", nil, overrides)
 		if err != nil {
@@ -203,9 +203,9 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codedeploy")
+		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
 		overrides := common.GetStackOverrides(bucketStackName)
 		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
