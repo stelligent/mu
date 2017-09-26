@@ -10,7 +10,7 @@ SRC_FILES = $(shell glide nv)
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
 BUILD_DIR = .release
-BUILD_DIR = $(if $(CIRCLE_WORKING_DIRECTORY),$(CIRCLE_WORKING_DIRECTORY)/artifacts,.release)
+BUILD_DIR = $(abspath $(if $(CIRCLE_WORKING_DIRECTORY),$(CIRCLE_WORKING_DIRECTORY)/artifacts,.release))
 BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
