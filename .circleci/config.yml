@@ -20,21 +20,25 @@ jobs:
       - run:
           name: Setup Source
           command: |
-            mkdir -p /home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME
-            ln -sf "$(pwd)" /home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
             echo "export APP_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" >> $BASH_ENV
+
+      - checkout:
+          path: $APP_PATH
 
       - run:
           name: Dependencies
-          command: cd $APP_PATH && make deps
+          command: make deps
+          working_directory: $APP_PATH
 
       - run:
           name: Compile
-          command: cd $APP_PATH && make build
+          command: make build
+          working_directory: $APP_PATH
 
       - run:
           name: Test
-          command: cd $APP_PATH && make test
+          command: make test
+          working_directory: $APP_PATH
 
 
       ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
@@ -48,12 +52,12 @@ jobs:
       - deploy:
           name: Deploy
           command: |
-            cd $APP_PATH
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               make dev-release
             elif [ "${CIRCLE_BRANCH}" == "master" ]; then
               make release
             fi
+          working_directory: $APP_PATH
 
 
 
