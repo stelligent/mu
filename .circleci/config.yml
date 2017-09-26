@@ -2,8 +2,9 @@ version: 2
 
 jobs:
   build:
-    machine:
-      - environment:
+    docker:
+      - image: circleci/golang:1.8.1
+        environment:
           IMPORT_PATH: "/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME"
           APP_PATH: "$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME"
 
