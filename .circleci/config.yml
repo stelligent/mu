@@ -3,9 +3,9 @@ version: 2
 jobs:
   build:
     machine:
-      environment:
-        IMPORT_PATH: "/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME"
-        APP_PATH: "$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME"
+      - environment:
+          IMPORT_PATH: "/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME"
+          APP_PATH: "$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME"
 
     ## Don't build when new release tags are pushed
     branches:
