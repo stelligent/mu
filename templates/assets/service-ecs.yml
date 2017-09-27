@@ -142,6 +142,8 @@ Conditions:
 Resources:
   EcsService:
     Type: AWS::ECS::Service
+    DependsOn:
+    - ServiceLogGroup
     Properties:
       Cluster:
         Fn::ImportValue: !Sub ${EcsCluster}
@@ -176,13 +178,28 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
-        {{with .Environment}}
         Environment:
+        {{with .Environment}}
           {{range $key, $val := .}}
           - Name: {{$key}}
             Value: !Sub {{$val}}
           {{end}}
         {{end}}
+          - Name: _PRIMARY_ELB_LISTENER
+            Value:
+              Fn::If:
+              - HasElbHttpPathListener
+              - !Ref ElbHttpPathListenerRule
+              - Fn::If:
+                - HasElbHttpsPathListener
+                - !Ref ElbHttpsPathListenerRule
+                - Fn::If:
+                  - HasElbHttpHostListener
+                  - !Ref ElbHttpHostListenerRule
+                  - Fn::If:
+                    - HasElbHttpsHostListener
+                    - !Ref ElbHttpsHostListenerRule
+                    - ''
         LogConfiguration:
           LogDriver: awslogs
           Options:
