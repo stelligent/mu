@@ -20,7 +20,7 @@ func newRolesetManager(ctx *common.Context) (common.RolesetManager, error) {
 
 func (rolesetMgr *iamRolesetManager) getRolesetFromStack(names ...string) common.Roleset {
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, names...)
-	stack, _ := rolesetMgr.context.StackManager.GetStack(stackName)
+	stack := rolesetMgr.context.StackManager.AwaitFinalStatus(stackName)
 
 	if stack == nil {
 		return make(map[string]string)

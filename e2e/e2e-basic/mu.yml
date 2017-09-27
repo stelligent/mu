@@ -3,6 +3,7 @@
 environments:
   - name: e2e-basic-dev
     cluster:
+      keyName: mu-e2e
       maxSize: 2
 
 service:

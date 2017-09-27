@@ -112,7 +112,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			params["ServiceMemory"] = strconv.Itoa(service.Memory)
 		}
 
-		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Name, workflow.serviceName)
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
 		if err != nil {
 			return err
 		}
@@ -156,7 +156,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			params[key] = workflow.envStack.Parameters[key]
 		}
 
-		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Name, workflow.serviceName)
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
 		if err != nil {
 			return err
 		}

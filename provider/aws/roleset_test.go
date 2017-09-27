@@ -41,7 +41,7 @@ func TestIamRolesetManager_GetCommonRoleset(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManagerMock := new(mockedRolesetStackManager)
-	stackManagerMock.On("GetStack", "n1-iam-common").Return(&common.Stack{
+	stackManagerMock.On("AwaitFinalStatus", "n1-iam-common").Return(&common.Stack{
 		Outputs: map[string]string{
 			"CloudFormationRoleArn": "foo",
 		},
@@ -77,7 +77,7 @@ func TestIamRolesetManager_GetEnvironmentRoleset(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManagerMock := new(mockedRolesetStackManager)
-	stackManagerMock.On("GetStack", "n2-iam-environment-env1").Return(&common.Stack{
+	stackManagerMock.On("AwaitFinalStatus", "n2-iam-environment-env1").Return(&common.Stack{
 		Outputs: map[string]string{
 			"EC2InstanceProfileArn":   "foo1",
 			"ConsulClientTaskRoleArn": "foo2",
@@ -125,7 +125,7 @@ func TestIamRolesetManager_GetServiceRoleset(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManagerMock := new(mockedRolesetStackManager)
-	stackManagerMock.On("GetStack", "mu-iam-service-s1-env1").Return(&common.Stack{
+	stackManagerMock.On("AwaitFinalStatus", "mu-iam-service-s1-env1").Return(&common.Stack{
 		Outputs: map[string]string{
 			"EcsServiceRoleArn": "foo3",
 			"EcsTaskRoleArn":    "foo4",
@@ -164,7 +164,7 @@ func TestIamRolesetManager_GetPipelineRoleset(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManagerMock := new(mockedRolesetStackManager)
-	stackManagerMock.On("GetStack", "mu-iam-pipeline-s1").Return(&common.Stack{
+	stackManagerMock.On("AwaitFinalStatus", "mu-iam-pipeline-s1").Return(&common.Stack{
 		Outputs: map[string]string{
 			"CodePipelineRoleArn": "foo5",
 			"MuAcptRoleArn":       "foo6",
@@ -298,7 +298,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_ManagedEnv(t *testing.T) {
 	err := i.UpsertServiceRoleset("env1", "sv1")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
-	stackManagerMock.AssertNumberOfCalls(t, "GetStack", 0)
+	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManagerMock.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
@@ -355,7 +355,7 @@ func TestIamRolesetManager_UpsertPipelineRoleset(t *testing.T) {
 			},
 		},
 	}
-	stackManagerMock.On("GetStack", "mu-iam-common").Return(&common.Stack{
+	stackManagerMock.On("AwaitFinalStatus", "mu-iam-common").Return(&common.Stack{
 		Outputs: map[string]string{
 			"CloudFormationRoleArn": "foo",
 		},
@@ -365,7 +365,7 @@ func TestIamRolesetManager_UpsertPipelineRoleset(t *testing.T) {
 	err := i.UpsertPipelineRoleset("sv1")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
-	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
 	stackManagerMock.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 

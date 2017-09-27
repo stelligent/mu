@@ -7,20 +7,21 @@ import (
 
 // Context defines the context object passed around
 type Context struct {
-	Config          Config
-	StackManager    StackManager
-	ClusterManager  ClusterManager
-	InstanceManager InstanceManager
-	ElbManager      ElbManager
-	RdsManager      RdsManager
-	ParamManager    ParamManager
-	PipelineManager PipelineManager
-	LogsManager     LogsManager
-	DockerManager   DockerManager
-	DockerOut       io.Writer
-	TaskManager     TaskManager
-	ArtifactManager ArtifactManager
-	RolesetManager  RolesetManager
+	Config               Config
+	StackManager         StackManager
+	ClusterManager       ClusterManager
+	InstanceManager      InstanceManager
+	ElbManager           ElbManager
+	RdsManager           RdsManager
+	ParamManager         ParamManager
+	LocalPipelineManager PipelineManager // instance that ignores region/profile/role
+	PipelineManager      PipelineManager
+	LogsManager          LogsManager
+	DockerManager        DockerManager
+	DockerOut            io.Writer
+	TaskManager          TaskManager
+	ArtifactManager      ArtifactManager
+	RolesetManager       RolesetManager
 }
 
 // Config defines the structure of the yml file for the mu config

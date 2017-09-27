@@ -95,7 +95,6 @@ Resources:
             - !Sub arn:aws:s3:::${RevisionBucket}/*
           - Effect: Allow
             Action:
-            - cloudformation:DescribeStacks
             - cloudformation:DescribeStackEvents
             - cloudformation:DescribeStackResource
             - cloudformation:DescribeStackResources
@@ -103,6 +102,11 @@ Resources:
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}/*
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+
 
   EcsServiceRole:
     Type: AWS::IAM::Role

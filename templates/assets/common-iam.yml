@@ -20,15 +20,135 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
-      - PolicyName: deploy-env
+      - PolicyName: deploy-vpc
         PolicyDocument:
           Version: '2012-10-17'
           Statement:
           - Action:
             - ec2:CreateVpc
+            - ec2:DeleteVpc
             - ec2:CreateInternetGateway
+            - ec2:DeleteInternetGateway
             - ec2:AllocateAddress
+            - ec2:ReleaseAddress
+            - ec2:DescribeInternetGateways
+            - ec2:DescribeVpcs
+            - ec2:DescribeAddresses
+            - ec2:DescribeAvailabilityZones
+            - ec2:CreateTags
+            - ec2:DescribeTags
+            - ec2:DeleteTags
+            - ec2:ModifyVpcAttribute
+            - ec2:CreateRouteTable
+            - ec2:DescribeRouteTables
+            - ec2:DeleteRouteTable
+            - ec2:CreateNetworkAcl
+            - ec2:CreateNetworkAclEntry
+            - ec2:DescribeNetworkAcls
+            - ec2:DeleteNetworkAcl
+            - ec2:DeleteNetworkAclEntry
+            - ec2:AttachInternetGateway
+            - ec2:DetachInternetGateway
+            - ec2:DescribeAccountAttributes
+            - ec2:CreateSubnet
+            - ec2:DescribeSubnets
+            - ec2:DeleteSubnet
+            - ec2:ModifySubnetAttribute
+            - ec2:AssociateRouteTable
+            - ec2:DisassociateRouteTable
+            - ec2:CreateNatGateway
+            - ec2:DeleteNatGateway
+            - ec2:DescribeNatGateways
+            - ec2:CreateRoute
+            - ec2:DeleteRoute
+            - ec2:DescribeSecurityGroups
+            - ec2:CreateSecurityGroup
+            - ec2:DeleteSecurityGroup
+            - ec2:AuthorizeSecurityGroupEgress
+            - ec2:AuthorizeSecurityGroupIngress
+            - ec2:RevokeSecurityGroupEgress
+            - ec2:RevokeSecurityGroupIngress
+            - ec2:ReplaceNetworkAclAssociation
+            - ec2:RunInstances
+            - ec2:TerminateInstances
+            - ec2:DescribeInstances
             Resource: '*'
+            Effect: Allow
+      - PolicyName: deploy-elb
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - elasticloadbalancing:CreateLoadBalancer
+            - elasticloadbalancing:DescribeLoadBalancers
+            - elasticloadbalancing:DescribeLoadBalancerAttributes
+            - elasticloadbalancing:ModifyLoadBalancerAttributes
+            - elasticloadbalancing:DeleteLoadBalancer
+            - elasticloadbalancing:CreateListener
+            - elasticloadbalancing:ModifyListener
+            - elasticloadbalancing:DescribeListeners
+            - elasticloadbalancing:DeleteListener
+            - elasticloadbalancing:CreateRule
+            - elasticloadbalancing:DescribeRules
+            - elasticloadbalancing:DeleteRule
+            - elasticloadbalancing:ModifyRule
+            - elasticloadbalancing:SetRulePriorities
+            - elasticloadbalancing:SetSecurityGroups
+            - elasticloadbalancing:SetSubnets
+            - elasticloadbalancing:CreateTargetGroup
+            - elasticloadbalancing:DescribeTargetGroups
+            - elasticloadbalancing:DescribeTargetGroupAttributes
+            - elasticloadbalancing:ModifyTargetGroup
+            - elasticloadbalancing:ModifyTargetGroupAttributes
+            - elasticloadbalancing:DeleteTargetGroup
+            - elasticloadbalancing:DescribeSSLPolicies
+            - elasticloadbalancing:DescribeTags
+            - elasticloadbalancing:AddTags
+            - elasticloadbalancing:RemoveTags
+            - elasticloadbalancing:DescribeTargetHealth
+            Resource: '*'
+            Effect: Allow
+      - PolicyName: deploy-cluster
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - logs:CreateLogGroup
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            - logs:DeleteLogGroup
+            - logs:DeleteLogStream
+            - ecs:DescribeClusters
+            - ecs:CreateCluster
+            - ecs:DeleteCluster
+            - autoscaling:CreateLaunchConfiguration
+            - autoscaling:DescribeLaunchConfigurations
+            - autoscaling:DeleteLaunchConfiguration
+            - autoscaling:CreateAutoScalingGroup
+            - autoscaling:UpdateAutoScalingGroup
+            - autoscaling:DescribeAutoScalingGroups
+            - autoscaling:DeleteAutoScalingGroup
+            - autoscaling:SetDesiredCapacity
+            - autoscaling:PutScalingPolicy
+            - autoscaling:DeletePolicy
+            - autoscaling:DescribeAutoScalingInstances
+            - autoscaling:DescribeScalingActivities
+            - autoscaling:DescribePolicies
+            - autoscaling:DescribeLoadBalancerTargetGroups
+            - autoscaling:DetachLoadBalancerTargetGroups
+            - autoscaling:CreateOrUpdateTags
+            - autoscaling:DescribeTags
+            - autoscaling:DeleteTags
+            - cloudwatch:PutMetricAlarm
+            - cloudwatch:DeleteAlarms
+            - cloudwatch:DescribeAlarmsForMetric
+            - cloudwatch:ListMetrics
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - iam:PassRole
+            Resource:
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance
             Effect: Allow
       - PolicyName: deploy-service
         PolicyDocument:
@@ -42,42 +162,21 @@ Resources:
             - ecs:ListTaskDefinitions
             - ecs:RegisterTaskDefinition
             - ecs:DescribeTaskDefinition
+            - ecs:DeregisterTaskDefinition
             Resource: '*'
             Effect: Allow
           - Action:
             - logs:CreateLogGroup
             - logs:DescribeLogGroups
+            - logs:DeleteLogGroup
+            - logs:DeleteLogStream
             Resource: '*'
             Effect: Allow
           - Action:
-            - elasticloadbalancing:AddTags
-            - elasticloadbalancing:CreateListener
-            - elasticloadbalancing:CreateLoadBlancer
-            - elasticloadbalancing:CreateRule
-            - elasticloadbalancing:CreateTargetGroup
-            - elasticloadbalancing:DeleteListener
-            - elasticloadbalancing:DeleteRule
-            - elasticloadbalancing:DeleteTargetGroup
-            - elasticloadbalancing:DescribeListeners
-            - elasticloadbalancing:DescribeLoadBalancerAttributes
-            - elasticloadbalancing:DescribeLoadBalancers
-            - elasticloadbalancing:DescribeRules
-            - elasticloadbalancing:DescribeSSLPolicies
-            - elasticloadbalancing:DescribeTags
-            - elasticloadbalancing:DescribeTargetGroupAttributes
-            - elasticloadbalancing:DescribeTargetGroups
-            - elasticloadbalancing:DescribeTargetHealth
-            - elasticloadbalancing:ModifyListener
-            - elasticloadbalancing:ModifyLoadBalancerAttributes
-            - elasticloadbalancing:ModifyRule
-            - elasticloadbalancing:ModifyTargetGroup
-            - elasticloadbalancing:ModifyTargetGroupAttributes
-            - elasticloadbalancing:RegisterTargets
-            - elasticloadbalancing:RemoveTags
-            - elasticloadbalancing:SetRulePriorities
-            - elasticloadbalancing:SetSecurityGroups
-            - elasticloadbalancing:SetSubnets
-            Resource: '*'
+            - iam:PassRole
+            Resource:
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service
             Effect: Allow
       - PolicyName: deploy-database
         PolicyDocument:

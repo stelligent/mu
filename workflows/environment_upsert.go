@@ -24,9 +24,9 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
+		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, consulStackParams, ecsStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, consulStackParams, ecsStackParams),
 		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ctx.Config.Namespace, consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)

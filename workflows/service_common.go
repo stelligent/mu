@@ -130,7 +130,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 		}
 
 		stackParams := make(map[string]string)
-		stackParams["RepoName"] = workflow.serviceName
+		stackParams["RepoName"] = fmt.Sprintf("%s-%s", namespace, workflow.serviceName)
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
@@ -144,7 +144,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags, "")
 		if err != nil {
 			return err
 		}

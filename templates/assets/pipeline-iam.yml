@@ -96,7 +96,7 @@ Resources:
             - codebuild:BatchGetBuilds
             Effect: Allow
             Resource:
-            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-${ServiceName}-*'
+            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*'
           - !If
             - IsCodeCommit
             - Action:
@@ -222,18 +222,21 @@ Resources:
           - Action:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
-            - cloudformation:DescribeStacks
+            - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
             - s3:CreateBucket
             Resource: !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
             Effect: Allow
           - Action:
-            - ecr:CreateRepository
             - ecr:SetRepositoryPolicy
             - ecr:BatchCheckLayerAvailability
             - ecr:GetDownloadUrlForLayer
@@ -247,7 +250,11 @@ Resources:
             - ecr:CompleteLayerUpload
             - ecr:PutImage
             Effect: Allow
-            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${ServiceName}
+            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Namespace}-${ServiceName}
+          - Action:
+            - ecr:CreateRepository
+            Effect: Allow
+            Resource: '*'
           - Action:
             - ecr:GetAuthorizationToken
             Effect: Allow
@@ -329,7 +336,8 @@ Resources:
           - Action:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
-            - cloudformation:DescribeStacks
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}/*
@@ -337,6 +345,24 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}/*
+            Effect: Allow
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          - Action:
+            - ec2:DescribeImages
+            - elasticloadbalancing:DescribeRules
+            Resource: '*'
             Effect: Allow
           - Action:
             - iam:PassRole
@@ -364,7 +390,8 @@ Resources:
           - Action:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
-            - cloudformation:DescribeStacks
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}/*
@@ -372,6 +399,24 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}/*
+            Effect: Allow
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          - Action:
+            - ec2:DescribeImages
+            - elasticloadbalancing:DescribeRules
+            Resource: '*'
             Effect: Allow
           - Action:
             - iam:PassRole

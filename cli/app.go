@@ -44,7 +44,7 @@ func NewApp() *cli.App {
 		}
 
 		// TODO: support initializing context from other cloud providers?
-		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
+		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), c.Bool("dryrun"))
 		if err != nil {
 			return err
 		}
@@ -99,6 +99,10 @@ func NewApp() *cli.App {
 		cli.StringFlag{
 			Name:  "region, r",
 			Usage: "AWS Region to use",
+		},
+		cli.StringFlag{
+			Name:  "assume-role, a",
+			Usage: "ARN of IAM role to assume",
 		},
 		cli.StringFlag{
 			Name:  "profile, p",

@@ -59,7 +59,7 @@ else
 	go test -cover $(SRC_FILES) -short
 endif
 
-e2e: gen stage
+e2e: gen stage keypair
 	@echo "=== e2e testing ==="
 ifneq ($(CIRCLE_TEST_REPORTS),)
 	mkdir -p $(CIRCLE_TEST_REPORTS)/e2e
@@ -80,7 +80,15 @@ install: $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
 	cp $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH) /usr/local/bin/mu
 	chmod 755 /usr/local/bin/mu
 
-stage: $(BUILD_DIR)/$(PACKAGE)-linux-$(ARCH)
+keypair:
+	@aws ec2 describe-key-pairs --key-names mu-e2e > /dev/null 2>&1; \
+	if [ $$? -ne 0 ]; then \
+		echo "=== creating keypair ==="; \
+		aws ec2 create-key-pair --key-name mu-e2e --query "KeyMaterial" --output text > ~/.ssh/mu-e2e-$$(aws sts get-caller-identity --output text --query 'Account').pem; \
+		chmod 600 ~/.ssh/mu-e2e-$$(aws sts get-caller-identity --output text --query 'Account').pem; \
+	fi;
+
+stage: fmt $(BUILD_DIR)/$(PACKAGE)-linux-$(ARCH)
 	@echo "=== staging to S3 bucket ==="
 	@export BUCKET_NAME=mu-staging-$$(aws sts get-caller-identity --output text --query 'Account') ;\
 	aws s3 mb s3://$$BUCKET_NAME || echo "bucket exists" ;\
@@ -129,4 +137,4 @@ fmt:
 	go fmt $(SRC_FILES)
 
 
-.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS)
+.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage

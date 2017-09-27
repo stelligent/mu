@@ -12,7 +12,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	workflow := new(environmentWorkflow)
 
 	return newPipelineExecutor(
-		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentServiceTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.RolesetManager),
 		workflow.environmentDbTerminator(environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentEcsTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 		workflow.environmentConsulTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
@@ -22,7 +22,7 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	)
 }
 
-func (workflow *environmentWorkflow) environmentServiceTerminator(environmentName string, stackLister common.StackLister, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentServiceTerminator(environmentName string, stackLister common.StackLister, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter, rolesetDeleter common.RolesetDeleter) Executor {
 	return func() error {
 		log.Noticef("Terminating Services for environment '%s' ...", environmentName)
 		stacks, err := stackLister.ListStacks(common.StackTypeService)
@@ -37,6 +37,8 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(environmentNam
 			if err != nil {
 				return err
 			}
+
+			rolesetDeleter.DeleteServiceRoleset(environmentName, stack.Tags["service"])
 		}
 		for _, stack := range stacks {
 			if stack.Tags["environment"] != environmentName {

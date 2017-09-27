@@ -111,6 +111,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 		log.Debugf("  Creating stack named '%s'", stackName)
 		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+		log.Debugf("  Assume role:\n\t%s", roleArn)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.CreateStackInput{
 			StackName:    aws.String(stackName),
@@ -247,8 +248,10 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 					if strings.HasSuffix(status, "_IN_PROGRESS") {
 						if statusSpinner != nil {
 							statusSpinner.Suffix = eventMesg
+							log.Debug(eventMesg)
+						} else {
+							log.Info(eventMesg)
 						}
-						log.Debug(eventMesg)
 					} else if strings.HasSuffix(status, "_FAILED") {
 						log.Error(eventMesg)
 					} else {
