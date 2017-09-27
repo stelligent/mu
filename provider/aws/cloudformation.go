@@ -18,18 +18,20 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type cloudformationStackManager struct {
-	dryrun bool
-	cfnAPI cloudformationiface.CloudFormationAPI
-	ec2API ec2iface.EC2API
+	dryrun           bool
+	skipVersionCheck bool
+	cfnAPI           cloudformationiface.CloudFormationAPI
+	ec2API           ec2iface.EC2API
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(sess *session.Session, dryrun bool) (common.StackManager, error) {
+func newStackManager(sess *session.Session, dryrun bool, skipVersionCheck bool) (common.StackManager, error) {
 	log.Debug("Connecting to CloudFormation service")
 	cfnAPI := cloudformation.New(sess)
 
@@ -37,9 +39,10 @@ func newStackManager(sess *session.Session, dryrun bool) (common.StackManager, e
 	ec2API := ec2.New(sess)
 
 	return &cloudformationStackManager{
-		dryrun: dryrun,
-		cfnAPI: cfnAPI,
-		ec2API: ec2API,
+		dryrun:           dryrun,
+		skipVersionCheck: skipVersionCheck,
+		cfnAPI:           cfnAPI,
+		ec2API:           ec2API,
 	}, nil
 
 }
@@ -90,6 +93,28 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			return err
 		}
 		stack = cfnMgr.AwaitFinalStatus(stackName)
+	}
+
+	// check if stack is incompatible
+	if !cfnMgr.skipVersionCheck && stack != nil {
+		oldMajorVersion, e1 := strconv.Atoi(strings.Split(stack.Tags["version"], ".")[0])
+		newMajorVersion, e2 := strconv.Atoi(strings.Split(common.GetVersion(), ".")[0])
+
+		if e1 != nil {
+			log.Warningf("Unable to parse major number for existing stack: %s", stack.Tags["version"])
+			log.Warningf("Unable to parse major number for mu: %s", common.GetVersion())
+		}
+
+		log.Debugf("comparing stack versions old:%d new:%d", oldMajorVersion, newMajorVersion)
+
+		if e1 == nil && e2 == nil {
+			if oldMajorVersion < newMajorVersion {
+				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to newer version '%s' (can be overriden with -F)", stackName, stack.Tags["version"], common.GetVersion())
+			}
+			if oldMajorVersion > newMajorVersion {
+				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to older version '%s' (can be overridden with -F)", stackName, stack.Tags["version"], common.GetVersion())
+			}
+		}
 	}
 
 	// load the template

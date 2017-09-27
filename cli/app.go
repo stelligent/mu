@@ -44,7 +44,7 @@ func NewApp() *cli.App {
 		}
 
 		// TODO: support initializing context from other cloud providers?
-		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), c.Bool("dryrun"))
+		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), c.Bool("dryrun"), c.Bool("skip-version-check"))
 		if err != nil {
 			return err
 		}
@@ -127,6 +127,10 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "disable-iam, I",
 			Usage: "disable the automatic creation of IAM resources",
+		},
+		cli.BoolFlag{
+			Name:  "skip-version-check, F",
+			Usage: "disable the checking of stack major numbers before updating",
 		},
 	}
 
