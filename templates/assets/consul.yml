@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Consul cluster
+Description: MU Consul cluster
 Parameters:
   EC2InstanceProfileArn:
     Type: String
@@ -86,7 +86,8 @@ Resources:
       ClusterName: !Ref AWS::StackName
   EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn: []
+    DependsOn:
+    - ClusterLogGroup
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
@@ -329,6 +330,15 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: '-1'
           CidrIp: '127.0.0.1/32'
+
+  Consul2InternetEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: 'tcp'
+      FromPort: '0'
+      ToPort: '65535'
+      CidrIp: '0.0.0.0/0'
+      GroupId: !GetAtt ConsulServerSG.GroupId
 
   ConsulApiClientHttpRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress

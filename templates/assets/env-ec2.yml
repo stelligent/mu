@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU environment for EC2 microservices
 Parameters:
+  EC2InstanceProfileArn:
+    Type: String
+    Description: ARN of instance profile for EC2 instance to assume
+  ConsulTaskRoleArn:
+    Type: String
+    Description: ARN of IAM role for consul task to assume
   InstanceType:
     Type: String
     Description: Instance type to use.

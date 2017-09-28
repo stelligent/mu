@@ -149,7 +149,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			params.RoleARN = aws.String(roleArn)
 		}
 
-		if tags["type"] == string(common.StackTypeIam) {
+		if tags["mu:type"] == string(common.StackTypeIam) {
 			params.Capabilities = []*string{
 				aws.String(cloudformation.CapabilityCapabilityNamedIam),
 			}
@@ -190,7 +190,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			params.RoleARN = aws.String(roleArn)
 		}
 
-		if tags["type"] == string(common.StackTypeIam) {
+		if tags["mu:type"] == string(common.StackTypeIam) {
 			params.Capabilities = []*string{
 				aws.String(cloudformation.CapabilityCapabilityNamedIam),
 			}

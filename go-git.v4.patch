@@ -1,0 +1,13 @@
+diff --git a/vendor/gopkg.in/src-d/go-git.v4/remote.go b/vendor/gopkg.in/src-d/go-git.v4/remote-new.go
+index fe44009..828cc9f 100644
+--- a/vendor/gopkg.in/src-d/go-git.v4/remote.go
++++ b/vendor/gopkg.in/src-d/go-git.v4/remote-new.go
+@@ -736,7 +736,7 @@ func pushHashes(
+ 	req.Packfile = rd
+ 	done := make(chan error)
+ 	go func() {
+-		e := packfile.NewEncoder(wr, sto, false)
++		e := packfile.NewEncoder(wr, sto, true)
+ 		if _, err := e.Encode(hs); err != nil {
+ 			done <- wr.CloseWithError(err)
+ 			return

@@ -149,6 +149,9 @@ Resources:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-consul
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-consul-*-instance
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-consul-*-task
             Effect: Allow
       - PolicyName: deploy-service
         PolicyDocument:
@@ -173,10 +176,35 @@ Resources:
             Resource: '*'
             Effect: Allow
           - Action:
+            - codedeploy:CreateApplication
+            - codedeploy:GetApplication
+            - codedeploy:UpdateApplication
+            - codedeploy:DeleteApplication
+            - codedeploy:CreateDeploymentGroup
+            - codedeploy:GetDeploymentGroup
+            - codedeploy:UpdateDeploymentGroup
+            - codedeploy:DeleteDeploymentGroup
+            - codedeploy:CreateDeployment
+            - codedeploy:GetDeployment
+            - codedeploy:GetDeploymentConfig
+            - codedeploy:RegisterApplicationRevision
+            - codedeploy:GetApplicationRevision
+            - codedeploy:ListApplicationRevisions
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - autoscaling:AttachLoadBalancerTargetGroups
+            - autoscaling:DescribeLoadBalancerTargetGroups
+            - autoscaling:DetachLoadBalancerTargetGroups
+            Resource: '*'
+            Effect: Allow
+          - Action:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy
             Effect: Allow
       - PolicyName: deploy-database
         PolicyDocument:

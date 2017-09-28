@@ -43,10 +43,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 		bucketParams["BucketPrefix"] = "codepipeline"
 
 		var pipeTags TagInterface = &PipelineTags{
-			Type:     common.StackTypeBucket,
-			Service:  workflow.serviceName,
-			Revision: workflow.codeRevision,
-			Repo:     workflow.repoName,
+			Type: common.StackTypeBucket,
 		}
 		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {
@@ -55,7 +52,10 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 
 		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags, "")
 		if err != nil {
-			return err
+			// ignore error if stack is in progress already
+			if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
+				return err
+			}
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)

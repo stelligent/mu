@@ -225,7 +225,7 @@ func updateMuYaml(muConfigFile string, muBaseurl string, muVersion string) error
 	config := new(common.Config)
 	yamlFile, err := os.Open(muConfigFile)
 
-	fmt.Printf("Updating mu.yaml with baseurl=%s and version=%s\n", muBaseurl, muVersion)
+	fmt.Printf("Updating %s with baseurl=%s and version=%s\n", muConfigFile, muBaseurl, muVersion)
 
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(bufio.NewReader(yamlFile))
@@ -259,7 +259,7 @@ func initContext(muConfigFile string) (*common.Context, error) {
 		return nil, err
 	}
 
-	err = mu_aws.InitializeContext(context, "", "", "", false, false)
+	err = mu_aws.InitializeContext(context, "", "", "", false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -281,6 +281,8 @@ func teardownContexts(sess *session.Session) {
 	}
 }
 func setupRepo(sess *session.Session, name string, dir string) error {
+	fmt.Printf("Setting up repo %s from %s\n", name, dir)
+
 	// create codecommit repo
 	ccAPI := codecommit.New(sess)
 	ccAPI.DeleteRepository(&codecommit.DeleteRepositoryInput{

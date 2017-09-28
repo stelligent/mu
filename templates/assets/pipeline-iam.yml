@@ -263,6 +263,16 @@ Resources:
             - codedeploy:CreateApplication
             Effect: Allow
             Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${Namespace}-app-${ServiceName}
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:PutObject
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}/*
+              - BucketName:
+                  Fn::ImportValue: !Sub ${Namespace}-bucket-codedeploy
+            Effect: Allow
 
 
   CodeBuildCDAcptRole:

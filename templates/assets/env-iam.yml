@@ -100,6 +100,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
     Properties:
+      RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-consul'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -190,6 +191,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
     Properties:
+      RoleName: !Sub '${Namespace}-consul-${EnvironmentName}-task'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow

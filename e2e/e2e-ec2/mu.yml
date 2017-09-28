@@ -1,7 +1,8 @@
 ---
 
 environments:
-  - name: e2e-basic-dev
+  - name: e2e-ec2-dev
+    provider: ec2
     cluster:
       keyName: mu-e2e
       maxSize: 2
@@ -10,11 +11,11 @@ environments:
 
 service:
   healthEndpoint: /
-  port: 80
+  port: 8000
   pathPatterns:
     - /*
   pipeline:
     acceptance:
-      environment: e2e-basic-dev
+      environment: e2e-ec2-dev
     production:
       disabled: true

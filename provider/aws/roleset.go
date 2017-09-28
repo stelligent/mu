@@ -95,9 +95,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		return err
 	}
 	stackTags := map[string]string{
-		"type":     "iam",
-		"revision": rolesetMgr.context.Config.Repo.Revision,
-		"repo":     rolesetMgr.context.Config.Repo.Name,
+		"mu:type": "iam",
 	}
 
 	stackParams := map[string]string{
@@ -106,7 +104,10 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 
 	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
 	if err != nil {
-		return err
+		// ignore error if stack is in progress already
+		if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
+			return err
+		}
 	}
 
 	log.Debugf("Waiting for stack '%s' to complete", stackName)
@@ -148,11 +149,11 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		return err
 	}
 	stackTags := map[string]string{
-		"type":        "iam",
-		"environment": environmentName,
-		"provider":    string(environment.Provider),
-		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":        rolesetMgr.context.Config.Repo.Name,
+		"mu:type":        "iam",
+		"mu:environment": environmentName,
+		"mu:provider":    string(environment.Provider),
+		"mu:revision":    rolesetMgr.context.Config.Repo.Revision,
+		"mu:repo":        rolesetMgr.context.Config.Repo.Name,
 	}
 
 	stackParams := map[string]string{
@@ -215,12 +216,12 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 	}
 
 	stackTags := map[string]string{
-		"type":        "iam",
-		"environment": environmentName,
-		"provider":    envProvider,
-		"service":     serviceName,
-		"revision":    rolesetMgr.context.Config.Repo.Revision,
-		"repo":        rolesetMgr.context.Config.Repo.Name,
+		"mu:type":        "iam",
+		"mu:environment": environmentName,
+		"mu:provider":    envProvider,
+		"mu:service":     serviceName,
+		"mu:revision":    rolesetMgr.context.Config.Repo.Revision,
+		"mu:repo":        rolesetMgr.context.Config.Repo.Name,
 	}
 
 	stackParams := map[string]string{
@@ -269,10 +270,10 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 		return err
 	}
 	stackTags := map[string]string{
-		"type":     "iam",
-		"service":  serviceName,
-		"revision": rolesetMgr.context.Config.Repo.Revision,
-		"repo":     rolesetMgr.context.Config.Repo.Name,
+		"mu:type":     "iam",
+		"mu:service":  serviceName,
+		"mu:revision": rolesetMgr.context.Config.Repo.Revision,
+		"mu:repo":     rolesetMgr.context.Config.Repo.Name,
 	}
 
 	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline

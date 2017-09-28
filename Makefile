@@ -25,6 +25,7 @@ deps:
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
 	glide install
+	patch -p1 < go-git.v4.patch
 	gem install cfn-nag
 
 gen:
