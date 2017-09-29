@@ -193,7 +193,10 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
 			params["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
 
-			dbPass, _ := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			dbPass, err := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			if err != nil {
+				log.Warningf("Unable to get db password: %s", err)
+			}
 			params["DatabaseMasterPassword"] = dbPass
 		}
 

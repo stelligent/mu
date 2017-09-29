@@ -500,6 +500,7 @@ Resources:
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
   DeployGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
+    DeletionPolicy: Retain
     Properties:
       ApplicationName: !Ref AppName
       Deployment:

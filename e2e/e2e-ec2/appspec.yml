@@ -1,18 +1,16 @@
 version: 0.0
 os: linux
 files:
-  - source: ./index.html
-    destination: /usr/share/basic-example/
-  - source: codedeploy/site.conf
-    destination: /etc/nginx/conf.d/
+  - source: /
+    destination: /code
 
 hooks:
-  BeforeInstall:
-    - location: codedeploy/install_nginx.sh
+  AfterInstall:
+    - location: codedeploy/install.sh
       timeout: 300
   ApplicationStop:
-    - location: codedeploy/stop_nginx.sh
+    - location: codedeploy/stop.sh
       timeout: 30
   ApplicationStart:
-    - location: codedeploy/start_nginx.sh
+    - location: codedeploy/start.sh
       timeout: 30

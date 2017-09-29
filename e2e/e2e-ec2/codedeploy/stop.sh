@@ -2,4 +2,5 @@
 
 set -e
 
-service nginx stop
+pkill flask
+

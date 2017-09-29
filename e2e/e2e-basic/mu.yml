@@ -10,9 +10,19 @@ environments:
 
 service:
   healthEndpoint: /
-  port: 80
+  port: 5000
   pathPatterns:
     - /*
+  database:
+    name: e2ebasic
+    engine: mysql
+  environment:
+    DB_HOST: ${DatabaseEndpointAddress}
+    DB_PORT: ${DatabaseEndpointPort}
+    DB_USERNAME: ${DatabaseMasterUsername}
+    DB_PASSWORD: ${DatabaseMasterPassword}
+    DB_NAME: mysql
+    CONSUL_ENDPOINT: http://172.17.0.1:8500
   pipeline:
     acceptance:
       environment: e2e-basic-dev

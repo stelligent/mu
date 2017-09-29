@@ -370,6 +370,12 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
+            - ssm:GetParameter
+            - ssm:PutParameter
+            Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${AcptEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
             Resource: '*'
@@ -423,6 +429,28 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
+          - Action:
+            - ssm:GetParameters
+            - ssm:PutParameter
+            Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${ProdEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
+            - rds:ModifyDBInstance
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:db-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
+          - Action:
+            - rds:ModifyDBCluster
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules

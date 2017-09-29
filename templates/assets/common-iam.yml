@@ -190,6 +190,7 @@ Resources:
             - codedeploy:RegisterApplicationRevision
             - codedeploy:GetApplicationRevision
             - codedeploy:ListApplicationRevisions
+            - codedeploy:ListDeployments
             Resource: '*'
             Effect: Allow
           - Action:
@@ -220,6 +221,16 @@ Resources:
             Resource: '*'
             Effect: Allow
           - Action:
+            - rds:DescribeDBClusterParameterGroups
+            - rds:DescribeDBClusterSnapshots
+            - rds:DescribeDBClusters
+            - rds:DescribeDBInstances
+            - rds:DescribeDBInstanceReadReplicas
+            - rds:DescribeDBParameterGroups
+            - rds:DescribeDBSecurityGroups
+            - rds:DescribeDBSnapshots
+            - rds:DescribeDBSubnetGroups
+            - rds:CreateOptionGroups
             - rds:CreateDBClusterParameterGroup
             - rds:CreateDBClusterSnapshot
             - rds:CreateDBCluster
@@ -229,21 +240,26 @@ Resources:
             - rds:CreateDBSecurityGroup
             - rds:CreateDBSnapshot
             - rds:CreateDBSubnetGroup
-            - rds:CreateEventSubscription
             - rds:CreateOptionGroup
-            - rds:AuthorizeDBSecurityGroupIngress
             - rds:ModifyDBClusterParameterGroup
             - rds:ModifyDBCluster
             - rds:ModifyDBInstance
             - rds:ModifyDBParameterGroup
             - rds:ModifyDBSnapshotAttribute
             - rds:ModifyDBSubnetGroup
-            - rds:ModifyEventSubscription
             - rds:ModifyOptionGroup
             - rds:DeleteDBParameterGroup
-            - rds:DeleteDBSubnetGroup
             - rds:DeleteDBClusterParameterGroup
             - rds:DeleteDBCluster
+            - rds:DeleteDBSecurityGroup
+            - rds:DeleteDBSnapshot
+            - rds:DeleteDBSubnetGroup
+            - rds:DeleteOptionGroup
+            - rds:AddTagsToResource
+            - rds:ListTagsToResource
+            - rds:RemoveTagsToResource
+            - rds:AuthorizeDBSecurityGroupIngress
+            - rds:RevokeDBSecurityGroupIngress
             Resource: '*'
             Effect: Allow
 
