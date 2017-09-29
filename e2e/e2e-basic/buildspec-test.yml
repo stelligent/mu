@@ -8,7 +8,7 @@ phases:
 
   build:
     commands:
-      - curl -s $(jq -r '.values[]|select(.key=="BASE_URL")|.value' env.json) | grep 'Automation for the People'
+      - curl -s $(jq -r '.values[]|select(.key=="BASE_URL")|.value' env.json) | grep 'ok'
       - echo "TODO validate consul"
       - echo "TODO validate database"
 

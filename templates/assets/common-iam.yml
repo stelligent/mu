@@ -191,6 +191,7 @@ Resources:
             - codedeploy:GetApplicationRevision
             - codedeploy:ListApplicationRevisions
             - codedeploy:ListDeployments
+            - codedeploy:StopDeployment
             Resource: '*'
             Effect: Allow
           - Action:
