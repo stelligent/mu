@@ -50,7 +50,7 @@ func TestDatabaseUpserter_NoName(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -83,7 +83,7 @@ func TestDatabaseUpserter(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -120,7 +120,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer(&config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -133,5 +133,23 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	paramManager.AssertExpectations(t)
 	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 1)
+
+}
+
+func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
+	assert := assert.New(t)
+	rolesetManager := new(mockedRolesetManagerForService)
+
+	rolesetManager.On("UpsertCommonRoleset").Return(nil)
+	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+
+	workflow := new(databaseWorkflow)
+	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager)()
+	assert.Nil(err)
+	assert.Equal("bar", workflow.cloudFormationRoleArn)
+
+	rolesetManager.AssertExpectations(t)
+	rolesetManager.AssertNumberOfCalls(t, "UpsertCommonRoleset", 1)
+	rolesetManager.AssertNumberOfCalls(t, "GetCommonRoleset", 1)
 
 }

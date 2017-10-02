@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU service in a specific environment containing an ALB target group with ECS service and task definition
 Parameters:
+  EcsServiceRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS service to assume
+  EcsTaskRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS task to assume
   ServiceName:
     Type: String
     Description: Name of service
@@ -136,6 +142,8 @@ Conditions:
 Resources:
   EcsService:
     Type: AWS::ECS::Service
+    DependsOn:
+    - ServiceLogGroup
     Properties:
       Cluster:
         Fn::ImportValue: !Sub ${EcsCluster}
@@ -153,57 +161,9 @@ Resources:
       Role:
         Fn::If:
           - HasTargetGroup
-          - !Ref EcsServiceRole
+          - !Ref EcsServiceRoleArn
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
-  EcsServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ecs.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: ecs-service
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ec2:Describe*
-            - elasticloadbalancing:Describe*
-            Resource: "*"
-          - Effect: Allow
-            Action:
-            - elasticloadbalancing:DeregisterTargets
-            - elasticloadbalancing:DescribeTargetGroups
-            - elasticloadbalancing:DescribeTargetHealth
-            - elasticloadbalancing:RegisterTargets
-            Resource: "*"
-  EcsTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ecs-tasks.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: ecs-task
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - ecs:DescribeTasks
-            Resource: "*"
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -218,13 +178,28 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
-        {{with .Environment}}
         Environment:
+        {{with .Environment}}
           {{range $key, $val := .}}
           - Name: {{$key}}
             Value: !Sub {{$val}}
           {{end}}
         {{end}}
+          - Name: _PRIMARY_ELB_LISTENER
+            Value:
+              Fn::If:
+              - HasElbHttpPathListener
+              - !Ref ElbHttpPathListenerRule
+              - Fn::If:
+                - HasElbHttpsPathListener
+                - !Ref ElbHttpsPathListenerRule
+                - Fn::If:
+                  - HasElbHttpHostListener
+                  - !Ref ElbHttpHostListenerRule
+                  - Fn::If:
+                    - HasElbHttpsHostListener
+                    - !Ref ElbHttpsHostListenerRule
+                    - ''
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -235,7 +210,7 @@ Resources:
         - HostPort: 0
           ContainerPort: !Ref ServicePort
       Volumes: []
-      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      TaskRoleArn: !Ref EcsTaskRoleArn
   ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Condition: HasElbHttpPathListener

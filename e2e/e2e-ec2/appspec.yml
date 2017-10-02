@@ -1,0 +1,16 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /code
+
+hooks:
+  AfterInstall:
+    - location: codedeploy/install.sh
+      timeout: 300
+  ApplicationStop:
+    - location: codedeploy/stop.sh
+      timeout: 30
+  ApplicationStart:
+    - location: codedeploy/start.sh
+      timeout: 30

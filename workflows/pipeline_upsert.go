@@ -18,18 +18,21 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	workflow.codeBranch = ctx.Config.Repo.Branch
 	workflow.repoName = ctx.Config.Repo.Slug
 
+	stackParams := make(map[string]string)
+
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
-		workflow.pipelineBucket(ctx.StackManager, ctx.StackManager),
-		workflow.pipelineUpserter(tokenProvider, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
+		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams),
 	)
 }
 
 // Setup the artifact bucket
-func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codepipeline")
+		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codepipeline")
 		overrides := common.GetStackOverrides(bucketStackName)
 		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
@@ -38,9 +41,21 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codepipeline"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+
+		var pipeTags TagInterface = &PipelineTags{
+			Type: common.StackTypeBucket,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
 		if err != nil {
 			return err
+		}
+
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags, "")
+		if err != nil {
+			// ignore error if stack is in progress already
+			if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
+				return err
+			}
 		}
 
 		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
@@ -56,9 +71,69 @@ func (workflow *pipelineWorkflow) pipelineBucket(stackUpserter common.StackUpser
 	}
 }
 
-func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, params map[string]string) Executor {
 	return func() error {
-		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		if !workflow.pipelineConfig.Acceptance.Disabled {
+			envName := workflow.pipelineConfig.Acceptance.Environment
+			if envName == "" {
+				envName = "acceptance"
+			}
+			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
+			if err != nil {
+				return err
+			}
+
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		if !workflow.pipelineConfig.Production.Disabled {
+			envName := workflow.pipelineConfig.Production.Environment
+			if envName == "" {
+				envName = "production"
+			}
+			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
+			if err != nil {
+				return err
+			}
+
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		pipelineRoleset, err := rolesetGetter.GetPipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		for roleType, roleArn := range pipelineRoleset {
+			if roleArn != "" {
+				params[roleType] = roleArn
+			}
+		}
+
+		return nil
+	}
+}
+
+func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, params map[string]string) Executor {
+	return func() error {
+		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 		overrides := common.GetStackOverrides(pipelineStackName)
 
@@ -67,8 +142,10 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if err != nil {
 			return err
 		}
-		pipelineParams := make(map[string]string)
+		pipelineParams := params
 
+		pipelineParams["Namespace"] = namespace
+		pipelineParams["ServiceName"] = workflow.serviceName
 		pipelineParams["MuFile"] = workflow.muFile
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
@@ -136,8 +213,18 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		if version != "" {
 			pipelineParams["MuDownloadVersion"] = version
 		}
+		var pipeTags TagInterface = &PipelineTags{
+			Type:     common.StackTypePipeline,
+			Service:  workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo:     workflow.repoName,
+		}
+		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, buildPipelineTags(workflow.serviceName, common.StackTypePipeline, workflow.codeRevision, workflow.repoName))
+		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, tags, "")
 		if err != nil {
 			return err
 		}
@@ -152,14 +239,5 @@ func (workflow *pipelineWorkflow) pipelineUpserter(tokenProvider func(bool) stri
 		}
 
 		return nil
-	}
-}
-
-func buildPipelineTags(serviceName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		"type":     string(stackType),
-		"service":  serviceName,
-		"revision": codeRevision,
-		"repo":     repoName,
 	}
 }

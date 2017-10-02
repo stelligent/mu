@@ -44,15 +44,9 @@ func NewApp() *cli.App {
 		}
 
 		// TODO: support initializing context from other cloud providers?
-		err = aws.InitializeContext(context, c.String("profile"), c.String("region"), c.Bool("dryrun"))
+		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), c.Bool("dryrun"), c.Bool("skip-version-check"))
 		if err != nil {
 			return err
-		}
-
-		if c.Bool("silent") {
-			context.DockerOut = ioutil.Discard
-		} else {
-			context.DockerOut = os.Stdout
 		}
 
 		err = context.InitializeConfigFromFile(c.String("config"))
@@ -61,6 +55,35 @@ func NewApp() *cli.App {
 			if c.Args().First() != "init" {
 				log.Warningf("Unable to load mu config: %v", err)
 			}
+		}
+
+		// Allow overriding the `DisableIAM` in config via `--disable-iam` or `-I`
+		if c.Bool("disable-iam") {
+			context.Config.DisableIAM = true
+		}
+
+		if c.Bool("silent") {
+			context.DockerOut = ioutil.Discard
+		} else {
+			context.DockerOut = os.Stdout
+		}
+
+		// Get the namespace for the stack creation.  This will prefix the stack names
+		// The order of precedence is command-line arg, env variable then config file
+		nameSpace := c.String("namespace")
+		if nameSpace != "" {
+			log.Debug("Using namespace \"%s\"", nameSpace)
+			context.Config.Namespace = nameSpace
+		} else {
+			nameSpace = os.Getenv("MU_NAMESPACE")
+			if nameSpace != "" {
+				log.Debug("Using namespace \"%s\"", nameSpace)
+				context.Config.Namespace = nameSpace
+			}
+		}
+		if context.Config.Namespace == "" {
+			log.Debug("Using namespace \"mu\"")
+			context.Config.Namespace = "mu"
 		}
 
 		return nil
@@ -78,8 +101,16 @@ func NewApp() *cli.App {
 			Usage: "AWS Region to use",
 		},
 		cli.StringFlag{
+			Name:  "assume-role, a",
+			Usage: "ARN of IAM role to assume",
+		},
+		cli.StringFlag{
 			Name:  "profile, p",
 			Usage: "AWS config profile to use",
+		},
+		cli.StringFlag{
+			Name:  "namespace, n",
+			Usage: "Namespace to use as a prefix for stacks",
 		},
 		cli.BoolFlag{
 			Name:  "silent, s",
@@ -92,6 +123,14 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "dryrun, d",
 			Usage: "generate the cloudformation templates without upserting stacks",
+		},
+		cli.BoolFlag{
+			Name:  "disable-iam, I",
+			Usage: "disable the automatic creation of IAM resources",
+		},
+		cli.BoolFlag{
+			Name:  "skip-version-check, F",
+			Usage: "disable the checking of stack major numbers before updating",
 		},
 	}
 

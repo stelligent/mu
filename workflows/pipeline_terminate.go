@@ -13,14 +13,25 @@ func NewPipelineTerminator(ctx *common.Context, serviceName string) Executor {
 
 	return newPipelineExecutor(
 		workflow.serviceFinder(serviceName, ctx),
-		workflow.pipelineTerminator(ctx.StackManager, ctx.StackManager),
+		workflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineRolesetTerminator(ctx.RolesetManager),
 	)
 }
 
-func (workflow *pipelineWorkflow) pipelineTerminator(stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineRolesetTerminator(rolesetDeleter common.RolesetDeleter) Executor {
+	return func() error {
+		err := rolesetDeleter.DeletePipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func (workflow *pipelineWorkflow) pipelineTerminator(namespace string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Terminating Pipeline '%s' ...", workflow.serviceName)
-		pipelineStackName := common.CreateStackName(common.StackTypePipeline, workflow.serviceName)
+		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
 		err := stackDeleter.DeleteStack(pipelineStackName)
 		if err != nil {
 			return err

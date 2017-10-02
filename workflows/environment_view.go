@@ -15,9 +15,9 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 
 	var environmentViewer func() error
 	if format == JSON {
-		environmentViewer = workflow.environmentViewerJSON(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+		environmentViewer = workflow.environmentViewerJSON(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
+		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
 	}
 
 	return newPipelineExecutor(
@@ -25,12 +25,12 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	)
 }
 
-func (workflow *environmentWorkflow) environmentViewerJSON(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerJSON(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
 	return func() error {
-		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		lbStack, _ := stackGetter.GetStack(lbStackName)
 
-		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		clusterStack, _ := stackGetter.GetStack(clusterStackName)
 
 		output := common.JSONOutput{}
@@ -49,15 +49,15 @@ func (workflow *environmentWorkflow) environmentViewerJSON(environmentName strin
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
 	return func() error {
-		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		lbStack, err := stackGetter.GetStack(lbStackName)
 
-		clusterStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		clusterStack, err := stackGetter.GetStack(clusterStackName)
 
-		vpcStackName := common.CreateStackName(common.StackTypeVpc, environmentName)
+		vpcStackName := common.CreateStackName(namespace, common.StackTypeVpc, environmentName)
 		vpcStack, _ := stackGetter.GetStack(vpcStackName)
 
 		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), environmentName)
@@ -78,7 +78,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
 		}
 
-		if clusterStack != nil && clusterStack.Outputs["provider"] == string(common.EnvProviderEcs) {
+		if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEcs) {
 			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
 			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
 			if err != nil {
@@ -107,7 +107,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 		table := buildServiceTable(stacks, environmentName, writer)
 		table.Render()
 
-		buildContainerTable(taskManager, stacks, environmentName, writer)
+		buildContainerTable(namespace, taskManager, stacks, environmentName, writer)
 
 		fmt.Fprint(writer, NewLine)
 
@@ -115,12 +115,12 @@ func (workflow *environmentWorkflow) environmentViewerCli(environmentName string
 	}
 }
 
-func buildContainerTable(taskManager common.TaskManager, stacks []*common.Stack, environmentName string, writer io.Writer) {
+func buildContainerTable(namespace string, taskManager common.TaskManager, stacks []*common.Stack, environmentName string, writer io.Writer) {
 	for _, stackValues := range stacks {
 		if stackValues.Tags[EnvTagKey] != environmentName {
 			continue
 		}
-		viewTasks(taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
+		viewTasks(namespace, taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
 	}
 }
 

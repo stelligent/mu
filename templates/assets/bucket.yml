@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU bucket in S3
+Description: MU S3 bucket - SHARED BY ALL PIPELINES
 Parameters:
   BucketPrefix:
     Type: String

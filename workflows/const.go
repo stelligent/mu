@@ -4,7 +4,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
+	"github.com/pkg/errors"
 	"io"
+	"reflect"
 	"strings"
 )
 
@@ -38,6 +40,7 @@ var EnvironmentShowHeader = []string{EnvironmentHeader, SvcStackHeader, SvcStatu
 const (
 	Zero                   = 0
 	FirstValueIndex        = 0
+	PollDelay              = 5
 	LineChar               = "-"
 	NewLine                = "\n"
 	NA                     = "N/A"
@@ -101,6 +104,45 @@ const (
 	ECSAMIKey              = "ecs.ami-id"
 )
 
+// TagInterface used to conform tag structs
+type TagInterface interface{}
+
+// EnvironmentTags used to set defaults
+type EnvironmentTags struct {
+	Environment string `tag:"environment"`
+	Type        string `tag:"type"`
+	Provider    string `tag:"provider"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
+}
+
+// ServiceTags used to set defaults
+type ServiceTags struct {
+	Service     string `tag:"service"`
+	Environment string `tag:"environment"`
+	Type        string `tag:"type"`
+	Provider    string `tag:"provider"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
+}
+
+// PipelineTags used to set defaults
+type PipelineTags struct {
+	Type     string `tag:"type"`
+	Service  string `tag:"service"`
+	Revision string `tag:"revision"`
+	Repo     string `tag:"repo"`
+}
+
+// DatabaseTags used to set defaults
+type DatabaseTags struct {
+	Environment string `tag:"environment"`
+	Type        string `tag:"type"`
+	Service     string `tag:"service"`
+	Revision    string `tag:"revision"`
+	Repo        string `tag:"repo"`
+}
+
 // Constants used during testing
 const (
 	TestEnv = "fooenv"
@@ -124,4 +166,56 @@ func simplifyRepoURL(url string) string {
 	}
 
 	return url[slashIndex+1:]
+}
+
+func reflectToMap(tagI TagInterface) map[string]string {
+	values := reflect.ValueOf(tagI).Elem()
+	tagMap := map[string]string{}
+
+	for i := 0; i < values.NumField(); i++ {
+		tagMap[values.Type().Field(i).Tag.Get("tag")] = values.Field(i).String()
+	}
+
+	return tagMap
+}
+
+func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]string, error) {
+	joinedMap := map[string]string{}
+	interfaceTags := reflectToMap(tagI)
+
+	for key, value := range ymlMap {
+		if _, exists := interfaceTags[key]; exists {
+			return nil, errors.New("Unable to override tag " + key)
+		} else if str, ok := value.(string); ok {
+			joinedMap[key] = str
+		}
+	}
+
+	for key, value := range interfaceTags {
+		joinedMap["mu:"+key] = value
+	}
+
+	return joinedMap, nil
+}
+
+func concatTagMaps(ymlMap map[string]interface{}, muMap map[string]string, constMap map[string]string) (map[string]string, error) {
+
+	joinedMap := map[string]string{}
+	for key := range constMap {
+		if _, exists := ymlMap[constMap[key]]; exists {
+			return nil, errors.New("Unable to override tag " + key)
+		}
+	}
+
+	for key, value := range ymlMap {
+		if str, ok := value.(string); ok {
+			joinedMap[key] = str
+		}
+	}
+
+	for key, value := range muMap {
+		joinedMap["mu:"+key] = value
+	}
+
+	return joinedMap, nil
 }

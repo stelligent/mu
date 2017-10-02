@@ -19,19 +19,20 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
-		workflow.serviceEnvironmentLoader(environmentName, ctx.StackManager),
-		workflow.serviceApplyCommonParams(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
+		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
+		workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
+		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
-				workflow.serviceRepoUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams),
-				workflow.serviceEcsDeployer(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
+				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
-				workflow.serviceBucketUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceAppUpserter(&ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceApplyEc2Params(stackParams),
-				workflow.serviceEc2Deployer(&ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
+				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 		),
 	)
@@ -53,12 +54,12 @@ func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int 
 	return maxPriority
 }
 
-func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, environmentName string, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		lbStackName := common.CreateStackName(common.StackTypeLoadBalancer, environmentName)
+		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		workflow.lbStack = stackWaiter.AwaitFinalStatus(lbStackName)
 
-		envStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		workflow.envStack = stackWaiter.AwaitFinalStatus(envStackName)
 
 		if workflow.envStack == nil {
@@ -75,7 +76,30 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(environmentName string
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string) Executor {
+func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, environmentName string) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		commonRoleset, err := rolesetGetter.GetCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
+
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
 		params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
@@ -88,11 +112,20 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			params["ServiceMemory"] = strconv.Itoa(service.Memory)
 		}
 
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		params["EcsServiceRoleArn"] = serviceRoleset["EcsServiceRoleArn"]
+		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
+		params["ServiceName"] = workflow.serviceName
+
 		return nil
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string) Executor {
+func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
 		params["AppName"] = workflow.appName
@@ -123,11 +156,20 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string)
 			params[key] = workflow.envStack.Parameters[key]
 		}
 
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		params["EC2InstanceProfileArn"] = serviceRoleset["EC2InstanceProfileArn"]
+		params["CodeDeployRoleArn"] = serviceRoleset["CodeDeployRoleArn"]
+		params["ServiceName"] = workflow.serviceName
+
 		return nil
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
+func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
 	return func() error {
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
@@ -143,7 +185,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 			}
 		}
 
-		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
 		if dbStack != nil {
 			params["DatabaseName"] = dbStack.Outputs["DatabaseName"]
@@ -151,11 +193,14 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 			params["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
 			params["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
 
-			dbPass, _ := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			dbPass, err := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			if err != nil {
+				log.Warningf("Unable to get db password: %s", err)
+			}
 			params["DatabaseMasterPassword"] = dbPass
 		}
 
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 
 		if workflow.priority > 0 {
@@ -195,12 +240,12 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(service *common.Servic
 	}
 }
 
-func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 
 		log.Noticef("Deploying service '%s' to '%s'", workflow.serviceName, environmentName)
 
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
 		overrides := common.GetStackOverrides(svcStackName)
@@ -209,7 +254,16 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, sta
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		var svcTags TagInterface = &ServiceTags{
+			Service:     workflow.serviceName,
+			Environment: environmentName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -226,11 +280,11 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(service *common.Service, sta
 	}
 }
 
-func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
 
-		svcStackName := common.CreateStackName(common.StackTypeService, workflow.serviceName, environmentName)
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
 		overrides := common.GetStackOverrides(svcStackName)
@@ -239,7 +293,20 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(service *common.Service, sta
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, buildServiceTags(workflow.serviceName, environmentName, workflow.envStack.Outputs["provider"], common.StackTypeService, workflow.codeRevision, workflow.repoName))
+		var svcTags TagInterface = &ServiceTags{
+			Service:     workflow.serviceName,
+			Environment: environmentName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, svcTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -277,16 +344,5 @@ func resolveServiceEnvironment(service *common.Service, environment string) {
 			log.Warningf("Unable to resolve environment '%s': %v", key, value)
 		}
 
-	}
-}
-
-func buildServiceTags(serviceName string, environmentName string, envProvider string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		"type":        string(stackType),
-		"environment": environmentName,
-		"provider":    envProvider,
-		"service":     serviceName,
-		"revision":    codeRevision,
-		"repo":        repoName,
 	}
 }

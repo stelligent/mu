@@ -1,0 +1,248 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU IAM roles for an environment
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
+  EnableConsul:
+    Type: String
+    Description: Enable Consul
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  Provider:
+    Type: String
+    Description: Provider type for services
+    Default: "ecs"
+    AllowedValues:
+      - "ecs"
+      - "ec2"
+Conditions:
+  IsEcsService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs'
+  IsConsulEnabled:
+    "Fn::Equals":
+      - !Ref EnableConsul
+      - 'true'
+Resources:
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: IsEcsService
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref EC2Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-instance'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RegisterContainerInstance
+            - ecs:DeregisterContainerInstance
+            - ecs:SubmitContainerStateChange
+            - ecs:SubmitTaskStateChange
+            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:StartTelemetrySession
+            - ecs:Poll
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:StartTask
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:DiscoverPollEndpoint
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}:*
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-*-${EnvironmentName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-*-${EnvironmentName}:*
+  ConsulClientTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IsConsulEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-consul'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:DescribeTasks
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+
+
+  ConsulEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: IsConsulEnabled
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref ConsulEC2Role
+  ConsulEC2Role:
+    Type: AWS::IAM::Role
+    Condition: IsConsulEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-consul-${EnvironmentName}-instance'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RegisterContainerInstance
+            - ecs:DeregisterContainerInstance
+            - ecs:SubmitContainerStateChange
+            - ecs:SubmitTaskStateChange
+            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-consul-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:StartTelemetrySession
+            - ecs:Poll
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-consul-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:StartTask
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-consul-${EnvironmentName}
+          - Effect: Allow
+            Action:
+            - ecs:DiscoverPollEndpoint
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-consul-${EnvironmentName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-consul-${EnvironmentName}:*
+  ConsulServerTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IsConsulEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-consul-${EnvironmentName}-task'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:DescribeTasks
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-consul-${EnvironmentName}
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+Outputs:
+  EC2InstanceProfileArn:
+    Description: Instance profile for ECS container instances
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EC2InstanceProfile.Arn
+      - ''
+  ConsulClientTaskRoleArn:
+    Description: Role assummed Consul client agent task
+    Value:
+      Fn::If:
+      - IsConsulEnabled
+      - !GetAtt ConsulClientTaskRole.Arn
+      - ''
+  ConsulEC2InstanceProfileArn:
+    Description: Instance profile for Consul container instances
+    Value:
+      Fn::If:
+      - IsConsulEnabled
+      - !GetAtt ConsulEC2InstanceProfile.Arn
+      - ''
+  ConsulServerTaskRoleArn:
+    Description: Role assummed Consul server agent task
+    Value:
+      Fn::If:
+      - IsConsulEnabled
+      - !GetAtt ConsulServerTaskRole.Arn
+      - ''
+

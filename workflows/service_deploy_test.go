@@ -10,6 +10,7 @@ import (
 func TestNewServiceDeployer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
+	ctx.Config.Namespace = "mu"
 	deploye := NewServiceDeployer(ctx, "dev", "foo")
 	assert.NotNil(deploye)
 }
@@ -48,7 +49,7 @@ func TestServiceApplyCommon_Create(t *testing.T) {
 	workflow.serviceName = "myservice"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	err := workflow.serviceApplyCommonParams("mu", service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("mu-environment-dev-VpcId", params["VpcId"])
@@ -85,7 +86,7 @@ func TestServiceApplyCommon_Update(t *testing.T) {
 	workflow.serviceName = "myservice"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	err := workflow.serviceApplyCommonParams("mu", service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("", params["ListenerRulePriority"])
@@ -120,7 +121,7 @@ func TestServiceApplyCommon_StaticPriority(t *testing.T) {
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.priority = 77
-	err := workflow.serviceApplyCommonParams(service, params, "dev", stackManager, elbRuleLister, paramManager)()
+	err := workflow.serviceApplyCommonParams("mu", service, params, "dev", stackManager, elbRuleLister, paramManager)()
 	assert.Nil(err)
 
 	assert.Equal("77", params["PathListenerRulePriority"])
@@ -138,7 +139,7 @@ func TestServiceEnvLoader_NotFound(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-loadbalancer-dev").Return(nil).Once()
 
 	workflow := new(serviceWorkflow)
-	err := workflow.serviceEnvironmentLoader("dev", stackManager)()
+	err := workflow.serviceEnvironmentLoader("mu", "dev", stackManager)()
 
 	assert.NotNil(err)
 
@@ -183,7 +184,7 @@ func TestServiceEcsDeployer(t *testing.T) {
 	outputs["provider"] = "ecs"
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
-	err := workflow.serviceEcsDeployer(&config.Service, params, "dev", stackManager, stackManager)()
+	err := workflow.serviceEcsDeployer("mu", &config.Service, params, "dev", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -194,4 +195,25 @@ func TestServiceEcsDeployer(t *testing.T) {
 
 func stringRef(v string) *string {
 	return &v
+}
+
+func TestServiceDeployer_serviceRolesetUpserter(t *testing.T) {
+	assert := assert.New(t)
+	rolesetManager := new(mockedRolesetManagerForService)
+
+	rolesetManager.On("UpsertCommonRoleset").Return(nil)
+	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("UpsertServiceRoleset", "env1", "svc20").Return(nil)
+
+	workflow := new(serviceWorkflow)
+	workflow.serviceName = "svc20"
+	err := workflow.serviceRolesetUpserter(rolesetManager, rolesetManager, "env1")()
+	assert.Nil(err)
+	assert.Equal("bar", workflow.cloudFormationRoleArn)
+
+	rolesetManager.AssertExpectations(t)
+	rolesetManager.AssertNumberOfCalls(t, "UpsertCommonRoleset", 1)
+	rolesetManager.AssertNumberOfCalls(t, "GetCommonRoleset", 1)
+	rolesetManager.AssertNumberOfCalls(t, "UpsertServiceRoleset", 1)
+
 }

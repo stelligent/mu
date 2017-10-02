@@ -74,7 +74,9 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 					return gitInfo, fmt.Errorf("Unable to parse entity url: %s", entityURL)
 				}
 
-				gitInfo.Revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
+				if actionState.CurrentRevision != nil && actionState.CurrentRevision.RevisionId != nil {
+					gitInfo.Revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
+				}
 				return gitInfo, nil
 			}
 		}

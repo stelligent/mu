@@ -19,14 +19,15 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	return newPipelineExecutor(
 		workflow.databaseInput(ctx, ""),
-		workflow.databaseEnvironmentLoader(environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
-		workflow.databaseDeployer(&ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
+		workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
+		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager),
+		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
 	)
 }
 
-func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
+func (workflow *databaseWorkflow) databaseEnvironmentLoader(namespace string, environmentName string, stackWaiter common.StackWaiter, ecsImportParams map[string]string, elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
-		ecsStackName := common.CreateStackName(common.StackTypeEnv, environmentName)
+		ecsStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		ecsStack := stackWaiter.AwaitFinalStatus(ecsStackName)
 
 		if ecsStack == nil {
@@ -41,7 +42,24 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(environmentName stri
 	}
 }
 
-func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter, paramManager common.ParamManager) Executor {
+func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		commonRoleset, err := rolesetGetter.GetCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
+		return nil
+	}
+}
+
+func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter, paramManager common.ParamManager) Executor {
 	return func() error {
 
 		if service.Database.Name == "" {
@@ -51,7 +69,7 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 
 		log.Noticef("Deploying database '%s' to '%s'", workflow.serviceName, environmentName)
 
-		dbStackName := common.CreateStackName(common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 
 		overrides := common.GetStackOverrides(dbStackName)
 		template, err := templates.NewTemplate("database.yml", service, overrides)
@@ -86,7 +104,16 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 		}
 		stackParams["DatabaseMasterPassword"] = dbPass
 
-		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, buildDatabaseTags(workflow.serviceName, environmentName, common.StackTypeDatabase, workflow.codeRevision, workflow.repoName))
+		var dbTags TagInterface = &DatabaseTags{
+			Environment: environmentName,
+			Type:        common.StackTypeDatabase,
+			Service:     workflow.serviceName,
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Database.Tags, dbTags)
+
+		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -101,15 +128,6 @@ func (workflow *databaseWorkflow) databaseDeployer(service *common.Service, stac
 
 		// update IAM Authentication
 		return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
-	}
-}
-func buildDatabaseTags(serviceName string, environmentName string, stackType common.StackType, codeRevision string, repoName string) map[string]string {
-	return map[string]string{
-		"type":        string(stackType),
-		"environment": environmentName,
-		"service":     serviceName,
-		"revision":    codeRevision,
-		"repo":        repoName,
 	}
 }
 

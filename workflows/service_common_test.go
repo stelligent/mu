@@ -13,6 +13,7 @@ func TestServiceLoader_FromConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Slug = "foo/myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
@@ -30,6 +31,7 @@ func TestServiceLoader_FromRepo(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 	ctx.Config.Repo.Name = "myrepo"
 	ctx.Config.Repo.Slug = "foo/myrepo"
 	ctx.Config.Repo.Revision = "1.0.0"
@@ -71,6 +73,28 @@ func TestServiceRegistryAuthenticator(t *testing.T) {
 	authn.AssertNumberOfCalls(t, "AuthenticateRepository", 1)
 }
 
+type mockedRolesetManagerForService struct {
+	mock.Mock
+	common.RolesetManager
+}
+
+func (m *mockedRolesetManagerForService) GetCommonRoleset() (common.Roleset, error) {
+	args := m.Called()
+	roleset := args.Get(0)
+	if roleset == nil {
+		return nil, args.Error(1)
+	}
+	return roleset.(common.Roleset), args.Error(1)
+}
+func (m *mockedRolesetManagerForService) UpsertCommonRoleset() error {
+	args := m.Called()
+	return args.Error(0)
+}
+func (m *mockedRolesetManagerForService) UpsertServiceRoleset(env string, svc string) error {
+	args := m.Called(env, svc)
+	return args.Error(0)
+}
+
 type mockedStackManagerForService struct {
 	mock.Mock
 }
@@ -83,7 +107,7 @@ func (m *mockedStackManagerForService) AwaitFinalStatus(stackName string) *commo
 	}
 	return stack.(*common.Stack)
 }
-func (m *mockedStackManagerForService) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string) error {
+func (m *mockedStackManagerForService) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
@@ -104,10 +128,66 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-repo-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-repo-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 
-	err := workflow.serviceRepoUpserter(svc, stackManager, stackManager)()
+	err := workflow.serviceRepoUpserter("mu", svc, stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
+func TestEnvironmentTags(t *testing.T) {
+	assert := assert.New(t)
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    tags: 
+      mytag: first-tag
+      foo: bar
+`
+	config, err := loadYamlConfig(yamlConfig)
+	assert.Nil(err)
+	assert.Equal(config.Environments[0].Name, "dev")
+
+	var envTags TagInterface = &EnvironmentTags{
+		Environment: config.Environments[0].Name,
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
+	}
+	joinedMap, err := concatTags(config.Environments[0].Tags, envTags)
+	assert.Nil(err)
+	assert.Equal(len(joinedMap), 7)
+	assert.NotNil(joinedMap["mytag"])
+	assert.Equal(joinedMap["foo"], "bar")
+}
+
+func TestNoTagOverride(t *testing.T) {
+	assert := assert.New(t)
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    tags: 
+      environment: this-should-break
+      foo: bar
+`
+
+	config, err := loadYamlConfig(yamlConfig)
+	assert.Nil(err)
+
+	var envTags TagInterface = &EnvironmentTags{
+		Environment: config.Environments[0].Name,
+		Type:        "StackType",
+		Provider:    string(config.Environments[0].Provider),
+		Revision:    "Revision",
+		Repo:        "Repo",
+	}
+	_, maperr := concatTags(config.Environments[0].Tags, envTags)
+
+	assert.NotNil(maperr)
 }

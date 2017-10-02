@@ -9,7 +9,8 @@ VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
 SRC_FILES = $(shell glide nv)
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
-BUILD_DIR = $(if $(CIRCLE_ARTIFACTS),$(CIRCLE_ARTIFACTS),.release)
+BUILD_DIR = .release
+BUILD_DIR = $(abspath $(if $(CIRCLE_WORKING_DIRECTORY),$(CIRCLE_WORKING_DIRECTORY)/artifacts,.release))
 BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
@@ -23,8 +24,9 @@ deps:
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
-	#go get -t -d -v $(SRC_FILES)
 	glide install
+	patch -p1 < go-git.v4.patch
+	gem install cfn-nag
 
 gen:
 	go generate $(SRC_FILES)
@@ -36,18 +38,31 @@ lint: fmt
 
 nag:
 	@echo "=== cfn_nag ==="
-	grep -l AWSTemplateFormatVersion: templates/assets/*.yml |xargs -t -n 1 cfn_nag
+	@mkdir -p $(BUILD_DIR)/cfn_nag
+	@grep -l AWSTemplateFormatVersion: templates/assets/*.yml | while read -r line; do \
+		filename=`basename $$line` ;\
+		grep -v '{{' $$line > $(BUILD_DIR)/cfn_nag/$$filename ;\
+		output=`cfn_nag_scan --input-path $(BUILD_DIR)/cfn_nag/$$filename 2>&1` ;\
+		if [ $$? -ne 0 ]; then \
+			echo "$$output\n" ;\
+		fi ;\
+	done | grep ".*" ;\
+    if [ $$? -eq 0 ]; then \
+    	exit 1 ;\
+    fi
 
-
-test: lint gen
+test: lint gen nag
 	@echo "=== testing ==="
-ifneq ($(CIRCLE_TEST_REPORTS),)
-	mkdir -p $(CIRCLE_TEST_REPORTS)/unit
-	go test -v -cover $(SRC_FILES) | go-junit-report > $(CIRCLE_TEST_REPORTS)/unit/report.xml
+ifneq ($(CIRCLE_WORKING_DIRECTORY),)
+	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
+	go test -v -cover $(SRC_FILES) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
 else
-	go test -cover $(SRC_FILES)
+	go test -cover $(SRC_FILES) -short
 endif
 
+e2e: gen stage keypair
+	@echo "=== e2e testing ==="
+	MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
 
 build: gen $(BUILD_FILES)
 
@@ -56,10 +71,26 @@ $(BUILD_FILES):
 	mkdir -p $(BUILD_DIR)
 	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
-install: build
-	@echo "=== building $(VERSION) - $(PACKAGE)-$(OS)-$(ARCH) ==="
+install: $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
+	@echo "=== installing $(VERSION) - $(PACKAGE)-$(OS)-$(ARCH) ==="
 	cp $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH) /usr/local/bin/mu
 	chmod 755 /usr/local/bin/mu
+
+keypair:
+	@aws ec2 describe-key-pairs --key-names mu-e2e > /dev/null 2>&1; \
+	if [ $$? -ne 0 ]; then \
+		echo "=== creating keypair ==="; \
+		aws ec2 create-key-pair --key-name mu-e2e --query "KeyMaterial" --output text > ~/.ssh/mu-e2e-$$(aws sts get-caller-identity --output text --query 'Account').pem; \
+		chmod 600 ~/.ssh/mu-e2e-$$(aws sts get-caller-identity --output text --query 'Account').pem; \
+	fi;
+
+stage: fmt $(BUILD_DIR)/$(PACKAGE)-linux-$(ARCH)
+	@echo "=== staging to S3 bucket ==="
+	@export BUCKET_NAME=mu-staging-$$(aws sts get-caller-identity --output text --query 'Account') ;\
+	aws s3 mb s3://$$BUCKET_NAME || echo "bucket exists" ;\
+	aws s3 website --index-document index.html s3://$$BUCKET_NAME ;\
+	aws s3 sync $(BUILD_DIR) s3://$$BUCKET_NAME/v$(VERSION)/ --acl public-read --exclude "*" --include "$(PACKAGE)-linux-*" ;\
+	echo https://$$BUCKET_NAME.s3.amazonaws.com
 
 release-clean:
 ifeq ($(IS_MASTER),)
@@ -102,4 +133,4 @@ fmt:
 	go fmt $(SRC_FILES)
 
 
-.PHONY: default all lint test build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(TARGET_OS)
+.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage

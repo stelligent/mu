@@ -11,19 +11,20 @@ import (
 )
 
 type serviceWorkflow struct {
-	envStack          *common.Stack
-	lbStack           *common.Stack
-	artifactProvider  common.ArtifactProvider
-	serviceName       string
-	serviceTag        string
-	serviceImage      string
-	registryAuth      string
-	priority          int
-	codeRevision      string
-	repoName          string
-	appName           string
-	appRevisionBucket string
-	appRevisionKey    string
+	envStack              *common.Stack
+	lbStack               *common.Stack
+	artifactProvider      common.ArtifactProvider
+	serviceName           string
+	serviceTag            string
+	serviceImage          string
+	registryAuth          string
+	priority              int
+	codeRevision          string
+	repoName              string
+	appName               string
+	appRevisionBucket     string
+	appRevisionKey        string
+	cloudFormationRoleArn string
 }
 
 // Find a service in config, by name and set the reference
@@ -111,7 +112,7 @@ func (workflow *serviceWorkflow) serviceInput(ctx *common.Context, serviceName s
 	}
 }
 
-func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		if service.ImageRepository != "" {
 			log.Noticef("Using repo '%s' for service '%s'", service.ImageRepository, workflow.serviceName)
@@ -121,7 +122,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 
 		log.Noticef("Upsert repo for service '%s'", workflow.serviceName)
 
-		ecrStackName := common.CreateStackName(common.StackTypeRepo, workflow.serviceName)
+		ecrStackName := common.CreateStackName(namespace, common.StackTypeRepo, workflow.serviceName)
 		overrides := common.GetStackOverrides(ecrStackName)
 		template, err := templates.NewTemplate("repo.yml", nil, overrides)
 		if err != nil {
@@ -129,9 +130,21 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		}
 
 		stackParams := make(map[string]string)
-		stackParams["RepoName"] = workflow.serviceName
+		stackParams["RepoName"] = fmt.Sprintf("%s-%s", namespace, workflow.serviceName)
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeRepo, workflow.codeRevision, workflow.repoName))
+		var envTags TagInterface = &EnvironmentTags{
+			Environment: workflow.serviceName,
+			Type:        string(common.StackTypeRepo),
+			Provider:    "",
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, envTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags, "")
 		if err != nil {
 			return err
 		}
@@ -148,11 +161,11 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(service *common.Service, st
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Noticef("Upsert app for service '%s'", workflow.serviceName)
 
-		appStackName := common.CreateStackName(common.StackTypeApp, workflow.serviceName)
+		appStackName := common.CreateStackName(namespace, common.StackTypeApp, workflow.serviceName)
 		overrides := common.GetStackOverrides(appStackName)
 		template, err := templates.NewTemplate("app.yml", nil, overrides)
 		if err != nil {
@@ -161,7 +174,20 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 
 		stackParams := make(map[string]string)
 
-		err = stackUpserter.UpsertStack(appStackName, template, stackParams, buildEnvironmentTags(workflow.serviceName, "", common.StackTypeApp, workflow.codeRevision, workflow.repoName))
+		var envTags TagInterface = &EnvironmentTags{
+			Environment: workflow.serviceName,
+			Type:        string(common.StackTypeApp),
+			Provider:    "",
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		}
+
+		tags, err := concatTags(service.Tags, envTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(appStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -178,9 +204,9 @@ func (workflow *serviceWorkflow) serviceAppUpserter(service *common.Service, sta
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		bucketStackName := common.CreateStackName(common.StackTypeBucket, "codedeploy")
+		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
 		overrides := common.GetStackOverrides(bucketStackName)
 		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
 		if err != nil {
@@ -189,7 +215,19 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(service *common.Service, 
 		log.Noticef("Upserting Bucket for CodeDeploy")
 		bucketParams := make(map[string]string)
 		bucketParams["BucketPrefix"] = "codedeploy"
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, buildPipelineTags(workflow.serviceName, common.StackTypeBucket, workflow.codeRevision, workflow.repoName))
+
+		var pipeTags TagInterface = &PipelineTags{
+			Type:     common.StackTypeBucket,
+			Service:  workflow.serviceName,
+			Revision: workflow.codeRevision,
+			Repo:     workflow.repoName,
+		}
+		tags, err := concatTags(service.Tags, pipeTags)
+		if err != nil {
+			return err
+		}
+
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
