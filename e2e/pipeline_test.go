@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -47,8 +48,13 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	includeTests := strings.Split(os.Getenv("INCLUDE_TESTS"), ",")
+	if len(includeTests) == 1 && includeTests[0] == "" {
+		includeTests = make([]string, 0)
+	}
+
 	var retCode int
-	err = setupContexts(sess, dir)
+	err = setupContexts(sess, dir, includeTests)
 	if err != nil {
 		fmt.Println(err)
 		retCode = 1
@@ -178,7 +184,7 @@ func waitForPipeline(ctx *common.Context) error {
 	return nil
 }
 
-func setupContexts(sess *session.Session, basedir string) error {
+func setupContexts(sess *session.Session, basedir string, includeTests []string) error {
 	contexts = make([]*common.Context, 0)
 	files, err := ioutil.ReadDir(".")
 	if err != nil {
@@ -186,6 +192,21 @@ func setupContexts(sess *session.Session, basedir string) error {
 	}
 	for _, f := range files {
 		if f.IsDir() {
+			if len(includeTests) > 0 {
+				found := false
+				for _, includeTest := range includeTests {
+					if includeTest == f.Name() {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					fmt.Printf("Skipping test '%s' since not in list '%v'\n", f.Name(), includeTests)
+					continue
+				}
+			}
+
 			// create temp dir for repo
 			dst := fmt.Sprintf("%s/%s", basedir, f.Name())
 			err = shutil.CopyTree(f.Name(), dst, nil)

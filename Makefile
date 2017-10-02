@@ -62,12 +62,7 @@ endif
 
 e2e: gen stage keypair
 	@echo "=== e2e testing ==="
-ifneq ($(CIRCLE_TEST_REPORTS),)
-	mkdir -p $(CIRCLE_TEST_REPORTS)/e2e
-	go test -v ./e2e -timeout 60m | go-junit-report > $(CIRCLE_TEST_REPORTS)/e2e/report.xml
-else
 	MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
-endif
 
 build: gen $(BUILD_FILES)
 

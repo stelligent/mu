@@ -250,6 +250,7 @@ Resources:
             - rds:ModifyDBSubnetGroup
             - rds:ModifyOptionGroup
             - rds:DeleteDBParameterGroup
+            - rds:DeleteDBInstance
             - rds:DeleteDBClusterParameterGroup
             - rds:DeleteDBCluster
             - rds:DeleteDBSecurityGroup
