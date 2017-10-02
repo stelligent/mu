@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU pipeline using CodePipeline and CodeBuild for continuous delivery
 Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  ServiceName:
+    Type: String
+    Description: Name of service used for resource namespace
   SourceProvider:
     Type: String
     Description: Provider for source repo
@@ -104,6 +110,29 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
+  CodePipelineRoleArn:
+    Type: String
+    Description: IAM Role for CodePipeline
+  CodeBuildCIRoleArn:
+    Type: String
+    Description: IAM Role for CodeBuild CI actions
+    Default: ""
+  CodeBuildCDAcptRoleArn:
+    Type: String
+    Description: IAM Role for CodeBuild CD actions in ACPT
+    Default: ""
+  CodeBuildCDProdRoleArn:
+    Type: String
+    Description: IAM Role for CodeBuild CD actions in PROD
+    Default: ""
+  MuAcptRoleArn:
+    Type: String
+    Description: IAM Role for Acpt Stage - used for cross account access
+    Default: ""
+  MuProdRoleArn:
+    Type: String
+    Description: IAM Role for Prod Stage - used for cross account access
+    Default: ""
 Conditions:
   IsCodeCommit:
     "Fn::Equals":
@@ -126,81 +155,13 @@ Conditions:
       - !Ref EnableProdStage
       - 'true'
 Resources:
-  CodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - codebuild.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: codebuild-service
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action: "*"
-            Resource: "*"
-          Version: '2012-10-17'
-  CodePipelineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - codepipeline.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: codepipeline-service
-        PolicyDocument:
-          Statement:
-          - Action:
-            - codebuild:*
-            Resource: "*"
-            Effect: Allow
-          - Action:
-            - codecommit:GetBranch
-            - codecommit:GetCommit
-            - codecommit:UploadArchive
-            - codecommit:GetUploadArchiveStatus
-            - codecommit:CancelUploadArchive
-            Resource: "*"
-            Effect: Allow
-          - Action:
-            - s3:GetObject
-            - s3:GetObjectVersion
-            - s3:GetBucketVersioning
-            Resource: "*"
-            Effect: Allow
-          - Action:
-            - s3:PutObject
-            Resource:
-            - arn:aws:s3:::codepipeline*
-            Effect: Allow
-          - Action:
-            - s3:*
-            - cloudformation:*
-            - ecs:*
-            - iam:PassRole
-            Resource: "*"
-            Effect: Allow
-          Version: '2012-10-17'
   CodeBuildArtifact:
     Type: AWS::CodeBuild::Project
     Condition: IsBuildEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-artifact
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-artifact
       Description: Build artifact from source
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCIRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -213,11 +174,10 @@ Resources:
   CodeBuildImage:
     Type: AWS::CodeBuild::Project
     Condition: IsBuildEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-image
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-image
       Description: Build image from artifact
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCIRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -244,11 +204,10 @@ Resources:
   DeployAcceptance:
     Type: AWS::CodeBuild::Project
     Condition: IsAcptEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-acceptance
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-deploy-acceptance
       Description: Deploy image to test environment
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCDAcptRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -267,10 +226,10 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${AcptEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${AcptEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${AcptEnv}
-                - mu env show ${AcptEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
+                - mu --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -279,11 +238,10 @@ Resources:
   TestAcceptance:
     Type: AWS::CodeBuild::Project
     Condition: IsAcptEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-test-acceptance
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-test-acceptance
       Description: Test in the acceptance environment
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCIRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -296,11 +254,10 @@ Resources:
   DeployProduction:
     Type: AWS::CodeBuild::Project
     Condition: IsProdEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-deploy-production
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-deploy-production
       Description: Deploy image to prod environment
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCDProdRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -319,10 +276,10 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} env up ${ProdEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} db up ${ProdEnv} || echo "Skipping update of database"
-                - mu -c ${MuFile} svc deploy ${ProdEnv}
-                - mu env show ${ProdEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
+                - mu --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -331,11 +288,10 @@ Resources:
   TestProduction:
     Type: AWS::CodeBuild::Project
     Condition: IsProdEnabled
-    DependsOn: CodeBuildRole
     Properties:
-      Name: !Sub ${AWS::StackName}-test-production
+      Name: !Sub ${Namespace}-pipeline-${ServiceName}-test-production
       Description: Test in the production environment
-      ServiceRole: !GetAtt CodeBuildRole.Arn
+      ServiceRole: !Ref CodeBuildCIRoleArn
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -348,7 +304,8 @@ Resources:
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      RoleArn: !GetAtt CodePipelineRole.Arn
+      RoleArn: !Ref CodePipelineRoleArn
+      Name: !Sub ${Namespace}-${ServiceName}
       Stages:
       - Name: Source
         Actions:

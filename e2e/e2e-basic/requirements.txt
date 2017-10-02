@@ -1,0 +1,3 @@
+PyMySQL
+Flask
+requests

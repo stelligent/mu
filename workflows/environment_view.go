@@ -78,7 +78,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
 		}
 
-		if clusterStack != nil && clusterStack.Outputs["provider"] == string(common.EnvProviderEcs) {
+		if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEcs) {
 			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
 			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
 			if err != nil {

@@ -6,9 +6,10 @@ import (
 )
 
 type databaseWorkflow struct {
-	serviceName  string
-	codeRevision string
-	repoName     string
+	serviceName           string
+	codeRevision          string
+	repoName              string
+	cloudFormationRoleArn string
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string) Executor {

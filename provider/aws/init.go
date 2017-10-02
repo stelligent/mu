@@ -2,13 +2,15 @@ package aws
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stelligent/mu/common"
 	"os"
 )
 
 // InitializeContext loads manager objects
-func InitializeContext(ctx *common.Context, profile string, region string, dryrun bool) error {
+func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrun bool, skipVersionCheck bool) error {
+
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 	if region != common.Empty {
 		sessOptions.Config = aws.Config{Region: aws.String(region)}
@@ -22,8 +24,18 @@ func InitializeContext(ctx *common.Context, profile string, region string, dryru
 		return err
 	}
 
+	if assumeRole != common.Empty {
+		// Create the credentials from AssumeRoleProvider to assume the role
+		// referenced by the "myRoleARN" ARN.
+		creds := stscreds.NewCredentials(sess, assumeRole)
+		sess, err = session.NewSession(&aws.Config{Region: sess.Config.Region, Credentials: creds})
+		if err != nil {
+			return err
+		}
+	}
+
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess, dryrun)
+	ctx.StackManager, err = newStackManager(sess, dryrun, skipVersionCheck)
 	if err != nil {
 		return err
 	}
@@ -81,6 +93,16 @@ func InitializeContext(ctx *common.Context, profile string, region string, dryru
 	if err != nil {
 		return err
 	}
+
+	// initialize the RolesetManager
+	ctx.RolesetManager, err = newRolesetManager(ctx)
+	if err != nil {
+		return err
+	}
+
+	// initialize LocalCodePipelineManager
+	localSess, err := session.NewSession()
+	ctx.LocalPipelineManager, _ = newPipelineManager(localSess)
 
 	ctx.DockerOut = os.Stdout
 

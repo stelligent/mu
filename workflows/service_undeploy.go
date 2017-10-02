@@ -38,3 +38,14 @@ func (workflow *serviceWorkflow) serviceUndeployer(namespace string, environment
 		return nil
 	}
 }
+
+func (workflow *serviceWorkflow) serviceRolesetTerminator(rolesetDeleter common.RolesetDeleter, environmentName string) Executor {
+	return func() error {
+		err := rolesetDeleter.DeleteServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}

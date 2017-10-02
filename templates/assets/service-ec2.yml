@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU service in a specific environment containing an ALB target group with EC2 AutoScaling group
 Parameters:
+  EC2InstanceProfileArn:
+    Type: String
+    Description: ARN of instance profile for EC2 instance to assume
+  CodeDeployRoleArn:
+    Type: String
+    Description: ARN of IAM role for CodeDeploy to assume
   ServiceName:
     Type: String
     Description: Name of service
@@ -464,7 +470,7 @@ Resources:
           - !Ref ConsulRpcClientSecurityGroup
           - !Ref "AWS::NoValue"
       InstanceType: !Ref InstanceType
-      IamInstanceProfile: !Ref EC2InstanceProfile
+      IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:
         Fn::If:
           - HasKeyName
@@ -492,58 +498,9 @@ Resources:
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
-  EC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: "/"
-      Roles:
-      - !Ref EC2Role
-  EC2Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - ec2.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      Policies:
-      - PolicyName: service-access
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:mu-*:*
-          - Effect: Allow
-            Action:
-            - s3:Get*
-            - s3:List*
-            Resource:
-            - !Sub arn:aws:s3:::${RevisionBucket}
-            - !Sub arn:aws:s3:::${RevisionBucket}/*
-          - Effect: Allow
-            Action:
-            - autoscaling:Describe*
-            - ec2:Describe*
-            Resource: '*'
-          - Effect: Allow
-            Action:
-            - cloudformation:Describe*
-            - cloudformation:GetTemplate
-            Resource:
-            - !Sub ${AWS::StackId}
-            - !Sub ${AWS::StackId}/*
   DeployGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
+    DeletionPolicy: Retain
     Properties:
       ApplicationName: !Ref AppName
       Deployment:
@@ -556,39 +513,8 @@ Resources:
             BundleType: !Ref RevisionBundleType
       AutoScalingGroups:
       - !Ref ServiceAutoScalingGroup
-      ServiceRoleArn: !Sub ${CodeDeployRole.Arn}
+      ServiceRoleArn: !Ref CodeDeployRoleArn
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
-  CodeDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - !Sub codedeploy.${AWS::Region}.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Path: "/"
-      #ManagedPolicyArns:
-      #- arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-      Policies:
-      - PolicyName: codedeploy-access
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action:
-            - autoscaling:CompleteLifecycleAction
-            - autoscaling:DeleteLifecycleHook
-            - autoscaling:PutLifecycleHook
-            - autoscaling:RecordLifecycleActionHeartbeat
-            Resource: '*'
-            #- !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ServiceAutoScalingGroup}
-          - Effect: Allow
-            Action:
-            - autoscaling:Describe*
-            - ec2:Describe*
-            Resource: '*'
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete

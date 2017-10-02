@@ -55,7 +55,8 @@ func TestPipelineUpserter(t *testing.T) {
 		return "my-token"
 	}
 
-	err := workflow.pipelineUpserter("mu", tokenProvider, stackManager, stackManager)()
+	params := make(map[string]string)
+	err := workflow.pipelineUpserter("mu", tokenProvider, stackManager, stackManager, params)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

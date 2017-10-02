@@ -74,7 +74,7 @@ Resources:
         FromPort: '443'
         ToPort: '443'
         CidrIp: 0.0.0.0/0
-  ELB2HostRule:
+  ELB2HostRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -82,7 +82,15 @@ Resources:
       ToPort: '65535'
       SourceSecurityGroupId: !GetAtt ElbSG.GroupId
       GroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
-  Host2ELBRule:
+  Elb2HostRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      DestinationSecurityGroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
+      GroupId: !GetAtt ElbSG.GroupId
+  Host2ELBRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
@@ -90,6 +98,14 @@ Resources:
       ToPort: '65535'
       SourceSecurityGroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
       GroupId: !GetAtt ElbSG.GroupId
+  Host2ELBRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      DestinationSecurityGroupId: !GetAtt ElbSG.GroupId
+      GroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:

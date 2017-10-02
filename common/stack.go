@@ -33,7 +33,7 @@ type StackWaiter interface {
 
 // StackUpserter for applying changes to a stack
 type StackUpserter interface {
-	UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string) error
+	UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error
 }
 
 // StackLister for listing stacks

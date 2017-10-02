@@ -14,7 +14,18 @@ func NewPipelineTerminator(ctx *common.Context, serviceName string) Executor {
 	return newPipelineExecutor(
 		workflow.serviceFinder(serviceName, ctx),
 		workflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineRolesetTerminator(ctx.RolesetManager),
 	)
+}
+
+func (workflow *pipelineWorkflow) pipelineRolesetTerminator(rolesetDeleter common.RolesetDeleter) Executor {
+	return func() error {
+		err := rolesetDeleter.DeletePipelineRoleset(workflow.serviceName)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }
 
 func (workflow *pipelineWorkflow) pipelineTerminator(namespace string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {

@@ -33,8 +33,8 @@ func (workflow *databaseWorkflow) databaseLister(stackLister common.StackLister,
 				stack.Name,
 				fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
 				stack.LastUpdateTime.Local().Format(LastUpdateTime),
-				stack.Tags[SvcVersionKey],
 			})
+
 		}
 
 		table.Render()

@@ -11,19 +11,20 @@ import (
 )
 
 type serviceWorkflow struct {
-	envStack          *common.Stack
-	lbStack           *common.Stack
-	artifactProvider  common.ArtifactProvider
-	serviceName       string
-	serviceTag        string
-	serviceImage      string
-	registryAuth      string
-	priority          int
-	codeRevision      string
-	repoName          string
-	appName           string
-	appRevisionBucket string
-	appRevisionKey    string
+	envStack              *common.Stack
+	lbStack               *common.Stack
+	artifactProvider      common.ArtifactProvider
+	serviceName           string
+	serviceTag            string
+	serviceImage          string
+	registryAuth          string
+	priority              int
+	codeRevision          string
+	repoName              string
+	appName               string
+	appRevisionBucket     string
+	appRevisionKey        string
+	cloudFormationRoleArn string
 }
 
 // Find a service in config, by name and set the reference
@@ -129,7 +130,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 		}
 
 		stackParams := make(map[string]string)
-		stackParams["RepoName"] = workflow.serviceName
+		stackParams["RepoName"] = fmt.Sprintf("%s-%s", namespace, workflow.serviceName)
 
 		var envTags TagInterface = &EnvironmentTags{
 			Environment: workflow.serviceName,
@@ -143,7 +144,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(ecrStackName, template, stackParams, tags, "")
 		if err != nil {
 			return err
 		}
@@ -186,7 +187,7 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(appStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(appStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -226,7 +227,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags)
+		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

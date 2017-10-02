@@ -1,0 +1,518 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU IAM roles for pipeline
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  ServiceName:
+    Type: String
+    Description: Name of service used for resource namespace
+  SourceProvider:
+    Type: String
+    Description: Provider for source repo
+    Default: "GitHub"
+    AllowedValues:
+    - GitHub
+    - CodeCommit
+  SourceRepo:
+    Type: String
+    Description: Provider specific repository
+  AcptEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for testing
+    Default: "acceptance"
+  ProdEnv:
+    Type: String
+    Description: Name of mu environment to deploy to for production
+    Default: "production"
+  AcptCloudFormationRoleArn:
+    Type: String
+    Description: Name of role to pass to CloudFormation in ACPT
+  ProdCloudFormationRoleArn:
+    Type: String
+    Description: Name of role to pass to CloudFormation in PROD
+  EnableBuildStage:
+    Type: String
+    Description: Enable build stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableAcptStage:
+    Type: String
+    Description: Enable acceptance stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableProdStage:
+    Type: String
+    Description: Enable prod stage
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+Conditions:
+  IsCodeCommit:
+    "Fn::Equals":
+      - !Ref SourceProvider
+      - 'CodeCommit'
+  IsBuildEnabled:
+    "Fn::Equals":
+      - !Ref EnableBuildStage
+      - 'true'
+  IsAcptEnabled:
+    "Fn::Equals":
+      - !Ref EnableAcptStage
+      - 'true'
+  IsProdEnabled:
+    "Fn::Equals":
+      - !Ref EnableProdStage
+      - 'true'
+Resources:
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-codepipeline'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: codepipeline-service
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - codebuild:StartBuild
+            - codebuild:StopBuild
+            - codebuild:BatchGetProjects
+            - codebuild:BatchGetBuilds
+            Effect: Allow
+            Resource:
+            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*'
+          - !If
+            - IsCodeCommit
+            - Action:
+              - codecommit:GetBranch
+              - codecommit:GetCommit
+              - codecommit:UploadArchive
+              - codecommit:GetUploadArchiveStatus
+              - codecommit:CancelUploadArchive
+              Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
+              Effect: Allow
+            - !Ref AWS::NoValue
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:PutObject
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}/*
+              - BucketName:
+                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            Effect: Allow
+          - Action:
+            - s3:GetBucketVersioning
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}
+              - BucketName:
+                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            Effect: Allow
+          - Action:
+            - iam:PassRole
+            Resource:
+            - !If
+              - IsBuildEnabled
+              - !GetAtt CodeBuildCIRole.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsAcptEnabled
+              - !GetAtt CodeBuildCDAcptRole.Arn
+              - !Ref AWS::NoValue
+            - !If
+              - IsProdEnabled
+              - !GetAtt CodeBuildCDProdRole.Arn
+              - !Ref AWS::NoValue
+            Effect: Allow
+
+  CodePipelineAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: codepipeline-access
+      Roles:
+      - !If
+        - IsBuildEnabled
+        - !Ref CodeBuildCIRole
+        - !Ref AWS::NoValue
+      - !If
+        - IsAcptEnabled
+        - !Ref CodeBuildCDAcptRole
+        - !Ref AWS::NoValue
+      - !If
+        - IsProdEnabled
+        - !Ref CodeBuildCDProdRole
+        - !Ref AWS::NoValue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action:
+          - codepipeline:GetPipelineState
+          Effect: Allow
+          Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
+        - Action:
+          - codepipeline:GetJobDetails
+          - codepipeline:PollForJobs
+          - codepipeline:AcknowledgeJob
+          - codepipeline:PutJobFailureResult
+          - codepipeline:PutJobSuccessResult
+          Effect: Allow
+          Resource: '*'
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource: '*'
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:PutObject
+          Resource:
+          - !Sub
+            - arn:aws:s3:::${BucketName}/*
+            - BucketName:
+                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          Effect: Allow
+        - Action:
+          - s3:GetBucketVersioning
+          Resource:
+          - !Sub
+            - arn:aws:s3:::${BucketName}
+            - BucketName:
+                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          Effect: Allow
+
+  CodeBuildCIRole:
+    Type: AWS::IAM::Role
+    Condition: IsBuildEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-ci'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: push-image
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - s3:CreateBucket
+            Resource: !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
+            Effect: Allow
+          - Action:
+            - ecr:SetRepositoryPolicy
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:GetRepositoryPolicy
+            - ecr:DescribeRepositories
+            - ecr:ListImages
+            - ecr:DescribeImages
+            - ecr:BatchGetImage
+            - ecr:InitiateLayerUpload
+            - ecr:UploadLayerPart
+            - ecr:CompleteLayerUpload
+            - ecr:PutImage
+            Effect: Allow
+            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Namespace}-${ServiceName}
+          - Action:
+            - ecr:CreateRepository
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - ecr:GetAuthorizationToken
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - codedeploy:CreateApplication
+            Effect: Allow
+            Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${Namespace}-app-${ServiceName}
+          - Action:
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:PutObject
+            Resource:
+            - !Sub
+              - arn:aws:s3:::${BucketName}/*
+              - BucketName:
+                  Fn::ImportValue: !Sub ${Namespace}-bucket-codedeploy
+            Effect: Allow
+
+
+  CodeBuildCDAcptRole:
+    Type: AWS::IAM::Role
+    Condition: IsAcptEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-acpt'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: assume-mu-acpt
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - sts:AssumeRole
+            Resource:
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-acpt
+            Effect: Allow
+
+  CodeBuildCDProdRole:
+    Type: AWS::IAM::Role
+    Condition: IsProdEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-prod'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codebuild.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: assume-mu-prod
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - sts:AssumeRole
+            Resource:
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-prod
+            Effect: Allow
+
+  MuAcptRole:
+    Type: AWS::IAM::Role
+    Condition: IsAcptEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-acpt'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt CodeBuildCDAcptRole.Arn
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: deploy-acpt-env
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}/*
+            Effect: Allow
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          - Action:
+            - ssm:GetParameters
+            - ssm:PutParameter
+            Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${AcptEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
+            - rds:ModifyDBInstance
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:db-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${AcptEnv}
+          - Action:
+            - rds:ModifyDBCluster
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${AcptEnv}
+          - Action:
+            - ec2:DescribeImages
+            - elasticloadbalancing:DescribeRules
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - iam:PassRole
+            Resource: !Ref AcptCloudFormationRoleArn
+            Effect: Allow
+
+  MuProdRole:
+    Type: AWS::IAM::Role
+    Condition: IsProdEnabled
+    Properties:
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-prod'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !GetAtt CodeBuildCDProdRole.Arn
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: deploy-prod-env
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}/*
+            Effect: Allow
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DescribeStackEvents
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          - Action:
+            - ssm:GetParameters
+            - ssm:PutParameter
+            Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${ProdEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
+            - rds:ModifyDBInstance
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:db-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
+          - Action:
+            - rds:ModifyDBCluster
+            Resource:
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
+            Effect: Allow
+            Condition:
+              StringEquals:
+                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
+          - Action:
+            - ec2:DescribeImages
+            - elasticloadbalancing:DescribeRules
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - iam:PassRole
+            Resource: !Ref ProdCloudFormationRoleArn
+            Effect: Allow
+Outputs:
+  CodePipelineRoleArn:
+    Description: Role assummed by CodePipeline
+    Value: !GetAtt CodePipelineRole.Arn
+  CodeBuildCIRoleArn:
+    Description: Role assummed by CodeBuild for building the artifact and managing the image
+    Value:
+      Fn::If:
+      - IsBuildEnabled
+      - !GetAtt CodeBuildCIRole.Arn
+      - ''
+  CodeBuildCDAcptRoleArn:
+    Description: Role assummed by CodeBuild for deploying to ACPT
+    Value:
+      Fn::If:
+      - IsAcptEnabled
+      - !GetAtt CodeBuildCDAcptRole.Arn
+      - ''
+  CodeBuildCDProdRoleArn:
+    Description: Role assummed by CodeBuild for deploying to PROD
+    Value:
+      Fn::If:
+      - IsProdEnabled
+      - !GetAtt CodeBuildCDProdRole.Arn
+      - ''
+  MuAcptRoleArn:
+    Description: Role assummed by mu from within the CodeBuild project for ACPT.  Useful for performing cross-account deployment.
+    Value:
+      Fn::If:
+      - IsAcptEnabled
+      - !GetAtt MuAcptRole.Arn
+      - ''
+  MuProdRoleArn:
+    Description: Role assummed by mu from within the CodeBuild project for PROD.  Useful for performing cross-account deployment.
+    Value:
+      Fn::If:
+      - IsProdEnabled
+      - !GetAtt MuProdRole.Arn
+      - ''
+

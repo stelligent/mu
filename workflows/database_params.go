@@ -36,7 +36,7 @@ func DatabaseGetPassword(ctx *common.Context, environmentName string, serviceNam
 func (workflow *databaseWorkflow) databaseGetPassword(ctx *common.Context, environmentName string) Executor {
 	return func() error {
 		dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
-		log.Noticef("Getting password for dbStackName:%s", dbStackName)
+		log.Debugf("Getting password for dbStackName:%s", dbStackName)
 		dbPass, _ := ctx.ParamManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		log.Noticef("%s", dbPass)
 		return nil

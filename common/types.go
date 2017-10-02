@@ -7,19 +7,21 @@ import (
 
 // Context defines the context object passed around
 type Context struct {
-	Config          Config
-	StackManager    StackManager
-	ClusterManager  ClusterManager
-	InstanceManager InstanceManager
-	ElbManager      ElbManager
-	RdsManager      RdsManager
-	ParamManager    ParamManager
-	PipelineManager PipelineManager
-	LogsManager     LogsManager
-	DockerManager   DockerManager
-	DockerOut       io.Writer
-	TaskManager     TaskManager
-	ArtifactManager ArtifactManager
+	Config               Config
+	StackManager         StackManager
+	ClusterManager       ClusterManager
+	InstanceManager      InstanceManager
+	ElbManager           ElbManager
+	RdsManager           RdsManager
+	ParamManager         ParamManager
+	LocalPipelineManager PipelineManager // instance that ignores region/profile/role
+	PipelineManager      PipelineManager
+	LogsManager          LogsManager
+	DockerManager        DockerManager
+	DockerOut            io.Writer
+	TaskManager          TaskManager
+	ArtifactManager      ArtifactManager
+	RolesetManager       RolesetManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -36,7 +38,11 @@ type Config struct {
 		Branch   string
 		Provider string
 	} `yaml:"-"`
-	Templates map[string]interface{} `yaml:"templates,omitempty"`
+	Templates  map[string]interface{} `yaml:"templates,omitempty"`
+	DisableIAM bool                   `yaml:"disableIAM,omitempty"`
+	Roles      struct {
+		CloudFormation string `yaml:"cloudFormation,omitempty"`
+	} `yaml:"roles,omitempty"`
 }
 
 // Environment defines the structure of the yml file for an environment
@@ -71,6 +77,12 @@ type Environment struct {
 		InstanceSubnetIds []string `yaml:"instanceSubnetIds,omitempty"`
 		ElbSubnetIds      []string `yaml:"elbSubnetIds,omitempty"`
 	} `yaml:"vpcTarget,omitempty"`
+	Roles struct {
+		EcsInstance      string `yaml:"ecsInstance,omitempty"`
+		ConsulClientTask string `yaml:"consulClientTask,omitempty"`
+		ConsulInstance   string `yaml:"consulInstance,omitempty"`
+		ConsulServerTask string `yaml:"consulServerTask,omitempty"`
+	} `yaml:"roles,omitempty"`
 }
 
 // Service defines the structure of the yml file for a service
@@ -91,6 +103,12 @@ type Service struct {
 	Priority        int                    `yaml:"priority,omitempty"`
 	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
 	Database        Database               `yaml:"database,omitempty"`
+	Roles           struct {
+		Ec2Instance string `yaml:"ec2Instance,omitempty"`
+		CodeDeploy  string `yaml:"codeDeploy,omitempty"`
+		EcsService  string `yaml:"ecsService,omitempty"`
+		EcsTask     string `yaml:"ecsTask,omitempty"`
+	} `yaml:"roles,omitempty"`
 }
 
 // Database definition
@@ -124,13 +142,25 @@ type Pipeline struct {
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
+		Roles       struct {
+			CodeBuild string `yaml:"codeBuild,omitempty"`
+			Mu        string `yaml:"mu,omitempty"`
+		} `yaml:"roles,omitempty"`
 	} `yaml:"acceptance,omitempty"`
 	Production struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
 		Environment string `yaml:"environment,omitempty"`
+		Roles       struct {
+			CodeBuild string `yaml:"codeBuild,omitempty"`
+			Mu        string `yaml:"mu,omitempty"`
+		} `yaml:"roles,omitempty"`
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`
 	MuVersion string `yaml:"muVersion,omitempty"`
+	Roles     struct {
+		Pipeline string `yaml:"pipeline,omitempty"`
+		Build    string `yaml:"build,omitempty"`
+	} `yaml:"roles,omitempty"`
 }
 
 // Stack summary
@@ -205,6 +235,7 @@ type StackType string
 const (
 	StackTypeVpc          StackType = "vpc"
 	StackTypeTarget                 = "target"
+	StackTypeIam                    = "iam"
 	StackTypeEnv                    = "environment"
 	StackTypeLoadBalancer           = "loadbalancer"
 	StackTypeConsul                 = "consul"

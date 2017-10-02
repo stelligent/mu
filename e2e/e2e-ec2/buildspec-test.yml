@@ -1,0 +1,17 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - apt-get update -y
+      - apt-get install -y jq
+
+  build:
+    commands:
+      - curl -s $(jq -r '.values[]|select(.key=="BASE_URL")|.value' env.json) | grep 'ok'
+      - echo "TODO validate consul"
+      - echo "TODO validate database"
+
+artifacts:
+  files:
+    - mu.yml

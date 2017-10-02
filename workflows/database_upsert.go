@@ -20,6 +20,7 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 	return newPipelineExecutor(
 		workflow.databaseInput(ctx, ""),
 		workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
+		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager),
 		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
 	)
 }
@@ -37,6 +38,23 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(namespace string, en
 		ecsImportParams["InstanceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", ecsStackName)
 		ecsImportParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", ecsStackName)
 
+		return nil
+	}
+}
+
+func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		commonRoleset, err := rolesetGetter.GetCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 		return nil
 	}
 }
@@ -95,7 +113,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 		tags, err := concatTags(service.Database.Tags, dbTags)
 
-		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

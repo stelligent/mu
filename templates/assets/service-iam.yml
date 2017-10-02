@@ -1,0 +1,192 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU IAM roles for a service
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
+  ServiceName:
+    Type: String
+    Description: Name of service used for resource namespace
+  RevisionBucket:
+    Type: String
+    Description: Name of bucket for S3 artifacts
+    Default: ''
+  Provider:
+    Type: String
+    Description: Provider type for services
+    Default: "ecs"
+    AllowedValues:
+      - "ecs"
+      - "ec2"
+Conditions:
+  IsEc2Service:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ec2'
+  IsEcsService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs'
+Resources:
+  CodeDeployRole:
+    Type: AWS::IAM::Role
+    Condition: IsEc2Service
+    Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-codedeploy'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - !Sub codedeploy.${AWS::Region}.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: IsEc2Service
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref EC2Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Condition: IsEc2Service
+    Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-instance'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      Policies:
+      - PolicyName: service-access
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetBucketAcl
+            - s3:GetBucketLocation
+            - s3:GetBucketPolicy
+            - s3:GetBucketTagging
+            - s3:GetBucketVersioning
+            - s3:GetObject
+            - s3:GetObjectAcl
+            - s3:GetObjectVersion
+            - s3:ListBucket
+            - s3:ListBucketMultipartUploads
+            - s3:ListBucketVersions
+            - s3:ListMultipartUploadParts
+            Resource:
+            - !Sub arn:aws:s3:::${RevisionBucket}
+            - !Sub arn:aws:s3:::${RevisionBucket}/*
+          - Effect: Allow
+            Action:
+            - cloudformation:DescribeStackEvents
+            - cloudformation:DescribeStackResource
+            - cloudformation:DescribeStackResources
+            - cloudformation:GetTemplate
+            Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}/*
+          - Action:
+            - cloudformation:DescribeStacks
+            Resource: '*'
+            Effect: Allow
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}:*
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}
+            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}:*
+
+  EcsServiceRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-service'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
+
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-task'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:DescribeTasks
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+
+Outputs:
+  EC2InstanceProfileArn:
+    Description: Instance profile for EC2 instances
+    Value:
+      Fn::If:
+      - IsEc2Service
+      - !GetAtt EC2InstanceProfile.Arn
+      - ''
+  CodeDeployRoleArn:
+    Description: Role assummed by CodeDeploy
+    Value:
+      Fn::If:
+      - IsEc2Service
+      - !GetAtt CodeDeployRole.Arn
+      - ''
+  EcsServiceRoleArn:
+    Description: Role assummed by ECS Service
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EcsServiceRole.Arn
+      - ''
+  EcsTaskRoleArn:
+    Description: Role assummed by ECS Task
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EcsTaskRole.Arn
+      - ''

@@ -24,6 +24,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
+		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, consulStackParams, ecsStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ctx.Config.Namespace, consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
@@ -114,7 +115,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, tags)
+		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -138,6 +139,40 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 		consulStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		consulStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
 		consulStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
+
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, consulStackParams map[string]string, ecsStackParams map[string]string) Executor {
+	return func() error {
+		err := rolesetUpserter.UpsertCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		commonRoleset, err := rolesetGetter.GetCommonRoleset()
+		if err != nil {
+			return err
+		}
+
+		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
+
+		err = rolesetUpserter.UpsertEnvironmentRoleset(workflow.environment.Name)
+		if err != nil {
+			return err
+		}
+
+		environmentRoleset, err := rolesetGetter.GetEnvironmentRoleset(workflow.environment.Name)
+		if err != nil {
+			return err
+		}
+
+		consulStackParams["EC2InstanceProfileArn"] = environmentRoleset["ConsulEC2InstanceProfileArn"]
+		consulStackParams["ConsulTaskRoleArn"] = environmentRoleset["ConsulServerTaskRoleArn"]
+
+		ecsStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
+		ecsStackParams["ConsulTaskRoleArn"] = environmentRoleset["ConsulClientTaskRoleArn"]
 
 		return nil
 	}
@@ -193,7 +228,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string,
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -257,7 +292,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -351,7 +386,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags)
+		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
