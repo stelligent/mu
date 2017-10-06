@@ -334,7 +334,7 @@ Resources:
             - RepositoryName: !Ref SourceRepo
               BranchName: !Ref SourceBranch
           RunOrder: 1
-      - !If
+      - Fn::If:
         - IsBuildEnabled
         - Name: Build
           Actions:
@@ -365,7 +365,7 @@ Resources:
               ProjectName: !Ref CodeBuildImage
             RunOrder: 2
         - !Ref AWS::NoValue
-      - !If
+      - Fn::If:
         - IsAcptEnabled
         - Name: Acceptance
           Actions:
@@ -396,7 +396,7 @@ Resources:
               ProjectName: !Ref TestAcceptance
             RunOrder: 2
         - !Ref AWS::NoValue
-      - !If
+      - Fn::If:
         - IsProdEnabled
         - Name: Production
           Actions:

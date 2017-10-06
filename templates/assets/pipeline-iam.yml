@@ -97,7 +97,7 @@ Resources:
             Effect: Allow
             Resource:
             - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*'
-          - !If
+          - Fn::If:
             - IsCodeCommit
             - Action:
               - codecommit:GetBranch
@@ -129,15 +129,15 @@ Resources:
           - Action:
             - iam:PassRole
             Resource:
-            - !If
+            - Fn::If:
               - IsBuildEnabled
               - !GetAtt CodeBuildCIRole.Arn
               - !Ref AWS::NoValue
-            - !If
+            - Fn::If:
               - IsAcptEnabled
               - !GetAtt CodeBuildCDAcptRole.Arn
               - !Ref AWS::NoValue
-            - !If
+            - Fn::If:
               - IsProdEnabled
               - !GetAtt CodeBuildCDProdRole.Arn
               - !Ref AWS::NoValue
@@ -148,15 +148,15 @@ Resources:
     Properties:
       PolicyName: codepipeline-access
       Roles:
-      - !If
+      - Fn::If:
         - IsBuildEnabled
         - !Ref CodeBuildCIRole
         - !Ref AWS::NoValue
-      - !If
+      - Fn::If:
         - IsAcptEnabled
         - !Ref CodeBuildCDAcptRole
         - !Ref AWS::NoValue
-      - !If
+      - Fn::If:
         - IsProdEnabled
         - !Ref CodeBuildCDProdRole
         - !Ref AWS::NoValue
