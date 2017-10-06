@@ -112,6 +112,15 @@ $(TARGET_OS): release-create
 
 dev-release: $(TARGET_OS)
 
+formula:
+ifneq ($(IS_MASTER),)
+	@echo Updating formula for $(PACKAGE) master version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) master
+else
+	@echo Updating formula for $(PACKAGE) develop version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) develop
+endif
+
 release: dev-release
 ifneq ($(IS_MASTER),)
 	@echo "=== releasing $(VERSION) ==="
