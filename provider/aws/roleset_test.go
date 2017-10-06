@@ -245,7 +245,7 @@ func TestIamRolesetManager_UpsertEnvironmentRoleset(t *testing.T) {
 	}
 
 	err := i.UpsertEnvironmentRoleset("env1")
-	assert.NotNil(err)
+	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "UpsertStack", 0)
 

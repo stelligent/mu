@@ -139,7 +139,8 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		}
 	}
 	if environment == nil {
-		return fmt.Errorf("unable to find environment named '%s' in configuration", environmentName)
+		log.Warningf("unable to find environment named '%s' in configuration...skipping IAM roles", environmentName)
+		return nil
 	}
 
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "environment", environmentName)
