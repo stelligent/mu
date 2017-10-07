@@ -12,7 +12,6 @@ if [ "x${BRANCH}" != "xmaster" ] && [ "x${BRANCH}" != "xdevelop" ]; then
   usage
   exit 1
 fi
-FILE=$(cat mu-cli.rb)
 # Download binaries and get a hash
 MAC_URL="https://github.com/stelligent/mu/releases/download/${VERSION}/mu-darwin-amd64"
 LINUX_URL="https://github.com/stelligent/mu/releases/download/${VERSION}/mu-linux-amd64"
