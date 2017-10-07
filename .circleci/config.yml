@@ -70,14 +70,16 @@ jobs:
               make release
             fi
             # Push the formula to the stelligent tap repo
-            cd $APP_PATH
-            make formula
-            git clone git@github.com:stelligent/homebrew-tap.git
-            cp homebrew/mu-cli.rb homebrew-tap/Formula/
-            cd homebrew-tap/Formula/
-            git add mu-cli.rb
-            git commit -m "project stelligent/mu auto updated the mu-cli formula" mu-cli.rb
-            git push
+            if [ "${CIRCLE_BRANCH}" == "develop" ] || [ "${CIRCLE_BRANCH}" == "master" ]; then
+              cd $APP_PATH
+              make formula
+              git clone git@github.com:stelligent/homebrew-tap.git
+              cp homebrew/mu-cli.rb homebrew-tap/Formula/
+              cd homebrew-tap/Formula/
+              git add mu-cli.rb
+              git commit -m "project stelligent/mu auto updated the mu-cli formula" mu-cli.rb
+              git push
+            fi
 
 
 
