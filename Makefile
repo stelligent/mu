@@ -112,15 +112,6 @@ $(TARGET_OS): release-create
 
 dev-release: $(TARGET_OS)
 
-formula:
-ifneq ($(IS_MASTER),)
-	@echo Updating formula for $(PACKAGE) master version $(TAG_VERSION)
-	./scripts/create-formula.sh $(TAG_VERSION) master
-else
-	@echo Updating formula for $(PACKAGE) develop version $(TAG_VERSION)
-	./scripts/create-formula.sh $(TAG_VERSION) develop
-endif
-
 release: dev-release
 ifneq ($(IS_MASTER),)
 	@echo "=== releasing $(VERSION) ==="
@@ -128,6 +119,15 @@ ifneq ($(IS_MASTER),)
 
 	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop || echo "No pre-release to cleanup"
 	git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
+endif
+
+formula:
+ifneq ($(IS_MASTER),)
+	@echo Updating formula for $(PACKAGE) master version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) master
+else
+	@echo Updating formula for $(PACKAGE) develop version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) develop
 endif
 
 clean:
