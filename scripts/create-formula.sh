@@ -26,4 +26,4 @@ sed -i".bak" 's|.*\( # The MacOS '$BRANCH' url\)|    url "'$MAC_URL'"\1|g ;'\
 's|.*\( # The Linux '$BRANCH' url\)|    url "'$LINUX_URL'"\1|g;'\
 's|.*\( # The Linux '$BRANCH' sha256sum\)|    sha256 "'$LINUX_SHA256'"\1|g;'\
 's|\(\s*version\).*\( # The '$BRANCH' version\)|\1 "'$VERSION'"\2|g'\
- mu-cli.rb
+ homebrew/mu-cli.rb
