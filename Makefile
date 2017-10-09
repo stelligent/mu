@@ -121,6 +121,15 @@ ifneq ($(IS_MASTER),)
 	git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
 endif
 
+formula:
+ifneq ($(IS_MASTER),)
+	@echo Updating formula for $(PACKAGE) master version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) master
+else
+	@echo Updating formula for $(PACKAGE) develop version $(TAG_VERSION)
+	./scripts/create-formula.sh $(TAG_VERSION) develop
+endif
+
 clean:
 	@echo "=== cleaning ==="
 	rm -rf $(BUILD_DIR)
