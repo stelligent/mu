@@ -131,11 +131,19 @@ formula:
 	$(eval LINUX_SHA256 := $(shell curl -L -s $(LINUX_URL) | shasum -a 256 | cut -d' ' -f1))
 
     # Update formula in mu-cli.rb
+ifeq ($(OS),darwin)
 	sed -i "" 's|.*\( # The MacOS '$(BRANCH)' url\)|    url "'$(MAC_URL)'"\1|g '  homebrew-tap/Formula/mu-cli.rb
 	sed -i "" 's|.*\( # The MacOS '$(BRANCH)' sha256sum\)|    sha256 "'$(MAC_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
 	sed -i "" 's|.*\( # The Linux '$(BRANCH)' url\)|    url "'$(LINUX_URL)'"\1|g' homebrew-tap/Formula/mu-cli.rb
 	sed -i "" 's|.*\( # The Linux '$(BRANCH)' sha256sum\)|    sha256 "'$(LINUX_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
 	sed -i "" 's|\(\s*version\).*\( # The '$(BRANCH)' version\)|\1 "'$(VERSION)'"\2|g' homebrew-tap/Formula/mu-cli.rb
+else
+	sed -i"" 's|.*\( # The MacOS '$(BRANCH)' url\)|    url "'$(MAC_URL)'"\1|g '  homebrew-tap/Formula/mu-cli.rb
+	sed -i"" 's|.*\( # The MacOS '$(BRANCH)' sha256sum\)|    sha256 "'$(MAC_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i"" 's|.*\( # The Linux '$(BRANCH)' url\)|    url "'$(LINUX_URL)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i"" 's|.*\( # The Linux '$(BRANCH)' sha256sum\)|    sha256 "'$(LINUX_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i"" 's|\(\s*version\).*\( # The '$(BRANCH)' version\)|\1 "'$(VERSION)'"\2|g' homebrew-tap/Formula/mu-cli.rb
+endif
 
 	git -C homebrew-tap add Formula/mu-cli.rb
 	git -C homebrew-tap commit -m "auto updated the mu-cli formula for version $(TAG_VERSION) branch $(BRANCH)"
