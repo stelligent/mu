@@ -300,7 +300,7 @@ func assetsPipelineIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline-iam.yml", size: 17618, mode: os.FileMode(420), modTime: time.Unix(1507562823, 0)}
+	info := bindataFileInfo{name: "assets/pipeline-iam.yml", size: 17618, mode: os.FileMode(420), modTime: time.Unix(1507563615, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -320,7 +320,7 @@ func assetsPipelineYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline.yml", size: 14126, mode: os.FileMode(420), modTime: time.Unix(1507257552, 0)}
+	info := bindataFileInfo{name: "assets/pipeline.yml", size: 14126, mode: os.FileMode(420), modTime: time.Unix(1507563591, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
