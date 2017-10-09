@@ -268,10 +268,7 @@ Resources:
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - !Sub
-              - arn:aws:s3:::${BucketName}/*
-              - BucketName:
-                  Fn::ImportValue: !Sub ${Namespace}-bucket-codedeploy
+            - !Sub arn:aws:s3:::mu-codedeploy-${AWS::Region}-${AWS::AccountId}/*
             Effect: Allow
 
 
