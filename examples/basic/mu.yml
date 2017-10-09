@@ -1,7 +1,7 @@
 ---
 
 environments:
-  - name: dev
+  - name: acceptance
     cluster:
       maxSize: 2
   - name: production
