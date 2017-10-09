@@ -64,25 +64,14 @@ jobs:
           name: Deploy
           command: |
             cd $APP_PATH
+
+            git config --global user.email "cplee+mu@nektos.com"
+            git config --global user.name "mu-ci"
+
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
               make dev-release
+              make formula
             elif [ "${CIRCLE_BRANCH}" == "master" ]; then
               make release
-            fi
-            # Push the formula to the stelligent tap repo
-            if [ "${CIRCLE_BRANCH}" == "develop" ] || [ "${CIRCLE_BRANCH}" == "master" ]; then
-              cd $APP_PATH
               make formula
-              git clone git@github.com:stelligent/homebrew-tap.git
-              git config --global user.email "stelligent@circleci.com"
-              git config --global user.name "Stelligent"
-              cp homebrew/mu-cli.rb homebrew-tap/Formula/
-              cd homebrew-tap/Formula/
-              git add mu-cli.rb
-              git commit -m "project stelligent/mu auto updated the mu-cli formula" mu-cli.rb
-              git push
             fi
-
-
-
-

@@ -122,13 +122,24 @@ ifneq ($(IS_MASTER),)
 endif
 
 formula:
-ifneq ($(IS_MASTER),)
-	@echo Updating formula for $(PACKAGE) master version $(TAG_VERSION)
-	./scripts/create-formula.sh $(TAG_VERSION) master
-else
-	@echo Updating formula for $(PACKAGE) develop version $(TAG_VERSION)
-	./scripts/create-formula.sh $(TAG_VERSION) develop
-endif
+	rm -rf homebrew-tap
+	git clone git@github.com:stelligent/homebrew-tap.git
+
+	$(eval MAC_URL := "https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-darwin-amd64")
+	$(eval MAC_SHA256 := $(shell curl -L -s $(MAC_URL) | shasum -a 256 | cut -d' ' -f1))
+	$(eval LINUX_URL := "https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-linux-amd64")
+	$(eval LINUX_SHA256 := $(shell curl -L -s $(LINUX_URL) | shasum -a 256 | cut -d' ' -f1))
+
+    # Update formula in mu-cli.rb
+	sed -i "" 's|.*\( # The MacOS '$(BRANCH)' url\)|    url "'$(MAC_URL)'"\1|g '  homebrew-tap/Formula/mu-cli.rb
+	sed -i "" 's|.*\( # The MacOS '$(BRANCH)' sha256sum\)|    sha256 "'$(MAC_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i "" 's|.*\( # The Linux '$(BRANCH)' url\)|    url "'$(LINUX_URL)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i "" 's|.*\( # The Linux '$(BRANCH)' sha256sum\)|    sha256 "'$(LINUX_SHA256)'"\1|g' homebrew-tap/Formula/mu-cli.rb
+	sed -i "" 's|\(\s*version\).*\( # The '$(BRANCH)' version\)|\1 "'$(VERSION)'"\2|g' homebrew-tap/Formula/mu-cli.rb
+
+	git -C homebrew-tap add Formula/mu-cli.rb
+	git -C homebrew-tap commit -m "auto updated the mu-cli formula for version $(TAG_VERSION) branch $(BRANCH)"
+	git -C homebrew-tap push
 
 clean:
 	@echo "=== cleaning ==="
