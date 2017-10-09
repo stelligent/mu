@@ -100,7 +100,7 @@ func assetsAppYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/app.yml", size: 306, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/app.yml", size: 306, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -120,7 +120,7 @@ func assetsBucketYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/bucket.yml", size: 471, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/bucket.yml", size: 471, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -140,7 +140,7 @@ func assetsBuildspecYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/buildspec.yml", size: 134, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/buildspec.yml", size: 134, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -160,7 +160,7 @@ func assetsCommonIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/common-iam.yml", size: 10422, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/common-iam.yml", size: 10422, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -180,7 +180,7 @@ func assetsConsulYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/consul.yml", size: 19110, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/consul.yml", size: 19110, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -200,7 +200,7 @@ func assetsDatabaseYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/database.yml", size: 4509, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/database.yml", size: 4509, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -220,7 +220,7 @@ func assetsElbYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/elb.yml", size: 6381, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/elb.yml", size: 6381, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -240,7 +240,7 @@ func assetsEnvEc2Yml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/env-ec2.yml", size: 4392, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/env-ec2.yml", size: 4392, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -260,7 +260,7 @@ func assetsEnvEcsYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/env-ecs.yml", size: 15757, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/env-ecs.yml", size: 15757, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -280,7 +280,7 @@ func assetsEnvIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/env-iam.yml", size: 7861, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/env-iam.yml", size: 7861, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -300,7 +300,7 @@ func assetsPipelineIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline-iam.yml", size: 17618, mode: os.FileMode(420), modTime: time.Unix(1507563615, 0)}
+	info := bindataFileInfo{name: "assets/pipeline-iam.yml", size: 17618, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -320,7 +320,7 @@ func assetsPipelineYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/pipeline.yml", size: 14126, mode: os.FileMode(420), modTime: time.Unix(1507563591, 0)}
+	info := bindataFileInfo{name: "assets/pipeline.yml", size: 14126, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -340,7 +340,7 @@ func assetsRepoYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/repo.yml", size: 954, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/repo.yml", size: 954, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -360,7 +360,7 @@ func assetsServiceEc2Yml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 19383, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 19383, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -380,7 +380,7 @@ func assetsServiceEcsYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-ecs.yml", size: 8451, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/service-ecs.yml", size: 8451, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -400,7 +400,7 @@ func assetsServiceIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-iam.yml", size: 5808, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/service-iam.yml", size: 5808, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -420,7 +420,7 @@ func assetsVpcTargetYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/vpc-target.yml", size: 929, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/vpc-target.yml", size: 929, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -440,7 +440,7 @@ func assetsVpcYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/vpc.yml", size: 18508, mode: os.FileMode(420), modTime: time.Unix(1507255758, 0)}
+	info := bindataFileInfo{name: "assets/vpc.yml", size: 18508, mode: os.FileMode(420), modTime: time.Unix(1507577067, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -497,24 +497,24 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"assets/app.yml":          assetsAppYml,
-	"assets/bucket.yml":       assetsBucketYml,
-	"assets/buildspec.yml":    assetsBuildspecYml,
-	"assets/common-iam.yml":   assetsCommonIamYml,
-	"assets/consul.yml":       assetsConsulYml,
-	"assets/database.yml":     assetsDatabaseYml,
-	"assets/elb.yml":          assetsElbYml,
-	"assets/env-ec2.yml":      assetsEnvEc2Yml,
-	"assets/env-ecs.yml":      assetsEnvEcsYml,
-	"assets/env-iam.yml":      assetsEnvIamYml,
+	"assets/app.yml": assetsAppYml,
+	"assets/bucket.yml": assetsBucketYml,
+	"assets/buildspec.yml": assetsBuildspecYml,
+	"assets/common-iam.yml": assetsCommonIamYml,
+	"assets/consul.yml": assetsConsulYml,
+	"assets/database.yml": assetsDatabaseYml,
+	"assets/elb.yml": assetsElbYml,
+	"assets/env-ec2.yml": assetsEnvEc2Yml,
+	"assets/env-ecs.yml": assetsEnvEcsYml,
+	"assets/env-iam.yml": assetsEnvIamYml,
 	"assets/pipeline-iam.yml": assetsPipelineIamYml,
-	"assets/pipeline.yml":     assetsPipelineYml,
-	"assets/repo.yml":         assetsRepoYml,
-	"assets/service-ec2.yml":  assetsServiceEc2Yml,
-	"assets/service-ecs.yml":  assetsServiceEcsYml,
-	"assets/service-iam.yml":  assetsServiceIamYml,
-	"assets/vpc-target.yml":   assetsVpcTargetYml,
-	"assets/vpc.yml":          assetsVpcYml,
+	"assets/pipeline.yml": assetsPipelineYml,
+	"assets/repo.yml": assetsRepoYml,
+	"assets/service-ec2.yml": assetsServiceEc2Yml,
+	"assets/service-ecs.yml": assetsServiceEcsYml,
+	"assets/service-iam.yml": assetsServiceIamYml,
+	"assets/vpc-target.yml": assetsVpcTargetYml,
+	"assets/vpc.yml": assetsVpcYml,
 }
 
 // AssetDir returns the file names below a certain
@@ -556,27 +556,26 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
 	"assets": &bintree{nil, map[string]*bintree{
-		"app.yml":          &bintree{assetsAppYml, map[string]*bintree{}},
-		"bucket.yml":       &bintree{assetsBucketYml, map[string]*bintree{}},
-		"buildspec.yml":    &bintree{assetsBuildspecYml, map[string]*bintree{}},
-		"common-iam.yml":   &bintree{assetsCommonIamYml, map[string]*bintree{}},
-		"consul.yml":       &bintree{assetsConsulYml, map[string]*bintree{}},
-		"database.yml":     &bintree{assetsDatabaseYml, map[string]*bintree{}},
-		"elb.yml":          &bintree{assetsElbYml, map[string]*bintree{}},
-		"env-ec2.yml":      &bintree{assetsEnvEc2Yml, map[string]*bintree{}},
-		"env-ecs.yml":      &bintree{assetsEnvEcsYml, map[string]*bintree{}},
-		"env-iam.yml":      &bintree{assetsEnvIamYml, map[string]*bintree{}},
+		"app.yml": &bintree{assetsAppYml, map[string]*bintree{}},
+		"bucket.yml": &bintree{assetsBucketYml, map[string]*bintree{}},
+		"buildspec.yml": &bintree{assetsBuildspecYml, map[string]*bintree{}},
+		"common-iam.yml": &bintree{assetsCommonIamYml, map[string]*bintree{}},
+		"consul.yml": &bintree{assetsConsulYml, map[string]*bintree{}},
+		"database.yml": &bintree{assetsDatabaseYml, map[string]*bintree{}},
+		"elb.yml": &bintree{assetsElbYml, map[string]*bintree{}},
+		"env-ec2.yml": &bintree{assetsEnvEc2Yml, map[string]*bintree{}},
+		"env-ecs.yml": &bintree{assetsEnvEcsYml, map[string]*bintree{}},
+		"env-iam.yml": &bintree{assetsEnvIamYml, map[string]*bintree{}},
 		"pipeline-iam.yml": &bintree{assetsPipelineIamYml, map[string]*bintree{}},
-		"pipeline.yml":     &bintree{assetsPipelineYml, map[string]*bintree{}},
-		"repo.yml":         &bintree{assetsRepoYml, map[string]*bintree{}},
-		"service-ec2.yml":  &bintree{assetsServiceEc2Yml, map[string]*bintree{}},
-		"service-ecs.yml":  &bintree{assetsServiceEcsYml, map[string]*bintree{}},
-		"service-iam.yml":  &bintree{assetsServiceIamYml, map[string]*bintree{}},
-		"vpc-target.yml":   &bintree{assetsVpcTargetYml, map[string]*bintree{}},
-		"vpc.yml":          &bintree{assetsVpcYml, map[string]*bintree{}},
+		"pipeline.yml": &bintree{assetsPipelineYml, map[string]*bintree{}},
+		"repo.yml": &bintree{assetsRepoYml, map[string]*bintree{}},
+		"service-ec2.yml": &bintree{assetsServiceEc2Yml, map[string]*bintree{}},
+		"service-ecs.yml": &bintree{assetsServiceEcsYml, map[string]*bintree{}},
+		"service-iam.yml": &bintree{assetsServiceIamYml, map[string]*bintree{}},
+		"vpc-target.yml": &bintree{assetsVpcTargetYml, map[string]*bintree{}},
+		"vpc.yml": &bintree{assetsVpcYml, map[string]*bintree{}},
 	}},
 }}
 
@@ -626,3 +625,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+

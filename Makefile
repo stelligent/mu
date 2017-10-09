@@ -125,9 +125,9 @@ formula:
 	rm -rf homebrew-tap
 	git clone git@github.com:stelligent/homebrew-tap.git
 
-	$(eval MAC_URL := "https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-darwin-amd64")
+	$(eval MAC_URL := https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-darwin-amd64)
 	$(eval MAC_SHA256 := $(shell curl -L -s $(MAC_URL) | shasum -a 256 | cut -d' ' -f1))
-	$(eval LINUX_URL := "https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-linux-amd64")
+	$(eval LINUX_URL := https://github.com/stelligent/mu/releases/download/$(TAG_VERSION)/mu-linux-amd64)
 	$(eval LINUX_SHA256 := $(shell curl -L -s $(LINUX_URL) | shasum -a 256 | cut -d' ' -f1))
 
     # Update formula in mu-cli.rb
