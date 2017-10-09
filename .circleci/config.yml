@@ -74,6 +74,8 @@ jobs:
               cd $APP_PATH
               make formula
               git clone git@github.com:stelligent/homebrew-tap.git
+              git config --global user.email "stelligent@circleci.com"
+              git config --global user.name "Stelligent"
               cp homebrew/mu-cli.rb homebrew-tap/Formula/
               cd homebrew-tap/Formula/
               git add mu-cli.rb
