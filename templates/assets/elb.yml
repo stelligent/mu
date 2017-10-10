@@ -140,6 +140,7 @@ Resources:
         - CertificateArn: !Sub "arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
       Port: '443'
       Protocol: HTTPS
+      SslPolicy: 'ELBSecurityPolicy-TLS-1-2-2017-01'
   ElbDefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
