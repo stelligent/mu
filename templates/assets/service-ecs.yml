@@ -91,6 +91,14 @@ Parameters:
     Type: String
     Description: Endpoint port of database
     Default: ""
+  TargetCPU:
+    Type: String
+    Description: MaxCPUUtilization for Tracking Policy on ASG
+    Default: ''
+  TargetRequestRate:
+    Type: String
+    Description: number of allowable requests to ALB before scaling
+    Default: ''
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -285,6 +293,28 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+  CPUTargetScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref TargetCPU
+  RequestTargetScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ALBRequestCountPerTarget
+        TargetValue: !Ref TargetRequestRate
 Outputs:
   MicroserviceTaskDefinition:
     Description: Roadmap Task Definition

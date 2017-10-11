@@ -172,52 +172,28 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  ScaleOutPolicy:
+  CPUAutoScalePolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref EcsAutoScalingGroup
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: 1
-  ScaleInPolicy:
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref ScaleOutThreshold
+  MemoryAutoScalePolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref EcsAutoScalingGroup
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: -1
-  MemoryAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-out if Memory > ${ScaleOutThreshold}% for 5 minutes
-      MetricName: MemoryReservation
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleOutThreshold
-      AlarmActions:
-      - !Ref ScaleOutPolicy
-      Dimensions:
-      - Name: ClusterName
-        Value: !Ref EcsCluster
-      ComparisonOperator: GreaterThanThreshold
-  MemoryAlarmLow:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-in if Memory < ${ScaleInThreshold}% for 5 minutes
-      MetricName: MemoryReservation
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleInThreshold
-      AlarmActions:
-      - !Ref ScaleInPolicy
-      Dimensions:
-      - Name: ClusterName
-        Value: !Ref EcsCluster
-      ComparisonOperator: LessThanThreshold
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: MemoryReservation
+        TargetValue: !Ref ScaleOutThreshold
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:

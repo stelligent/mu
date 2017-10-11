@@ -120,6 +120,8 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["EcsServiceRoleArn"] = serviceRoleset["EcsServiceRoleArn"]
 		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
 		params["ServiceName"] = workflow.serviceName
+		params["TargetCPU"] = service.TargetCPU
+		params["TargetRequestRate"] = service.TargetRequestRate
 
 		return nil
 	}
@@ -146,7 +148,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			"ElbSecurityGroup",
 			"ConsulRpcClientSecurityGroup",
 			"InstanceSecurityGroup",
-			"MaxCount",
+			"TargetCPU",
 			"TargetRequestRate",
 		} {
 			params[key] = workflow.envStack.Outputs[key]
