@@ -3,3 +3,4 @@
 .release/
 vendor/
 *~
+homebrew-tap/

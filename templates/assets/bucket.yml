@@ -2,6 +2,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU S3 bucket - SHARED BY ALL PIPELINES
 Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
   BucketPrefix:
     Type: String
     Description: Prefix to use for the bucket name
@@ -9,10 +12,10 @@ Resources:
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub mu-${BucketPrefix}-${AWS::Region}-${AWS::AccountId}
+      BucketName: !Sub ${Namespace}-${BucketPrefix}-${AWS::Region}-${AWS::AccountId}
 Outputs:
   Bucket:
     Description: Name of the pipeline bucket
     Value: !Ref Bucket
     Export:
-      Name: !Sub mu-bucket-${BucketPrefix}
+      Name: !Sub ${Namespace}-bucket-${BucketPrefix}

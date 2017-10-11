@@ -232,16 +232,6 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"Provider":        envProvider,
 	}
 
-	// Get the bucket name of the revision bucket
-	if envProvider == common.EnvProviderEc2 {
-		bucketStackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeBucket, "codedeploy")
-		bucketStack := rolesetMgr.context.StackManager.AwaitFinalStatus(bucketStackName)
-		if bucketStack == nil {
-			return fmt.Errorf("unable to find bucket stack named '%s'", bucketStackName)
-		}
-		stackParams["RevisionBucket"] = bucketStack.Outputs["Bucket"]
-	}
-
 	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
 	if err != nil {
 		return err
