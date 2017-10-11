@@ -87,22 +87,24 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            string                 `yaml:"name,omitempty"`
-	DesiredCount    int                    `yaml:"desiredCount,omitempty"`
-	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
-	ImageRepository string                 `yaml:"imageRepository,omitempty"`
-	Port            int                    `yaml:"port,omitempty"`
-	Protocol        string                 `yaml:"protocol,omitempty"`
-	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
-	CPU             int                    `yaml:"cpu,omitempty"`
-	Memory          int                    `yaml:"memory,omitempty"`
-	Environment     map[string]interface{} `yaml:"environment,omitempty"`
-	Tags            map[string]interface{} `yaml:"tags,omitempty"`
-	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
-	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
-	Priority        int                    `yaml:"priority,omitempty"`
-	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
-	Database        Database               `yaml:"database,omitempty"`
+	Name            	string                 `yaml:"name,omitempty"`
+	DesiredCount    	int                    `yaml:"desiredCount,omitempty"`
+	Dockerfile      	string                 `yaml:"dockerfile,omitempty"`
+	ImageRepository 	string                 `yaml:"imageRepository,omitempty"`
+	Port            	int                    `yaml:"port,omitempty"`
+	Protocol        	string                 `yaml:"protocol,omitempty"`
+	HealthEndpoint  	string                 `yaml:"healthEndpoint,omitempty"`
+	CPU             	int                    `yaml:"cpu,omitempty"`
+	Memory          	int                    `yaml:"memory,omitempty"`
+	Environment     	map[string]interface{} `yaml:"environment,omitempty"`
+	Tags           	 	map[string]interface{} `yaml:"tags,omitempty"`
+	PathPatterns    	[]string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns    	[]string               `yaml:"hostPatterns,omitempty"`
+	Priority        	int                    `yaml:"priority,omitempty"`
+	Pipeline        	Pipeline               `yaml:"pipeline,omitempty"`
+	Database        	Database               `yaml:"database,omitempty"`
+	MaxCount	 		string		   		   `yaml:"maxCount,omitempty"`
+	TargetRequestRate  	string		   		   `yaml:"targetRequestRate,omitempty"`
 	Roles           struct {
 		Ec2Instance string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy  string `yaml:"codeDeploy,omitempty"`

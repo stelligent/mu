@@ -146,6 +146,8 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			"ElbSecurityGroup",
 			"ConsulRpcClientSecurityGroup",
 			"InstanceSecurityGroup",
+			"MaxCount",
+			"TargetRequestRate",
 		} {
 			params[key] = workflow.envStack.Outputs[key]
 		}

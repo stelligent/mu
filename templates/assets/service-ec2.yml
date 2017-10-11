@@ -154,6 +154,14 @@ Parameters:
     Type: String
     Description: The security group to add to the ECS instance for access to consul (optional)
     Default: ''
+  MaxCount:
+    Type: String
+    Description: MaxCPUUtilization for Tracking Policy on ASG
+    Default: ''
+  TargetRequestRate:
+    Type: String
+    Description: number of allowable requests to ALB before scaling
+    Default: ''
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -247,52 +255,85 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  ScaleOutPolicy:
+  # ScaleOutPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AdjustmentType: ChangeInCapacity
+  #     AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+  #     Cooldown: 300
+  #     ScalingAdjustment: 1
+  # ScaleInPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AdjustmentType: ChangeInCapacity
+  #     AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+  #     Cooldown: 300
+  #     ScalingAdjustment: -1
+  AutoScalePolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref ServiceAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: 1
-  ScaleInPolicy:
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref ScaleOutThreshold
+  CPUTargetScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref ServiceAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: -1
-  CPUAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref MaxCount
+  RequestTargetScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
     Properties:
-      AlarmDescription: !Sub Scale-out if CPU > ${ScaleOutThreshold}% for 5 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleOutThreshold
-      AlarmActions:
-      - !Ref ScaleOutPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value: !Ref ServiceAutoScalingGroup
-      ComparisonOperator: GreaterThanThreshold
-  CPUAlarmLow:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-in if CPU < ${ScaleInThreshold}% for 5 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleInThreshold
-      AlarmActions:
-      - !Ref ScaleInPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value: !Ref ServiceAutoScalingGroup
-      ComparisonOperator: LessThanThreshold
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ALBRequestCountPerTarget
+        TargetValue: !Ref TargetRequestRate
+  # CPUAlarmHigh:
+  #   Type: AWS::CloudWatch::Alarm
+  #   Properties:
+  #     AlarmDescription: !Sub Scale-out if CPU > ${ScaleOutThreshold}% for 5 minutes
+  #     MetricName: CPUUtilization
+  #     Namespace: AWS/EC2
+  #     Statistic: Average
+  #     Period: 300
+  #     EvaluationPeriods: 1
+  #     Threshold: !Ref ScaleOutThreshold
+  #     AlarmActions:
+  #     - !Ref ScaleOutPolicy
+  #     Dimensions:
+  #     - Name: AutoScalingGroupName
+  #       Value: !Ref ServiceAutoScalingGroup
+  #     ComparisonOperator: GreaterThanThreshold
+  # CPUAlarmLow:
+  #   Type: AWS::CloudWatch::Alarm
+  #   Properties:
+  #     AlarmDescription: !Sub Scale-in if CPU < ${ScaleInThreshold}% for 5 minutes
+  #     MetricName: CPUUtilization
+  #     Namespace: AWS/EC2
+  #     Statistic: Average
+  #     Period: 300
+  #     EvaluationPeriods: 1
+  #     Threshold: !Ref ScaleInThreshold
+  #     AlarmActions:
+  #     - !Ref ScaleInPolicy
+  #     Dimensions:
+  #     - Name: AutoScalingGroupName
+  #       Value: !Ref ServiceAutoScalingGroup
+  #     ComparisonOperator: LessThanThreshold
   ServiceInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
