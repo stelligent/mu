@@ -81,7 +81,7 @@ Resources:
 
 	finalMap := make(map[interface{}]interface{})
 	err = yaml.Unmarshal(templateBodyBytes.Bytes(), finalMap)
-	assert.Equal("mu-bucket-${BucketPrefix}", nestedMap(finalMap, "Outputs", "Bucket", "Export", "Name")["Fn::Sub"])
+	assert.Equal("${Namespace}-bucket-${BucketPrefix}", nestedMap(finalMap, "Outputs", "Bucket", "Export", "Name")["Fn::Sub"])
 }
 
 func TestTemplate_fixupYaml(t *testing.T) {
