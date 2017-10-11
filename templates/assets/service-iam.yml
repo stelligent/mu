@@ -11,10 +11,6 @@ Parameters:
   ServiceName:
     Type: String
     Description: Name of service used for resource namespace
-  RevisionBucket:
-    Type: String
-    Description: Name of bucket for S3 artifacts
-    Default: ''
   Provider:
     Type: String
     Description: Provider type for services
@@ -91,8 +87,8 @@ Resources:
             - s3:ListBucketVersions
             - s3:ListMultipartUploadParts
             Resource:
-            - !Sub arn:aws:s3:::${RevisionBucket}
-            - !Sub arn:aws:s3:::${RevisionBucket}/*
+            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
+            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
           - Effect: Allow
             Action:
             - cloudformation:DescribeStackEvents

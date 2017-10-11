@@ -318,12 +318,6 @@ func TestIamRolesetManager_UpsertServiceRoleset_SharedEnv(t *testing.T) {
 			},
 		},
 	}
-	stackManagerMock.On("AwaitFinalStatus", "mu-bucket-codedeploy").Return(&common.Stack{
-		Status: "CREATE_COMPLETE",
-		Outputs: map[string]string{
-			"RevisionBucket": "baz",
-		},
-	}, nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-environment-env1").Return(&common.Stack{
 		Status: "CREATE_COMPLETE",
 		Tags: map[string]string{
@@ -335,7 +329,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_SharedEnv(t *testing.T) {
 	err := i.UpsertServiceRoleset("env1", "sv1")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
-	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 3)
+	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
 	stackManagerMock.AssertNumberOfCalls(t, "UpsertStack", 1)
 }
 
