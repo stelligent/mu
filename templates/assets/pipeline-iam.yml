@@ -74,7 +74,7 @@ Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-codepipeline'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-codepipeline-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -204,7 +204,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsBuildEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-ci'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -268,7 +268,7 @@ Resources:
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - !Sub arn:aws:s3:::mu-codedeploy-${AWS::Region}-${AWS::AccountId}/*
+            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
             Effect: Allow
 
 
@@ -276,7 +276,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-acpt'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-acpt-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -294,14 +294,14 @@ Resources:
           - Action:
             - sts:AssumeRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-acpt
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}
             Effect: Allow
 
   CodeBuildCDProdRole:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-prod'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-prod-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -319,14 +319,14 @@ Resources:
           - Action:
             - sts:AssumeRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-prod
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}
             Effect: Allow
 
   MuAcptRole:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-acpt'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -402,7 +402,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-prod'
+      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}'
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow

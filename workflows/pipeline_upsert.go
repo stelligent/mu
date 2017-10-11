@@ -40,6 +40,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter
 		}
 		log.Noticef("Upserting Bucket for CodePipeline")
 		bucketParams := make(map[string]string)
+		bucketParams["Namespace"] = namespace
 		bucketParams["BucketPrefix"] = "codepipeline"
 
 		var pipeTags TagInterface = &PipelineTags{

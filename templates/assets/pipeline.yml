@@ -438,7 +438,8 @@ Resources:
         - !Ref AWS::NoValue
       ArtifactStore:
         Type: S3
-        Location: !ImportValue mu-bucket-codepipeline
+        Location:
+          Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
 Outputs:
   CodePipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}

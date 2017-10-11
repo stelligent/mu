@@ -214,6 +214,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 		}
 		log.Noticef("Upserting Bucket for CodeDeploy")
 		bucketParams := make(map[string]string)
+		bucketParams["Namespace"] = namespace
 		bucketParams["BucketPrefix"] = "codedeploy"
 
 		var pipeTags TagInterface = &PipelineTags{
