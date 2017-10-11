@@ -176,7 +176,7 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
@@ -187,7 +187,7 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
