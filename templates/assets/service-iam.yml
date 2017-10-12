@@ -32,7 +32,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEc2Service
     Properties:
-      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-codedeploy-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-codedeploy-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -56,7 +56,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEc2Service
     Properties:
-      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-instance-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-instance-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -118,7 +118,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEcsService
     Properties:
-      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-service-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-service-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -135,7 +135,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEcsService
     Properties:
-      RoleName: !Sub '${Namespace}-service-${ServiceName}-${EnvironmentName}-task-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-task-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
