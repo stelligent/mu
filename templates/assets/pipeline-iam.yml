@@ -74,7 +74,7 @@ Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-codepipeline-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-codepipeline-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -96,7 +96,7 @@ Resources:
             - codebuild:BatchGetBuilds
             Effect: Allow
             Resource:
-            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*'
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*
           - Fn::If:
             - IsCodeCommit
             - Action:
@@ -113,7 +113,7 @@ Resources:
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - !Sub
+            - Fn::Sub:
               - arn:aws:s3:::${BucketName}/*
               - BucketName:
                   Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
@@ -121,7 +121,7 @@ Resources:
           - Action:
             - s3:GetBucketVersioning
             Resource:
-            - !Sub
+            - Fn::Sub:
               - arn:aws:s3:::${BucketName}
               - BucketName:
                   Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
@@ -186,7 +186,7 @@ Resources:
           - s3:GetObjectVersion
           - s3:PutObject
           Resource:
-          - !Sub
+          - Fn::Sub:
             - arn:aws:s3:::${BucketName}/*
             - BucketName:
                 Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
@@ -194,7 +194,7 @@ Resources:
         - Action:
           - s3:GetBucketVersioning
           Resource:
-          - !Sub
+          - Fn::Sub:
             - arn:aws:s3:::${BucketName}
             - BucketName:
                 Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
@@ -204,7 +204,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsBuildEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -276,7 +276,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-acpt-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-cd-acpt-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -301,7 +301,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-prod-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-cd-prod-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -326,7 +326,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -402,7 +402,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
