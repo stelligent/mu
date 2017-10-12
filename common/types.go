@@ -103,7 +103,7 @@ type Service struct {
 	Priority        	int                    `yaml:"priority,omitempty"`
 	Pipeline        	Pipeline               `yaml:"pipeline,omitempty"`
 	Database        	Database               `yaml:"database,omitempty"`
-	TargetCPU	 		string		   		   `yaml:"TargetCPU,omitempty"`
+	TargetCPU	 		string		   		   `yaml:"targetCPU,omitempty"`
 	TargetRequestRate  	string		   		   `yaml:"targetRequestRate,omitempty"`
 	Roles           struct {
 		Ec2Instance string `yaml:"ec2Instance,omitempty"`

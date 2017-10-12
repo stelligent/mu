@@ -198,24 +198,3 @@ func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]st
 	return joinedMap, nil
 }
 
-func concatTagMaps(ymlMap map[string]interface{}, muMap map[string]string, constMap map[string]string) (map[string]string, error) {
-
-	joinedMap := map[string]string{}
-	for key := range constMap {
-		if _, exists := ymlMap[constMap[key]]; exists {
-			return nil, errors.New("Unable to override tag " + key)
-		}
-	}
-
-	for key, value := range ymlMap {
-		if str, ok := value.(string); ok {
-			joinedMap[key] = str
-		}
-	}
-
-	for key, value := range muMap {
-		joinedMap["mu:"+key] = value
-	}
-
-	return joinedMap, nil
-}
