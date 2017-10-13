@@ -9,7 +9,7 @@ Resources:
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${Namespace}-cloudformation-common-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-cloudformation-common-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
