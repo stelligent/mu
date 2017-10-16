@@ -20,6 +20,15 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
+      - PolicyName: deploy-bucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - s3:CreateBucket
+            - s3:DeleteBucket
+            Resource: '*'
+            Effect: Allow
       - PolicyName: deploy-vpc
         PolicyDocument:
           Version: '2012-10-17'
