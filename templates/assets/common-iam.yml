@@ -159,10 +159,12 @@ Resources:
             - autoscaling:DescribeScalingActivities
             - autoscaling:DescribePolicies
             - autoscaling:DescribeLoadBalancerTargetGroups
+            - autoscaling:DescribeScheduledActions
             - autoscaling:DetachLoadBalancerTargetGroups
             - autoscaling:CreateOrUpdateTags
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
+            - autoscaling:TerminateInstanceInAutoScalingGroup
             - cloudwatch:PutMetricAlarm
             - cloudwatch:DeleteAlarms
             - cloudwatch:DescribeAlarmsForMetric
