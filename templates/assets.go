@@ -180,7 +180,7 @@ func assetsConsulYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/consul.yml", size: 19127, mode: os.FileMode(420), modTime: time.Unix(1508197581, 0)}
+	info := bindataFileInfo{name: "assets/consul.yml", size: 19127, mode: os.FileMode(420), modTime: time.Unix(1508216928, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -260,7 +260,7 @@ func assetsEnvEcsYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/env-ecs.yml", size: 15765, mode: os.FileMode(420), modTime: time.Unix(1508197640, 0)}
+	info := bindataFileInfo{name: "assets/env-ecs.yml", size: 15765, mode: os.FileMode(420), modTime: time.Unix(1508216928, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -280,7 +280,7 @@ func assetsEnvIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/env-iam.yml", size: 8119, mode: os.FileMode(420), modTime: time.Unix(1508198316, 0)}
+	info := bindataFileInfo{name: "assets/env-iam.yml", size: 8119, mode: os.FileMode(420), modTime: time.Unix(1508216928, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -360,7 +360,7 @@ func assetsServiceEc2Yml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 19323, mode: os.FileMode(420), modTime: time.Unix(1508198283, 0)}
+	info := bindataFileInfo{name: "assets/service-ec2.yml", size: 19323, mode: os.FileMode(420), modTime: time.Unix(1508216928, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -400,7 +400,7 @@ func assetsServiceIamYml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/service-iam.yml", size: 5941, mode: os.FileMode(420), modTime: time.Unix(1508198065, 0)}
+	info := bindataFileInfo{name: "assets/service-iam.yml", size: 5941, mode: os.FileMode(420), modTime: time.Unix(1508216928, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
