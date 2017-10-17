@@ -118,6 +118,10 @@ Resources:
           Statement:
           - Effect: Allow
             Action:
+            - ec2:DescribeTags
+            Resource: "*"
+          - Effect: Allow
+            Action:
             - ecs:DescribeTasks
             Resource: "*"
             Condition:
@@ -207,6 +211,10 @@ Resources:
       - PolicyName: ecs-task
         PolicyDocument:
           Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeTags
+            Resource: "*"
           - Effect: Allow
             Action:
             - ecs:DescribeTasks
