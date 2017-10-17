@@ -92,7 +92,7 @@ Parameters:
   ConsulUrl:
     Description: URL for downloading Consul
     Type: String
-    Default: 'https://releases.hashicorp.com/consul/0.8.5/consul_0.8.5_linux_amd64.zip'
+    Default: 'https://releases.hashicorp.com/consul/1.0.0/consul_1.0.0_linux_amd64.zip'
   ImageId:
     Description: EC2 AMI to launch
     Type: String
@@ -337,10 +337,7 @@ Resources:
                 {
                   "datacenter": "${AWS::Region}",
                   "data_dir": "/opt/consul/data",
-                  "retry_join_ec2": {
-                    "tag_key": "aws:autoscaling:groupName",
-                    "tag_value": "${ConsulServerAutoScalingGroup}"
-                  },
+                  "retry_join": ["provider=aws tag_key=aws:autoscaling:groupName tag_value=${ConsulServerAutoScalingGroup}"],
                   "service": {
                     "name": "${ServiceName}",
                     "tags": ["${ServiceName}"],
