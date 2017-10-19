@@ -43,7 +43,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsEcsService
     Properties:
-      RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-instance-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-instance-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -100,7 +100,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-environment-${EnvironmentName}-consul-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-consul-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -116,6 +116,10 @@ Resources:
       - PolicyName: ecs-task
         PolicyDocument:
           Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeTags
+            Resource: "*"
           - Effect: Allow
             Action:
             - ecs:DescribeTasks
@@ -136,7 +140,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-consul-${EnvironmentName}-instance-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-consul-${EnvironmentName}-instance-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -191,7 +195,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-consul-${EnvironmentName}-task-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-consul-${EnvironmentName}-task-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -207,6 +211,10 @@ Resources:
       - PolicyName: ecs-task
         PolicyDocument:
           Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeTags
+            Resource: "*"
           - Effect: Allow
             Action:
             - ecs:DescribeTasks

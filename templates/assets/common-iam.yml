@@ -9,7 +9,7 @@ Resources:
   CloudFormationRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${Namespace}-cloudformation-common-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-cloudformation-common-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -20,6 +20,15 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       Policies:
+      - PolicyName: deploy-bucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - s3:CreateBucket
+            - s3:DeleteBucket
+            Resource: '*'
+            Effect: Allow
       - PolicyName: deploy-vpc
         PolicyDocument:
           Version: '2012-10-17'
@@ -108,6 +117,21 @@ Resources:
             - elasticloadbalancing:DescribeTargetHealth
             Resource: '*'
             Effect: Allow
+      - PolicyName: update-route53
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - route53:ChangeResourceRecordSets
+            - route53:ChangeTagsForResource
+            - route53:GetHostedZone
+            - route53:GetChange
+            - route53:ListHostedZones
+            - route53:ListResourceRecordSets
+            - route53:ListTagsForResource
+            - route53:ListTagsForResources
+            Resource: '*'
+            Effect: Allow
       - PolicyName: deploy-cluster
         PolicyDocument:
           Version: '2012-10-17'
@@ -135,10 +159,12 @@ Resources:
             - autoscaling:DescribeScalingActivities
             - autoscaling:DescribePolicies
             - autoscaling:DescribeLoadBalancerTargetGroups
+            - autoscaling:DescribeScheduledActions
             - autoscaling:DetachLoadBalancerTargetGroups
             - autoscaling:CreateOrUpdateTags
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
+            - autoscaling:TerminateInstanceInAutoScalingGroup
             - cloudwatch:PutMetricAlarm
             - cloudwatch:DeleteAlarms
             - cloudwatch:DescribeAlarmsForMetric

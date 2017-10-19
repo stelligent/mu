@@ -71,7 +71,7 @@ $(BUILD_FILES):
 	mkdir -p $(BUILD_DIR)
 	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
-install: $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
+install: gen $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
 	@echo "=== installing $(VERSION) - $(PACKAGE)-$(OS)-$(ARCH) ==="
 	cp $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH) /usr/local/bin/mu
 	chmod 755 /usr/local/bin/mu

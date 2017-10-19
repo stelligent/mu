@@ -124,9 +124,10 @@ func newServicesRestartCommand(ctx *common.Context) *cli.Command {
 				Name:  ServiceFlag,
 				Usage: SvcRestartServiceFlagUsage,
 			},
-			cli.StringFlag{
+			cli.IntFlag{
 				Name:  BatchFlag,
 				Usage: SvcRestartBatchFlagUsage,
+				Value: 1,
 			},
 		},
 		Action: func(c *cli.Context) error {

@@ -540,7 +540,7 @@ Resources:
       - Name: consul-server
         Cpu: 400
         Essential: 'true'
-        Image: 'consul'
+        Image: 'consul:1.0.0'
         Memory: 256
         Environment:
           - Name: CONSUL_BIND_INTERFACE
@@ -556,11 +556,13 @@ Resources:
         Command:
           - 'agent'
           - '-server'
-          - !Sub "-bootstrap-expect=${DesiredCapacity}"
+          - '-bootstrap-expect'
+          - !Ref DesiredCapacity
           - '-ui'
-          - !Sub "-datacenter=${AWS::Region}"
-          - '-retry-join-ec2-tag-key=aws:autoscaling:groupName'
-          - !Sub "-retry-join-ec2-tag-value=${EcsAutoScalingGroup}"
+          - '-datacenter'
+          - !Ref AWS::Region
+          - '-retry-join'
+          - !Sub 'provider=aws tag_key=aws:autoscaling:groupName tag_value=${EcsAutoScalingGroup}'
         PortMappings:
         - HostPort: !Ref ConsulHttpPort
           ContainerPort: !Ref ConsulHttpPort

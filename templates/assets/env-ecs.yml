@@ -385,7 +385,7 @@ Resources:
       - Name: consul-agent
         Cpu: 200
         Essential: 'true'
-        Image: 'consul'
+        Image: 'consul:1.0.0'
         Memory: 128
         Environment:
           - Name: CONSUL_BIND_INTERFACE
@@ -400,9 +400,10 @@ Resources:
             awslogs-stream-prefix: instance
         Command:
           - 'agent'
-          - !Sub "-datacenter=${AWS::Region}"
-          - '-retry-join-ec2-tag-key=aws:autoscaling:groupName'
-          - !Sub "-retry-join-ec2-tag-value=${ConsulServerAutoScalingGroup}"
+          - '-datacenter'
+          - !Ref AWS::Region
+          - '-retry-join'
+          - !Sub 'provider=aws tag_key=aws:autoscaling:groupName tag_value=${ConsulServerAutoScalingGroup}'
       - Name: registrator
         Cpu: 200
         Essential: 'true'
