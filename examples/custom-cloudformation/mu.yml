@@ -3,11 +3,15 @@
 environments:
   - name: example
 
-## You can customize the generated CloudFormation by adding a templates section.  The name of the CloudFormation stack that you are trying to update is the key and the value is snippet of CloudFormation template that is spliced together with the default template for that stack.
+## You can customize the generated CloudFormation by adding a templates section.
+##  The name of the CloudFormation stack that you are trying to update is the key
+##  and the value is snippet of CloudFormation template that is spliced together
+##  with the default template for that stack.
 ##
-## To preview the template without actually making any changes in your AWS account, add the --dryrun or -d flag.
+## To preview the template without actually making any changes in your AWS account,
+##  add the --dryrun or -d flag.
 ##
-##  For more details, see https://github.com/stelligent/mu/wiki/Custom-CloudFormation
+## For more details, see https://github.com/stelligent/mu/wiki/Custom-CloudFormation
 templates:
   mu-cluster-example:   ## <-- this is the name of the CloudFormation stack that is being updated
     Resources:
