@@ -1,0 +1,48 @@
+---
+
+environments:
+  - name: myenv
+
+service:
+  name: myservice
+  database:
+    name: mydb
+    engine: mysql
+
+templates:
+  mu-iam-common:
+    Resources:
+      RDSPolicy:
+        Type: "AWS::IAM::Policy"
+        Properties:
+          PolicyName: "rds-paramgroup-policy"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Action:
+              - rds:DescribeEngineDefaultParameters
+              - rds:DescribeDBParameterGroups
+              - rds:DescribeDBParameters
+              - rds:CreateDBParameterGroup
+              - rds:ModifyDBParameterGroup
+              - rds:DeleteDBParameterGroup
+              - rds:RebootDBInstance
+              - rds:DescribeEvents
+              Effect: Allow
+              Resource: '*'
+          Roles:
+            - Ref: CloudFormationRole
+
+  mu-database-myservice-myenv:
+    Resources:
+      DBInstanceStandalone:
+        Properties:
+          DBParameterGroupName:
+            Ref: LowerCaseTableNamesParameterGroup
+      LowerCaseTableNamesParameterGroup:
+        Type: AWS::RDS::DBParameterGroup
+        Properties:
+          Description: Parameter Group to make MySQL case insensitive
+          Family: mysql5.6
+          Parameters:
+              lower_case_table_names: 1
