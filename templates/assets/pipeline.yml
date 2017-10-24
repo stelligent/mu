@@ -19,19 +19,10 @@ Parameters:
   SourceRepo:
     Type: String
     Description: Provider specific repository
-    Default: ""
   SourceBranch:
     Type: String
     Description: Source Branch
     Default: "master"
-  SourceBucket:
-    Type: String
-    Description: Source Bucket
-    Default: ""
-  SourceObjectKey:
-    Type: String
-    Description: Source Object Key
-    Default: ""
   GitHubToken:
     NoEcho: true
     Type: String
@@ -156,26 +147,6 @@ Conditions:
     "Fn::Equals":
       - !Ref SourceProvider
       - 'GitHub'
-  HasSourceRepo:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceRepo
-  HasSourceBucket:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceBucket
-  HasSourceObjectKey:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceObjectKey
-  HasGitHubToken:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref GitHubToken
   IsBuildEnabled:
     "Fn::Equals":
       - !Ref EnableBuildStage
@@ -368,40 +339,16 @@ Resources:
           Configuration:
             Fn::If:
             - IsS3
-            - S3Bucket: 
-                Fn::If:
-                - HasSourceBucket
-                - !Ref SourceBucket
-                - !Ref AWS::NoValue
-              S3ObjectKey:
-                Fn::If:
-                - HasSourceObjectKey
-                - !Ref SourceObjectKey
-                - !Ref AWS::NoValue
+            - S3Bucket: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
+              S3ObjectKey: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
             -
               Fn::If:
               - IsGitHub
-              - Owner: 
-                  Fn::If:
-                  - HasSourceRepo
-                  - {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
-                  - !Ref AWS::NoValue
-                Repo:
-                  Fn::If:
-                  - HasSourceRepo
-                  - {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
-                  - !Ref AWS::NoValue
+              - Owner: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
+                Repo: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
                 Branch: !Ref SourceBranch
-                OAuthToken:
-                  Fn::If:
-                    - HasGitHubToken
-                    - !Ref GitHubToken
-                    - !Ref AWS::NoValue
-              - RepositoryName:
-                  Fn::If:
-                  - HasSourceBucket
-                  - !Ref SourceRepo
-                  - !Ref AWS::NoValue
+                OAuthToken: !Ref GitHubToken
+              - RepositoryName: !Ref SourceRepo
                 BranchName: !Ref SourceBranch
           RunOrder: 1
       - Fn::If:

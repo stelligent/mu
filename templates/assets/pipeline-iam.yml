@@ -19,15 +19,6 @@ Parameters:
   SourceRepo:
     Type: String
     Description: Provider specific repository
-    Default: ""
-  SourceBucket:
-    Type: String
-    Description: Source Bucket
-    Default: ""
-  SourceObjectKey:
-    Type: String
-    Description: Source Object Key
-    Default: ""
   AcptEnv:
     Type: String
     Description: Name of mu environment to deploy to for testing
@@ -84,21 +75,6 @@ Conditions:
     "Fn::Equals":
       - !Ref EnableProdStage
       - 'true'
-  HasSourceRepo:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceRepo
-  HasSourceBucket:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceBucket
-  HasSourceObjectKey:
-    "Fn::Not":
-      - "Fn::Equals":
-        - ""
-        - !Ref SourceObjectKey
 Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
@@ -144,7 +120,7 @@ Resources:
               - s3:GetObjectVersion
               Effect: Allow
               Resource:
-              - Fn::Sub: arn:aws:s3:::${SourceBucket}/${SourceObjectKey}
+              - Fn::Sub: arn:aws:s3:::${SourceRepo}
             - !Ref AWS::NoValue
           - Fn::If:
             - IsS3
@@ -152,7 +128,9 @@ Resources:
               - s3:GetBucketVersioning
               Effect: Allow
               Resource:
-              - Fn::Sub: arn:aws:s3:::${SourceBucket}
+              - Fn::Sub: 
+                - arn:aws:s3:::${SourceBucket}
+                - {SourceBucket: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}}
             - !Ref AWS::NoValue
           - Action:
             - s3:GetObject
