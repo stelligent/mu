@@ -152,8 +152,13 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
 		pipelineParams["SourceBranch"] = workflow.codeBranch
-		pipelineParams["SourceBucket"] = workflow.pipelineConfig.Source.SourceBucket
-		pipelineParams["SourceObjectKey"] = workflow.pipelineConfig.Source.SourceObjectKey
+
+		if workflow.pipelineConfig.Source.Provider == "S3" {
+			repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
+			pipelineParams["SourceBucket"] = repoParts[0]
+			pipelineParams["SourceObjectKey"] = repoParts[1]
+		}
+
 		if workflow.pipelineConfig.Source.Provider == "GitHub" {
 			pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		}

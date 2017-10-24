@@ -271,12 +271,16 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline
 
 	stackParams := map[string]string{
-		"Namespace":       rolesetMgr.context.Config.Namespace,
-		"ServiceName":     serviceName,
-		"SourceProvider":  pipelineConfig.Source.Provider,
-		"SourceRepo":      pipelineConfig.Source.Repo,
-		"SourceBucket":    pipelineConfig.Source.SourceBucket,
-		"SourceObjectKey": pipelineConfig.Source.SourceObjectKey,
+		"Namespace":      rolesetMgr.context.Config.Namespace,
+		"ServiceName":    serviceName,
+		"SourceProvider": pipelineConfig.Source.Provider,
+		"SourceRepo":     pipelineConfig.Source.Repo,
+	}
+
+	if pipelineConfig.Source.Provider == "S3" {
+		repoParts := strings.Split(pipelineConfig.Source.Repo, "/")
+		stackParams["SourceBucket"] = repoParts[0]
+		stackParams["SourceObjectKey"] = repoParts[1]
 	}
 
 	if pipelineConfig.Acceptance.Environment != "" {
