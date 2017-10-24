@@ -15,9 +15,19 @@ Parameters:
     AllowedValues:
     - GitHub
     - CodeCommit
+    - S3
   SourceRepo:
     Type: String
     Description: Provider specific repository
+    Default: ""
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
   AcptEnv:
     Type: String
     Description: Name of mu environment to deploy to for testing
@@ -54,6 +64,10 @@ Parameters:
       - "true"
       - "false"
 Conditions:
+  IsS3:
+    "Fn::Equals":
+      - !Ref SourceProvider
+      - 'S3'
   IsCodeCommit:
     "Fn::Equals":
       - !Ref SourceProvider
@@ -70,6 +84,21 @@ Conditions:
     "Fn::Equals":
       - !Ref EnableProdStage
       - 'true'
+  HasSourceRepo:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceRepo
+  HasSourceBucket:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceBucket
+  HasSourceObjectKey:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceObjectKey
 Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
@@ -107,6 +136,23 @@ Resources:
               - codecommit:CancelUploadArchive
               Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
               Effect: Allow
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - IsS3
+            - Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              Effect: Allow
+              Resource:
+              - Fn::Sub: arn:aws:s3:::${SourceBucket}/${SourceObjectKey}
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - IsS3
+            - Action:
+              - s3:GetBucketVersioning
+              Effect: Allow
+              Resource:
+              - Fn::Sub: arn:aws:s3:::${SourceBucket}
             - !Ref AWS::NoValue
           - Action:
             - s3:GetObject

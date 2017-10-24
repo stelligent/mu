@@ -126,9 +126,11 @@ type Database struct {
 type Pipeline struct {
 	Tags   map[string]interface{} `yaml:"tags,omitempty"`
 	Source struct {
-		Provider string `yaml:"provider,omitempty"`
-		Repo     string `yaml:"repo,omitempty"`
-		Branch   string `yaml:"branch,omitempty"`
+		Provider        string `yaml:"provider,omitempty"`
+		Repo            string `yaml:"repo,omitempty"`
+		Branch          string `yaml:"branch,omitempty"`
+		SourceBucket    string `yaml:"sourcebucket,omitempty"`
+		SourceObjectKey string `yaml:"sourceobjectkey,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`

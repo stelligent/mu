@@ -2,10 +2,11 @@ package aws
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 type iamRolesetManager struct {
@@ -270,10 +271,12 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline
 
 	stackParams := map[string]string{
-		"Namespace":      rolesetMgr.context.Config.Namespace,
-		"ServiceName":    serviceName,
-		"SourceProvider": pipelineConfig.Source.Provider,
-		"SourceRepo":     pipelineConfig.Source.Repo,
+		"Namespace":       rolesetMgr.context.Config.Namespace,
+		"ServiceName":     serviceName,
+		"SourceProvider":  pipelineConfig.Source.Provider,
+		"SourceRepo":      pipelineConfig.Source.Repo,
+		"SourceBucket":    pipelineConfig.Source.SourceBucket,
+		"SourceObjectKey": pipelineConfig.Source.SourceObjectKey,
 	}
 
 	if pipelineConfig.Acceptance.Environment != "" {
