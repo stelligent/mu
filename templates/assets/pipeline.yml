@@ -23,6 +23,14 @@ Parameters:
     Type: String
     Description: Source Branch
     Default: "master"
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
   GitHubToken:
     NoEcho: true
     Type: String
@@ -136,9 +144,18 @@ Parameters:
     Default: ""
 Conditions:
   IsS3:
-    "Fn::Equals":
-      - !Ref SourceProvider
-      - 'S3'
+    "Fn::And":
+    - "Fn::Equals":
+        - !Ref SourceProvider
+        - 'S3'
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceBucket
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceObjectKey
   IsCodeCommit:
     "Fn::Equals":
       - !Ref SourceProvider
@@ -147,6 +164,11 @@ Conditions:
     "Fn::Equals":
       - !Ref SourceProvider
       - 'GitHub'
+  HasGitHubToken:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref GitHubToken
   IsBuildEnabled:
     "Fn::Equals":
       - !Ref EnableBuildStage
@@ -339,8 +361,8 @@ Resources:
           Configuration:
             Fn::If:
             - IsS3
-            - S3Bucket: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
-              S3ObjectKey: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
+            - S3Bucket: !Ref SourceBucket
+              S3ObjectKey: !Ref SourceObjectKey
             -
               Fn::If:
               - IsGitHub
@@ -352,11 +374,7 @@ Resources:
                     - HasGitHubToken
                     - !Ref GitHubToken
                     - !Ref AWS::NoValue
-              - RepositoryName:
-                  Fn::If:
-                  - HasSourceRepo
-                  - !Ref SourceRepo
-                  - !Ref AWS::NoValue
+              - RepositoryName: !Ref SourceRepo
                 BranchName: !Ref SourceBranch
           RunOrder: 1
       - Fn::If:
