@@ -153,7 +153,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 
 		pipelineParams["Namespace"] = namespace
 		pipelineParams["ServiceName"] = workflow.serviceName
-		pipelineParams["MuFile"] = workflow.muFilegca
+		pipelineParams["MuFile"] = workflow.muFile
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
 
