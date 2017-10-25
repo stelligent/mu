@@ -399,7 +399,7 @@ Resources:
                     - !Ref AWS::NoValue
               - RepositoryName:
                   Fn::If:
-                  - HasSourceBucket
+                  - HasSourceRepo
                   - !Ref SourceRepo
                   - !Ref AWS::NoValue
                 BranchName: !Ref SourceBranch
