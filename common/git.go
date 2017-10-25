@@ -116,7 +116,7 @@ func findGitSlug(url string) (string, string, error) {
 func findGitDirectory(fromFile string) (string, error) {
 	absPath, err := filepath.Abs(fromFile)
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
 
 	log.Debugf("Searching for git directory in %s", absPath)
@@ -136,9 +136,7 @@ func findGitDirectory(fromFile string) (string, error) {
 	fi, err = os.Stat(gitPath)
 	if err == nil && fi.Mode().IsDir() {
 		return gitPath, nil
-	} else if dir == "/" {
-		return "", errors.New("Unable to find git repo")
-	} else if dir == "C:\\" {
+	} else if dir == "/" || dir == "C:\\" || dir == "c:\\" {
 		return "", errors.New("Unable to find git repo")
 	}
 
