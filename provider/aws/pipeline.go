@@ -2,12 +2,13 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codepipeline"
 	"github.com/aws/aws-sdk-go/service/codepipeline/codepipelineiface"
 	"github.com/stelligent/mu/common"
-	"regexp"
 )
 
 type codePipelineManager struct {
@@ -46,6 +47,24 @@ func (cplMgr *codePipelineManager) ListState(pipelineName string) ([]common.Pipe
 	return stageStates, nil
 }
 
+// GetPipeline get the config of the pipeline
+func (cplMgr *codePipelineManager) GetPipeline(pipelineName string) (*codepipeline.GetPipelineOutput, error) {
+	cplAPI := cplMgr.codePipelineAPI
+
+	params := &codepipeline.GetPipelineInput{
+		Name: aws.String(pipelineName),
+	}
+
+	log.Debugf("Searching for pipeline config for pipeline named '%s'", pipelineName)
+
+	output, err := cplAPI.GetPipeline(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return output, nil
+}
+
 func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitInfo, error) {
 	stageStates, err := cplMgr.ListState(pipelineName)
 	if err != nil {
@@ -56,6 +75,7 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 
 	codeCommitRegex := regexp.MustCompile("^http(s?)://.+\\.console\\.aws\\.amazon\\.com/codecommit/home#/repository/([^/]+)/.+$")
 	gitHubRegex := regexp.MustCompile("^http(s?)://github\\.com/([^/]+)/([^/]+)/.+$")
+	s3Regex := regexp.MustCompile("^http(s?)://console\\.aws\\.amazon\\.com/s3/home\\?#$")
 
 	for _, stageState := range stageStates {
 		for _, actionState := range stageState.ActionStates {
@@ -70,6 +90,14 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 					gitInfo.Provider = "GitHub"
 					gitInfo.RepoName = matches[3]
 					gitInfo.Slug = fmt.Sprintf("%s/%s", matches[2], matches[3])
+				} else if matches := s3Regex.FindStringSubmatch(entityURL); matches != nil {
+					pipeline, err := cplMgr.GetPipeline(pipelineName)
+					if err != nil {
+						return common.GitInfo{}, err
+					}
+					gitInfo.Provider = "S3"
+					gitInfo.RepoName = fmt.Sprintf("%v/%v", *pipeline.Pipeline.Stages[0].Actions[0].Configuration["S3Bucket"], *pipeline.Pipeline.Stages[0].Actions[0].Configuration["S3ObjectKey"])
+					gitInfo.Slug = gitInfo.RepoName
 				} else {
 					return gitInfo, fmt.Errorf("Unable to parse entity url: %s", entityURL)
 				}

@@ -347,8 +347,16 @@ Resources:
               - Owner: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
                 Repo: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
                 Branch: !Ref SourceBranch
-                OAuthToken: !Ref GitHubToken
-              - RepositoryName: !Ref SourceRepo
+                OAuthToken:
+                  Fn::If:
+                    - HasGitHubToken
+                    - !Ref GitHubToken
+                    - !Ref AWS::NoValue
+              - RepositoryName:
+                  Fn::If:
+                  - HasSourceRepo
+                  - !Ref SourceRepo
+                  - !Ref AWS::NoValue
                 BranchName: !Ref SourceBranch
           RunOrder: 1
       - Fn::If:
