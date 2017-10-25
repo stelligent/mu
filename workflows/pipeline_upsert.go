@@ -15,8 +15,13 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	workflow := new(pipelineWorkflow)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.codeBranch = ctx.Config.Repo.Branch
 	workflow.repoName = ctx.Config.Repo.Slug
+
+	if ctx.Config.Repo.Branch != "" {
+		workflow.codeBranch = ctx.Config.Repo.Branch
+	} else {
+		workflow.codeBranch = ctx.Config.Service.Pipeline.Source.Branch
+	}
 
 	stackParams := make(map[string]string)
 
@@ -150,7 +155,9 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		pipelineParams["MuFile"] = workflow.muFile
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
-		pipelineParams["SourceBranch"] = workflow.codeBranch
+		if workflow.codeBranch != "" {
+			pipelineParams["SourceBranch"] = workflow.codeBranch
+		}
 		if workflow.pipelineConfig.Source.Provider == "GitHub" {
 			pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		}
