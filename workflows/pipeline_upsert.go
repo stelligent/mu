@@ -3,11 +3,12 @@ package workflows
 import (
 	"bytes"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -152,12 +153,20 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 
 		pipelineParams["Namespace"] = namespace
 		pipelineParams["ServiceName"] = workflow.serviceName
-		pipelineParams["MuFile"] = workflow.muFile
+		pipelineParams["MuFile"] = workflow.muFilegca
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
+
 		if workflow.codeBranch != "" {
 			pipelineParams["SourceBranch"] = workflow.codeBranch
 		}
+
+		if workflow.pipelineConfig.Source.Provider == "S3" {
+			repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
+			pipelineParams["SourceBucket"] = repoParts[0]
+			pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+		}
+
 		if workflow.pipelineConfig.Source.Provider == "GitHub" {
 			pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		}

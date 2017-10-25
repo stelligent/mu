@@ -5,13 +5,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/go-ini/ini"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/go-ini/ini"
+	"gopkg.in/yaml.v2"
 )
 
 func findGitRevision(file string) (string, error) {
@@ -112,27 +114,32 @@ func findGitSlug(url string) (string, string, error) {
 }
 
 func findGitDirectory(fromFile string) (string, error) {
-	log.Debugf("Searching for git directory in %s", fromFile)
-	fi, err := os.Stat(fromFile)
+	absPath, err := filepath.Abs(fromFile)
+	if err != nil {
+		return "", err
+	}
+
+	log.Debugf("Searching for git directory in %s", absPath)
+	fi, err := os.Stat(absPath)
 	if err != nil {
 		return "", err
 	}
 
 	var dir string
 	if fi.Mode().IsDir() {
-		dir = fromFile
+		dir = absPath
 	} else {
-		dir = path.Dir(fromFile)
+		dir = path.Dir(absPath)
 	}
 
 	gitPath := path.Join(dir, ".git")
 	fi, err = os.Stat(gitPath)
 	if err == nil && fi.Mode().IsDir() {
 		return gitPath, nil
-	} else if dir == "/" {
+	} else if dir == "/" || dir == "C:\\" || dir == "c:\\" {
 		return "", errors.New("Unable to find git repo")
-	} else {
-		return findGitDirectory(path.Dir(dir))
 	}
+
+	return findGitDirectory(filepath.Dir(dir))
 
 }
