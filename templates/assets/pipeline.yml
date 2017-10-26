@@ -15,6 +15,7 @@ Parameters:
     AllowedValues:
     - GitHub
     - CodeCommit
+    - S3
   SourceRepo:
     Type: String
     Description: Provider specific repository
@@ -22,6 +23,14 @@ Parameters:
     Type: String
     Description: Source Branch
     Default: "master"
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
   GitHubToken:
     NoEcho: true
     Type: String
@@ -134,6 +143,19 @@ Parameters:
     Description: IAM Role for Prod Stage - used for cross account access
     Default: ""
 Conditions:
+  IsS3:
+    "Fn::And":
+    - "Fn::Equals":
+        - !Ref SourceProvider
+        - 'S3'
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceBucket
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceObjectKey
   IsCodeCommit:
     "Fn::Equals":
       - !Ref SourceProvider
@@ -142,6 +164,11 @@ Conditions:
     "Fn::Equals":
       - !Ref SourceProvider
       - 'GitHub'
+  HasGitHubToken:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref GitHubToken
   IsBuildEnabled:
     "Fn::Equals":
       - !Ref EnableBuildStage
@@ -315,24 +342,40 @@ Resources:
           - Name: SourceOutput
           ActionTypeId:
             Fn::If:
-            - IsGitHub
-            - Category: Source
-              Owner: ThirdParty
-              Version: '1'
-              Provider: GitHub
+            - IsS3
             - Category: Source
               Owner: AWS
               Version: '1'
-              Provider: CodeCommit
+              Provider: S3
+            -
+              Fn::If:
+              - IsGitHub
+              - Category: Source
+                Owner: ThirdParty
+                Version: '1'
+                Provider: GitHub
+              - Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
           Configuration:
             Fn::If:
-            - IsGitHub
-            - Owner: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
-              Repo: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
-              Branch: !Ref SourceBranch
-              OAuthToken: !Ref GitHubToken
-            - RepositoryName: !Ref SourceRepo
-              BranchName: !Ref SourceBranch
+            - IsS3
+            - S3Bucket: !Ref SourceBucket
+              S3ObjectKey: !Ref SourceObjectKey
+            -
+              Fn::If:
+              - IsGitHub
+              - Owner: {"Fn::Select": ["0", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
+                Repo: {"Fn::Select": ["1", {"Fn::Split":["/", {"Ref": "SourceRepo"}]}]}
+                Branch: !Ref SourceBranch
+                OAuthToken:
+                  Fn::If:
+                    - HasGitHubToken
+                    - !Ref GitHubToken
+                    - !Ref AWS::NoValue
+              - RepositoryName: !Ref SourceRepo
+                BranchName: !Ref SourceBranch
           RunOrder: 1
       - Fn::If:
         - IsBuildEnabled

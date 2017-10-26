@@ -2,10 +2,11 @@ package aws
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 type iamRolesetManager struct {
@@ -274,6 +275,12 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 		"ServiceName":    serviceName,
 		"SourceProvider": pipelineConfig.Source.Provider,
 		"SourceRepo":     pipelineConfig.Source.Repo,
+	}
+
+	if pipelineConfig.Source.Provider == "S3" {
+		repoParts := strings.Split(pipelineConfig.Source.Repo, "/")
+		stackParams["SourceBucket"] = repoParts[0]
+		stackParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
 	}
 
 	if pipelineConfig.Acceptance.Environment != "" {
