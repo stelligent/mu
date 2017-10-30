@@ -142,8 +142,6 @@ Conditions:
 Resources:
   EcsService:
     Type: AWS::ECS::Service
-    DependsOn:
-    - ServiceLogGroup
     Properties:
       Cluster:
         Fn::ImportValue: !Sub ${EcsCluster}
@@ -164,11 +162,6 @@ Resources:
           - !Ref EcsServiceRoleArn
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
-  ServiceLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
-    Properties:
-      LogGroupName: !Ref AWS::StackName
   MicroserviceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:

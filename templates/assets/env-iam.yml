@@ -90,12 +90,9 @@ Resources:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
+            - logs:DescribeLogGroups
             - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}:*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-*-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-*-${EnvironmentName}:*
+            Resource: '*'
   ConsulClientTaskRole:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled
@@ -187,10 +184,9 @@ Resources:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
+            - logs:DescribeLogGroups
             - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-consul-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-consul-${EnvironmentName}:*
+            Resource: '*'
   ConsulServerTaskRole:
     Type: AWS::IAM::Role
     Condition: IsConsulEnabled

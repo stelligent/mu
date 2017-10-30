@@ -62,6 +62,7 @@ type Environment struct {
 		ImageOsType       string `yaml:"osType,omitempty"`
 		InstanceTenancy   string `yaml:"instanceTenancy,omitempty"`
 		DesiredCapacity   int    `yaml:"desiredCapacity,omitempty"`
+		MinSize           int    `yaml:"minSize,omitempty"`
 		MaxSize           int    `yaml:"maxSize,omitempty"`
 		KeyName           string `yaml:"keyName,omitempty"`
 		SSHAllow          string `yaml:"sshAllow,omitempty"`

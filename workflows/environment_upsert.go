@@ -361,6 +361,9 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		if environment.Cluster.DesiredCapacity != 0 {
 			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
 		}
+		if environment.Cluster.MinSize != 0 {
+			stackParams["MinSize"] = strconv.Itoa(environment.Cluster.MinSize)
+		}
 		if environment.Cluster.MaxSize != 0 {
 			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
 		}
