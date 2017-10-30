@@ -113,18 +113,6 @@ Conditions:
       - "Fn::Equals":
         - !Ref ConsulRpcClientSecurityGroup
         - ''
-  IsOsAmazonLinux:
-    "Fn::Equals":
-      - !Ref ImageOsType
-      - amazon
-  IsOsCentos7:
-    "Fn::Equals":
-      - !Ref ImageOsType
-      - centos7
-  IsOsWindows:
-    "Fn::Equals":
-      - !Ref ImageOsType
-      - windows
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -242,15 +230,33 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       AWS::CloudFormation::Init:
-        config:
+        configSets:
+          amazon:
+            - commonLinux
+            - amazonLinux
+          centos7:
+            - commonLinux
+        amazonLinux:
           packages:
             yum:
-              Fn::If:
-                - IsOsAmazonLinux
-                - - awslogs: []
-                  - jq: []
-                  - aws-cli: []
-                - !Ref "AWS::NoValue"
+              - awslogs: []
+              - jq: []
+              - aws-cli: []
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        commonLinux:
           files:
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -321,23 +327,6 @@ Resources:
               command: !Sub |
                 #!/bin/bash
                 echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
-          services:
-            sysvinit:
-              Fn::If:
-                - IsOsAmazonLinux
-                - awslogs:
-                    enabled: 'true'
-                    ensureRunning: 'true'
-                    files:
-                    - "/etc/awslogs/awslogs.conf"
-                    - "/etc/awslogs/etc/proxy.conf"
-                  cfn-hup:
-                    enabled: 'true'
-                    ensureRunning: 'true'
-                    files:
-                    - "/etc/cfn/cfn-hup.conf"
-                    - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
-                - !Ref "AWS::NoValue"
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
@@ -395,7 +384,7 @@ Resources:
 
 
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
