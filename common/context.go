@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"fmt"
 )
 
 var version string
@@ -161,8 +162,17 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 		return err
 	}
 
-	// register the stack overrides
-	registerStackOverrides(ctx.Config.Templates)
+	// register the stack overrides from within the mu.yml
+	for stackName, template := range ctx.Config.Templates {
+		registerStackOverride(fmt.Sprintf("^%s$", stackName), template)
+	}
+
+	// load stack overrides from extensions
+	for _, extension := range ctx.Config.Extensions {
+		// TODO: load extension via extension.URI (local, s3, github)
+
+		// TODO: look for stack overrides and register them (based on known asset names)
+	}
 
 	return nil
 }

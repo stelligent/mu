@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"regexp"
+	"html/template"
 )
 
 // CreateStackName will create a name for a stack
@@ -12,18 +14,30 @@ func CreateStackName(namespace string, stackType StackType, names ...string) str
 }
 
 // GetStackOverrides will get the overrides from the config
-func GetStackOverrides(stackName string) interface{} {
-	if stackOverrides == nil {
-		return nil
+func GetStackOverrides(stackName string) []interface{} {
+	resp := make([]interface{},0)
+
+	for _, stackOverride := range stackOverrides {
+		if stackOverride.stackNameMatcher.MatchString(stackName) {
+			resp = append(resp, stackOverride)
+		}
 	}
 
-	return stackOverrides[stackName]
+	return resp
 }
 
-var stackOverrides map[string]interface{}
+type StackOverride struct {
+	stackNameMatcher 	*regexp.Regexp
+	template			interface{}
+}
 
-func registerStackOverrides(overrides map[string]interface{}) {
-	stackOverrides = overrides
+var stackOverrides = make([]StackOverride,0)
+
+func registerStackOverride(stackNamePattern string, template interface{}) {
+	stackOverrides = append(stackOverrides, StackOverride{
+		regexp.MustCompile(stackNamePattern),
+		template,
+	})
 }
 
 // StackWaiter for waiting on stack status to be final
