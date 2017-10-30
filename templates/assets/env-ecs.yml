@@ -43,6 +43,14 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
@@ -105,6 +113,18 @@ Conditions:
       - "Fn::Equals":
         - !Ref ConsulRpcClientSecurityGroup
         - ''
+  IsOsAmazonLinux:
+    "Fn::Equals":
+      - !Ref ImageOsType
+      - amazon
+  IsOsCentos7:
+    "Fn::Equals":
+      - !Ref ImageOsType
+      - centos7
+  IsOsWindows:
+    "Fn::Equals":
+      - !Ref ImageOsType
+      - windows
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -225,9 +245,12 @@ Resources:
         config:
           packages:
             yum:
-              awslogs: []
-              jq: []
-              aws-cli: []
+              Fn::If:
+                - IsOsAmazonLinux
+                - - awslogs: []
+                  - jq: []
+                  - aws-cli: []
+                - !Ref "AWS::NoValue"
           files:
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -300,18 +323,21 @@ Resources:
                 echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
           services:
             sysvinit:
-              awslogs:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/awslogs/awslogs.conf"
-                - "/etc/awslogs/etc/proxy.conf"
-              cfn-hup:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/cfn/cfn-hup.conf"
-                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+              Fn::If:
+                - IsOsAmazonLinux
+                - awslogs:
+                    enabled: 'true'
+                    ensureRunning: 'true'
+                    files:
+                    - "/etc/awslogs/awslogs.conf"
+                    - "/etc/awslogs/etc/proxy.conf"
+                  cfn-hup:
+                    enabled: 'true'
+                    ensureRunning: 'true'
+                    files:
+                    - "/etc/cfn/cfn-hup.conf"
+                    - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                - !Ref "AWS::NoValue"
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
