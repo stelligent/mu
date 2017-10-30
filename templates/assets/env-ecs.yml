@@ -239,9 +239,9 @@ Resources:
         amazonLinux:
           packages:
             yum:
-              - awslogs: []
-              - jq: []
-              - aws-cli: []
+              awslogs: []
+              jq: []
+              aws-cli: []
           services:
             sysvinit:
               awslogs:
