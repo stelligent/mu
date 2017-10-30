@@ -355,6 +355,9 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 			}
 
 		}
+		if environment.Cluster.ImageOsType != "" {
+			stackParams["ImageOsType"] = environment.Cluster.ImageOsType
+		}
 		if environment.Cluster.DesiredCapacity != 0 {
 			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
 		}
