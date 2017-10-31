@@ -19,4 +19,6 @@ service:
       command: echo updating bananas
   pipeline:
     source:
+      provider: GitHub
       repo: timbaileyjones/banana-service
+      branch: master
