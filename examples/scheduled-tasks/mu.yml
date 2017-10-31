@@ -15,7 +15,7 @@ service:
   pathPatterns:
     - /*
   schedules:
-    - expression: '* 10 * * *'
+    - expression: '* * * * *'
       command: echo update stuff
   pipeline:
     source:
