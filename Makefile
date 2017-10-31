@@ -16,6 +16,8 @@ UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
 
+export PATH := $(GOPATH)/bin:$(PATH)
+
 default: all
 
 deps:
@@ -26,7 +28,7 @@ deps:
 	go get "github.com/aktau/github-release"
 	glide install
 	patch -p1 < go-git.v4.patch
-	gem install cfn-nag
+	gem list | grep cfn-nag || sudo gem install cfn-nag
 
 gen:
 	go generate $(SRC_FILES)
