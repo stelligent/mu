@@ -3,20 +3,20 @@
 environments:
   - name: acceptance
     cluster:
-      maxSize: 2
+      maxSize: 1
   - name: production
     cluster:
-      maxSize: 5
+      maxSize: 1
 
 service:
-  name: basic-example
+  name: issue-158-scheduled-tasks
   healthEndpoint: /
   port: 80
   pathPatterns:
     - /*
   schedules:
     - expression: '* * * * *'
-      command: echo update stuff
+      command: echo updating bananas
   pipeline:
     source:
-      repo: cplee/aftp-mu
+      repo: timbaileyjones/banana-service
