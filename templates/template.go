@@ -37,14 +37,21 @@ func NewTemplate(assetName string, data interface{}, cfnUpdates []interface{}) (
 
 	bufWriter.Flush()
 
-	if cfnUpdates != nil && len(cfnUpdates) > 0 {
+	// check for cfn updates from extensions
+	allCfnUpdates := common.GetCfnUpdatesFromExtensions(assetName)
+
+	if cfnUpdates != nil {
+		allCfnUpdates = append(allCfnUpdates, cfnUpdates...)
+	}
+
+	if len(allCfnUpdates) > 0 {
 		templateMap := make(map[interface{}]interface{})
 		cleanYaml := fixupYaml(buf.Bytes())
 		err = yaml.Unmarshal(cleanYaml, templateMap)
 		if err != nil {
 			return nil, newYamlError(err, cleanYaml)
 		}
-		for _, cfnUpdate := range cfnUpdates {
+		for _, cfnUpdate := range allCfnUpdates {
 			common.MapApply(templateMap, cfnUpdate)
 		}
 

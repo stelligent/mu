@@ -40,7 +40,7 @@ type Config struct {
 	} `yaml:"-"`
 	Templates  map[string]interface{} `yaml:"templates,omitempty"`
 	Extensions []struct {
-		URI        string            `yaml:"uri,omitempty"`
+		URL        string            `yaml:"url,omitempty"`
 		Parameters map[string]string `yaml:"parameters,omitempty"`
 	} `yaml:"extensions,omitempty"`
 	DisableIAM bool `yaml:"disableIAM,omitempty"`

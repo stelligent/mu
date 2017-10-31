@@ -1,0 +1,13 @@
+---
+
+environments:
+  - name: acceptance
+
+extensions:
+  - url: bucket
+  - url: security-group
+  - url: s3://mybucket/sample-extensions/bucket.zip
+  - url: git+https://github.com/stelligent/mu#v1.0.6
+  - url: git+https://github.com/stelligent/mu
+  - url: git+https://github.com/stelligent/mu
+  - url: foo

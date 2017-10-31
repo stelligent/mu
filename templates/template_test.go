@@ -63,7 +63,7 @@ Resources:
 	err := yaml.Unmarshal([]byte(overridesYaml), overrides)
 	assert.Nil(err)
 
-	templateBodyReader, err := NewTemplate("bucket.yml", nil, overrides)
+	templateBodyReader, err := NewTemplate("bucket.yml", nil, []interface{}{overrides})
 	assert.Nil(err)
 	assert.NotNil(templateBodyReader)
 
@@ -168,7 +168,7 @@ func TestNewTemplate_assets(t *testing.T) {
 			continue
 		}
 
-		templateBodyReader, err := NewTemplate(templateName, nil, overrides)
+		templateBodyReader, err := NewTemplate(templateName, nil, []interface{}{overrides})
 
 		assert.Nil(err, templateName)
 		assert.NotNil(templateBodyReader, templateName)

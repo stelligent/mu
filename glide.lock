@@ -1,5 +1,5 @@
-hash: ffa031ddeab231eb51f816e197677a6c55eadea429e4bebf52984c0a7c7d03e7
-updated: 2017-08-24T09:14:31.84567977-07:00
+hash: 8f7d2bd0b9abc044d4f03f55e83447921238cada7fb43bcb8d97188a52ee05b6
+updated: 2017-10-30T23:50:30.080746667-07:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 96358b8282b1a3aa66836d2f2fe66216cc419668
@@ -109,6 +109,8 @@ imports:
   version: 737072b4e32b7a5018b4a7125da8d12de90e8045
 - name: github.com/Microsoft/go-winio
   version: 307e919c663683a9000576fdc855acaf9534c165
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/olekukonko/tablewriter
   version: febf2d34b54a69ce7530036c7503b1c9fbfdf0bb
 - name: github.com/op/go-logging

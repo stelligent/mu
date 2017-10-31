@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -169,15 +170,23 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 
 	// load stack overrides from extensions
 	for _, extension := range ctx.Config.Extensions {
-		// TODO: load extension via extension.URI (local, s3, github)
-		extHandle, err := NewExtension(extension.URI)
+		u, err := url.Parse(extension.URL)
 		if err != nil {
 			return err
 		}
 
-		// TODO: look for stack overrides and register them (based on known asset names)
-		for _, templateOverride := range extHandle.Templates {
-			registerStackOverride(fmt.Sprintf("-%s$", templateOverride.name), templateOverride.template)
+		log.Debugf("Loading extension from '%s'", u)
+		if !u.IsAbs() {
+			basedirURL, err := url.Parse(fmt.Sprintf("file://%s/", ctx.Config.Basedir))
+			if err != nil {
+				return err
+			}
+			u = basedirURL.ResolveReference(u)
+			log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
+		}
+		err = loadExtension(ctx, u)
+		if err != nil {
+			log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
 		}
 	}
 
