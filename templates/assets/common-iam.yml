@@ -165,6 +165,18 @@ Resources:
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
             - autoscaling:TerminateInstanceInAutoScalingGroup
+            - events:PutRule
+            - events:PutTargets
+            #
+            # the cloudwatch:PutRule & cloudwatch:PutTargets
+            # are documented under http://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_PutRule.html
+            # but were filtered out by CFN. However, they appear to be under events:
+            # according to https://iam.cloudonaut.io/reference/events/PutRule.html
+            # and https://iam.cloudonaut.io/reference/events/PutTargets.html
+            # Therefore, commenting out these next two lines: (timbaileyjones)
+            #
+            #- cloudwatch:PutRule
+            #- cloudwatch:PutTargets
             - cloudwatch:PutMetricAlarm
             - cloudwatch:DeleteAlarms
             - cloudwatch:DescribeAlarmsForMetric
