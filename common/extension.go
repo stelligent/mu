@@ -10,7 +10,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
+	"io"
+	"bufio"
+	"net/http"
+	"github.com/mholt/archiver"
 )
 
 type extension struct {
@@ -62,36 +65,43 @@ func loadExtension(ctx *Context, url *url.URL) error {
 
 		log.Debugf("Loaded extension '%s' from path=%s", extID, ext.path)
 
-	} else if url.Scheme == "s3" {
-		bucket := url.Host
-		object := url.Path
-
-		// TODO: get and extract to temp dir
-		log.Debugf("Loaded extension '%s' from bucket=%s object=%s", extID, bucket, object)
-		//return fmt.Errorf("S3 not yet supported")
-	} else if strings.HasPrefix(url.Scheme, "git+") {
-		repo := strings.TrimPrefix(url.String(), "git+")
-
-		commitish := url.Fragment
-		if commitish != "" {
-			repo = strings.TrimSuffix(repo, commitish)
-		}
-
-		repoURL, err := url.Parse(repo)
+	} else {
+		body, err := ctx.ArtifactManager.GetArtifact(url.String())
 		if err != nil {
 			return err
 		}
 
-		// TODO: git clone to temp dir
-		log.Debugf("Loaded extension '%s' from repoURL=%s commitish=%s", extID, repoURL, commitish)
-		//return fmt.Errorf("GIT not yet supported")
+		defer body.Close()
+		err = extractArchive(ext.path, body)
+		if err != nil {
+			return err
+		}
 
-	} else {
-		return fmt.Errorf("unable to handle url '%s'", url)
+		log.Debugf("Loaded extension '%s' from url=%s", extID, url)
 	}
 
 	extensions = append(extensions, ext)
 	return nil
+}
+
+func extractArchive(destPath string, archive io.ReadCloser) error {
+	reader := bufio.NewReader(archive)
+	headBytes, err := reader.Peek(512)
+	if err != nil {
+		return err
+	}
+	contentType := http.DetectContentType(headBytes)
+	log.Debugf("Extracting type '%s'", contentType)
+
+	switch contentType {
+	case "application/x-gzip":
+		return archiver.TarGz.Read(reader, destPath)
+	case "application/zip":
+		return archiver.Zip.Read(reader, destPath)
+	default:
+		return fmt.Errorf("unable to handle archive of content-type '%s'", contentType)
+	}
+
 }
 
 // GetCfnUpdatesFromExtensions finds all CFN updates across all extensions

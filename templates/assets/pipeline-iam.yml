@@ -445,7 +445,8 @@ Resources:
             Effect: Allow
             Condition:
               StringEquals:
-                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${AcptEnv}
+                "rds:cluster-tag/mu:service": !Sub ${ServiceName}
+                "rds:cluster-tag/mu:environment": !Sub ${AcptEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
@@ -521,7 +522,8 @@ Resources:
             Effect: Allow
             Condition:
               StringEquals:
-                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
+                "rds:cluster-tag/mu:service": !Sub ${ServiceName}
+                "rds:cluster-tag/mu:environment": !Sub ${AcptEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
