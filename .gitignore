@@ -4,3 +4,4 @@
 vendor/
 *~
 homebrew-tap/
+templates/assets.go
