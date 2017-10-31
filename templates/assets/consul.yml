@@ -86,6 +86,8 @@ Resources:
       ClusterName: !Ref AWS::StackName
   EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+    - ClusterLogGroup
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
@@ -282,6 +284,11 @@ Resources:
             aws ecs start-task --cluster ${EcsCluster} --task-definition ${AWS::StackName}-consul-server --container-instances $instance_arn --started-by $instance_arn --region ${AWS::Region}
           end script
           --==BOUNDARY==--
+  ClusterLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
   ConsulApiClientSG:
     Type: AWS::EC2::SecurityGroup
     Properties:

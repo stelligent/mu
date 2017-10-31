@@ -160,6 +160,7 @@ Resources:
   EcsAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
+    - ClusterLogGroup
     - Host2InternetEgress
     Properties:
       VPCZoneIdentifier:
@@ -419,6 +420,11 @@ Resources:
             aws ecs start-task --cluster ${EcsCluster} --task-definition ${AWS::StackName}-consul-agent --container-instances $instance_arn --started-by $instance_arn --region ${AWS::Region}
           end script
           --==BOUNDARY==--
+  ClusterLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
   ConsulAgentTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Condition: HasConsulServer
