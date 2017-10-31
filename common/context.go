@@ -3,6 +3,7 @@ package common
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"fmt"
 )
 
 var version string
@@ -170,8 +170,15 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 	// load stack overrides from extensions
 	for _, extension := range ctx.Config.Extensions {
 		// TODO: load extension via extension.URI (local, s3, github)
+		extHandle, err := NewExtension(extension.URI)
+		if err != nil {
+			return err
+		}
 
 		// TODO: look for stack overrides and register them (based on known asset names)
+		for _, templateOverride := range extHandle.Templates {
+			registerStackOverride(fmt.Sprintf("-%s$", templateOverride.name), templateOverride.template)
+		}
 	}
 
 	return nil

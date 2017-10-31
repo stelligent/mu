@@ -39,11 +39,11 @@ type Config struct {
 		Provider string
 	} `yaml:"-"`
 	Templates  map[string]interface{} `yaml:"templates,omitempty"`
-	Extensions []struct{
-		Uri     string 				  `yaml:"uri,omitempty"`
-		Parameters	map[string]string `yaml:"parameters,omitempty"`
+	Extensions []struct {
+		URI        string            `yaml:"uri,omitempty"`
+		Parameters map[string]string `yaml:"parameters,omitempty"`
 	} `yaml:"extensions,omitempty"`
-	DisableIAM bool                   `yaml:"disableIAM,omitempty"`
+	DisableIAM bool `yaml:"disableIAM,omitempty"`
 	Roles      struct {
 		CloudFormation string `yaml:"cloudFormation,omitempty"`
 	} `yaml:"roles,omitempty"`

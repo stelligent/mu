@@ -3,9 +3,8 @@ package common
 import (
 	"fmt"
 	"io"
-	"strings"
 	"regexp"
-	"html/template"
+	"strings"
 )
 
 // CreateStackName will create a name for a stack
@@ -15,7 +14,7 @@ func CreateStackName(namespace string, stackType StackType, names ...string) str
 
 // GetStackOverrides will get the overrides from the config
 func GetStackOverrides(stackName string) []interface{} {
-	resp := make([]interface{},0)
+	resp := make([]interface{}, 0)
 
 	for _, stackOverride := range stackOverrides {
 		if stackOverride.stackNameMatcher.MatchString(stackName) {
@@ -26,15 +25,15 @@ func GetStackOverrides(stackName string) []interface{} {
 	return resp
 }
 
-type StackOverride struct {
-	stackNameMatcher 	*regexp.Regexp
-	template			interface{}
+type _StackOverride struct {
+	stackNameMatcher *regexp.Regexp
+	template         interface{}
 }
 
-var stackOverrides = make([]StackOverride,0)
+var stackOverrides = make([]_StackOverride, 0)
 
 func registerStackOverride(stackNamePattern string, template interface{}) {
-	stackOverrides = append(stackOverrides, StackOverride{
+	stackOverrides = append(stackOverrides, _StackOverride{
 		regexp.MustCompile(stackNamePattern),
 		template,
 	})
