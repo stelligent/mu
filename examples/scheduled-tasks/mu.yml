@@ -9,7 +9,7 @@ environments:
       maxSize: 1
 
 service:
-  name: issue-158-scheduled-tasks
+  name: issue-158
   healthEndpoint: /
   port: 80
   pathPatterns:
