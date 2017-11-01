@@ -105,6 +105,7 @@ type Service struct {
 	Priority        int                    `yaml:"priority,omitempty"`
 	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
 	Database        Database               `yaml:"database,omitempty"`
+	Schedule        []Schedule             `yaml:"schedules,omitempty"`
 	Roles           struct {
 		Ec2Instance string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy  string `yaml:"codeDeploy,omitempty"`
@@ -122,6 +123,13 @@ type Database struct {
 	IamAuthentication bool                   `yaml:"iamAuthentication,omitempty"`
 	MasterUsername    string                 `yaml:"masterUsername,omitempty"`
 	AllocatedStorage  string                 `yaml:"allocatedStorage,omitempty"`
+}
+
+// Schedule definition
+type Schedule struct {
+	Name              string                 `yaml:"name,omitempty"`
+	Expression        string                 `yaml:"expression,omitempty"`
+	Command           string                 `yaml:"command,omitempty"`
 }
 
 // Pipeline definition
