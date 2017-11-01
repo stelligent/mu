@@ -8,5 +8,4 @@ extensions:
   - url: security-group
   - url: s3://pipeline-dashboard-us-west-2/082f278bbb5b6ac485b717a77e6c75a1
   - url: s3://pipeline-dashboard-884669789531-us-east-1/16663b1b254d827320030953da938f1b
-  - url: https://api.github.com/repos/stelligent/mu/tarball/v1.0.6
-  - url: https://api.github.com/repos/stelligent/mu/zipball/v1.0.6
+  - url: https://nodejs.org/dist/v8.9.0/node-v8.9.0-darwin-x64.tar.gz

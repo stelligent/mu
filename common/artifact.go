@@ -9,9 +9,9 @@ type ArtifactCreator interface {
 	CreateArtifact(body io.ReadSeeker, destURI string) error
 }
 
-// ArtifactGetter for getting artifacts.  returns body, and optional error
+// ArtifactGetter for getting artifacts.  conditional get (based on etag).  returns body, etag and optional error
 type ArtifactGetter interface {
-	GetArtifact(uri string) (io.ReadCloser, error)
+	GetArtifact(uri string, etag string) (io.ReadCloser, string, error)
 }
 
 // ArtifactManager composite of all artifact capabilities
@@ -19,4 +19,3 @@ type ArtifactManager interface {
 	ArtifactCreator
 	ArtifactGetter
 }
-

@@ -1,21 +1,24 @@
 package aws
 
 import (
+	"crypto/md5"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/stelligent/mu/common"
 	"io"
-	"net/url"
 	"net/http"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"net/url"
+	"os"
 )
 
 type s3ArtifactManager struct {
 	s3API s3iface.S3API
-	sess *session.Session
+	sess  *session.Session
 }
 
 func newArtifactManager(sess *session.Session) (common.ArtifactManager, error) {
@@ -24,7 +27,7 @@ func newArtifactManager(sess *session.Session) (common.ArtifactManager, error) {
 
 	return &s3ArtifactManager{
 		s3API: s3API,
-		sess: sess,
+		sess:  sess,
 	}, nil
 }
 
@@ -56,11 +59,11 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 	return nil
 }
 
-// GetArtifact get the instances for a specific cluster
-func (s3Mgr *s3ArtifactManager) GetArtifact(uri string) (io.ReadCloser, error) {
+// GetArtifact get the artifact conditionally by etag.
+func (s3Mgr *s3ArtifactManager) GetArtifact(uri string, etag string) (io.ReadCloser, string, error) {
 	url, err := url.Parse(uri)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if url.Scheme == "s3" {
@@ -70,27 +73,66 @@ func (s3Mgr *s3ArtifactManager) GetArtifact(uri string) (io.ReadCloser, error) {
 			s3api = s3.New(s3Mgr.sess, aws.NewConfig().WithRegion(region))
 		}
 		input := &s3.GetObjectInput{
-			Bucket: aws.String(url.Host),
-			Key: aws.String(url.Path),
+			Bucket:      aws.String(url.Host),
+			Key:         aws.String(url.Path),
+			IfNoneMatch: aws.String(etag),
 		}
 		resp, err := s3api.GetObject(input)
 		if err != nil {
-			return nil, err
+			if aerr, ok := err.(awserr.Error); ok {
+				if aerr.Code() == "NotModified" {
+					return resp.Body, etag, nil
+				}
+			}
+			return nil, "", err
 		}
 
-		return resp.Body, nil
+		return resp.Body, aws.StringValue(resp.ETag), nil
 	} else if url.Scheme == "https" || url.Scheme == "http" {
-		resp, err := http.Get(url.String())
+		req, err := http.NewRequest("GET", url.String(), nil)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
-		return resp.Body, nil
+		client := &http.Client{}
+		req.Header.Add("If-None-Match", etag)
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if resp.StatusCode == 304 {
+			return nil, etag, nil
+		}
+
+		return resp.Body, resp.Header.Get(http.CanonicalHeaderKey("etag")), nil
+	} else if url.Scheme == "file" {
+		newEtag, err := md5File(url.Path)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if etag == "" || etag != newEtag {
+			body, err := os.Open(url.Path)
+			return body, newEtag, err
+		}
+		return nil, newEtag, nil
 	}
 
-	return nil, fmt.Errorf("unknown scheme on URL '%s'", url)
+	return nil, "", fmt.Errorf("unknown scheme on URL '%s'", url)
 }
 
+func md5File(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
 
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
 
-
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}

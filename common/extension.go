@@ -1,24 +1,25 @@
 package common
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/mholt/archiver"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"io"
-	"bufio"
-	"net/http"
-	"github.com/mholt/archiver"
 )
 
 type extension struct {
 	id   string
 	path string
+	etag string
 }
 
 var extensions = make([]*extension, 0)
@@ -50,34 +51,72 @@ func loadExtension(ctx *Context, url *url.URL) error {
 	}
 
 	extensionDirectory := filepath.Join(userdir, ".mu", "extensions", extID)
-	os.MkdirAll(extensionDirectory, 0700)
+
 	var ext = &extension{
 		extID,
 		extensionDirectory,
+		"",
 	}
 
-	if url.Scheme == "file" {
+	// check for existing etag
+	etagBytes, err := ioutil.ReadFile(filepath.Join(extensionDirectory, ".etag"))
+	if err == nil {
+		ext.etag = string(etagBytes)
+	}
+
+	if fi, err := os.Stat(url.Path); url.Scheme == "file" && err == nil && fi.IsDir() {
 		ext.path = url.Path
-
-		if _, err := os.Stat(ext.path); err != nil {
-			return err
-		}
-
-		log.Debugf("Loaded extension '%s' from path=%s", extID, ext.path)
-
+		log.Debugf("Loaded extension from '%s'", url.Path)
 	} else {
-		body, err := ctx.ArtifactManager.GetArtifact(url.String())
+		body, etag, err := ctx.ArtifactManager.GetArtifact(url.String(), ext.etag)
 		if err != nil {
 			return err
 		}
 
-		defer body.Close()
-		err = extractArchive(ext.path, body)
-		if err != nil {
-			return err
+		if body != nil {
+			defer body.Close()
+
+			// empty dir
+			os.RemoveAll(extensionDirectory)
+			os.MkdirAll(extensionDirectory, 0700)
+
+			// write out archive to dir
+			err = extractArchive(ext.path, body)
+			if err != nil {
+				return err
+			}
+
+			// write new etag
+			err = ioutil.WriteFile(filepath.Join(extensionDirectory, ".etag"), []byte(etag), 0644)
+			if err != nil {
+				return err
+			}
+			log.Debugf("Loaded extension from '%s' [id=%s]", url, extID)
+		} else {
+			log.Debugf("Loaded extension from cache [id=%s]", extID)
 		}
 
-		log.Debugf("Loaded extension '%s' from url=%s", extID, url)
+	}
+
+	extManifest := make(map[interface{}]interface{})
+	extManifestFile, err := ioutil.ReadFile(filepath.Join(ext.path, "mu-extension.yml"))
+	if err == nil {
+		err = yaml.Unmarshal(extManifestFile, extManifest)
+		if err != nil {
+			log.Debugf("error unmarshalling mu-extension.yml: %s", err)
+		}
+	} else {
+		log.Debugf("error reading mu-extension.yml: %s", err)
+	}
+
+	if name, ok := extManifest["name"]; ok {
+		if version, ok := extManifest["version"]; ok {
+			log.Infof("Loaded extension %s (version=%v)", name, version)
+		} else {
+			log.Infof("Loaded extension %s", name)
+		}
+	} else {
+		log.Infof("Loaded extension %s", url)
 	}
 
 	extensions = append(extensions, ext)
