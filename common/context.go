@@ -179,10 +179,11 @@ func (ctx *Context) InitializeExtensions() error {
 				ext, err := newTemplateArchiveExtension(u, ctx.ArtifactManager)
 				if err != nil {
 					log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
-				}
-				err = extMgr.AddExtension(ext)
-				if err != nil {
-					log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+				} else {
+					err = extMgr.AddExtension(ext)
+					if err != nil {
+						log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+					}
 				}
 			}
 		} else if extension.Image != "" {

@@ -71,6 +71,9 @@ func newExtensionsManager() (ExtensionsManager, error) {
 	return extMgr, nil
 }
 func (extMgr *extensionsManager) AddExtension(extension ExtensionImpl) error {
+	if extension == nil {
+		return fmt.Errorf("extension was nil")
+	}
 	// ensure extension isn't already loaded
 	for _, existingExt := range extMgr.extensions {
 		if existingExt.ID() == extension.ID() {
@@ -86,12 +89,38 @@ func (extMgr *extensionsManager) DecorateStackTemplate(assetName string, stackNa
 	outTemplate := inTemplate
 	for _, ext := range extMgr.extensions {
 		var err error
-		outTemplate, err = ext.DecorateStackTemplate(assetName, stackName, inTemplate)
+		outTemplate, err = ext.DecorateStackTemplate(assetName, stackName, outTemplate)
 		if err != nil {
 			return nil, err
 		}
 	}
 	return outTemplate, nil
+}
+
+// DecorateStackParameters for all extensions
+func (extMgr *extensionsManager) DecorateStackParameters(stackName string, stackParameters map[string]string) (map[string]string, error) {
+	outParams := stackParameters
+	for _, ext := range extMgr.extensions {
+		var err error
+		outParams, err = ext.DecorateStackParameters(stackName, outParams)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return outParams, nil
+}
+
+// DecorateStackTags for all extensions
+func (extMgr *extensionsManager) DecorateStackTags(stackName string, stackTags map[string]string) (map[string]string, error) {
+	outTags := stackTags
+	for _, ext := range extMgr.extensions {
+		var err error
+		outTags, err = ext.DecorateStackTags(stackName, outTags)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return outTags, nil
 }
 
 // Extension for template overrides in mu.yml
@@ -149,8 +178,8 @@ func (ext *tagOverrideExtension) DecorateStackTags(stackName string, stackTags m
 // Extension for archives of templates
 type templateArchiveExtension struct {
 	BaseExtensionImpl
-	id   string
 	path string
+	mode bool
 }
 
 // Extension for param overrides in mu.yml
@@ -192,7 +221,6 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 	extID := urlToID(u)
 	ext := &templateArchiveExtension{
 		BaseExtensionImpl{u.String()},
-		extID,
 		filepath.Join(extensionsDirectory, extID),
 	}
 
