@@ -219,6 +219,8 @@ Conditions:
 Resources:
   ServiceAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+    - ServiceLogGroup
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
@@ -510,6 +512,11 @@ Resources:
       - !Ref ServiceAutoScalingGroup
       ServiceRoleArn: !Ref CodeDeployRoleArn
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
+  ServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
   ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Condition: HasElbHttpPathListener

@@ -523,7 +523,7 @@ Resources:
             Condition:
               StringEquals:
                 "rds:cluster-tag/mu:service": !Sub ${ServiceName}
-                "rds:cluster-tag/mu:environment": !Sub ${AcptEnv}
+                "rds:cluster-tag/mu:environment": !Sub ${ProdEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
