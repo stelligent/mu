@@ -14,8 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/briandowns/spinner"
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"golang.org/x/crypto/ssh/terminal"
-	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -24,14 +24,15 @@ import (
 )
 
 type cloudformationStackManager struct {
-	dryrun           bool
-	skipVersionCheck bool
-	cfnAPI           cloudformationiface.CloudFormationAPI
-	ec2API           ec2iface.EC2API
+	dryrun            bool
+	skipVersionCheck  bool
+	cfnAPI            cloudformationiface.CloudFormationAPI
+	ec2API            ec2iface.EC2API
+	extensionsManager common.ExtensionsManager
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(sess *session.Session, dryrun bool, skipVersionCheck bool) (common.StackManager, error) {
+func newStackManager(sess *session.Session, extensionsManager common.ExtensionsManager, dryrun bool, skipVersionCheck bool) (common.StackManager, error) {
 	log.Debug("Connecting to CloudFormation service")
 	cfnAPI := cloudformation.New(sess)
 
@@ -39,10 +40,11 @@ func newStackManager(sess *session.Session, dryrun bool, skipVersionCheck bool) 
 	ec2API := ec2.New(sess)
 
 	return &cloudformationStackManager{
-		dryrun:           dryrun,
-		skipVersionCheck: skipVersionCheck,
-		cfnAPI:           cfnAPI,
-		ec2API:           ec2API,
+		dryrun:            dryrun,
+		skipVersionCheck:  skipVersionCheck,
+		cfnAPI:            cfnAPI,
+		ec2API:            ec2API,
+		extensionsManager: extensionsManager,
 	}, nil
 
 }
@@ -82,7 +84,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error {
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	// delete stack if in rollback status
@@ -118,14 +120,30 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 
 	// load the template
+	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
+	if err != nil {
+		return err
+	}
+	templateBodyReader, err = cfnMgr.extensionsManager.DecorateStackTemplate(templateName, stackName, templateBodyReader)
+	if err != nil {
+		return err
+	}
 	templateBodyBytes := new(bytes.Buffer)
 	templateBodyBytes.ReadFrom(templateBodyReader)
 	templateBody := aws.String(templateBodyBytes.String())
 
 	// stack parameters
+	parameters, err = cfnMgr.extensionsManager.DecorateStackParameters(stackName, parameters)
+	if err != nil {
+		return err
+	}
 	stackParameters := buildStackParameters(parameters)
 
 	// stack tags
+	tags, err = cfnMgr.extensionsManager.DecorateStackTags(stackName, tags)
+	if err != nil {
+		return err
+	}
 	stackTags := buildStackTags(tags)
 
 	// directory to write cfn to

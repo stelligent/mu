@@ -163,30 +163,57 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 		return err
 	}
 
-	// register the stack overrides from within the mu.yml
-	for stackName, template := range ctx.Config.Templates {
-		registerStackOverride(fmt.Sprintf("^%s$", stackName), template)
+	return nil
+}
+
+// InitializeExtensions loads extension objects
+func (ctx *Context) InitializeExtensions() error {
+	extMgr := ctx.ExtensionsManager
+	// load extensions from mu.yml
+	for _, extension := range ctx.Config.Extensions {
+		if extension.URL != "" {
+			u, err := parseAbsURL(extension.URL, ctx.Config.Basedir)
+			if err != nil {
+				log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+			} else {
+				ext, err := newTemplateArchiveExtension(u, ctx.ArtifactManager)
+				if err != nil {
+					log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+				}
+				err = extMgr.AddExtension(ext)
+				if err != nil {
+					log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+				}
+			}
+		} else if extension.Image != "" {
+			log.Warningf("Docker based extensions is not yet supported!")
+		}
 	}
 
-	// load stack overrides from extensions
-	for _, extension := range ctx.Config.Extensions {
-		u, err := url.Parse(extension.URL)
+	// register the stack overrides from within the mu.yml
+	for stackName, template := range ctx.Config.Templates {
+		ext := newTemplateOverrideExtension(stackName, template)
+		err := extMgr.AddExtension(ext)
 		if err != nil {
-			return err
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
 		}
+	}
 
-		log.Debugf("Loading extension from '%s'", u)
-		if !u.IsAbs() {
-			basedirURL, err := url.Parse(fmt.Sprintf("file://%s/", ctx.Config.Basedir))
-			if err != nil {
-				return err
-			}
-			u = basedirURL.ResolveReference(u)
-			log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
-		}
-		err = loadExtension(ctx, u)
+	// register the stack parameters from within the mu.yml
+	for stackName, parameters := range ctx.Config.Parameters {
+		ext := newParameterOverrideExtension(stackName, parameters)
+		err := extMgr.AddExtension(ext)
 		if err != nil {
-			log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
+		}
+	}
+
+	// register the stack tags from within the mu.yml
+	for stackName, tags := range ctx.Config.Tags {
+		ext := newTagOverrideExtension(stackName, tags)
+		err := extMgr.AddExtension(ext)
+		if err != nil {
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
 		}
 	}
 
@@ -203,6 +230,12 @@ func (ctx *Context) InitializeContext() error {
 		return err
 	}
 
+	// initialize ExtensionsManager
+	ctx.ExtensionsManager, err = newExtensionsManager()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -210,4 +243,21 @@ func loadYamlConfig(config *Config, yamlReader io.Reader) error {
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(yamlReader)
 	return yaml.Unmarshal(yamlBuffer.Bytes(), config)
+}
+
+func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
+
+	if !u.IsAbs() {
+		basedirURL, err := url.Parse(fmt.Sprintf("file://%s/", basedir))
+		if err != nil {
+			return nil, err
+		}
+		u = basedirURL.ResolveReference(u)
+		log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
+	}
+	return u, nil
 }

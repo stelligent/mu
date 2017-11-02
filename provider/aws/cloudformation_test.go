@@ -8,10 +8,28 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"strings"
+	"io"
 	"testing"
 	"time"
 )
+
+type mockedExtensionsManager struct {
+	mock.Mock
+	common.ExtensionsManager
+}
+
+func (m *mockedExtensionsManager) DecorateStackTemplate(assetName string, stackName string, templateBody io.Reader) (io.Reader, error) {
+	m.Called()
+	return templateBody, nil
+}
+func (m *mockedExtensionsManager) DecorateStackParameters(stackName string, stackParameters map[string]string) (map[string]string, error) {
+	m.Called()
+	return stackParameters, nil
+}
+func (m *mockedExtensionsManager) DecorateStackTags(stackName string, stackTags map[string]string) (map[string]string, error) {
+	m.Called()
+	return stackTags, nil
+}
 
 type mockedCloudFormation struct {
 	mock.Mock
@@ -117,10 +135,16 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 	cfn.On("CreateStack").Return(&cloudformation.CreateStackOutput{}, nil)
 	cfn.On("WaitUntilStackExists").Return(nil)
 
+	extMgr := new(mockedExtensionsManager)
+	extMgr.On("DecorateStackTemplate").Return()
+	extMgr.On("DecorateStackParameters").Return()
+	extMgr.On("DecorateStackTags").Return()
+
 	stackManager := cloudformationStackManager{
-		cfnAPI: cfn,
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil, "")
+	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -143,10 +167,16 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 		}, nil)
 	cfn.On("UpdateStack").Return(&cloudformation.UpdateStackOutput{}, nil)
 
+	extMgr := new(mockedExtensionsManager)
+	extMgr.On("DecorateStackTemplate").Return()
+	extMgr.On("DecorateStackParameters").Return()
+	extMgr.On("DecorateStackTags").Return()
+
 	stackManager := cloudformationStackManager{
-		cfnAPI: cfn,
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", strings.NewReader(""), nil, nil, "")
+	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)

@@ -14,90 +14,230 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
-type extension struct {
-	id   string
-	path string
-	etag string
+// ExtensionImpl provides API for an extension
+type ExtensionImpl interface {
+	ID() string
+	DecorateStackTemplate(assetName string, stackName string, templateBody io.Reader) (io.Reader, error)
+	DecorateStackParameters(stackName string, stackParameters map[string]string) (map[string]string, error)
+	DecorateStackTags(stackName string, stackTags map[string]string) (map[string]string, error)
 }
 
-var extensions = make([]*extension, 0)
-
-func urlToID(url *url.URL) string {
-	h := sha1.New()
-	h.Write([]byte(url.String()))
-	return hex.EncodeToString(h.Sum(nil))
+// BaseExtensionImpl basic no-op extension
+type BaseExtensionImpl struct {
+	id string
 }
 
-func loadExtension(ctx *Context, url *url.URL) error {
-	if !url.IsAbs() {
-		// Assume relative path
-		return fmt.Errorf("unable to handle relative path '%s'", url)
+// DecorateStackTemplate don't decorate, just return
+func (ext *BaseExtensionImpl) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
+	return inTemplate, nil
+}
+
+// DecorateStackParameters don't decorate, just return
+func (ext *BaseExtensionImpl) DecorateStackParameters(stackName string, stackParameters map[string]string) (map[string]string, error) {
+	return stackParameters, nil
+}
+
+// DecorateStackTags don't decorate, just return
+func (ext *BaseExtensionImpl) DecorateStackTags(stackName string, stackTags map[string]string) (map[string]string, error) {
+	return stackTags, nil
+}
+
+// ID returns unique id for extension
+func (ext *BaseExtensionImpl) ID() string {
+	return ext.id
+}
+
+// ExtensionsManager provides API for running extensions
+type ExtensionsManager interface {
+	ExtensionImpl
+	AddExtension(extension ExtensionImpl) error
+}
+
+// Implementation of ExtensionsManager
+type extensionsManager struct {
+	BaseExtensionImpl
+	extensions []ExtensionImpl
+}
+
+// Create a new extensionsManager
+func newExtensionsManager() (ExtensionsManager, error) {
+	extMgr := &extensionsManager{
+		BaseExtensionImpl{""},
+		make([]ExtensionImpl, 0),
 	}
-
-	extID := urlToID(url)
-
-	for _, existingExt := range extensions {
-		if existingExt.id == extID {
-			log.Warningf("Extension '%s' already loaded...skipping.", url.String())
-			return nil
+	return extMgr, nil
+}
+func (extMgr *extensionsManager) AddExtension(extension ExtensionImpl) error {
+	// ensure extension isn't already loaded
+	for _, existingExt := range extMgr.extensions {
+		if existingExt.ID() == extension.ID() {
+			return fmt.Errorf("extension '%s' already loaded...skipping", extension.ID())
 		}
 	}
+	extMgr.extensions = append(extMgr.extensions, extension)
+	return nil
+}
+
+// DecorateStackTemplate for all extensions
+func (extMgr *extensionsManager) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
+	outTemplate := inTemplate
+	for _, ext := range extMgr.extensions {
+		var err error
+		outTemplate, err = ext.DecorateStackTemplate(assetName, stackName, inTemplate)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return outTemplate, nil
+}
+
+// Extension for template overrides in mu.yml
+type templateOverrideExtension struct {
+	BaseExtensionImpl
+	stackNameMatcher *regexp.Regexp
+	decoration       interface{}
+}
+
+func newTemplateOverrideExtension(stackNamePattern string, template interface{}) ExtensionImpl {
+	id := fmt.Sprintf("templateOverride:%s", stackNamePattern)
+	ext := &templateOverrideExtension{
+		BaseExtensionImpl{id},
+		regexp.MustCompile(fmt.Sprintf("^%s$", stackNamePattern)),
+		template,
+	}
+	return ext
+}
+
+// DecorateStackTemplate from overrides in mu.yml
+func (ext *templateOverrideExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
+	if ext.stackNameMatcher.MatchString(stackName) {
+		return decorateTemplate(inTemplate, ext.decoration)
+	}
+	return inTemplate, nil
+}
+
+// Extension for tag overrides in mu.yml
+type tagOverrideExtension struct {
+	BaseExtensionImpl
+	stackNameMatcher *regexp.Regexp
+	tags             map[string]string
+}
+
+func newTagOverrideExtension(stackNamePattern string, tags map[string]string) ExtensionImpl {
+	id := fmt.Sprintf("tagOverride:%s", stackNamePattern)
+	ext := &tagOverrideExtension{
+		BaseExtensionImpl{id},
+		regexp.MustCompile(fmt.Sprintf("^%s$", stackNamePattern)),
+		tags,
+	}
+	return ext
+}
+
+// DecorateStackTags from overrides in mu.yml
+func (ext *tagOverrideExtension) DecorateStackTags(stackName string, stackTags map[string]string) (map[string]string, error) {
+	if ext.stackNameMatcher.MatchString(stackName) {
+		for k, v := range ext.tags {
+			stackTags[k] = v
+		}
+	}
+	return stackTags, nil
+}
+
+// Extension for archives of templates
+type templateArchiveExtension struct {
+	BaseExtensionImpl
+	id   string
+	path string
+}
+
+// Extension for param overrides in mu.yml
+type paramOverrideExtension struct {
+	BaseExtensionImpl
+	stackNameMatcher *regexp.Regexp
+	params           map[string]string
+}
+
+func newParameterOverrideExtension(stackNamePattern string, params map[string]string) ExtensionImpl {
+	id := fmt.Sprintf("paramOverride:%s", stackNamePattern)
+	ext := &paramOverrideExtension{
+		BaseExtensionImpl{id},
+		regexp.MustCompile(fmt.Sprintf("^%s$", stackNamePattern)),
+		params,
+	}
+	return ext
+}
+
+// DecorateStackParameters from overrides in mu.yml
+func (ext *paramOverrideExtension) DecorateStackParameters(stackName string, stackParams map[string]string) (map[string]string, error) {
+	if ext.stackNameMatcher.MatchString(stackName) {
+		for k, v := range ext.params {
+			stackParams[k] = v
+		}
+	}
+	return stackParams, nil
+}
+
+func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
+	log.Debugf("Loading extension from '%s'", u)
 
 	userdir, err := homedir.Dir()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	extensionsDirectory := filepath.Join(userdir, ".mu", "extensions")
 
-	extensionDirectory := filepath.Join(userdir, ".mu", "extensions", extID)
-
-	var ext = &extension{
+	extID := urlToID(u)
+	ext := &templateArchiveExtension{
+		BaseExtensionImpl{u.String()},
 		extID,
-		extensionDirectory,
-		"",
+		filepath.Join(extensionsDirectory, extID),
 	}
 
-	// check for existing etag
-	etagBytes, err := ioutil.ReadFile(filepath.Join(extensionDirectory, ".etag"))
-	if err == nil {
-		ext.etag = string(etagBytes)
-	}
-
-	if fi, err := os.Stat(url.Path); url.Scheme == "file" && err == nil && fi.IsDir() {
-		ext.path = url.Path
-		log.Debugf("Loaded extension from '%s'", url.Path)
+	if fi, err := os.Stat(u.Path); u.Scheme == "file" && err == nil && fi.IsDir() {
+		ext.path = u.Path
+		log.Debugf("Loaded extension from '%s'", u.Path)
 	} else {
-		body, etag, err := ctx.ArtifactManager.GetArtifact(url.String(), ext.etag)
+		// check for existing etag
+		etag := ""
+		etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
+		if err == nil {
+			etag = string(etagBytes)
+		}
+
+		body, etag, err := artifactManager.GetArtifact(u.String(), etag)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if body != nil {
 			defer body.Close()
 
 			// empty dir
-			os.RemoveAll(extensionDirectory)
-			os.MkdirAll(extensionDirectory, 0700)
+			os.RemoveAll(ext.path)
+			os.MkdirAll(ext.path, 0700)
 
 			// write out archive to dir
 			err = extractArchive(ext.path, body)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			// write new etag
-			err = ioutil.WriteFile(filepath.Join(extensionDirectory, ".etag"), []byte(etag), 0644)
+			err = ioutil.WriteFile(filepath.Join(ext.path, ".etag"), []byte(etag), 0644)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			log.Debugf("Loaded extension from '%s' [id=%s]", url, extID)
+			log.Debugf("Loaded extension from '%s' [id=%s]", u, ext.id)
 		} else {
-			log.Debugf("Loaded extension from cache [id=%s]", extID)
+			log.Debugf("Loaded extension from cache [id=%s]", ext.id)
 		}
 
 	}
 
+	// try loading the extension manifest
 	extManifest := make(map[interface{}]interface{})
 	extManifestFile, err := ioutil.ReadFile(filepath.Join(ext.path, "mu-extension.yml"))
 	if err == nil {
@@ -109,6 +249,7 @@ func loadExtension(ctx *Context, url *url.URL) error {
 		log.Debugf("error reading mu-extension.yml: %s", err)
 	}
 
+	// log info about the new extension
 	if name, ok := extManifest["name"]; ok {
 		if version, ok := extManifest["version"]; ok {
 			log.Infof("Loaded extension %s (version=%v)", name, version)
@@ -116,11 +257,36 @@ func loadExtension(ctx *Context, url *url.URL) error {
 			log.Infof("Loaded extension %s", name)
 		}
 	} else {
-		log.Infof("Loaded extension %s", url)
+		log.Infof("Loaded extension %s", u)
 	}
 
-	extensions = append(extensions, ext)
-	return nil
+	return ext, nil
+}
+
+// DecorateStackTemplate from template files in archive
+func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
+	// TODO: handle replacement of inTemplate
+	outTemplate := inTemplate
+	assetPath := filepath.Join(ext.path, assetName)
+	yamlFile, err := ioutil.ReadFile(assetPath)
+	if err != nil {
+		log.Debugf("Unable to find asset '%s' in extension '%s': %s", assetName, ext.id, err)
+	} else {
+		decoration := make(map[interface{}]interface{})
+		err = yaml.Unmarshal(yamlFile, decoration)
+		if err != nil {
+			log.Warningf("Unable to parse asset '%s' in extension '%s': %s", assetName, ext.id, err)
+		} else {
+			return decorateTemplate(inTemplate, decoration)
+		}
+	}
+	return outTemplate, nil
+}
+
+func urlToID(u *url.URL) string {
+	h := sha1.New()
+	h.Write([]byte(u.String()))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func extractArchive(destPath string, archive io.ReadCloser) error {
@@ -140,26 +306,4 @@ func extractArchive(destPath string, archive io.ReadCloser) error {
 	default:
 		return fmt.Errorf("unable to handle archive of content-type '%s'", contentType)
 	}
-
-}
-
-// GetCfnUpdatesFromExtensions finds all CFN updates across all extensions
-func GetCfnUpdatesFromExtensions(assetName string) []interface{} {
-	cfnUpdates := make([]interface{}, 0)
-	for _, ext := range extensions {
-		assetPath := filepath.Join(ext.path, assetName)
-		yamlFile, err := ioutil.ReadFile(assetPath)
-		if err != nil {
-			log.Debugf("Unable to find asset '%s' in extension '%s': %s", assetName, ext.id, err)
-		} else {
-			cfnUpdate := make(map[interface{}]interface{})
-			err = yaml.Unmarshal(yamlFile, cfnUpdate)
-			if err != nil {
-				log.Warningf("Unable to parse asset '%s' in extension '%s': %s", assetName, ext.id, err)
-			} else {
-				cfnUpdates = append(cfnUpdates, cfnUpdate)
-			}
-		}
-	}
-	return cfnUpdates
 }
