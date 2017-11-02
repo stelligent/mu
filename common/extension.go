@@ -179,7 +179,6 @@ func (ext *tagOverrideExtension) DecorateStackTags(stackName string, stackTags m
 type templateArchiveExtension struct {
 	BaseExtensionImpl
 	path string
-	mode bool
 }
 
 // Extension for param overrides in mu.yml
