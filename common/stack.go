@@ -2,28 +2,12 @@ package common
 
 import (
 	"fmt"
-	"io"
 	"strings"
 )
 
 // CreateStackName will create a name for a stack
 func CreateStackName(namespace string, stackType StackType, names ...string) string {
 	return fmt.Sprintf("%s-%s-%s", namespace, stackType, strings.Join(names, "-"))
-}
-
-// GetStackOverrides will get the overrides from the config
-func GetStackOverrides(stackName string) interface{} {
-	if stackOverrides == nil {
-		return nil
-	}
-
-	return stackOverrides[stackName]
-}
-
-var stackOverrides map[string]interface{}
-
-func registerStackOverrides(overrides map[string]interface{}) {
-	stackOverrides = overrides
 }
 
 // StackWaiter for waiting on stack status to be final
@@ -33,7 +17,7 @@ type StackWaiter interface {
 
 // StackUpserter for applying changes to a stack
 type StackUpserter interface {
-	UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error
+	UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error
 }
 
 // StackLister for listing stacks

@@ -36,3 +36,14 @@ templates:
       ContainerInstances:
         Properties:
           SecurityGroups: [ !Ref ExtraSG ]
+
+
+## Override stack parameters
+parameters:
+  'mu-environment-acceptance':
+    ImageId: ami-xxx
+
+## Override stack tags
+tags:
+  'mu-environment-acceptance':
+    CostCenter: research
