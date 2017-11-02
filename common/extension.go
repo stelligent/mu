@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"bytes"
 )
 
 // ExtensionImpl provides API for an extension
@@ -210,11 +210,13 @@ type templateArchiveExtension struct {
 	mode TemplateUpdateMode
 }
 
-// List of valid template update modes
+// TemplateUpdateMode of valid template update modes
 type TemplateUpdateMode string
+
+// list of update modes
 const (
-	TemplateUpdateReplace       TemplateUpdateMode = "replace"
-	TemplateUpdateMerge         = "merge"
+	TemplateUpdateReplace TemplateUpdateMode = "replace"
+	TemplateUpdateMerge                      = "merge"
 )
 
 func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
