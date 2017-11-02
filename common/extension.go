@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"bytes"
 )
 
 // ExtensionImpl provides API for an extension
@@ -175,12 +176,6 @@ func (ext *tagOverrideExtension) DecorateStackTags(stackName string, stackTags m
 	return stackTags, nil
 }
 
-// Extension for archives of templates
-type templateArchiveExtension struct {
-	BaseExtensionImpl
-	path string
-}
-
 // Extension for param overrides in mu.yml
 type paramOverrideExtension struct {
 	BaseExtensionImpl
@@ -208,6 +203,20 @@ func (ext *paramOverrideExtension) DecorateStackParameters(stackName string, sta
 	return stackParams, nil
 }
 
+// Extension for archives of templates
+type templateArchiveExtension struct {
+	BaseExtensionImpl
+	path string
+	mode TemplateUpdateMode
+}
+
+// List of valid template update modes
+type TemplateUpdateMode string
+const (
+	TemplateUpdateReplace       TemplateUpdateMode = "replace"
+	TemplateUpdateMerge         = "merge"
+)
+
 func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
 	log.Debugf("Loading extension from '%s'", u)
 
@@ -221,6 +230,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 	ext := &templateArchiveExtension{
 		BaseExtensionImpl{u.String()},
 		filepath.Join(extensionsDirectory, extID),
+		TemplateUpdateMerge,
 	}
 
 	if fi, err := os.Stat(u.Path); u.Scheme == "file" && err == nil && fi.IsDir() {
@@ -271,6 +281,10 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 		err = yaml.Unmarshal(extManifestFile, extManifest)
 		if err != nil {
 			log.Debugf("error unmarshalling mu-extension.yml: %s", err)
+		} else {
+			if v, ok := extManifest["templateUpdateMode"]; ok {
+				ext.mode = TemplateUpdateMode(v.(string))
+			}
 		}
 	} else {
 		log.Debugf("error reading mu-extension.yml: %s", err)
@@ -292,8 +306,11 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 
 // DecorateStackTemplate from template files in archive
 func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
-	// TODO: handle replacement of inTemplate
 	outTemplate := inTemplate
+	if ext.mode == TemplateUpdateReplace {
+		log.Debugf("Replacing input template")
+		inTemplate = bytes.NewBufferString("")
+	}
 	assetPath := filepath.Join(ext.path, assetName)
 	yamlFile, err := ioutil.ReadFile(assetPath)
 	if err != nil {
