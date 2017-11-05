@@ -35,6 +35,9 @@ jobs:
       - run:
           name: Compile
           command: cd $APP_PATH && make build
+      - run:
+          name: e2e
+          command: cd $APP_PATH && make e2e
 
       - run:
           name: Test
