@@ -35,7 +35,7 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	}
 
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess, dryrun, skipVersionCheck)
+	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrun, skipVersionCheck)
 	if err != nil {
 		return err
 	}

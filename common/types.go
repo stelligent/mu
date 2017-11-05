@@ -22,6 +22,7 @@ type Context struct {
 	TaskManager          TaskManager
 	ArtifactManager      ArtifactManager
 	RolesetManager       RolesetManager
+	ExtensionsManager    ExtensionsManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -38,18 +39,26 @@ type Config struct {
 		Branch   string
 		Provider string
 	} `yaml:"-"`
-	Templates  map[string]interface{} `yaml:"templates,omitempty"`
-	DisableIAM bool                   `yaml:"disableIAM,omitempty"`
+	Templates  map[string]interface{}       `yaml:"templates,omitempty"`
+	Parameters map[string]map[string]string `yaml:"parameters,omitempty"`
+	Tags       map[string]map[string]string `yaml:"tags,omitempty"`
+	Extensions []Extension                  `yaml:"extensions,omitempty"`
+	DisableIAM bool                         `yaml:"disableIAM,omitempty"`
 	Roles      struct {
 		CloudFormation string `yaml:"cloudFormation,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
+// Extension defines the structure of the yml file for an extension
+type Extension struct {
+	URL   string `yaml:"url,omitempty"`
+	Image string `yaml:"image,omitempty"`
+}
+
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string                 `yaml:"name,omitempty"`
-	Provider     EnvProvider            `yaml:"provider,omitempty"`
-	Tags         map[string]interface{} `yaml:"tags,omitempty"`
+	Name         string      `yaml:"name,omitempty"`
+	Provider     EnvProvider `yaml:"provider,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`
@@ -59,8 +68,10 @@ type Environment struct {
 	Cluster struct {
 		InstanceType      string `yaml:"instanceType,omitempty"`
 		ImageID           string `yaml:"imageId,omitempty"`
+		ImageOsType       string `yaml:"osType,omitempty"`
 		InstanceTenancy   string `yaml:"instanceTenancy,omitempty"`
 		DesiredCapacity   int    `yaml:"desiredCapacity,omitempty"`
+		MinSize           int    `yaml:"minSize,omitempty"`
 		MaxSize           int    `yaml:"maxSize,omitempty"`
 		KeyName           string `yaml:"keyName,omitempty"`
 		SSHAllow          string `yaml:"sshAllow,omitempty"`
@@ -87,24 +98,23 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            	string                 `yaml:"name,omitempty"`
-	DesiredCount    	int                    `yaml:"desiredCount,omitempty"`
-	Dockerfile      	string                 `yaml:"dockerfile,omitempty"`
-	ImageRepository 	string                 `yaml:"imageRepository,omitempty"`
-	Port            	int                    `yaml:"port,omitempty"`
-	Protocol        	string                 `yaml:"protocol,omitempty"`
-	HealthEndpoint  	string                 `yaml:"healthEndpoint,omitempty"`
-	CPU             	int                    `yaml:"cpu,omitempty"`
-	Memory          	int                    `yaml:"memory,omitempty"`
-	Environment     	map[string]interface{} `yaml:"environment,omitempty"`
-	Tags           	 	map[string]interface{} `yaml:"tags,omitempty"`
-	PathPatterns    	[]string               `yaml:"pathPatterns,omitempty"`
-	HostPatterns    	[]string               `yaml:"hostPatterns,omitempty"`
-	Priority        	int                    `yaml:"priority,omitempty"`
-	Pipeline        	Pipeline               `yaml:"pipeline,omitempty"`
-	Database        	Database               `yaml:"database,omitempty"`
-	TargetCPU	 		string		   		   `yaml:"targetCPU,omitempty"`
-	TargetRequestRate  	string		   		   `yaml:"targetRequestRate,omitempty"`
+	Name            string                 `yaml:"name,omitempty"`
+	DesiredCount    int                    `yaml:"desiredCount,omitempty"`
+	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
+	ImageRepository string                 `yaml:"imageRepository,omitempty"`
+	Port            int                    `yaml:"port,omitempty"`
+	Protocol        string                 `yaml:"protocol,omitempty"`
+	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
+	CPU             int                    `yaml:"cpu,omitempty"`
+	Memory          int                    `yaml:"memory,omitempty"`
+	Environment     map[string]interface{} `yaml:"environment,omitempty"`
+	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
+	Priority        int                    `yaml:"priority,omitempty"`
+	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
+	Database        Database               `yaml:"database,omitempty"`
+	TargetCPU	 		string		   	   `yaml:"targetCPU,omitempty"`
+	TargetRequestRate  	string		   	   `yaml:"targetRequestRate,omitempty"`
 	Roles           struct {
 		Ec2Instance string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy  string `yaml:"codeDeploy,omitempty"`
@@ -115,18 +125,16 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string                 `yaml:"name,omitempty"`
-	Tags              map[string]interface{} `yaml:"tags,omitempty"`
-	InstanceClass     string                 `yaml:"instanceClass,omitempty"`
-	Engine            string                 `yaml:"engine,omitempty"`
-	IamAuthentication bool                   `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string                 `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string                 `yaml:"allocatedStorage,omitempty"`
+	Name              string `yaml:"name,omitempty"`
+	InstanceClass     string `yaml:"instanceClass,omitempty"`
+	Engine            string `yaml:"engine,omitempty"`
+	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
 }
 
 // Pipeline definition
 type Pipeline struct {
-	Tags   map[string]interface{} `yaml:"tags,omitempty"`
 	Source struct {
 		Provider string `yaml:"provider,omitempty"`
 		Repo     string `yaml:"repo,omitempty"`

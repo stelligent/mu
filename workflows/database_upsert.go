@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strings"
 )
 
@@ -71,12 +70,6 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 
-		overrides := common.GetStackOverrides(dbStackName)
-		template, err := templates.NewTemplate("database.yml", service, overrides)
-		if err != nil {
-			return err
-		}
-
 		stackParams["DatabaseName"] = service.Database.Name
 
 		if service.Database.Engine != "" {
@@ -97,23 +90,23 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		if dbPass == "" {
 			dbPass = randomPassword(32)
-			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass)
+			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass)
 			if err != nil {
 				return err
 			}
 		}
 		stackParams["DatabaseMasterPassword"] = dbPass
 
-		var dbTags TagInterface = &DatabaseTags{
+		tags := createTagMap(&DatabaseTags{
 			Environment: environmentName,
 			Type:        common.StackTypeDatabase,
 			Service:     workflow.serviceName,
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(service.Database.Tags, dbTags)
+		})
 
-		err = stackUpserter.UpsertStack(dbStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+
 		if err != nil {
 			return err
 		}

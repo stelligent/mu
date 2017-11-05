@@ -3,7 +3,6 @@ package workflows
 import (
 	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
 )
@@ -252,22 +251,16 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
-		overrides := common.GetStackOverrides(svcStackName)
-		template, err := templates.NewTemplate("service-ec2.yml", service, overrides)
-		if err != nil {
-			return err
-		}
 
-		var svcTags TagInterface = &ServiceTags{
+		tags := createTagMap(&ServiceTags{
 			Service:     workflow.serviceName,
 			Environment: environmentName,
 			Type:        common.StackTypeService,
 			Provider:    workflow.envStack.Outputs["provider"],
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(service.Tags, svcTags)
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		})
+		err := stackUpserter.UpsertStack(svcStackName, "service-ec2.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -291,26 +284,17 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
-		overrides := common.GetStackOverrides(svcStackName)
-		template, err := templates.NewTemplate("service-ecs.yml", service, overrides)
-		if err != nil {
-			return err
-		}
 
-		var svcTags TagInterface = &ServiceTags{
+		tags := createTagMap(&ServiceTags{
 			Service:     workflow.serviceName,
 			Environment: environmentName,
 			Type:        common.StackTypeService,
 			Provider:    workflow.envStack.Outputs["provider"],
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(service.Tags, svcTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, "service-ecs.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

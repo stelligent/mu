@@ -1,0 +1,32 @@
+---
+
+environments:
+  - name: acceptance
+
+templates:
+  mu-vpc-acceptance:
+    Parameters:
+      # Override the CIDR block for the VPC
+      VpcCidrBlock:
+        Default: 10.200.0.0/16
+
+      # Override the CIDR blocks for the public subnets used by the ELBs
+      ElbSubnetAZ1CidrBlock:
+        Default: 10.200.0.0/24
+      ElbSubnetAZ2CidrBlock:
+        Default: 10.200.1.0/24
+      ElbSubnetAZ3CidrBlock:
+        Default: 10.200.2.0/24
+
+      # Override the CIDR blocks for the private subnets used by the ECS instances
+      InstanceSubnetAZ1CidrBlock:
+        Default: 10.200.100.0/24
+      InstanceSubnetAZ2CidrBlock:
+        Default: 10.200.101.0/24
+      InstanceSubnetAZ3CidrBlock:
+        Default: 10.200.102.0/24
+
+      # Override the CIDR blocks for the public subnet used by the NAT
+      NatSubnetAZ1CidrBlock:
+        Default: 10.200.200.0/24
+

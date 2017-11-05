@@ -4,7 +4,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/op/go-logging"
-	"github.com/pkg/errors"
 	"io"
 	"reflect"
 	"strings"
@@ -168,33 +167,18 @@ func simplifyRepoURL(url string) string {
 	return url[slashIndex+1:]
 }
 
-func reflectToMap(tagI TagInterface) map[string]string {
+func createTagMap(tagI TagInterface) map[string]string {
+	rtn := map[string]string{}
+	interfaceTags := map[string]string{}
 	values := reflect.ValueOf(tagI).Elem()
-	tagMap := map[string]string{}
 
 	for i := 0; i < values.NumField(); i++ {
-		tagMap[values.Type().Field(i).Tag.Get("tag")] = values.Field(i).String()
-	}
-
-	return tagMap
-}
-
-func concatTags(ymlMap map[string]interface{}, tagI TagInterface) (map[string]string, error) {
-	joinedMap := map[string]string{}
-	interfaceTags := reflectToMap(tagI)
-
-	for key, value := range ymlMap {
-		if _, exists := interfaceTags[key]; exists {
-			return nil, errors.New("Unable to override tag " + key)
-		} else if str, ok := value.(string); ok {
-			joinedMap[key] = str
-		}
+		interfaceTags[values.Type().Field(i).Tag.Get("tag")] = values.Field(i).String()
 	}
 
 	for key, value := range interfaceTags {
-		joinedMap["mu:"+key] = value
+		rtn["mu:"+key] = value
 	}
 
-	return joinedMap, nil
+	return rtn
 }
-

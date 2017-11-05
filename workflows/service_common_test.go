@@ -5,7 +5,6 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io"
 	"testing"
 )
 
@@ -107,7 +106,7 @@ func (m *mockedStackManagerForService) AwaitFinalStatus(stackName string) *commo
 	}
 	return stack.(*common.Stack)
 }
-func (m *mockedStackManagerForService) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
+func (m *mockedStackManagerForService) UpsertStack(stackName string, templateName string, templateData interface{}, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
@@ -134,60 +133,4 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
-}
-
-func TestEnvironmentTags(t *testing.T) {
-	assert := assert.New(t)
-	yamlConfig :=
-		`
----
-environments:
-  - name: dev
-    tags: 
-      mytag: first-tag
-      foo: bar
-`
-	config, err := loadYamlConfig(yamlConfig)
-	assert.Nil(err)
-	assert.Equal(config.Environments[0].Name, "dev")
-
-	var envTags TagInterface = &EnvironmentTags{
-		Environment: config.Environments[0].Name,
-		Type:        "StackType",
-		Provider:    string(config.Environments[0].Provider),
-		Revision:    "Revision",
-		Repo:        "Repo",
-	}
-	joinedMap, err := concatTags(config.Environments[0].Tags, envTags)
-	assert.Nil(err)
-	assert.Equal(len(joinedMap), 7)
-	assert.NotNil(joinedMap["mytag"])
-	assert.Equal(joinedMap["foo"], "bar")
-}
-
-func TestNoTagOverride(t *testing.T) {
-	assert := assert.New(t)
-	yamlConfig :=
-		`
----
-environments:
-  - name: dev
-    tags: 
-      environment: this-should-break
-      foo: bar
-`
-
-	config, err := loadYamlConfig(yamlConfig)
-	assert.Nil(err)
-
-	var envTags TagInterface = &EnvironmentTags{
-		Environment: config.Environments[0].Name,
-		Type:        "StackType",
-		Provider:    string(config.Environments[0].Provider),
-		Revision:    "Revision",
-		Repo:        "Repo",
-	}
-	_, maperr := concatTags(config.Environments[0].Tags, envTags)
-
-	assert.NotNil(maperr)
 }

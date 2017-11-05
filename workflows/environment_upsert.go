@@ -3,8 +3,6 @@ package workflows
 import (
 	"fmt"
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
-	"io"
 	"strconv"
 	"strings"
 )
@@ -53,20 +51,14 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
-		var template io.Reader
 		var err error
 
 		var vpcStackName string
+		var vpcTemplateName string
 		if environment.VpcTarget.VpcID == "" {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
-			overrides := common.GetStackOverrides(vpcStackName)
-
-			// no target VPC, we need to create/update the VPC stack
-			template, err = templates.NewTemplate("vpc.yml", environment, overrides)
-			if err != nil {
-				return err
-			}
+			vpcTemplateName = "vpc.yml"
 
 			if environment.Cluster.InstanceTenancy != "" {
 				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
@@ -88,12 +80,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 		} else {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeTarget, environment.Name)
-			overrides := common.GetStackOverrides(vpcStackName)
-
-			template, err = templates.NewTemplate("vpc-target.yml", environment, overrides)
-			if err != nil {
-				return err
-			}
+			vpcTemplateName = "vpc-target.yml"
 
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
@@ -103,19 +90,15 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
-		var envTags TagInterface = &EnvironmentTags{
+		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
 			Type:        string(common.StackTypeVpc),
 			Provider:    string(environment.Provider),
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(environment.Tags, envTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(vpcStackName, template, vpcStackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -184,11 +167,6 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string,
 		consulStackName := common.CreateStackName(namespace, common.StackTypeConsul, environment.Name)
 
 		log.Noticef("Upserting Consul environment '%s' ...", environment.Name)
-		overrides := common.GetStackOverrides(consulStackName)
-		template, err := templates.NewTemplate("consul.yml", environment, overrides)
-		if err != nil {
-			return err
-		}
 
 		stackParams := consulStackParams
 
@@ -209,6 +187,7 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string,
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
+			var err error
 			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
 			if err != nil {
 				return err
@@ -216,19 +195,14 @@ func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string,
 
 		}
 
-		var envTags TagInterface = &EnvironmentTags{
+		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
 			Type:        string(common.StackTypeConsul),
 			Provider:    string(environment.Provider),
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(environment.Tags, envTags)
-		if err != nil {
-			return err
-		}
-
-		err = stackUpserter.UpsertStack(consulStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		})
+		err := stackUpserter.UpsertStack(consulStackName, "consul.yml", environment, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -255,11 +229,6 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 		envStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environment.Name)
 
 		log.Noticef("Upserting ELB environment '%s' ...", environment.Name)
-		overrides := common.GetStackOverrides(envStackName)
-		template, err := templates.NewTemplate("elb.yml", environment, overrides)
-		if err != nil {
-			return err
-		}
 
 		stackParams := elbStackParams
 
@@ -280,19 +249,15 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
-		var envTags TagInterface = &EnvironmentTags{
+		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
 			Type:        string(common.StackTypeLoadBalancer),
 			Provider:    string(environment.Provider),
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(environment.Tags, envTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -330,11 +295,6 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		}
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
-		overrides := common.GetStackOverrides(envStackName)
-		template, err := templates.NewTemplate(templateName, environment, overrides)
-		if err != nil {
-			return err
-		}
 
 		stackParams := ecsStackParams
 
@@ -349,14 +309,21 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
+			var err error
 			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
 			if err != nil {
 				return err
 			}
 
 		}
+		if environment.Cluster.ImageOsType != "" {
+			stackParams["ImageOsType"] = environment.Cluster.ImageOsType
+		}
 		if environment.Cluster.DesiredCapacity != 0 {
 			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
+		}
+		if environment.Cluster.MinSize != 0 {
+			stackParams["MinSize"] = strconv.Itoa(environment.Cluster.MinSize)
 		}
 		if environment.Cluster.MaxSize != 0 {
 			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
@@ -374,19 +341,15 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
 		}
 
-		var envTags TagInterface = &EnvironmentTags{
+		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
 			Type:        string(common.StackTypeEnv),
 			Provider:    string(environment.Provider),
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(environment.Tags, envTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(envStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, templateName, environment, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

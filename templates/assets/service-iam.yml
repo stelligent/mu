@@ -112,12 +112,8 @@ Resources:
             - logs:CreateLogStream
             - logs:PutLogEvents
             - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}:*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}:*
-
+            - logs:DescribeLogGroups
+            Resource: '*'
   EcsServiceRole:
     Type: AWS::IAM::Role
     Condition: IsEcsService

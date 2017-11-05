@@ -12,6 +12,10 @@ Parameters:
     Type: String
     Description: Instance type to use.
     Default: t2.micro
+  MinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched in your ECS cluster
   DesiredCapacity:
     Type: Number
     Default: '1'
@@ -43,6 +47,14 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
@@ -156,7 +168,7 @@ Resources:
         - ","
         - Fn::ImportValue: !Sub ${InstanceSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
-      MinSize: '1'
+      MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
       Tags:
@@ -198,12 +210,40 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       AWS::CloudFormation::Init:
-        config:
+        configSets:
+          amazon:
+            - commonLinux
+            - amazonLinux
+          centos7:
+            - commonLinux
+        amazonLinux:
           packages:
             yum:
               awslogs: []
               jq: []
               aws-cli: []
+          files:
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        commonLinux:
           files:
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -218,7 +258,7 @@ Resources:
                 [cfn-auto-reloader-hook]
                 triggers=post.update
                 path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region}
                 runas=root
             "/etc/awslogs/etc/proxy.conf":
               content: !Sub |
@@ -274,20 +314,6 @@ Resources:
               command: !Sub |
                 #!/bin/bash
                 echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
-          services:
-            sysvinit:
-              awslogs:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/awslogs/awslogs.conf"
-                - "/etc/awslogs/etc/proxy.conf"
-              cfn-hup:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/cfn/cfn-hup.conf"
-                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
@@ -345,7 +371,7 @@ Resources:
 
 
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
