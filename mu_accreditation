@@ -1,5 +1,7 @@
 # Introduction
-
+This a guide on how to approach learning mu.  
+If you follow this, you will be a mu master in no time at all!  
+For any mu-specific technical questions, check out the [mu wiki](https://github.com/stelligent/mu/wiki).
 
 # The Path to Becoming a mu Master
 
@@ -19,9 +21,17 @@ Are you able to:
 
 ## mu
 
-1. Listen to the [mu podcast](https://stelligent.com/2017/07/20/devops-on-aws-radio-mu-devops-on-aws-tool-episode-10/)
+1. Listen to the [mu podcast](https://stelligent.com/2017/07/20/devops-on-aws-radio-mu-devops-on-aws-tool-episode-10/)  
+Can you answer these questions from the podcast:
+- [ ] What is mu and what problem does it solve? What are its benefits?
+- [ ] How does someone use mu (including prereqs)?
+- [ ] What types of programming languages and platforms are supported?
+- [ ] What types of AWS architectures does mu support (i.e. traditional EC2, ECS, Serverless, etc.)?
+- [ ] Which AWS services are provisioned by mu?
+- [ ] Does mu support non-AWS implementations?
+- [ ] What does mu install on my AWS account?
 
-1. Watch the [video example](https://stelligent.com/2017/07/28/screencast-full-stack-devops-on-aws-tool/)
+2. Watch the [mu video example](https://stelligent.com/2017/07/28/screencast-full-stack-devops-on-aws-tool/)
 
 ### [mu Blogs](https://stelligent.com/category/mu/)
 
@@ -32,3 +42,8 @@ Go through the [mu blogs](https://stelligent.com/category/mu/).
 - [ ] [Microservice databases with mu](https://stelligent.com/2017/05/09/microservice-databases-with-mu/)
 - [ ] [Service discovery for microservices with mu](https://stelligent.com/2017/05/18/mu-service-discovery-for-microservices/)
 - [ ] [WordPress, Mu, and You](https://stelligent.com/2017/06/08/wordpress-mu-and-you/)
+
+Get more hands-on practice with mu labs:
+- [ ] [Lab 1](https://github.com/stelligent/mu-workshop-lab1)
+- [ ] [Lab 2](https://github.com/stelligent/mu-workshop-lab2)
+- [ ] [Lab 3](https://github.com/stelligent/mu-workshop-lab3)
