@@ -3,17 +3,28 @@
 
 # The Path to Becoming a mu Master
 
+## AWS CloudFormation (cfn)
+Get a basic idea of what AWS CloudFormation does by watching the [3 minute long introductory video](https://aws.amazon.com/cloudformation/).  
+Go through the official AWS CloudFormation '[Getting Started guide](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.html).
+
+Are you able to:
+- [ ] Create a cfn stack
+- [ ] Monitor a cfn stack's progress
+- [ ] Update a cfn stack
+- [ ] Delete a cfn stack
+
+## mu
+
+1. Listen to the [mu podcast](https://stelligent.com/2017/07/20/devops-on-aws-radio-mu-devops-on-aws-tool-episode-10/)
+
+1. Watch the [video example](https://stelligent.com/2017/07/28/screencast-full-stack-devops-on-aws-tool/)
 
 ### [mu Blogs](https://stelligent.com/category/mu/)
 
-Go through all of the [mu blogs](https://stelligent.com/category/mu/).
+Go through the [mu blogs](https://stelligent.com/category/mu/).
 
 - [ ] [Introducing mu: a tool for managing your microservices in AWS](https://stelligent.com/2017/04/11/mu-introduction-ecs-for-microservices/)
-- [ ] Venus
-- [ ] Earth (Orbit/Moon)
-- [ ] Mars
-- [ ] Jupiter
-- [ ] Saturn
-- [ ] Uranus
-- [ ] Neptune
-- [ ] Comet Haley
+- [ ] [Microservice testing with mu: injecting quality into the pipeline](https://stelligent.com/2017/04/27/mu-testing-continuous-delivery/)
+- [ ] [Microservice databases with mu](https://stelligent.com/2017/05/09/microservice-databases-with-mu/)
+- [ ] [Service discovery for microservices with mu](https://stelligent.com/2017/05/18/mu-service-discovery-for-microservices/)
+- [ ] [WordPress, Mu, and You](https://stelligent.com/2017/06/08/wordpress-mu-and-you/)
