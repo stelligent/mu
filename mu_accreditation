@@ -5,8 +5,8 @@ For any mu-specific technical questions, check out the [mu wiki](https://github.
 
 # The Path to Becoming a mu Master
 
-## [AWS CloudFormation (cfn)](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)
-Get a basic idea of what AWS CloudFormation does by watching the [3 minute long introductory video](https://aws.amazon.com/cloudformation/).  
+## AWS CloudFormation (cfn)
+Get a basic idea of what [AWS CloudFormation]((http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)) does by watching the [3 minute long introductory video](https://aws.amazon.com/cloudformation/).  
 Go through the official AWS CloudFormation '[Getting Started guide](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.html).
 
 Do you understand:
