@@ -3,13 +3,17 @@
 
 # The Path to Becoming a mu Master
 
-## AWS CloudFormation (cfn)
+## [AWS CloudFormation (cfn)](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)
 Get a basic idea of what AWS CloudFormation does by watching the [3 minute long introductory video](https://aws.amazon.com/cloudformation/).  
 Go through the official AWS CloudFormation '[Getting Started guide](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.html).
 
+Do you understand:
+- [ ] What a cfn template does
+- [ ] How to declare resources and their properties within a cfn template
+
 Are you able to:
 - [ ] Create a cfn stack
-- [ ] Monitor a cfn stack's progress
+- [ ] Monitor a cfn stack's progress by viewing the 'Events'
 - [ ] Update a cfn stack
 - [ ] Delete a cfn stack
 
