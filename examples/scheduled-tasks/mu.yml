@@ -4,9 +4,11 @@ environments:
   - name: acceptance
     cluster:
       maxSize: 1
+      keyName: timbaileyjones-labs-keypair
   - name: production
     cluster:
       maxSize: 1
+      keyName: timbaileyjones-labs-keypair
 
 service:
   name: issue-158
