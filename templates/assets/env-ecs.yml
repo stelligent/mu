@@ -195,17 +195,17 @@ Resources:
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref ScaleOutThreshold
-  MemoryAutoScalePolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref EcsAutoScalingGroup
-      Cooldown: 300
-      PolicyType: TargetTrackingScaling
-      TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: MemoryReservation
-        TargetValue: !Ref ScaleOutThreshold
+  # MemoryAutoScalePolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AdjustmentType: ChangeInCapacity
+  #     AutoScalingGroupName: !Ref EcsAutoScalingGroup
+  #     Cooldown: 300
+  #     PolicyType: TargetTrackingScaling
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: MemoryReservation
+  #       TargetValue: !Ref ScaleOutThreshold
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
