@@ -184,7 +184,7 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  CPUAutoScalePolicy:
+  CPUReservationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -192,20 +192,30 @@ Resources:
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref AWS::StackName
+          MetricName: CPUReservation
+          NameSpace: AWS/ECS
+          Statistic: Average
         TargetValue: !Ref ScaleOutThreshold
-  # MemoryAutoScalePolicy:
-  #   Type: AWS::AutoScaling::ScalingPolicy
-  #   Properties:
-  #     AdjustmentType: ChangeInCapacity
-  #     AutoScalingGroupName: !Ref EcsAutoScalingGroup
-  #     Cooldown: 300
-  #     PolicyType: TargetTrackingScaling
-  #     TargetTrackingConfiguration:
-  #       PredefinedMetricSpecification:
-  #         PredefinedMetricType: MemoryReservation
-  #       TargetValue: !Ref ScaleOutThreshold
+  MemoryReservationPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref AWS::StackName
+          MetricName: MemoryReservation
+          NameSpace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref ScaleOutThreshold
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:

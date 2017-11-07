@@ -293,7 +293,7 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
-  CPUTargetScalingPolicy:
+  CPUUtilizationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -301,10 +301,15 @@ Resources:
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ServiceName
+              Value: !Ref ServiceName
+          MetricName: CPUUtilization
+          NameSpace: AWS/EC2
+          Statistic: Average
         TargetValue: !Ref TargetCPU
-  RequestTargetScalingPolicy:
+  MemoryUtilizationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -312,8 +317,13 @@ Resources:
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ALBRequestCountPerTarget
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ServiceName
+              Value: !Ref ServiceName
+          MetricName: MemoryUtilization
+          NameSpace: AWS/EC2
+          Statistic: Average
         TargetValue: !Ref TargetRequestRate
 Outputs:
   MicroserviceTaskDefinition:

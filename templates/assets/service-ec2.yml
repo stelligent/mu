@@ -255,7 +255,7 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  AutoScalePolicy:
+  CPUUtilizationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -263,20 +263,30 @@ Resources:
       Cooldown: 300
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: !Ref ScaleOutThreshold
-  CPUTargetScalingPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
-      Cooldown: 300
-      PolicyType: TargetTrackingScaling
-      TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ServiceName
+              Value: !Ref ServiceName
+          MetricName: CPUUtilization
+          NameSpace: AWS/EC2
+          Statistic: Average
         TargetValue: !Ref TargetCPU
+  MemoryUtilizationPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ServiceName
+              Value: !Ref ServiceName
+          MetricName: MemoryUtilization
+          NameSpace: AWS/EC2
+          Statistic: Average
+        TargetValue: !Ref ScaleOutThreshold
   RequestTargetScalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
