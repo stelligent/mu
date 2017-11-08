@@ -1,0 +1,63 @@
+# Introduction
+This is a guide on how to approach learning [mu](https://getmu.io/).  
+If you follow this, you will be a mu master in no time at all!  
+For any mu-specific technical questions, check out the [mu wiki](https://github.com/stelligent/mu/wiki).
+
+# The Path to Becoming a mu Master
+
+## AWS CloudFormation (cfn)
+Get a basic idea of what [AWS CloudFormation](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html) does by watching the [3 minute long introductory video](https://aws.amazon.com/cloudformation/).  
+Go through the official AWS CloudFormation [Getting Started guide](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/GettingStarted.html).
+
+Do you understand:
+- [ ] What a cfn template does?
+- [ ] How to declare resources and their properties within a cfn template?
+
+Are you able to:
+- [ ] Create a cfn stack
+- [ ] Monitor a cfn stack's progress by viewing the 'Events'
+- [ ] Update a cfn stack
+- [ ] Delete a cfn stack
+
+## mu
+
+1. Listen to the [mu podcast](https://stelligent.com/2017/07/20/devops-on-aws-radio-mu-devops-on-aws-tool-episode-10/)
+
+Can you answer these questions from the podcast:
+- [ ] What is mu and what problem does it solve? What are its benefits?
+- [ ] How does someone use mu (including prereqs)?
+- [ ] What types of programming languages and platforms are supported?
+- [ ] What types of AWS architectures does mu support (i.e. traditional EC2, ECS, Serverless, etc.)?
+- [ ] Which AWS services are provisioned by mu?
+- [ ] Does mu support non-AWS implementations?
+- [ ] What does mu install on my AWS account?
+
+2. Watch the [mu video example](https://stelligent.com/2017/07/28/screencast-full-stack-devops-on-aws-tool/)
+
+Can you answer these questions from the video:
+- [ ] What command line command allows you to view and follow along with the logs of the pipeline?
+- [ ] What command allows you to view a list of your mu environments?
+- [ ] What are the different stages in Casey's CodePipeline pipeline? (Hint: the first one is 'Source')
+- [ ] What are some of the cfn stacks that were created by mu? (Hint: one is 'mu-cluster-dev')
+- [ ] What AWS service uses buildspec.yml files?
+- [ ] What kind of database did Casey add to the mu.yml template?
+- [ ] Casey mentions an AWS service that manages secrets. What is it?
+
+### Hands-on Practice with mu Blogs
+
+Go through the [mu blogs](https://stelligent.com/category/mu/).
+
+- [ ] [Introducing mu: a tool for managing your microservices in AWS](https://stelligent.com/2017/04/11/mu-introduction-ecs-for-microservices/)
+- [ ] [Microservice testing with mu: injecting quality into the pipeline](https://stelligent.com/2017/04/27/mu-testing-continuous-delivery/)
+- [ ] [Microservice databases with mu](https://stelligent.com/2017/05/09/microservice-databases-with-mu/)
+- [ ] [Service discovery for microservices with mu](https://stelligent.com/2017/05/18/mu-service-discovery-for-microservices/)
+- [ ] [WordPress, Mu, and You](https://stelligent.com/2017/06/08/wordpress-mu-and-you/)
+
+### More Hands-on Practice with mu Labs:
+- [ ] [Lab 1](https://github.com/stelligent/mu-workshop-lab1)
+- [ ] [Lab 2](https://github.com/stelligent/mu-workshop-lab2)
+- [ ] [Lab 3](https://github.com/stelligent/mu-workshop-lab3)
+
+# Finished?
+If so, you're ready to go out into the world and be a mu master!  
+If you want to see more examples and possibilities of how to use mu, check out the [mu runbooks](https://github.com/stelligent/playbooks-runbooks/wiki#runbooks).
