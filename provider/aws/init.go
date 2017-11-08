@@ -9,7 +9,7 @@ import (
 )
 
 // InitializeContext loads manager objects
-func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrun bool, skipVersionCheck bool) error {
+func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrunPath string, skipVersionCheck bool) error {
 
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 	if region != common.Empty {
@@ -35,7 +35,7 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	}
 
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrun, skipVersionCheck)
+	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck)
 	if err != nil {
 		return err
 	}
