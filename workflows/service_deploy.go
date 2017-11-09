@@ -325,17 +325,10 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 			params["ScheduleExpression"] = schedule.Expression
 			params["ScheduleCommand"] = schedule.Command
 
-			// log.Infof("Creating schedule %s for service '%s' to '%s'", schedule.Name, workflow.serviceName, environmentName)
-			// log.Infof("         command: %s", params["ScheduleCommand"])
-			// log.Infof("      expression: %s", params["ScheduleExpression"])
-
-			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName, environmentName)
-			/* scheduleStack := */ stackWaiter.AwaitFinalStatus(scheduleStackName)
 			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
+			stackWaiter.AwaitFinalStatus(scheduleStackName)
 
 			resolveServiceEnvironment(service, environmentName)
-			// log.Infof("          params: %V+", params)
-			// log.Infof("   scheduleStack: %V+", scheduleStack)
 
 			tags := createTagMap(&ScheduleTags{
 				ScheduleName:       schedule.Name,
