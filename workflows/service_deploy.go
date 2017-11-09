@@ -118,6 +118,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 
 		params["EcsServiceRoleArn"] = serviceRoleset["EcsServiceRoleArn"]
 		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
+		params["ApplicationAutoScalingRoleArn"] = serviceRoleset["ApplicationAutoScalingRoleArn"]
 		params["ServiceName"] = workflow.serviceName
 
 		return nil
@@ -136,10 +137,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			"SshAllow",
 			"InstanceType",
 			"ImageId",
-			"MaxSize",
 			"KeyName",
-			"ScaleInThreshold",
-			"ScaleOutThreshold",
 			"HttpProxy",
 			"ConsulServerAutoScalingGroup",
 			"ElbSecurityGroup",
@@ -182,6 +180,10 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			if nextAvailablePriority == 0 {
 				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
 			}
+		}
+
+		if service.TargetCPUUtilization != 0 {
+			params["TargetCPUUtilization"] = strconv.Itoa(service.TargetCPUUtilization)
 		}
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
@@ -227,6 +229,12 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		}
 		if service.DesiredCount != 0 {
 			params["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
+		}
+		if service.MinSize != 0 {
+			params["ServiceMinSize"] = strconv.Itoa(service.MinSize)
+		}
+		if service.MaxSize != 0 {
+			params["ServiceMaxSize"] = strconv.Itoa(service.MaxSize)
 		}
 		if len(service.PathPatterns) > 0 {
 			params["PathPattern"] = strings.Join(service.PathPatterns, ",")

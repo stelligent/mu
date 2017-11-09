@@ -114,6 +114,34 @@ Resources:
             - logs:DescribeLogStreams
             - logs:DescribeLogGroups
             Resource: '*'
+
+  ApplicationAutoScalingRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-autoscaling-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - application-autoscaling.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+       - PolicyName: autoscale-ecs-service
+         PolicyDocument:
+           Statement:
+           - Effect: Allow
+             Action:
+             - ecs:UpdateService
+             - ecs:DescribeServices
+             - cloudwatch:DescribeAlarms
+             - cloudwatch:GetMetricStatistics
+             - cloudwatch:PutMetricAlarm
+             Resource: "*"
+
   EcsServiceRole:
     Type: AWS::IAM::Role
     Condition: IsEcsService
@@ -185,4 +213,11 @@ Outputs:
       Fn::If:
       - IsEcsService
       - !GetAtt EcsTaskRole.Arn
+      - ''
+  ApplicationAutoScalingRoleArn:
+    Description: Role assummed by application autoscaling
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt ApplicationAutoScalingRole.Arn
       - ''

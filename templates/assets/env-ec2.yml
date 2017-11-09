@@ -16,6 +16,10 @@ Parameters:
     Type: Number
     Default: '1'
     Description: Number of instances to launch in your ECS cluster
+  MinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched in your ECS cluster
   MaxSize:
     Type: Number
     Default: '2'
@@ -31,14 +35,14 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  ScaleOutThreshold:
-    Description: Threshold at which a scale out event will be initiated
+  TargetCPUReservation:
+    Description: Target CPU reservation % for autoscaling
     Type: Number
     Default: '75'
-  ScaleInThreshold:
-    Description: Threshold at which a scale in event will be initiated
+  TargetMemoryReservation:
+    Description: Target Memory reservation % for autoscaling
     Type: Number
-    Default: '30'
+    Default: '75'
   ImageId:
     Description: ECS AMI to launch
     Type: String
@@ -122,16 +126,8 @@ Outputs:
     Value: !Ref KeyName
   InstanceType:
     Value: !Ref InstanceType
-  DesiredCapacity:
-    Value: !Ref DesiredCapacity
-  MaxSize:
-    Value: !Ref MaxSize
   SshAllow:
     Value: !Ref SshAllow
-  ScaleOutThreshold:
-    Value: !Ref ScaleOutThreshold
-  ScaleInThreshold:
-    Value: !Ref ScaleInThreshold
   ImageId:
     Value: !Ref ImageId
   HttpProxy:

@@ -8,6 +8,9 @@ Parameters:
   EcsTaskRoleArn:
     Type: String
     Description: ARN of IAM role for ECS task to assume
+  ApplicationAutoScalingRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS autoscaling
   ServiceName:
     Type: String
     Description: Name of service
@@ -41,6 +44,14 @@ Parameters:
     Type: Number
     Default: '2'
     Description: Number of containers to launch in your ECS service.
+  ServiceMinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched
+  ServiceMaxSize:
+    Type: Number
+    Default: '2'
+    Description: Maximum number of instances that can be launched
   PathPattern:
     Type: CommaDelimitedList
     Description: List of paths to route to the service.
@@ -91,6 +102,10 @@ Parameters:
     Type: String
     Description: Endpoint port of database
     Default: ""
+  TargetCPUUtilization:
+    Type: String
+    Description: Target CPU Utilization for Tracking Policy on ASG
+    Default: '75'
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -285,6 +300,34 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
+  CPUUtilizationPolicyTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref ServiceMaxSize
+      MinCapacity: !Ref ServiceMinSize
+      ResourceId:
+        Fn::Sub:
+          - service/${EcsClusterName}/${EcsService.Name}
+          - EcsClusterName:
+              Fn::ImportValue: !Ref EcsCluster
+      RoleARN: !Ref ApplicationAutoScalingRoleArn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  CPUUtilizationPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyType: TargetTrackingScaling
+      PolicyName: !Sub ${AWS::StackName}-cpu-utilization
+      ScalingTargetId: !Ref CPUUtilizationPolicyTarget
+      TargetTrackingScalingPolicyConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ServiceName
+              Value: !Sub ${EcsService.Name}
+          MetricName: CPUUtilization
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetCPUUtilization
 Outputs:
   MicroserviceTaskDefinition:
     Description: Roadmap Task Definition

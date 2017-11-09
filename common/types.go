@@ -66,18 +66,18 @@ type Environment struct {
 		Internal    bool   `yaml:"internal,omitempty"`
 	} `yaml:"loadbalancer,omitempty"`
 	Cluster struct {
-		InstanceType      string `yaml:"instanceType,omitempty"`
-		ImageID           string `yaml:"imageId,omitempty"`
-		ImageOsType       string `yaml:"osType,omitempty"`
-		InstanceTenancy   string `yaml:"instanceTenancy,omitempty"`
-		DesiredCapacity   int    `yaml:"desiredCapacity,omitempty"`
-		MinSize           int    `yaml:"minSize,omitempty"`
-		MaxSize           int    `yaml:"maxSize,omitempty"`
-		KeyName           string `yaml:"keyName,omitempty"`
-		SSHAllow          string `yaml:"sshAllow,omitempty"`
-		ScaleOutThreshold int    `yaml:"scaleOutThreshold,omitempty"`
-		ScaleInThreshold  int    `yaml:"scaleInThreshold,omitempty"`
-		HTTPProxy         string `yaml:"httpProxy,omitempty"`
+		InstanceType            string `yaml:"instanceType,omitempty"`
+		ImageID                 string `yaml:"imageId,omitempty"`
+		ImageOsType             string `yaml:"osType,omitempty"`
+		InstanceTenancy         string `yaml:"instanceTenancy,omitempty"`
+		DesiredCapacity         int    `yaml:"desiredCapacity,omitempty"`
+		MinSize                 int    `yaml:"minSize,omitempty"`
+		MaxSize                 int    `yaml:"maxSize,omitempty"`
+		KeyName                 string `yaml:"keyName,omitempty"`
+		SSHAllow                string `yaml:"sshAllow,omitempty"`
+		TargetCPUReservation    int    `yaml:"targetCPUReservation,omitempty"`
+		TargetMemoryReservation int    `yaml:"targetMemoryReservation,omitempty"`
+		HTTPProxy               string `yaml:"httpProxy,omitempty"`
 	} `yaml:"cluster,omitempty"`
 	Discovery struct {
 		Provider      string            `yaml:"provider,omitempty"`
@@ -98,26 +98,30 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            string                 `yaml:"name,omitempty"`
-	DesiredCount    int                    `yaml:"desiredCount,omitempty"`
-	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
-	ImageRepository string                 `yaml:"imageRepository,omitempty"`
-	Port            int                    `yaml:"port,omitempty"`
-	Protocol        string                 `yaml:"protocol,omitempty"`
-	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
-	CPU             int                    `yaml:"cpu,omitempty"`
-	Memory          int                    `yaml:"memory,omitempty"`
-	Environment     map[string]interface{} `yaml:"environment,omitempty"`
-	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
-	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
-	Priority        int                    `yaml:"priority,omitempty"`
-	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
-	Database        Database               `yaml:"database,omitempty"`
-	Roles           struct {
-		Ec2Instance string `yaml:"ec2Instance,omitempty"`
-		CodeDeploy  string `yaml:"codeDeploy,omitempty"`
-		EcsService  string `yaml:"ecsService,omitempty"`
-		EcsTask     string `yaml:"ecsTask,omitempty"`
+	Name                 string                 `yaml:"name,omitempty"`
+	DesiredCount         int                    `yaml:"desiredCount,omitempty"`
+	MinSize              int                    `yaml:"minSize,omitempty"`
+	MaxSize              int                    `yaml:"maxSize,omitempty"`
+	Dockerfile           string                 `yaml:"dockerfile,omitempty"`
+	ImageRepository      string                 `yaml:"imageRepository,omitempty"`
+	Port                 int                    `yaml:"port,omitempty"`
+	Protocol             string                 `yaml:"protocol,omitempty"`
+	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
+	CPU                  int                    `yaml:"cpu,omitempty"`
+	Memory               int                    `yaml:"memory,omitempty"`
+	Environment          map[string]interface{} `yaml:"environment,omitempty"`
+	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
+	Priority             int                    `yaml:"priority,omitempty"`
+	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
+	Database             Database               `yaml:"database,omitempty"`
+	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
+	Roles                struct {
+		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
+		CodeDeploy             string `yaml:"codeDeploy,omitempty"`
+		EcsService             string `yaml:"ecsService,omitempty"`
+		EcsTask                string `yaml:"ecsTask,omitempty"`
+		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
