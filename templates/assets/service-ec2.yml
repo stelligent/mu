@@ -66,10 +66,14 @@ Parameters:
     Type: String
     Description: Instance type to use.
     Default: t2.micro
-  MaxSize:
+  ServiceMinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched
+  ServiceMaxSize:
     Type: Number
     Default: '2'
-    Description: Maximum number of instances that can be launched in your ECS cluster
+    Description: Maximum number of instances that can be launched
   KeyName:
     Type: String
     Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
@@ -81,14 +85,6 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  ScaleOutThreshold:
-    Description: Threshold at which a scale out event will be initiated
-    Type: Number
-    Default: '75'
-  ScaleInThreshold:
-    Description: Threshold at which a scale in event will be initiated
-    Type: Number
-    Default: '30'
   ConsulUrl:
     Description: URL for downloading Consul
     Type: String
@@ -154,6 +150,10 @@ Parameters:
     Type: String
     Description: The security group to add to the ECS instance for access to consul (optional)
     Default: ''
+  TargetCPUUtilization:
+    Type: String
+    Description: Target CPU Utilization for Tracking Policy on ASG
+    Default: '75'
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -231,8 +231,8 @@ Resources:
       HealthCheckGracePeriod: 600
       TargetGroupARNs:
         - !Ref ElbTargetGroup
-      MinSize: '1'
-      MaxSize: !Ref MaxSize
+      MinSize: !Ref ServiceMinSize
+      MaxSize: !Ref ServiceMaxSize
       DesiredCapacity: !Ref ServiceDesiredCount
       Tags:
       - Key: Name
@@ -247,52 +247,17 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  ScaleOutPolicy:
+  CPUUtilizationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref ServiceAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: 1
-  ScaleInPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref ServiceAutoScalingGroup
-      Cooldown: 300
-      ScalingAdjustment: -1
-  CPUAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-out if CPU > ${ScaleOutThreshold}% for 5 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleOutThreshold
-      AlarmActions:
-      - !Ref ScaleOutPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value: !Ref ServiceAutoScalingGroup
-      ComparisonOperator: GreaterThanThreshold
-  CPUAlarmLow:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-in if CPU < ${ScaleInThreshold}% for 5 minutes
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleInThreshold
-      AlarmActions:
-      - !Ref ScaleInPolicy
-      Dimensions:
-      - Name: AutoScalingGroupName
-        Value: !Ref ServiceAutoScalingGroup
-      ComparisonOperator: LessThanThreshold
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref TargetCPUUtilization
   ServiceInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:

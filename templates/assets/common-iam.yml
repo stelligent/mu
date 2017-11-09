@@ -239,12 +239,24 @@ Resources:
             Resource: '*'
             Effect: Allow
           - Action:
+            - application-autoscaling:DescribeScalableTarget
+            - application-autoscaling:DescribeScalableTargets
+            - application-autoscaling:DescribeScalingActivities
+            - application-autoscaling:DescribeScalingPolicies
+            - application-autoscaling:PutScalingPolicy
+            - application-autoscaling:DeleteScalingPolicy
+            - application-autoscaling:RegisterScalableTarget
+            - application-autoscaling:DeregisterScalableTarget
+            Resource: '*'
+            Effect: Allow
+          - Action:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy-${AWS::Region}
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-autoscaling-${AWS::Region}
             Effect: Allow
       - PolicyName: deploy-database
         PolicyDocument:
