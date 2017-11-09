@@ -139,6 +139,7 @@ Resources:
              - ecs:DescribeServices
              - cloudwatch:DescribeAlarms
              - cloudwatch:GetMetricStatistics
+             - cloudwatch:PutMetricAlarm
              Resource: "*"
 
   EcsServiceRole:

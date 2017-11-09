@@ -319,13 +319,13 @@ Resources:
       PolicyType: TargetTrackingScaling
       PolicyName: !Sub ${AWS::StackName}-cpu-utilization
       ScalingTargetId: !Ref CPUUtilizationPolicyTarget
-      TargetTrackingConfiguration:
+      TargetTrackingScalingPolicyConfiguration:
         CustomizedMetricSpecification:
           Dimensions: 
             - Name: ServiceName
               Value: !Sub ${EcsService.Name}
           MetricName: CPUUtilization
-          NameSpace: AWS/ECS
+          Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetCPUUtilization
 Outputs:

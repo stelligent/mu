@@ -197,7 +197,7 @@ Resources:
             - Name: ClusterName
               Value: !Ref EcsCluster
           MetricName: CPUReservation
-          NameSpace: AWS/ECS
+          Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetCPUReservation
   MemoryReservationPolicy:
@@ -213,7 +213,7 @@ Resources:
             - Name: ClusterName
               Value: !Ref EcsCluster
           MetricName: MemoryReservation
-          NameSpace: AWS/ECS
+          Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetMemoryReservation
   ContainerInstances:
