@@ -331,6 +331,7 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 
 			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName, environmentName)
 			/* scheduleStack := */ stackWaiter.AwaitFinalStatus(scheduleStackName)
+			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
 
 			resolveServiceEnvironment(service, environmentName)
 			// log.Infof("          params: %V+", params)
