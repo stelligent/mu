@@ -27,12 +27,14 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				// TODO - placeholder for doing serviceCreateSchedules for EC2, leaving out-of-scope per @cplee
 			),
 		),
 	)
@@ -321,7 +323,63 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 
 		return nil
 	}
+}
 
+func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter, stackUpserter common.StackUpserter) Executor {
+	return func() error {
+		log.Noticef("Creating schedules for service '%s' to '%s'", workflow.serviceName, environmentName)
+		for _, schedule := range service.Schedule {
+			params["ScheduleName"] = schedule.Name
+			params["ScheduleExpression"] = schedule.Expression
+			params["ScheduleCommand"] = schedule.Command
+
+			log.Infof("Creating schedule %s for service '%s' to '%s'", schedule.Name, workflow.serviceName, environmentName)
+			log.Infof("         command: %s", params["ScheduleCommand"])
+			log.Infof("      expression: %s", params["ScheduleExpression"])
+
+			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName, environmentName)
+			scheduleStack := stackWaiter.AwaitFinalStatus(scheduleStackName)
+
+			log.Infof("          params: %V+", params)
+			log.Infof("   scheduleStack: %V+", scheduleStack)
+
+			overrides := common.GetStackOverrides(scheduleStackName)
+			log.Infof("       overrides: %V+", overrides)
+
+			template, err := templates.NewTemplate("schedule.yml", service, overrides)
+			if err != nil {
+				return err
+			}
+			log.Infof("        template: %v", template)
+
+			var scheduleTags TagInterface = &ScheduleTags{
+				ScheduleName:       schedule.Name,
+				ScheduleExpression: schedule.Expression,
+				ScheduleCommand:    schedule.Command,
+			}
+			log.Infof("    scheduleTags: %V+", scheduleTags)
+
+			tags, err := concatTags(service.Tags, scheduleTags)
+			if err != nil {
+				return err
+			}
+			log.Infof("            tags: %V+", tags)
+
+			err = stackUpserter.UpsertStack(scheduleStackName, template, params, tags, workflow.cloudFormationRoleArn)
+			if err != nil {
+				return err
+			}
+			log.Debugf("Waiting for stack '%s' to complete", scheduleStackName)
+			stack := stackWaiter.AwaitFinalStatus(scheduleStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", scheduleStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+		}
+		return nil
+	}
 }
 
 func resolveServiceEnvironment(service *common.Service, environment string) {

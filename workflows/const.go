@@ -126,6 +126,13 @@ type ServiceTags struct {
 	Repo        string `tag:"repo"`
 }
 
+// ScheduleTags used to passed information to template
+type ScheduleTags struct {
+	ScheduleName       string `tag:"ScheduleName"`
+	ScheduleExpression string `tag:"ScheduleExpression"`
+	ScheduleCommand    string `tag:"ScheduleCommand"`
+}
+
 // PipelineTags used to set defaults
 type PipelineTags struct {
 	Type     string `tag:"type"`

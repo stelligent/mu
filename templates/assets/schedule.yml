@@ -1,0 +1,40 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU scheduled task in a specific environment containing a CloudWatch event and a RuleTarget
+Parameters:
+  EcsServiceRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS service to assume
+  EcsTaskRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS task to assume
+  ScheduleName:
+    Type: String
+    Description: Name of scheduled task
+  ScheduleExpression:
+    Type: String
+    Description: Timespec cron(* * * * ? *) or rate(timespec) of scheduled task
+  ScheduleCommand:
+    Type: String
+    Description: command line to execute
+Resources:
+  ScheduleRuleName:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: !Sub ${ScheduleExpression}
+      State: enabled
+      Targets:
+      - Id: !Sub ScheduledRuleTarget${ScheduleName}
+        RoleArn: !Ref EcsServiceRoleArn
+        Input: !Sub |
+          '{
+              "containerOverrides": [
+                {"name":"${ScheduleName}","command":
+                  ["${ScheduleCommand}" ]
+                }
+              ]
+          }'
+        EcsParameters:
+         TaskDefinitionArn: !Ref EcsServiceRoleArn
+         TaskCount: 1
+

@@ -254,6 +254,7 @@ const (
 	StackTypeService                = "service"
 	StackTypePipeline               = "pipeline"
 	StackTypeDatabase               = "database"
+	StackTypeSchedule               = "schedule"
 	StackTypeBucket                 = "bucket"
 )
 

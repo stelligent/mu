@@ -140,24 +140,6 @@ Conditions:
     - !Condition HasHostPattern
 
 Resources:
-{{if .Schedule}}{{with .Schedule}}{{range $idx, $schedule := .}}
-  {{if true}}ScheduleRuleName{{$schedule.Name}}:{{end}}
-  {{if true}}  Type: AWS::Events::Rule{{end}}
-  {{if true}}  Name: ScheduleRuleName{{$schedule.Name}}{{end}}
-  {{if true}}  ScheduleExpression: {{$schedule.Expression}}{{end}}
-
-  {{if true}}ScheduleRuleTarget{{$schedule.Name}}:{{end}}
-  {{if true}}  Type: AWS::Events::Target{{end}}
-  {{if true}}  Targets:{{end}}
-  {{if true}}    Id: ScheduleRuleTarget{{$schedule.Name}}{{end}}
-  {{if true}}    RoleArn: !Ref EcsServiceRoleArn{{end}}
-  {{if true}}    Input: "{\"containerOverrides\":[{\"name\":\"{{$schedule.Name}}\",\"command\":[\"{{$schedule.Command}}\"]}]}"{{end}}
-  {{if true}}    EcsParameters:{{end}}
-  {{if true}}      TaskDefinitionArn: !Ref EcsServiceRoleArn{{end}}
-  {{if true}}      TaskCount: 1{{end}}
-  {{end}}
-  {{end}}
-{{end}}
   EcsService:
     Type: AWS::ECS::Service
     Properties:
