@@ -325,39 +325,24 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 			params["ScheduleExpression"] = schedule.Expression
 			params["ScheduleCommand"] = schedule.Command
 
-			log.Infof("Creating schedule %s for service '%s' to '%s'", schedule.Name, workflow.serviceName, environmentName)
-			log.Infof("         command: %s", params["ScheduleCommand"])
-			log.Infof("      expression: %s", params["ScheduleExpression"])
+			// log.Infof("Creating schedule %s for service '%s' to '%s'", schedule.Name, workflow.serviceName, environmentName)
+			// log.Infof("         command: %s", params["ScheduleCommand"])
+			// log.Infof("      expression: %s", params["ScheduleExpression"])
 
 			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName, environmentName)
-			scheduleStack := stackWaiter.AwaitFinalStatus(scheduleStackName)
+			/* scheduleStack := */ stackWaiter.AwaitFinalStatus(scheduleStackName)
 
-			log.Infof("          params: %V+", params)
-			log.Infof("   scheduleStack: %V+", scheduleStack)
+			resolveServiceEnvironment(service, environmentName)
+			// log.Infof("          params: %V+", params)
+			// log.Infof("   scheduleStack: %V+", scheduleStack)
 
-			overrides := common.GetStackOverrides(scheduleStackName)
-			log.Infof("       overrides: %V+", overrides)
-
-			template, err := templates.NewTemplate("schedule.yml", service, overrides)
-			if err != nil {
-				return err
-			}
-			log.Infof("        template: %v", template)
-
-			var scheduleTags TagInterface = &ScheduleTags{
+			tags := createTagMap(&ScheduleTags{
 				ScheduleName:       schedule.Name,
 				ScheduleExpression: schedule.Expression,
 				ScheduleCommand:    schedule.Command,
-			}
-			log.Infof("    scheduleTags: %V+", scheduleTags)
+			})
 
-			tags, err := concatTags(service.Tags, scheduleTags)
-			if err != nil {
-				return err
-			}
-			log.Infof("            tags: %V+", tags)
-
-			err = stackUpserter.UpsertStack(scheduleStackName, template, params, tags, workflow.cloudFormationRoleArn)
+			err := stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}

@@ -115,6 +115,7 @@ type Service struct {
 	Priority             int                    `yaml:"priority,omitempty"`
 	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
 	Database             Database               `yaml:"database,omitempty"`
+	Schedule             []Schedule             `yaml:"schedules,omitempty"`
 	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
 	Roles                struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
@@ -122,7 +123,6 @@ type Service struct {
 		EcsService             string `yaml:"ecsService,omitempty"`
 		EcsTask                string `yaml:"ecsTask,omitempty"`
 		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty"`
-	Schedule        []Schedule             `yaml:"schedules,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
