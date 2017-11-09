@@ -1,0 +1,17 @@
+---
+
+environments:
+  - name: acceptance
+
+
+## Supported URL can be:
+##  - relative path to a directory, zipball or tarball
+##  - s3 URL to zipball or tarball
+##  - http/https/file URL to zipball or tarball
+extensions:
+  - url: bucket
+  - url: security-group
+#  - url: s3://my-bucket/prefix/file.zip
+#  - url: https://www.mysite.com/file.tar.gz
+
+

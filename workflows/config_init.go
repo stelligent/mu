@@ -73,7 +73,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		}
 
 		// write buildspec
-		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)
+		buildspec, err := templates.NewTemplate("buildspec.yml", nil)
 		if err != nil {
 			return err
 		}

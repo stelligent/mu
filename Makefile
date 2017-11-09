@@ -28,11 +28,12 @@ deps:
 	go get "github.com/aktau/github-release"
 	glide install
 	patch -p1 < go-git.v4.patch
-	if [ -z ${CIRCLECI} ]; then\
-		gem list | grep cfn-nag || sudo gem install cfn-nag;\
-	else\
-		gem list | grep cfn-nag || gem install cfn-nag;\
-	fi
+
+ifeq ($(CIRCLECI),true)
+	gem install cfn-nag
+else
+	gem list | grep cfn-nag || sudo gem install cfn-nag
+endif
 
 gen:
 	go generate $(SRC_FILES)

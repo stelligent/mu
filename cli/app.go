@@ -86,8 +86,8 @@ func NewApp() *cli.App {
 			context.Config.Namespace = "mu"
 		}
 
-		return nil
-
+		// initialize extensions
+		return context.InitializeExtensions()
 	}
 
 	app.Flags = []cli.Flag{
