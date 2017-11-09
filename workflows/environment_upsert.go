@@ -331,11 +331,11 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		if environment.Cluster.KeyName != "" {
 			stackParams["KeyName"] = environment.Cluster.KeyName
 		}
-		if environment.Cluster.ScaleInThreshold != 0 {
-			stackParams["ScaleInThreshold"] = strconv.Itoa(environment.Cluster.ScaleInThreshold)
+		if environment.Cluster.TargetCPUReservation != 0 {
+			stackParams["TargetCPUReservation"] = strconv.Itoa(environment.Cluster.TargetCPUReservation)
 		}
-		if environment.Cluster.ScaleOutThreshold != 0 {
-			stackParams["ScaleOutThreshold"] = strconv.Itoa(environment.Cluster.ScaleOutThreshold)
+		if environment.Cluster.TargetMemoryReservation != 0 {
+			stackParams["TargetMemoryReservation"] = strconv.Itoa(environment.Cluster.TargetMemoryReservation)
 		}
 		if environment.Cluster.HTTPProxy != "" {
 			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
