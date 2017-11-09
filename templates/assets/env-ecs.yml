@@ -35,14 +35,14 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  ScaleOutThreshold:
-    Description: Threshold at which a scale out event will be initiated
+  TargetCPUReservation:
+    Description: Target CPU reservation % for autoscaling
     Type: Number
     Default: '75'
-  ScaleInThreshold:
-    Description: Threshold at which a scale in event will be initiated
+  TargetMemoryReservation:
+    Description: Target Memory reservation % for autoscaling
     Type: Number
-    Default: '30'
+    Default: '75'
   ImageId:
     Description: ECS AMI to launch
     Type: String
@@ -195,11 +195,11 @@ Resources:
         CustomizedMetricSpecification:
           Dimensions: 
             - Name: ClusterName
-              Value: !Ref AWS::StackName
+              Value: !Ref EcsCluster
           MetricName: CPUReservation
-          NameSpace: AWS/ECS
+          Namespace: AWS/ECS
           Statistic: Average
-        TargetValue: !Ref ScaleOutThreshold
+        TargetValue: !Ref TargetCPUReservation
   MemoryReservationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -211,11 +211,11 @@ Resources:
         CustomizedMetricSpecification:
           Dimensions: 
             - Name: ClusterName
-              Value: !Ref AWS::StackName
+              Value: !Ref EcsCluster
           MetricName: MemoryReservation
-          NameSpace: AWS/ECS
+          Namespace: AWS/ECS
           Statistic: Average
-        TargetValue: !Ref ScaleOutThreshold
+        TargetValue: !Ref TargetMemoryReservation
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
