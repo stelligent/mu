@@ -318,6 +318,10 @@ Resources:
             Effect: Allow
             Resource: '*'
           - Action:
+            - codepipeline:GetPipeline
+            Effect: Allow
+            Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
+          - Action:
             - codedeploy:CreateApplication
             Effect: Allow
             Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${Namespace}-app-${ServiceName}
