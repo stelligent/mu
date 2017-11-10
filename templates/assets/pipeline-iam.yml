@@ -223,6 +223,7 @@ Resources:
         Statement:
         - Action:
           - codepipeline:GetPipelineState
+          - codepipeline:GetPipeline
           Effect: Allow
           Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
         - Action:
@@ -317,10 +318,6 @@ Resources:
             - ecr:GetAuthorizationToken
             Effect: Allow
             Resource: '*'
-          - Action:
-            - codepipeline:GetPipeline
-            Effect: Allow
-            Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
           - Action:
             - codedeploy:CreateApplication
             Effect: Allow
