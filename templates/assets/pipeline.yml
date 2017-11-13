@@ -376,7 +376,7 @@ Resources:
                     - !Ref AWS::NoValue
               - RepositoryName: !Ref SourceRepo
                 BranchName: !Ref SourceBranch
-          RunOrder: 1
+          RunOrder: 10
       - Fn::If:
         - IsBuildEnabled
         - Name: Build
@@ -393,7 +393,7 @@ Resources:
             - Name: ArtifactOutput
             Configuration:
               ProjectName: !Ref CodeBuildArtifact
-            RunOrder: 1
+            RunOrder: 10
           - Name: Image
             ActionTypeId:
               Category: Build
@@ -406,7 +406,7 @@ Resources:
             - Name: ImageOutput
             Configuration:
               ProjectName: !Ref CodeBuildImage
-            RunOrder: 2
+            RunOrder: 20
         - !Ref AWS::NoValue
       - Fn::If:
         - IsAcptEnabled
@@ -424,7 +424,7 @@ Resources:
             - Name: DeployAcceptanceOutput
             Configuration:
               ProjectName: !Ref DeployAcceptance
-            RunOrder: 1
+            RunOrder: 10
           - Name: Test
             ActionTypeId:
               Category: Build
@@ -437,7 +437,7 @@ Resources:
             - Name: TestAcceptanceOutput
             Configuration:
               ProjectName: !Ref TestAcceptance
-            RunOrder: 2
+            RunOrder: 20
         - !Ref AWS::NoValue
       - Fn::If:
         - IsProdEnabled
@@ -451,7 +451,7 @@ Resources:
               Provider: Manual
             Configuration:
               CustomData: Approve deployment to production
-            RunOrder: 1
+            RunOrder: 10
           - Name: Deploy
             ActionTypeId:
               Category: Build
@@ -464,7 +464,7 @@ Resources:
             - Name: DeployProductionOutput
             Configuration:
               ProjectName: !Ref DeployProduction
-            RunOrder: 2
+            RunOrder: 20
           - Name: Test
             ActionTypeId:
               Category: Build
@@ -477,7 +477,7 @@ Resources:
             - Name: TestProductionOutput
             Configuration:
               ProjectName: !Ref TestProduction
-            RunOrder: 3
+            RunOrder: 30
         - !Ref AWS::NoValue
       ArtifactStore:
         Type: S3
