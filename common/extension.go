@@ -264,8 +264,20 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 				return nil, err
 			}
 
+			// if single directory in extension, assume that's the path
+			files, err := ioutil.ReadDir(ext.path)
+			if err != nil {
+				return nil, err
+			}
+
+			originalExtPath := ext.path
+			if len(files) == 1 && files[0].IsDir() {
+				ext.path = filepath.Join(originalExtPath, files[0].Name())
+				log.Debugf("Using directory '%s' for extension '%s'", ext.path, u)
+			}
+
 			// write new etag
-			err = ioutil.WriteFile(filepath.Join(ext.path, ".etag"), []byte(etag), 0644)
+			err = ioutil.WriteFile(filepath.Join(originalExtPath, ".etag"), []byte(etag), 0644)
 			if err != nil {
 				return nil, err
 			}
