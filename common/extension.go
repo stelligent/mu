@@ -288,7 +288,6 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 
 	}
 
-
 	// try loading the extension manifest
 	extManifest := make(map[interface{}]interface{})
 	extManifestFile, err := ioutil.ReadFile(filepath.Join(ext.path, "mu-extension.yml"))
