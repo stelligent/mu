@@ -187,10 +187,7 @@ Resources:
           - Action:
             - iam:PassRole
             Resource:
-            - Fn::If:
-              - IsBuildEnabled
-              - !GetAtt CodeBuildCIRole.Arn
-              - !Ref AWS::NoValue
+            - !GetAtt CodeBuildCIRole.Arn
             - Fn::If:
               - IsAcptEnabled
               - !GetAtt CodeBuildCDAcptRole.Arn
@@ -206,10 +203,7 @@ Resources:
     Properties:
       PolicyName: codepipeline-access
       Roles:
-      - Fn::If:
-        - IsBuildEnabled
-        - !Ref CodeBuildCIRole
-        - !Ref AWS::NoValue
+      - !Ref CodeBuildCIRole
       - Fn::If:
         - IsAcptEnabled
         - !Ref CodeBuildCDAcptRole
@@ -261,7 +255,6 @@ Resources:
 
   CodeBuildCIRole:
     Type: AWS::IAM::Role
-    Condition: IsBuildEnabled
     Properties:
       RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}
       AssumeRolePolicyDocument:
@@ -540,11 +533,7 @@ Outputs:
     Value: !GetAtt CodePipelineRole.Arn
   CodeBuildCIRoleArn:
     Description: Role assummed by CodeBuild for building the artifact and managing the image
-    Value:
-      Fn::If:
-      - IsBuildEnabled
-      - !GetAtt CodeBuildCIRole.Arn
-      - ''
+    Value: !GetAtt CodeBuildCIRole.Arn
   CodeBuildCDAcptRoleArn:
     Description: Role assummed by CodeBuild for deploying to ACPT
     Value:
