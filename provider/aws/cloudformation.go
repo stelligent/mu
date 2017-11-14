@@ -179,6 +179,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			return nil
 		}
 
+		log.Infof("about to cfnAPI.CreateStack(params) with: %v", params)
 		_, err := cfnAPI.CreateStack(params)
 		log.Debug("  Create stack complete err=%s", err)
 		if err != nil {

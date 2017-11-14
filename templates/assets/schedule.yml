@@ -5,6 +5,9 @@ Parameters:
   EcsServiceRoleArn:
     Type: String
     Description: ARN of IAM role for ECS service to assume
+  ServicePort:
+    Type: String
+    Description: ServicePort
   EcsTaskRoleArn:
     Type: String
     Description: ARN of IAM role for ECS task to assume
@@ -17,6 +20,36 @@ Parameters:
   ScheduleCommand:
     Type: String
     Description: command line to execute
+  HostListenerRulePriority:
+    Type: Number
+    Description: The priority of the host rule being added to the listener
+    Default: 2
+  ImageUrl:
+    Type: String
+    Description: Docker Image URL
+  PathListenerRulePriority:
+    Type: Number
+    Description: The priority of the path rule being added to the listener
+    Default: 1
+  PathPattern:
+    Type: CommaDelimitedList
+    Description: List of paths to route to the service.
+    Default: ''
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  ServiceName:
+    Type: String
+    Description: Name of service
+  EcsCluster:
+    Type: String
+    Description: Name of the value to import for Ecs Cluster to deploy to.
+  ElbHttpListenerArn:
+    Type: String
+    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
+  ApplicationAutoScalingRoleArn:
+    Type: String
+    Description: ARN of IAM role for ECS autoscaling
 Resources:
   ScheduleRuleName:
     Type: "AWS::Events::Rule"

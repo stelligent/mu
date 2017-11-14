@@ -26,7 +26,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
-				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager, ctx.StackManager),
+				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
@@ -211,8 +211,8 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
 		} else if svcStack != nil {
 			// no value in config, and this is an update...use prior value
-			params["PathListenerRulePriority"] = ""
-			params["HostListenerRulePriority"] = ""
+			params["PathListenerRulePriority"] = "1"
+			params["HostListenerRulePriority"] = "1"
 		} else {
 			// no value in config, and this is a create...use next available
 			params["PathListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
@@ -317,20 +317,25 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 	}
 }
 
-func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter, stackUpserter common.StackUpserter) Executor {
+func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
 	return func() error {
 		log.Noticef("Creating schedules for service '%s' to '%s'", workflow.serviceName, environmentName)
 		for _, schedule := range service.Schedule {
 			params["ScheduleName"] = schedule.Name
 			params["ScheduleExpression"] = schedule.Expression
 			params["ScheduleCommand"] = schedule.Command
+			log.Infof("params: %V", params)
 
 			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
-			stackWaiter.AwaitFinalStatus(scheduleStackName)
-
 			resolveServiceEnvironment(service, environmentName)
 
-			tags := createTagMap(&ScheduleTags{
+			tags := createTagMap(&ServiceTags{
+				Service:            workflow.serviceName,
+				Environment:        environmentName,
+				Type:               common.StackTypeService,
+				Provider:           workflow.envStack.Outputs["provider"],
+				Revision:           workflow.codeRevision,
+				Repo:               workflow.repoName,
 				ScheduleName:       schedule.Name,
 				ScheduleExpression: schedule.Expression,
 				ScheduleCommand:    schedule.Command,

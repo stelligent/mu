@@ -117,16 +117,12 @@ type EnvironmentTags struct {
 
 // ServiceTags used to set defaults
 type ServiceTags struct {
-	Service     string `tag:"service"`
-	Environment string `tag:"environment"`
-	Type        string `tag:"type"`
-	Provider    string `tag:"provider"`
-	Revision    string `tag:"revision"`
-	Repo        string `tag:"repo"`
-}
-
-// ScheduleTags used to passed information to template
-type ScheduleTags struct {
+	Service            string `tag:"service"`
+	Environment        string `tag:"environment"`
+	Type               string `tag:"type"`
+	Provider           string `tag:"provider"`
+	Revision           string `tag:"revision"`
+	Repo               string `tag:"repo"`
 	ScheduleName       string `tag:"ScheduleName"`
 	ScheduleExpression string `tag:"ScheduleExpression"`
 	ScheduleCommand    string `tag:"ScheduleCommand"`

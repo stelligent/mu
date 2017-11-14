@@ -59,7 +59,7 @@ Parameters:
   PathListenerRulePriority:
     Type: Number
     Description: The priority of the path rule being added to the listener
-    Default: '1'
+    Default: 1
   HostPattern:
     Type: CommaDelimitedList
     Description: List of hosts to route to the service.
@@ -67,7 +67,7 @@ Parameters:
   HostListenerRulePriority:
     Type: Number
     Description: The priority of the host rule being added to the listener
-    Default: '2'
+    Default: 2
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
