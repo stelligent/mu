@@ -165,8 +165,6 @@ Resources:
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
             - autoscaling:TerminateInstanceInAutoScalingGroup
-            - events:PutRule
-            - events:PutTargets
             #
             # the cloudwatch:PutRule & cloudwatch:PutTargets
             # are documented under http://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_PutRule.html
@@ -204,6 +202,19 @@ Resources:
             - ecs:RegisterTaskDefinition
             - ecs:DescribeTaskDefinition
             - ecs:DeregisterTaskDefinition
+            - events:DeleteRule
+            - events:DescribeRule
+            - events:DisableRule
+            - events:EnableRule
+            - events:ListRuleNamesByTarget
+            - events:ListRules
+            - events:ListTargetsByRule
+            - events:PutEvents
+            - events:PutRule
+            - events:PutTargets
+            - events:RemoveRule
+            - events:RemoveTargets
+            - events:source
             Resource: '*'
             Effect: Allow
           - Action:

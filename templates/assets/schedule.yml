@@ -55,9 +55,10 @@ Resources:
     Type: "AWS::Events::Rule"
     Properties:
       ScheduleExpression: !Sub ${ScheduleExpression}
-      State: enabled
+      State: ENABLED
       Targets:
       - Id: !Sub ScheduledRuleTarget${ScheduleName}
+        Arn: !Ref EcsServiceRoleArn
         RoleArn: !Ref EcsServiceRoleArn
         Input: !Sub |
           '{
