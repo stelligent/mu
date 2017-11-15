@@ -13,7 +13,7 @@ service:
   schedules:
   - name: minutely
     expression: cron(* * * * ? *)
-    command: curl http://webhook.example.com/minute-cron
+    command: ['curl','http://webhook.example.com/minute-cron']
   - name: hourly
     expression: cron(0 * * * ? *)
-    command: curl http://webhook.example.com/hour-cron
+    command: ['curl','http://webhook.example.com/hour-cron']
