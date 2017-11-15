@@ -167,5 +167,8 @@ fmt:
 	@echo "=== formatting ==="
 	go fmt $(SRC_FILES)
 
+changelog:
+	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN)
+
 
 .PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage
