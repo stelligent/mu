@@ -32,7 +32,8 @@ Resources:
       Targets:
       - Id: ScheduleRuleId
         #Arn: !Ref MicroserviceTaskDefinitionArn
-        Arn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster:${EcsCluster}'
+        Arn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
+        #Arn: !Ref EcsCluster
         RoleArn: !Ref EcsTaskRoleArn
         Input: !Sub |
           '{
@@ -43,5 +44,8 @@ Resources:
               ]
           }'
         EcsParameters:
-         TaskDefinitionArn: !Ref EcsTaskRoleArn
+         #TaskDefinitionArn: !Sub '${EcsTaskRoleArn}'
+         TaskDefinitionArn: !Sub '${MicroserviceTaskDefinitionArn}'
+         #TaskDefinitionArn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${MicroserviceTaskDefinitionArn}'
+         #!Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
          TaskCount: 1
