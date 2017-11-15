@@ -62,9 +62,9 @@ test: lint gen nag
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
-	go test -v -cover $(SRC_FILES) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
+	go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
 else
-	go test -cover $(SRC_FILES) -short
+	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 e2e: gen stage keypair
