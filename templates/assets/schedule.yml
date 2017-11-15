@@ -32,7 +32,10 @@ Resources:
       Targets:
       - Id: ScheduleRuleId
         Arn:
-          Fn::ImportValue: !Ref EcsCluster
+          Fn::Sub:
+            - "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsClusterName}"
+            - EcsClusterName:
+                Fn::ImportValue: !Ref EcsCluster
         RoleArn: !Ref EcsTaskRoleArn
         Input: !Sub '{ "containerOverrides": [ { "name": "${ScheduleName}", "command": ["${ScheduleCommand}"] } ] }'
         EcsParameters:
