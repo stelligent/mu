@@ -211,8 +211,8 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
 		} else if svcStack != nil {
 			// no value in config, and this is an update...use prior value
-			params["PathListenerRulePriority"] = "1"
-			params["HostListenerRulePriority"] = "1"
+			params["PathListenerRulePriority"] = ""
+			params["HostListenerRulePriority"] = ""
 		} else {
 			// no value in config, and this is a create...use next available
 			params["PathListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
@@ -318,28 +318,28 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 	}
 }
 
-func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
+func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
 	return func() error {
 		log.Noticef("Creating schedules for service '%s' to '%s'", workflow.serviceName, environmentName)
 		for _, schedule := range service.Schedule {
+			params := make(map[string]string)
+			// copy only these 4 parameters from the one used for EC2
+			params["MicroserviceTaskDefinitionArn"] = stackParams["MicroserviceTaskDefinitionArn"]
+			params["ServiceName"] = stackParams["ServiceName"]
+			params["EcsCluster"] = stackParams["EcsCluster"]
+			params["EcsTaskRoleArn"] = stackParams["EcsTaskRoleArn"]
+			// these parameters are specific to each of the defined schedules
 			params["ScheduleName"] = schedule.Name
 			params["ScheduleExpression"] = schedule.Expression
 			params["ScheduleCommand"] = schedule.Command
-			log.Infof("params: %V", params)
 
 			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
 			resolveServiceEnvironment(service, environmentName)
 
-			tags := createTagMap(&ServiceTags{
-				Service:            workflow.serviceName,
-				Environment:        environmentName,
-				Type:               common.StackTypeService,
-				Provider:           workflow.envStack.Outputs["provider"],
-				Revision:           workflow.codeRevision,
-				Repo:               workflow.repoName,
-				ScheduleName:       schedule.Name,
-				ScheduleExpression: schedule.Expression,
-				ScheduleCommand:    schedule.Command,
+			tags := createTagMap(&ScheduleTags{
+			// Service:     workflow.serviceName,
+			// Environment: environmentName,
+			// Type:        common.StackTypeSchedule,
 			})
 
 			err := stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)

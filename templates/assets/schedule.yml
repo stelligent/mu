@@ -2,15 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU scheduled task in a specific environment containing a CloudWatch event and a RuleTarget
 Parameters:
-  EcsServiceRoleArn:
-    Type: String
-    Description: ARN of IAM role for ECS service to assume
-  ServicePort:
-    Type: String
-    Description: ServicePort
   EcsTaskRoleArn:
     Type: String
     Description: ARN of IAM role for ECS task to assume
+  EcsCluster:
+    Type: String
+    Description: Name of the value to import for Ecs Cluster to deploy to.
   ScheduleName:
     Type: String
     Description: Name of scheduled task
@@ -19,50 +16,23 @@ Parameters:
     Description: Timespec cron(* * * * ? *) or rate(timespec) of scheduled task
   ScheduleCommand:
     Type: String
-    Description: command line to execute
-  HostListenerRulePriority:
-    Type: Number
-    Description: The priority of the host rule being added to the listener
-    Default: 2
-  ImageUrl:
-    Type: String
-    Description: Docker Image URL
-  PathListenerRulePriority:
-    Type: Number
-    Description: The priority of the path rule being added to the listener
-    Default: 1
-  PathPattern:
-    Type: CommaDelimitedList
-    Description: List of paths to route to the service.
-    Default: ''
-  VpcId:
-    Type: String
-    Description: Name of the value to import for the VpcId
+    Description: the actual command line to execute
   ServiceName:
     Type: String
     Description: Name of service
-  EcsCluster:
-    Type: String
-    Description: Name of the value to import for Ecs Cluster to deploy to.
-  ElbHttpListenerArn:
-    Type: String
-    Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
-  ApplicationAutoScalingRoleArn:
-    Type: String
-    Description: ARN of IAM role for ECS autoscaling
   MicroserviceTaskDefinitionArn:
     Type: String
     Description: TaskDefinition as a String
 Resources:
-  ScheduleRuleName:
+  ScheduledRule:
     Type: "AWS::Events::Rule"
     Properties:
       ScheduleExpression: !Sub ${ScheduleExpression}
       State: ENABLED
       Targets:
       - Id: ScheduleRuleId
-        Arn: !Sub ${EcsCluster}
-        RoleArn: !Ref EcsServiceRoleArn
+        Arn: !Ref MicroserviceTaskDefinitionArn
+        RoleArn: !Ref EcsTaskRoleArn
         Input: !Sub |
           '{
               "containerOverrides": [
