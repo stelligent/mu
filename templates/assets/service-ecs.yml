@@ -330,7 +330,7 @@ Resources:
         TargetValue: !Ref TargetCPUUtilization
 Outputs:
   MicroserviceTaskDefinitionArn:
-    Description: Roadmap Task Definition
+    Description: Microservice TaskDefinition
     Value: !Ref MicroserviceTaskDefinition
   EcsCluster:
     Description: Roadmap Cluster
