@@ -127,10 +127,9 @@ type ServiceTags struct {
 
 // ScheduleTags used to set defaults
 type ScheduleTags struct {
-	Service      string `tag:"service"`
-	Environment  string `tag:"environment"`
-	Type         string `tag:"type"`
-	ScheduleName string `tag:"name"`
+	Service     string `tag:"service"`
+	Environment string `tag:"environment"`
+	Type        string `tag:"type"`
 }
 
 // PipelineTags used to set defaults

@@ -263,6 +263,7 @@ Resources:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task-${AWS::Region}
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-events-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy-${AWS::Region}

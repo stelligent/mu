@@ -204,6 +204,7 @@ func TestServiceDeployer_serviceRolesetUpserter(t *testing.T) {
 	rolesetManager.On("UpsertCommonRoleset").Return(nil)
 	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
 	rolesetManager.On("UpsertServiceRoleset", "env1", "svc20").Return(nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{"EcsEventsRoleArn": "bar"}, nil)
 
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "svc20"

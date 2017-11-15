@@ -120,6 +120,7 @@ type Service struct {
 	Roles                struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy             string `yaml:"codeDeploy,omitempty"`
+		EcsEvents              string `yaml:"ecsEvents,omitempty"`
 		EcsService             string `yaml:"ecsService,omitempty"`
 		EcsTask                string `yaml:"ecsTask,omitempty"`
 		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty"`
@@ -138,9 +139,9 @@ type Database struct {
 
 // Schedule definition
 type Schedule struct {
-	Name       string `yaml:"name,omitempty"`
-	Expression string `yaml:"expression,omitempty"`
-	Command    string `yaml:"command,omitempty"`
+	Name       string   `yaml:"name,omitempty"`
+	Expression string   `yaml:"expression,omitempty"`
+	Command    []string `yaml:"command,omitempty"`
 }
 
 // Pipeline definition
