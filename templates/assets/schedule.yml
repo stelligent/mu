@@ -35,14 +35,8 @@ Resources:
         Arn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
         #Arn: !Ref EcsCluster
         RoleArn: !Ref EcsTaskRoleArn
-        Input: !Sub |
-          '{
-              "containerOverrides": [
-                {"name":"${ScheduleName}","command":
-                  ["${ScheduleCommand}" ]
-                }
-              ]
-          }'
+        Input: !Sub '{ "containerOverrides": [ { "name": "${ScheduleName}", "command": ["${ScheduleCommand}"] } ] }'
+
         EcsParameters:
          #TaskDefinitionArn: !Sub '${EcsTaskRoleArn}'
          TaskDefinitionArn: !Sub '${MicroserviceTaskDefinitionArn}'
