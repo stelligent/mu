@@ -37,7 +37,7 @@ Resources:
             - EcsClusterName:
                 Fn::ImportValue: !Ref EcsCluster
         RoleArn: !Ref EcsTaskRoleArn
-        Input: !Sub '{ "containerOverrides": [ { "name": "${ScheduleName}", "command": ["${ScheduleCommand}"] } ] }'
+        Input: !Sub '{ "containerOverrides": [ { "name": "${ServiceName}", "command": ["${ScheduleCommand}"] } ] }'
         EcsParameters:
           TaskDefinitionArn: !Ref MicroserviceTaskDefinitionArn
           TaskCount: 1
