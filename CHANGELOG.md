@@ -1,11 +1,18 @@
 # Change Log
 
-## [v1.1.1-develop](https://github.com/stelligent/mu/tree/v1.1.1-develop) (2017-11-13)
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.0.6...v1.1.1-develop)
+## [v1.1.1](https://github.com/stelligent/mu/tree/v1.1.1) (2017-11-15)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.0.6...v1.1.1)
 
 **Implemented enhancements:**
 
+- Allow custom AMIs based on OS other than amazon linux to work [\#205](https://github.com/stelligent/mu/issues/205)
+- Update environment ASG to use target tracking policies [\#177](https://github.com/stelligent/mu/issues/177)
 - Add S3 Source support for CodePipeline [\#176](https://github.com/stelligent/mu/issues/176)
+- Service autoscaling [\#171](https://github.com/stelligent/mu/issues/171)
+- Allow referencing external files for templates [\#167](https://github.com/stelligent/mu/issues/167)
+- Nested mu.yml files [\#162](https://github.com/stelligent/mu/issues/162)
+- Scheduled tasks [\#158](https://github.com/stelligent/mu/issues/158)
+- Template splice [\#215](https://github.com/stelligent/mu/pull/215) ([cplee](https://github.com/cplee))
 - issue-176 Added S3 Source option to CodePipeline [\#198](https://github.com/stelligent/mu/pull/198) ([akuma12](https://github.com/akuma12))
 
 **Fixed bugs:**
@@ -14,17 +21,10 @@
 - Bug with latest Consul release [\#194](https://github.com/stelligent/mu/issues/194)
 - Infinite loop trying to find .git on Windows [\#189](https://github.com/stelligent/mu/issues/189)
 
-**Closed issues:**
-
-- Allow custom AMIs based on OS other than amazon linux to work [\#205](https://github.com/stelligent/mu/issues/205)
-- Update environment ASG to use target tracking policies [\#177](https://github.com/stelligent/mu/issues/177)
-- Service autoscaling [\#171](https://github.com/stelligent/mu/issues/171)
-- Allow referencing external files for templates [\#167](https://github.com/stelligent/mu/issues/167)
-- Nested mu.yml files [\#162](https://github.com/stelligent/mu/issues/162)
-
 **Merged pull requests:**
 
-- Template splice [\#215](https://github.com/stelligent/mu/pull/215) ([cplee](https://github.com/cplee))
+- v1.1.1 [\#218](https://github.com/stelligent/mu/pull/218) ([cplee](https://github.com/cplee))
+- Issue 158 scheduled tasks [\#217](https://github.com/stelligent/mu/pull/217) ([timbaileyjones](https://github.com/timbaileyjones))
 - Issue 171 and 177 [\#213](https://github.com/stelligent/mu/pull/213) ([cplee](https://github.com/cplee))
 - Extensions [\#210](https://github.com/stelligent/mu/pull/210) ([cplee](https://github.com/cplee))
 - Only install cfn-nag if needed. Add GOPATH to PATH [\#207](https://github.com/stelligent/mu/pull/207) ([jeremyhahn](https://github.com/jeremyhahn))
@@ -54,13 +54,13 @@
 ## [v1.0.3](https://github.com/stelligent/mu/tree/v1.0.3) (2017-10-11)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.0.2...v1.0.3)
 
+**Implemented enhancements:**
+
+- Distribute mu via homebrew [\#132](https://github.com/stelligent/mu/issues/132)
+
 **Fixed bugs:**
 
 - pipeline-iam.yml relies on ${namespace}-bucket-codedeploy Export which may not exist [\#186](https://github.com/stelligent/mu/issues/186)
-
-**Closed issues:**
-
-- Distribute mu via homebrew [\#132](https://github.com/stelligent/mu/issues/132)
 
 **Merged pull requests:**
 
