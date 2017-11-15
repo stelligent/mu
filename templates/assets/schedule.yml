@@ -31,15 +31,19 @@ Resources:
       State: ENABLED
       Targets:
       - Id: ScheduleRuleId
-        #Arn: !Ref MicroserviceTaskDefinitionArn
-        Arn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
-        #Arn: !Ref EcsCluster
+        #Arn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
+        Arn:
+          Fn::ImportValue: !Ref EcsCluster
         RoleArn: !Ref EcsTaskRoleArn
         Input: !Sub '{ "containerOverrides": [ { "name": "${ScheduleName}", "command": ["${ScheduleCommand}"] } ] }'
-
         EcsParameters:
+          #TaskDefinitionArn: !Ref MicroserviceTaskDefinitionArn"
+          TaskDefinitionArn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${MicroserviceTaskDefinitionArn}'
+          TaskCount: 1
+
+        #Arn: !Ref MicroserviceTaskDefinitionArn
+        #Arn: !Ref EcsCluster
          #TaskDefinitionArn: !Sub '${EcsTaskRoleArn}'
-         TaskDefinitionArn: !Sub '${MicroserviceTaskDefinitionArn}'
+         #TaskDefinitionArn: !Sub '${MicroserviceTaskDefinitionArn}'
          #TaskDefinitionArn: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${MicroserviceTaskDefinitionArn}'
          #!Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}'
-         TaskCount: 1
