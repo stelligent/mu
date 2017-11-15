@@ -8,4 +8,5 @@ Scheduled Tasks Notes:
     contain a CMD line, and not an ENTRYPOINT line.
   * As of November 15, 2017, only ECS deployment is supported.
     This means you must have 'provider: ecs' in your services: section.
+  * The commands must be provided as a JSON array. See the example mu.yml file in this directory.
 
