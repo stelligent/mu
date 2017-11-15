@@ -329,7 +329,7 @@ Resources:
           Statistic: Average
         TargetValue: !Ref TargetCPUUtilization
 Outputs:
-  MicroserviceTaskDefinition:
+  MicroserviceTaskDefinitionArn:
     Description: Roadmap Task Definition
     Value: !Ref MicroserviceTaskDefinition
   EcsCluster:

@@ -312,6 +312,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
+		stackParams["MicroserviceTaskDefinitionArn"] = stack.Outputs["MicroserviceTaskDefinitionArn"]
 
 		return nil
 	}

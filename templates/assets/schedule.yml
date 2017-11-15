@@ -50,6 +50,9 @@ Parameters:
   ApplicationAutoScalingRoleArn:
     Type: String
     Description: ARN of IAM role for ECS autoscaling
+  MicroserviceTaskDefinitionArn:
+    Type: String
+    Description: TaskDefinition as a String
 Resources:
   ScheduleRuleName:
     Type: "AWS::Events::Rule"
@@ -57,8 +60,8 @@ Resources:
       ScheduleExpression: !Sub ${ScheduleExpression}
       State: ENABLED
       Targets:
-      - Id: !Sub ScheduledRuleTarget${ScheduleName}
-        Arn: !Ref EcsServiceRoleArn
+      - Id: ScheduleRuleId
+        Arn: !Sub MicroserviceTaskDefinitionArn
         RoleArn: !Ref EcsServiceRoleArn
         Input: !Sub |
           '{
@@ -69,6 +72,6 @@ Resources:
               ]
           }'
         EcsParameters:
-         TaskDefinitionArn: !Ref EcsServiceRoleArn
+         TaskDefinitionArn: !Ref EcsTaskRoleArn
          TaskCount: 1
 
