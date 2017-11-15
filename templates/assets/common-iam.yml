@@ -214,7 +214,6 @@ Resources:
             - events:PutTargets
             - events:RemoveRule
             - events:RemoveTargets
-            - events:source
             Resource: '*'
             Effect: Allow
           - Action:
