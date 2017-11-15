@@ -337,9 +337,10 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 			resolveServiceEnvironment(service, environmentName)
 
 			tags := createTagMap(&ScheduleTags{
-			// Service:     workflow.serviceName,
-			// Environment: environmentName,
-			// Type:        common.StackTypeSchedule,
+				Service:      workflow.serviceName,
+				ScheduleName: schedule.Name,
+				Environment:  environmentName,
+				Type:         common.StackTypeSchedule,
 			})
 
 			err := stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)
