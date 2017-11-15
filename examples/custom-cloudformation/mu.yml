@@ -3,8 +3,20 @@
 environments:
   - name: example
 
+## You can customize the generated CloudFormation by adding a templates section.
+##  The name of the CloudFormation stack that you are trying to update is the key
+##  and the value is snippet of CloudFormation template that is spliced together
+##  with the default template for that stack.
+##
+## To preview the template without actually making any changes in your AWS account,
+##  add the --dryrun or -d flag.
+##
+## WARNING: don't use the short for for intrinsic functions (e.g. use `Fn::Sub`, not `!Sub`).
+##  The `!` is a YAML tag and isn't able to survive deserialization and serialization.
+##
+## For more details, see https://github.com/stelligent/mu/wiki/Custom-CloudFormation
 templates:
-  mu-cluster-example:
+  mu-cluster-example:   ## <-- this is the name of the CloudFormation stack that is being updated
     Resources:
 
       # Define a new security group
@@ -24,3 +36,14 @@ templates:
       ContainerInstances:
         Properties:
           SecurityGroups: [ !Ref ExtraSG ]
+
+
+## Override stack parameters
+parameters:
+  'mu-environment-acceptance':
+    ImageId: ami-xxx
+
+## Override stack tags
+tags:
+  'mu-environment-acceptance':
+    CostCenter: research

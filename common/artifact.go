@@ -1,13 +1,21 @@
 package common
 
-import "io"
+import (
+	"io"
+)
 
-// ArtifactCreator for getting cluster instances
+// ArtifactCreator for creating artifacts
 type ArtifactCreator interface {
 	CreateArtifact(body io.ReadSeeker, destURI string) error
+}
+
+// ArtifactGetter for getting artifacts.  conditional get (based on etag).  returns body, etag and optional error
+type ArtifactGetter interface {
+	GetArtifact(uri string, etag string) (io.ReadCloser, string, error)
 }
 
 // ArtifactManager composite of all artifact capabilities
 type ArtifactManager interface {
 	ArtifactCreator
+	ArtifactGetter
 }

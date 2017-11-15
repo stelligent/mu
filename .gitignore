@@ -1,6 +1,8 @@
 *.iml
 .idea
+.vscode
 .release/
 vendor/
 *~
 homebrew-tap/
+templates/assets.go

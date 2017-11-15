@@ -112,11 +112,60 @@ Resources:
             - logs:CreateLogStream
             - logs:PutLogEvents
             - logs:DescribeLogStreams
-            Resource:
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-environment-${EnvironmentName}:*
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}
-            - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${Namespace}-service-${ServiceName}-${EnvironmentName}:*
+            - logs:DescribeLogGroups
+            Resource: '*'
+
+  ApplicationAutoScalingRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-autoscaling-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - application-autoscaling.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+       - PolicyName: autoscale-ecs-service
+         PolicyDocument:
+           Statement:
+           - Effect: Allow
+             Action:
+             - ecs:UpdateService
+             - ecs:DescribeServices
+             - cloudwatch:DescribeAlarms
+             - cloudwatch:GetMetricStatistics
+             - cloudwatch:PutMetricAlarm
+             Resource: "*"
+  EcsEventsRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-events-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - events.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RunTask
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
 
   EcsServiceRole:
     Type: AWS::IAM::Role
@@ -176,6 +225,13 @@ Outputs:
       - IsEc2Service
       - !GetAtt CodeDeployRole.Arn
       - ''
+  EcsEventsRoleArn:
+    Description: Role assummed by CloudWatch events
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EcsEventsRole.Arn
+      - ''
   EcsServiceRoleArn:
     Description: Role assummed by ECS Service
     Value:
@@ -189,4 +245,11 @@ Outputs:
       Fn::If:
       - IsEcsService
       - !GetAtt EcsTaskRole.Arn
+      - ''
+  ApplicationAutoScalingRoleArn:
+    Description: Role assummed by application autoscaling
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt ApplicationAutoScalingRole.Arn
       - ''

@@ -2,10 +2,10 @@ package aws
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 type iamRolesetManager struct {
@@ -64,9 +64,10 @@ func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, s
 
 	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
 	overrideRole(roleset, "CodeDeployRoleArn", rolesetMgr.context.Config.Service.Roles.CodeDeploy)
+	overrideRole(roleset, "EcsEventsRoleArn", rolesetMgr.context.Config.Service.Roles.EcsEvents)
 	overrideRole(roleset, "EcsServiceRoleArn", rolesetMgr.context.Config.Service.Roles.EcsService)
 	overrideRole(roleset, "EcsTaskRoleArn", rolesetMgr.context.Config.Service.Roles.EcsTask)
-
+	overrideRole(roleset, "ApplicationAutoScalingRoleArn", rolesetMgr.context.Config.Service.Roles.ApplicationAutoScaling)
 	return roleset, nil
 }
 
@@ -89,11 +90,6 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		return nil
 	}
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common")
-	overrides := common.GetStackOverrides(stackName)
-	template, err := templates.NewTemplate("common-iam.yml", nil, overrides)
-	if err != nil {
-		return err
-	}
 	stackTags := map[string]string{
 		"mu:type": "iam",
 	}
@@ -102,7 +98,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		"Namespace": rolesetMgr.context.Config.Namespace,
 	}
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "common-iam.yml", nil, stackParams, stackTags, "")
 	if err != nil {
 		// ignore error if stack is in progress already
 		if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
@@ -144,11 +140,6 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	}
 
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "environment", environmentName)
-	overrides := common.GetStackOverrides(stackName)
-	template, err := templates.NewTemplate("env-iam.yml", environment, overrides)
-	if err != nil {
-		return err
-	}
 	stackTags := map[string]string{
 		"mu:type":        "iam",
 		"mu:environment": environmentName,
@@ -166,7 +157,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		stackParams["EnableConsul"] = "true"
 	}
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "env-iam.yml", environment, stackParams, stackTags, "")
 	if err != nil {
 		return err
 	}
@@ -189,12 +180,6 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		return nil
 	}
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "service", serviceName, environmentName)
-	overrides := common.GetStackOverrides(stackName)
-	template, err := templates.NewTemplate("service-iam.yml", rolesetMgr.context.Config.Service, overrides)
-	if err != nil {
-		return err
-	}
-
 	envProvider := ""
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
@@ -232,7 +217,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"Provider":        envProvider,
 	}
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, "")
 	if err != nil {
 		return err
 	}
@@ -255,11 +240,6 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 		return nil
 	}
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "pipeline", serviceName)
-	overrides := common.GetStackOverrides(stackName)
-	template, err := templates.NewTemplate("pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, overrides)
-	if err != nil {
-		return err
-	}
 	stackTags := map[string]string{
 		"mu:type":     "iam",
 		"mu:service":  serviceName,
@@ -274,6 +254,12 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 		"ServiceName":    serviceName,
 		"SourceProvider": pipelineConfig.Source.Provider,
 		"SourceRepo":     pipelineConfig.Source.Repo,
+	}
+
+	if pipelineConfig.Source.Provider == "S3" {
+		repoParts := strings.Split(pipelineConfig.Source.Repo, "/")
+		stackParams["SourceBucket"] = repoParts[0]
+		stackParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
 	}
 
 	if pipelineConfig.Acceptance.Environment != "" {
@@ -295,7 +281,7 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 	stackParams["AcptCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 	stackParams["ProdCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, template, stackParams, stackTags, "")
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, "")
 	if err != nil {
 		return err
 	}

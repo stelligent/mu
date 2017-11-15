@@ -1,0 +1,5 @@
+Resources:
+  # Define a new bucket
+  ExtraBucket:
+    Type: AWS::S3::Bucket
+

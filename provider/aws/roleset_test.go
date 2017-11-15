@@ -4,7 +4,6 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io"
 	"testing"
 )
 
@@ -13,7 +12,7 @@ type mockedRolesetStackManager struct {
 	common.StackManager
 }
 
-func (m *mockedRolesetStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error {
+func (m *mockedRolesetStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }

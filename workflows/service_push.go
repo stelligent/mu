@@ -35,7 +35,7 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, dockerWr
 func (workflow *serviceWorkflow) serviceImageBuilder(imageBuilder common.DockerImageBuilder, config *common.Config, dockerWriter io.Writer) Executor {
 	return func() error {
 		log.Noticef("Building service:'%s' as image:%s'", workflow.serviceName, workflow.serviceImage)
-		return imageBuilder.ImageBuild(config.Basedir, config.Service.Dockerfile, []string{workflow.serviceImage}, dockerWriter)
+		return imageBuilder.ImageBuild(config.Basedir, workflow.serviceName, config.Service.Dockerfile, []string{workflow.serviceImage}, dockerWriter)
 	}
 }
 

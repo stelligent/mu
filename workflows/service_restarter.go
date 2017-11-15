@@ -14,7 +14,7 @@ func NewServiceRestarter(ctx *common.Context, environmentName string, serviceNam
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceRestarter(ctx.Config.Namespace, ctx.TaskManager, environmentName, serviceName, batchSize),
+		workflow.serviceRestarter(ctx.Config.Namespace, ctx.TaskManager, environmentName, workflow.serviceName, batchSize),
 	)
 }
 

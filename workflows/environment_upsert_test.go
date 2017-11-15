@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v2"
-	"io"
 	"testing"
 )
 
@@ -63,7 +62,7 @@ func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common
 	}
 	return rtn.(*common.Stack)
 }
-func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateBodyReader io.Reader, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
+func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateName string, templateData interface{}, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
 	args := m.Called(stackName, stackParameters)
 	return args.Error(0)
 }

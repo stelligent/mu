@@ -2,14 +2,15 @@ package cli
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/workflows"
-	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
 	"os"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/workflows"
+	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {

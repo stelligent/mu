@@ -22,6 +22,7 @@ type Context struct {
 	TaskManager          TaskManager
 	ArtifactManager      ArtifactManager
 	RolesetManager       RolesetManager
+	ExtensionsManager    ExtensionsManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -38,18 +39,26 @@ type Config struct {
 		Branch   string
 		Provider string
 	} `yaml:"-"`
-	Templates  map[string]interface{} `yaml:"templates,omitempty"`
-	DisableIAM bool                   `yaml:"disableIAM,omitempty"`
+	Templates  map[string]interface{}       `yaml:"templates,omitempty"`
+	Parameters map[string]map[string]string `yaml:"parameters,omitempty"`
+	Tags       map[string]map[string]string `yaml:"tags,omitempty"`
+	Extensions []Extension                  `yaml:"extensions,omitempty"`
+	DisableIAM bool                         `yaml:"disableIAM,omitempty"`
 	Roles      struct {
 		CloudFormation string `yaml:"cloudFormation,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
+// Extension defines the structure of the yml file for an extension
+type Extension struct {
+	URL   string `yaml:"url,omitempty"`
+	Image string `yaml:"image,omitempty"`
+}
+
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string                 `yaml:"name,omitempty"`
-	Provider     EnvProvider            `yaml:"provider,omitempty"`
-	Tags         map[string]interface{} `yaml:"tags,omitempty"`
+	Name         string      `yaml:"name,omitempty"`
+	Provider     EnvProvider `yaml:"provider,omitempty"`
 	Loadbalancer struct {
 		HostedZone  string `yaml:"hostedzone,omitempty"`
 		Name        string `yaml:"name,omitempty"`
@@ -57,16 +66,18 @@ type Environment struct {
 		Internal    bool   `yaml:"internal,omitempty"`
 	} `yaml:"loadbalancer,omitempty"`
 	Cluster struct {
-		InstanceType      string `yaml:"instanceType,omitempty"`
-		ImageID           string `yaml:"imageId,omitempty"`
-		InstanceTenancy   string `yaml:"instanceTenancy,omitempty"`
-		DesiredCapacity   int    `yaml:"desiredCapacity,omitempty"`
-		MaxSize           int    `yaml:"maxSize,omitempty"`
-		KeyName           string `yaml:"keyName,omitempty"`
-		SSHAllow          string `yaml:"sshAllow,omitempty"`
-		ScaleOutThreshold int    `yaml:"scaleOutThreshold,omitempty"`
-		ScaleInThreshold  int    `yaml:"scaleInThreshold,omitempty"`
-		HTTPProxy         string `yaml:"httpProxy,omitempty"`
+		InstanceType            string `yaml:"instanceType,omitempty"`
+		ImageID                 string `yaml:"imageId,omitempty"`
+		ImageOsType             string `yaml:"osType,omitempty"`
+		InstanceTenancy         string `yaml:"instanceTenancy,omitempty"`
+		DesiredCapacity         int    `yaml:"desiredCapacity,omitempty"`
+		MinSize                 int    `yaml:"minSize,omitempty"`
+		MaxSize                 int    `yaml:"maxSize,omitempty"`
+		KeyName                 string `yaml:"keyName,omitempty"`
+		SSHAllow                string `yaml:"sshAllow,omitempty"`
+		TargetCPUReservation    int    `yaml:"targetCPUReservation,omitempty"`
+		TargetMemoryReservation int    `yaml:"targetMemoryReservation,omitempty"`
+		HTTPProxy               string `yaml:"httpProxy,omitempty"`
 	} `yaml:"cluster,omitempty"`
 	Discovery struct {
 		Provider      string            `yaml:"provider,omitempty"`
@@ -87,44 +98,54 @@ type Environment struct {
 
 // Service defines the structure of the yml file for a service
 type Service struct {
-	Name            string                 `yaml:"name,omitempty"`
-	DesiredCount    int                    `yaml:"desiredCount,omitempty"`
-	Dockerfile      string                 `yaml:"dockerfile,omitempty"`
-	ImageRepository string                 `yaml:"imageRepository,omitempty"`
-	Port            int                    `yaml:"port,omitempty"`
-	Protocol        string                 `yaml:"protocol,omitempty"`
-	HealthEndpoint  string                 `yaml:"healthEndpoint,omitempty"`
-	CPU             int                    `yaml:"cpu,omitempty"`
-	Memory          int                    `yaml:"memory,omitempty"`
-	Environment     map[string]interface{} `yaml:"environment,omitempty"`
-	Tags            map[string]interface{} `yaml:"tags,omitempty"`
-	PathPatterns    []string               `yaml:"pathPatterns,omitempty"`
-	HostPatterns    []string               `yaml:"hostPatterns,omitempty"`
-	Priority        int                    `yaml:"priority,omitempty"`
-	Pipeline        Pipeline               `yaml:"pipeline,omitempty"`
-	Database        Database               `yaml:"database,omitempty"`
-	Roles           struct {
-		Ec2Instance string `yaml:"ec2Instance,omitempty"`
-		CodeDeploy  string `yaml:"codeDeploy,omitempty"`
-		EcsService  string `yaml:"ecsService,omitempty"`
-		EcsTask     string `yaml:"ecsTask,omitempty"`
+	Name                 string                 `yaml:"name,omitempty"`
+	DesiredCount         int                    `yaml:"desiredCount,omitempty"`
+	MinSize              int                    `yaml:"minSize,omitempty"`
+	MaxSize              int                    `yaml:"maxSize,omitempty"`
+	Dockerfile           string                 `yaml:"dockerfile,omitempty"`
+	ImageRepository      string                 `yaml:"imageRepository,omitempty"`
+	Port                 int                    `yaml:"port,omitempty"`
+	Protocol             string                 `yaml:"protocol,omitempty"`
+	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
+	CPU                  int                    `yaml:"cpu,omitempty"`
+	Memory               int                    `yaml:"memory,omitempty"`
+	Environment          map[string]interface{} `yaml:"environment,omitempty"`
+	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
+	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
+	Priority             int                    `yaml:"priority,omitempty"`
+	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
+	Database             Database               `yaml:"database,omitempty"`
+	Schedule             []Schedule             `yaml:"schedules,omitempty"`
+	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
+	Roles                struct {
+		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
+		CodeDeploy             string `yaml:"codeDeploy,omitempty"`
+		EcsEvents              string `yaml:"ecsEvents,omitempty"`
+		EcsService             string `yaml:"ecsService,omitempty"`
+		EcsTask                string `yaml:"ecsTask,omitempty"`
+		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
 // Database definition
 type Database struct {
-	Name              string                 `yaml:"name,omitempty"`
-	Tags              map[string]interface{} `yaml:"tags,omitempty"`
-	InstanceClass     string                 `yaml:"instanceClass,omitempty"`
-	Engine            string                 `yaml:"engine,omitempty"`
-	IamAuthentication bool                   `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string                 `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string                 `yaml:"allocatedStorage,omitempty"`
+	Name              string `yaml:"name,omitempty"`
+	InstanceClass     string `yaml:"instanceClass,omitempty"`
+	Engine            string `yaml:"engine,omitempty"`
+	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
+}
+
+// Schedule definition
+type Schedule struct {
+	Name       string   `yaml:"name,omitempty"`
+	Expression string   `yaml:"expression,omitempty"`
+	Command    []string `yaml:"command,omitempty"`
 }
 
 // Pipeline definition
 type Pipeline struct {
-	Tags   map[string]interface{} `yaml:"tags,omitempty"`
 	Source struct {
 		Provider string `yaml:"provider,omitempty"`
 		Repo     string `yaml:"repo,omitempty"`
@@ -244,6 +265,7 @@ const (
 	StackTypeService                = "service"
 	StackTypePipeline               = "pipeline"
 	StackTypeDatabase               = "database"
+	StackTypeSchedule               = "schedule"
 	StackTypeBucket                 = "bucket"
 )
 

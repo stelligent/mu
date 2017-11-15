@@ -12,6 +12,10 @@ Parameters:
     Type: String
     Description: Instance type to use.
     Default: t2.micro
+  MinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched in your ECS cluster
   DesiredCapacity:
     Type: Number
     Default: '1'
@@ -31,18 +35,26 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  ScaleOutThreshold:
-    Description: Threshold at which a scale out event will be initiated
+  TargetCPUReservation:
+    Description: Target CPU reservation % for autoscaling
     Type: Number
     Default: '75'
-  ScaleInThreshold:
-    Description: Threshold at which a scale in event will be initiated
+  TargetMemoryReservation:
+    Description: Target Memory reservation % for autoscaling
     Type: Number
-    Default: '30'
+    Default: '75'
   ImageId:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
@@ -156,7 +168,7 @@ Resources:
         - ","
         - Fn::ImportValue: !Sub ${InstanceSubnetIds}
       LaunchConfigurationName: !Ref ContainerInstances
-      MinSize: '1'
+      MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
       Tags:
@@ -172,62 +184,76 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  ScaleOutPolicy:
+  CPUReservationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: 1
-  ScaleInPolicy:
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref EcsCluster
+          MetricName: CPUReservation
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetCPUReservation
+  MemoryReservationPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref EcsAutoScalingGroup
       Cooldown: 300
-      ScalingAdjustment: -1
-  MemoryAlarmHigh:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-out if Memory > ${ScaleOutThreshold}% for 5 minutes
-      MetricName: MemoryReservation
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleOutThreshold
-      AlarmActions:
-      - !Ref ScaleOutPolicy
-      Dimensions:
-      - Name: ClusterName
-        Value: !Ref EcsCluster
-      ComparisonOperator: GreaterThanThreshold
-  MemoryAlarmLow:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub Scale-in if Memory < ${ScaleInThreshold}% for 5 minutes
-      MetricName: MemoryReservation
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: !Ref ScaleInThreshold
-      AlarmActions:
-      - !Ref ScaleInPolicy
-      Dimensions:
-      - Name: ClusterName
-        Value: !Ref EcsCluster
-      ComparisonOperator: LessThanThreshold
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref EcsCluster
+          MetricName: MemoryReservation
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetMemoryReservation
   ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       AWS::CloudFormation::Init:
-        config:
+        configSets:
+          amazon:
+            - commonLinux
+            - amazonLinux
+          centos7:
+            - commonLinux
+        amazonLinux:
           packages:
             yum:
               awslogs: []
               jq: []
               aws-cli: []
+          files:
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        commonLinux:
           files:
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -242,7 +268,7 @@ Resources:
                 [cfn-auto-reloader-hook]
                 triggers=post.update
                 path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region}
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region}
                 runas=root
             "/etc/awslogs/etc/proxy.conf":
               content: !Sub |
@@ -298,20 +324,6 @@ Resources:
               command: !Sub |
                 #!/bin/bash
                 echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
-          services:
-            sysvinit:
-              awslogs:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/awslogs/awslogs.conf"
-                - "/etc/awslogs/etc/proxy.conf"
-              cfn-hup:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/cfn/cfn-hup.conf"
-                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
@@ -369,7 +381,7 @@ Resources:
 
 
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
