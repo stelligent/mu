@@ -141,6 +141,31 @@ Resources:
              - cloudwatch:GetMetricStatistics
              - cloudwatch:PutMetricAlarm
              Resource: "*"
+  EcsEventsRole:
+    Type: AWS::IAM::Role
+    Condition: IsEcsService
+    Properties:
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-events-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - events.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RunTask
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
 
   EcsServiceRole:
     Type: AWS::IAM::Role
@@ -199,6 +224,13 @@ Outputs:
       Fn::If:
       - IsEc2Service
       - !GetAtt CodeDeployRole.Arn
+      - ''
+  EcsEventsRoleArn:
+    Description: Role assummed by CloudWatch events
+    Value:
+      Fn::If:
+      - IsEcsService
+      - !GetAtt EcsEventsRole.Arn
       - ''
   EcsServiceRoleArn:
     Description: Role assummed by ECS Service

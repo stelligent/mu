@@ -115,10 +115,12 @@ type Service struct {
 	Priority             int                    `yaml:"priority,omitempty"`
 	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
 	Database             Database               `yaml:"database,omitempty"`
+	Schedule             []Schedule             `yaml:"schedules,omitempty"`
 	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
 	Roles                struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy             string `yaml:"codeDeploy,omitempty"`
+		EcsEvents              string `yaml:"ecsEvents,omitempty"`
 		EcsService             string `yaml:"ecsService,omitempty"`
 		EcsTask                string `yaml:"ecsTask,omitempty"`
 		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty"`
@@ -133,6 +135,13 @@ type Database struct {
 	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
 	MasterUsername    string `yaml:"masterUsername,omitempty"`
 	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
+}
+
+// Schedule definition
+type Schedule struct {
+	Name       string   `yaml:"name,omitempty"`
+	Expression string   `yaml:"expression,omitempty"`
+	Command    []string `yaml:"command,omitempty"`
 }
 
 // Pipeline definition
@@ -256,6 +265,7 @@ const (
 	StackTypeService                = "service"
 	StackTypePipeline               = "pipeline"
 	StackTypeDatabase               = "database"
+	StackTypeSchedule               = "schedule"
 	StackTypeBucket                 = "bucket"
 )
 

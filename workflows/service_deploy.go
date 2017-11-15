@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stelligent/mu/common"
 	"strconv"
@@ -26,12 +27,14 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				// TODO - placeholder for doing serviceCreateSchedules for EC2, leaving out-of-scope per @cplee
 			),
 		),
 	)
@@ -93,6 +96,12 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 		if err != nil {
 			return err
 		}
+
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+		workflow.ecsEventsRoleArn = serviceRoleset["EcsEventsRoleArn"]
 
 		return nil
 	}
@@ -310,10 +319,55 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
+		workflow.microserviceTaskDefinitionArn = stack.Outputs["MicroserviceTaskDefinitionArn"]
 
 		return nil
 	}
+}
 
+func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, environmentName string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
+	return func() error {
+		log.Noticef("Creating schedules for service '%s' to '%s'", workflow.serviceName, environmentName)
+		for _, schedule := range service.Schedule {
+			params := make(map[string]string)
+
+			params["ServiceName"] = workflow.serviceName
+			params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
+			params["MicroserviceTaskDefinitionArn"] = workflow.microserviceTaskDefinitionArn
+			params["EcsEventsRoleArn"] = workflow.ecsEventsRoleArn
+
+			// these parameters are specific to each of the defined schedules
+			params["ScheduleExpression"] = schedule.Expression
+			commandBytes, err := json.Marshal(schedule.Command)
+			if err != nil {
+				return err
+			}
+			params["ScheduleCommand"] = string(commandBytes)
+
+			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
+			resolveServiceEnvironment(service, environmentName)
+
+			tags := createTagMap(&ScheduleTags{
+				Service:     workflow.serviceName,
+				Environment: environmentName,
+				Type:        common.StackTypeSchedule,
+			})
+
+			err = stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)
+			if err != nil {
+				return err
+			}
+			log.Debugf("Waiting for stack '%s' to complete", scheduleStackName)
+			stack := stackWaiter.AwaitFinalStatus(scheduleStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", scheduleStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+		}
+		return nil
+	}
 }
 
 func resolveServiceEnvironment(service *common.Service, environment string) {

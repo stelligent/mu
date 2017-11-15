@@ -1,0 +1,41 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU scheduled task in a specific environment containing a CloudWatch event and a RuleTarget
+Parameters:
+  EcsEventsRoleArn:
+    Type: String
+    Description: ARN of IAM role for CloudWatch events to assume
+  EcsCluster:
+    Type: String
+    Description: Name of the value to import for Ecs Cluster to deploy to.
+  ScheduleExpression:
+    Type: String
+    Description: Timespec cron(* * * * ? *) or rate(timespec) of scheduled task
+  ScheduleCommand:
+    Type: String
+    Description: The command override as a JSON object (should be a JSON array)
+  ServiceName:
+    Type: String
+    Description: Name of service
+  MicroserviceTaskDefinitionArn:
+    Type: String
+    Description: TaskDefinition as a String
+Resources:
+  ScheduledRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: !Sub ${ScheduleExpression}
+      State: ENABLED
+      Targets:
+      - Id: ScheduleRuleId
+        Arn:
+          Fn::Sub:
+            - "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsClusterName}"
+            - EcsClusterName:
+                Fn::ImportValue: !Ref EcsCluster
+        RoleArn: !Ref EcsEventsRoleArn
+        Input: !Sub '{ "containerOverrides": [ { "name": "${ServiceName}", "command": ${ScheduleCommand} } ] }'
+        EcsParameters:
+          TaskDefinitionArn: !Ref MicroserviceTaskDefinitionArn
+          TaskCount: 1
+

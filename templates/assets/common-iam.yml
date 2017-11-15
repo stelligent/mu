@@ -165,6 +165,16 @@ Resources:
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
             - autoscaling:TerminateInstanceInAutoScalingGroup
+            #
+            # the cloudwatch:PutRule & cloudwatch:PutTargets
+            # are documented under http://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_PutRule.html
+            # but were filtered out by CFN. However, they appear to be under events:
+            # according to https://iam.cloudonaut.io/reference/events/PutRule.html
+            # and https://iam.cloudonaut.io/reference/events/PutTargets.html
+            # Therefore, commenting out these next two lines: (timbaileyjones)
+            #
+            #- cloudwatch:PutRule
+            #- cloudwatch:PutTargets
             - cloudwatch:PutMetricAlarm
             - cloudwatch:DeleteAlarms
             - cloudwatch:DescribeAlarmsForMetric
@@ -192,6 +202,18 @@ Resources:
             - ecs:RegisterTaskDefinition
             - ecs:DescribeTaskDefinition
             - ecs:DeregisterTaskDefinition
+            - events:DeleteRule
+            - events:DescribeRule
+            - events:DisableRule
+            - events:EnableRule
+            - events:ListRuleNamesByTarget
+            - events:ListRules
+            - events:ListTargetsByRule
+            - events:PutEvents
+            - events:PutRule
+            - events:PutTargets
+            - events:RemoveRule
+            - events:RemoveTargets
             Resource: '*'
             Effect: Allow
           - Action:
@@ -241,6 +263,7 @@ Resources:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task-${AWS::Region}
+            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-events-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance-${AWS::Region}
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy-${AWS::Region}
