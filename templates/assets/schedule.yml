@@ -61,7 +61,7 @@ Resources:
       State: ENABLED
       Targets:
       - Id: ScheduleRuleId
-        Arn: !Sub MicroserviceTaskDefinitionArn
+        Arn: !Sub ${EcsCluster}
         RoleArn: !Ref EcsServiceRoleArn
         Input: !Sub |
           '{
