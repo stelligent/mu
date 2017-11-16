@@ -173,6 +173,7 @@ type Pipeline struct {
 		Pipeline string `yaml:"pipeline,omitempty"`
 		Build    string `yaml:"build,omitempty"`
 	} `yaml:"roles,omitempty"`
+	Bucket string `yaml:"bucket,omitempty"`
 }
 
 // Stack summary

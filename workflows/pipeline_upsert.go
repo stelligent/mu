@@ -26,12 +26,18 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	stackParams := make(map[string]string)
 
+	bucketExists := func() bool {
+		return ctx.Config.Service.Pipeline.Bucket == ""
+	}
+
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
-		workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(bucketExists,
+			nil,
+			workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager)),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
-		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams),
-	)
+		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
+
 }
 
 // Setup the artifact bucket

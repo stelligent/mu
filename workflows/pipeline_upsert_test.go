@@ -1,10 +1,11 @@
 package workflows
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestNewPipelineUpserter(t *testing.T) {
@@ -21,6 +22,30 @@ func TestPipelineBucket(t *testing.T) {
 	workflow := new(pipelineWorkflow)
 	workflow.serviceName = "my-service"
 	workflow.pipelineConfig = new(common.Pipeline)
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-bucket-codepipeline").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-bucket-codepipeline", mock.AnythingOfType("map[string]string")).Return(nil)
+
+	err := workflow.pipelineBucket("mu", stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	stackParams := stackManager.Calls[0].Arguments.Get(1).(map[string]string)
+	assert.NotNil(stackParams)
+	assert.Equal("codepipeline", stackParams["BucketPrefix"])
+}
+
+func TestPipelineBucketConfigured(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(pipelineWorkflow)
+	workflow.serviceName = "my-service"
+	workflow.pipelineConfig = new(common.Pipeline)
+	workflow.pipelineConfig.Bucket = "mu-test-bucket"
 
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-bucket-codepipeline").Return(&common.Stack{Status: common.StackStatusCreateComplete})
