@@ -2,7 +2,6 @@ package common
 
 import (
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
@@ -39,7 +38,7 @@ service:
 
 	context := NewContext()
 	config := &context.Config
-	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
+	err := loadYamlConfig(config, yamlConfig)
 
 	assert.Nil(err)
 
@@ -65,6 +64,6 @@ func TestLoadBadYamlConfig(t *testing.T) {
 
 	context := NewContext()
 	config := &context.Config
-	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
+	err := loadYamlConfig(config, yamlConfig)
 	assert.NotNil(err)
 }
