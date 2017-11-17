@@ -1,10 +1,11 @@
 package workflows
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestNewServiceDeployer(t *testing.T) {
@@ -62,6 +63,7 @@ func TestServiceApplyCommon_Create(t *testing.T) {
 	elbRuleLister.AssertExpectations(t)
 	elbRuleLister.AssertNumberOfCalls(t, "ListRules", 1)
 }
+
 func TestServiceApplyCommon_Update(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)

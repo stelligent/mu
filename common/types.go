@@ -147,6 +147,7 @@ type Pipeline struct {
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
+		Bucket      string `yaml:"bucket,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`

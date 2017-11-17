@@ -2,9 +2,10 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment
@@ -15,6 +16,10 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	workflow.repoName = ctx.Config.Repo.Slug
 
 	stackParams := make(map[string]string)
+
+	bucketExists := func() bool {
+		return ctx.Config.Service.Pipeline.Build.Bucket == ""
+	}
 
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
@@ -28,7 +33,9 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
-				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				newConditionalExecutor(bucketExists,
+					nil,
+					workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager)),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
