@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -116,12 +117,39 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	if err != nil {
 		return err
 	}
-	yamlContentString := substituteEnvironmentVariable(string(yamlContent))
+	yamlContentString := SubstituteEnvironmentVariable(string(yamlContent))
 
 	return ctx.InitializeConfig(yamlContentString)
 }
-func substituteEnvironmentVariable(input string) string {
-	return input
+
+// SubstituteEnvironmentVariable performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariable(input string) string {
+	output := input
+	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
+	// find first match
+	matches := pattern.FindStringIndex(output)
+	// as long as there are more ${env:XXX} patterns....
+	for len(matches) > 0 {
+		//log.Debugf("matches: %v", matches)
+		//log.Debugf("matches[%d] = %v", matches[0], output[matches[0]:]);
+		//log.Debugf("matches[%d] = %v", matches[1], output[matches[1]:]);
+
+		// grab the name between ${env: and }
+		name := output[matches[0]+6 : matches[1]-1]
+		// look it up
+		value := os.Getenv(name)
+		//log.Debugf("value '%v'", value)
+
+		// substitute it
+		output = output[0:matches[0]] + value + output[matches[1]:]
+		//log.Debugf("output '%v'", output)
+
+		// try to find another match
+		matches = pattern.FindStringIndex(output)
+	}
+	// all done!
+	// log.Debugf("output: %s", output)
+	return output
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
