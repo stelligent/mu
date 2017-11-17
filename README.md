@@ -72,4 +72,3 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 * Build with `make`
 * Run unit tests with `make test`
 * Run end-to-end tests with `make e2e`...takes about 30 minutes and will incur charges in your AWS account.
-
