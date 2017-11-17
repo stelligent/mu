@@ -69,10 +69,7 @@ environments:
   - shell: prefix/${env:SHELL}/suffix
   - junk: prejunk/${env:junkymcjunkface}/postjunk
 `)
-	substStream, err := SubstituteEnvironmentVariablesAsStream(inputStream)
-	if err != nil {
-		assert.Fail("couldn't SubstituteEnvironmentVariablesAsStream: %v", err)
-	}
+	substStream := SubstituteEnvironmentVariablesAsStream(inputStream)
 
 	outputBuffer, err := ioutil.ReadAll(substStream)
 	if err != nil {

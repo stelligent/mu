@@ -124,7 +124,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 		yamlFile.Close()
 	}()
 
-	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
+	return ctx.InitializeConfig(SubstituteEnvironmentVariablesAsStream(bufio.NewReader(yamlFile)))
 }
 
 // SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
@@ -158,13 +158,15 @@ func SubstituteEnvironmentVariablesAsString(input string) string {
 }
 
 // SubstituteEnvironmentVariablesAsStream performns environment variable substitution according to Issue #209 (Dynamic Variables)
-func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) (io.Reader, error) {
+func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) io.Reader {
 	input, err := ioutil.ReadAll(inputStream)
 	if err != nil {
-		return nil, err
+		log.Fatal("couldn't ReadAll from inputStream")
+		os.Exit(1)
 	}
 	output := SubstituteEnvironmentVariablesAsString(string(input))
-	return strings.NewReader(output), nil
+	retStream := strings.NewReader(output)
+	return retStream
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
