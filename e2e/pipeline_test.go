@@ -123,7 +123,7 @@ func waitForPipeline(ctx *common.Context) error {
 	for isRunning {
 		time.Sleep(30 * time.Second)
 
-		pipelineName := fmt.Sprintf("mu-%s", ctx.Config.Repo.Name)
+		pipelineName := fmt.Sprintf("%s-%s", ctx.Config.Namespace, ctx.Config.Repo.Name)
 		states, err := ctx.PipelineManager.ListState(pipelineName)
 		if err != nil {
 			return err
@@ -274,7 +274,12 @@ func updateMuYaml(muConfigFile string, muBaseurl string, muVersion string) error
 func initContext(muConfigFile string) (*common.Context, error) {
 	// initialize context
 	context := common.NewContext()
-	context.Config.Namespace = "mu"
+	namespace := os.Getenv("MU_NAMESPACE")
+	if namespace != "" {
+		context.Config.Namespace = namespace
+	} else {
+		context.Config.Namespace = "mu"
+	}
 	err := context.InitializeContext()
 	if err != nil {
 		return nil, err
