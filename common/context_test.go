@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -54,6 +55,33 @@ service:
 	assert.Equal(5, config.Environments[1].Cluster.MaxSize)
 
 	assert.Equal(2, config.Service.DesiredCount)
+
+}
+
+func TestSubstituteEnvironmentVariables(t *testing.T) {
+	assert := assert.New(t)
+	input := `
+---
+environments:
+  - name: prefix/${env:LOGNAME}/suffix
+  - home: prefix/${env:HOME}/suffix
+  - shell: prefix/${env:SHELL}/suffix
+  - junk: prejunk/${env:junkymcjunkface}/postjunk
+`
+	output := SubstituteEnvironmentVariable(input)
+
+	assert.NotContains(output, "LOGNAME")
+	assert.Contains(output, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
+
+	assert.NotContains(output, "HOME")
+	assert.Contains(output, "prefix/"+os.Getenv("HOME")+"/suffix")
+
+	assert.NotContains(output, "SHELL")
+	assert.Contains(output, "prefix/"+os.Getenv("SHELL")+"/suffix")
+
+	// this variable should never exist, and should be replaced with nothing
+	assert.NotContains(output, "junkymcjunkface")
+	assert.Contains(output, "prejunk//postjunk")
 
 }
 
