@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -126,8 +127,8 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }
 
-// SubstituteEnvironmentVariable performns environment variable substitution according to Issue #209 (Dynamic Variables)
-func SubstituteEnvironmentVariable(input string) string {
+// SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariablesAsString(input string) string {
 	output := input
 	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
 	// find first match
@@ -154,6 +155,16 @@ func SubstituteEnvironmentVariable(input string) string {
 	// all done!
 	// log.Debugf("output: %s", output)
 	return output
+}
+
+// SubstituteEnvironmentVariablesAsStream performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) (io.Reader, error) {
+	input, err := ioutil.ReadAll(inputStream)
+	if err != nil {
+		return nil, err
+	}
+	output := SubstituteEnvironmentVariablesAsString(string(input))
+	return strings.NewReader(output), nil
 }
 
 func getRelMuFile(absMuFile string) (string, error) {

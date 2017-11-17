@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -56,20 +57,30 @@ service:
 	assert.Equal(5, config.Environments[1].Cluster.MaxSize)
 
 	assert.Equal(2, config.Service.DesiredCount)
-
 }
 
-func TestSubstituteEnvironmentVariables(t *testing.T) {
+func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
 	assert := assert.New(t)
-	input := `
+	inputStream := strings.NewReader(`
 ---
 environments:
   - name: prefix/${env:LOGNAME}/suffix
   - home: prefix/${env:HOME}/suffix
   - shell: prefix/${env:SHELL}/suffix
   - junk: prejunk/${env:junkymcjunkface}/postjunk
-`
-	output := SubstituteEnvironmentVariable(input)
+`)
+	substStream, err := SubstituteEnvironmentVariablesAsStream(inputStream)
+	if err != nil {
+		assert.Fail("couldn't SubstituteEnvironmentVariablesAsStream: %v", err)
+	}
+
+	outputBuffer, err := ioutil.ReadAll(substStream)
+	if err != nil {
+		assert.Fail("couldn't ReadAll on substStream: %v", err)
+	}
+	output := string(outputBuffer)
+
+	log.Infof("output: %v", output)
 
 	assert.NotContains(output, "LOGNAME")
 	assert.Contains(output, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
@@ -83,7 +94,6 @@ environments:
 	// this variable should never exist, and should be replaced with nothing
 	assert.NotContains(output, "junkymcjunkface")
 	assert.Contains(output, "prejunk//postjunk")
-
 }
 
 func TestLoadBadYamlConfig(t *testing.T) {
