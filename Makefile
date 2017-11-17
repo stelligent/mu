@@ -62,9 +62,9 @@ test: lint gen nag
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
-	go test -v -cover $(SRC_FILES) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
+	go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml
 else
-	go test -cover $(SRC_FILES) -short
+	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 e2e: gen stage keypair
@@ -166,6 +166,9 @@ all: clean deps test build
 fmt:
 	@echo "=== formatting ==="
 	go fmt $(SRC_FILES)
+
+changelog:
+	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN)
 
 
 .PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage

@@ -125,6 +125,13 @@ type ServiceTags struct {
 	Repo        string `tag:"repo"`
 }
 
+// ScheduleTags used to set defaults
+type ScheduleTags struct {
+	Service     string `tag:"service"`
+	Environment string `tag:"environment"`
+	Type        string `tag:"type"`
+}
+
 // PipelineTags used to set defaults
 type PipelineTags struct {
 	Type     string `tag:"type"`

@@ -307,12 +307,12 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 	// log info about the new extension
 	if name, ok := extManifest["name"]; ok {
 		if version, ok := extManifest["version"]; ok {
-			log.Infof("Loaded extension %s (version=%v)", name, version)
+			log.Noticef("Loaded extension %s (version=%v)", name, version)
 		} else {
-			log.Infof("Loaded extension %s", name)
+			log.Noticef("Loaded extension %s", name)
 		}
 	} else {
-		log.Infof("Loaded extension %s", u)
+		log.Noticef("Loaded extension %s", u)
 	}
 
 	return ext, nil
