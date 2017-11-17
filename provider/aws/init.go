@@ -16,7 +16,7 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 
 	if region != common.Empty {
-		sessOptions.Config = aws.Config{Region: aws.String(region)}
+		sessOptions.Config.Region = aws.String(region)
 	}
 	if proxy != common.Empty {
 		proxyHTTPClient := &http.Client{
@@ -26,11 +26,12 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 				},
 			},
 		}
-		sessOptions.Config = aws.Config{HTTPClient: proxyHTTPClient}
+		sessOptions.Config.HTTPClient = proxyHTTPClient
 	}
 	if profile != common.Empty {
 		sessOptions.Profile = profile
 	}
+
 	log.Debugf("Creating AWS session profile:%s region:%s proxy:%s", profile, region, proxy)
 	sess, err := session.NewSessionWithOptions(sessOptions)
 	if err != nil {
