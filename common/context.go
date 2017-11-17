@@ -1,9 +1,11 @@
 package common
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -113,13 +115,15 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	log.Debugf("Setting repo slug=%s", ctx.Config.Repo.Slug)
 
 	// load yaml config
-	yamlContent, err := ioutil.ReadFile(absMuFile)
+	yamlFile, err := os.Open(absMuFile)
 	if err != nil {
 		return err
 	}
-	yamlContentString := SubstituteEnvironmentVariable(string(yamlContent))
+	defer func() {
+		yamlFile.Close()
+	}()
 
-	return ctx.InitializeConfig(yamlContentString)
+	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
 }
 
 // SubstituteEnvironmentVariable performns environment variable substitution according to Issue #209 (Dynamic Variables)
@@ -182,9 +186,10 @@ func getRelMuFile(absMuFile string) (string, error) {
 }
 
 // InitializeConfig loads config object
-func (ctx *Context) InitializeConfig(yamlContent string) error {
+func (ctx *Context) InitializeConfig(configReader io.Reader) error {
+
 	// load the configuration
-	err := loadYamlConfig(&ctx.Config, yamlContent)
+	err := loadYamlConfig(&ctx.Config, configReader)
 	if err != nil {
 		return err
 	}
@@ -266,8 +271,10 @@ func (ctx *Context) InitializeContext() error {
 	return nil
 }
 
-func loadYamlConfig(config *Config, muContents string) error {
-	return yaml.Unmarshal([]byte(muContents), config)
+func loadYamlConfig(config *Config, yamlReader io.Reader) error {
+	yamlBuffer := new(bytes.Buffer)
+	yamlBuffer.ReadFrom(yamlReader)
+	return yaml.Unmarshal(yamlBuffer.Bytes(), config)
 }
 
 func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
