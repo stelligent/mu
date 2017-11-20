@@ -8,7 +8,7 @@ type RolesetUpserter interface {
 	UpsertCommonRoleset() error
 	UpsertEnvironmentRoleset(environmentName string) error
 	UpsertServiceRoleset(environmentName string, serviceName string) error
-	UpsertPipelineRoleset(serviceName string) error
+	UpsertPipelineRoleset(serviceName string, pipelineBucket string) error
 }
 
 // RolesetGetter for getting a roleset

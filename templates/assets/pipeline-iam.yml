@@ -8,6 +8,9 @@ Parameters:
   ServiceName:
     Type: String
     Description: Name of service used for resource namespace
+  PipelineBucket:
+    Type: String
+    Description: Name of bucket to use for the CodePipeline artifacts
   SourceProvider:
     Type: String
     Description: Provider for source repo
@@ -171,18 +174,12 @@ Resources:
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - Fn::Sub:
-              - arn:aws:s3:::${BucketName}/*
-              - BucketName:
-                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
             Effect: Allow
           - Action:
             - s3:GetBucketVersioning
             Resource:
-            - Fn::Sub:
-              - arn:aws:s3:::${BucketName}
-              - BucketName:
-                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            - Fn::Sub: arn:aws:s3:::${PipelineBucket}
             Effect: Allow
           - Action:
             - iam:PassRole
@@ -239,18 +236,12 @@ Resources:
           - s3:GetObjectVersion
           - s3:PutObject
           Resource:
-          - Fn::Sub:
-            - arn:aws:s3:::${BucketName}/*
-            - BucketName:
-                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
           Effect: Allow
         - Action:
           - s3:GetBucketVersioning
           Resource:
-          - Fn::Sub:
-            - arn:aws:s3:::${BucketName}
-            - BucketName:
-                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          - Fn::Sub: arn:aws:s3:::${PipelineBucket}
           Effect: Allow
 
   CodeBuildCIRole:
