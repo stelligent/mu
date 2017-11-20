@@ -1,5 +1,19 @@
 # Change Log
 
+## [v1.2.1-develop](https://github.com/stelligent/mu/tree/v1.2.1-develop) (2017-11-16)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.2...v1.2.1-develop)
+
+## [v1.1.2](https://github.com/stelligent/mu/tree/v1.1.2) (2017-11-16)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.1...v1.1.2)
+
+**Fixed bugs:**
+
+- Issue with mu env -f json [\#221](https://github.com/stelligent/mu/issues/221)
+
+**Merged pull requests:**
+
+- fix \#221 [\#222](https://github.com/stelligent/mu/pull/222) ([cplee](https://github.com/cplee))
+
 ## [v1.1.1](https://github.com/stelligent/mu/tree/v1.1.1) (2017-11-15)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.0.6...v1.1.1)
 
@@ -12,6 +26,7 @@
 - Allow referencing external files for templates [\#167](https://github.com/stelligent/mu/issues/167)
 - Nested mu.yml files [\#162](https://github.com/stelligent/mu/issues/162)
 - Scheduled tasks [\#158](https://github.com/stelligent/mu/issues/158)
+- Issue 158 scheduled tasks [\#217](https://github.com/stelligent/mu/pull/217) ([timbaileyjones](https://github.com/timbaileyjones))
 - Template splice [\#215](https://github.com/stelligent/mu/pull/215) ([cplee](https://github.com/cplee))
 - issue-176 Added S3 Source option to CodePipeline [\#198](https://github.com/stelligent/mu/pull/198) ([akuma12](https://github.com/akuma12))
 
@@ -24,7 +39,6 @@
 **Merged pull requests:**
 
 - v1.1.1 [\#218](https://github.com/stelligent/mu/pull/218) ([cplee](https://github.com/cplee))
-- Issue 158 scheduled tasks [\#217](https://github.com/stelligent/mu/pull/217) ([timbaileyjones](https://github.com/timbaileyjones))
 - Issue 171 and 177 [\#213](https://github.com/stelligent/mu/pull/213) ([cplee](https://github.com/cplee))
 - Extensions [\#210](https://github.com/stelligent/mu/pull/210) ([cplee](https://github.com/cplee))
 - Only install cfn-nag if needed. Add GOPATH to PATH [\#207](https://github.com/stelligent/mu/pull/207) ([jeremyhahn](https://github.com/jeremyhahn))

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -123,6 +125,48 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	}()
 
 	return ctx.InitializeConfig(SubstituteEnvironmentVariablesAsStream(bufio.NewReader(yamlFile)))
+}
+
+// SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariablesAsString(input string) string {
+	output := input
+	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
+	// find first match
+	matches := pattern.FindStringIndex(output)
+	// as long as there are more ${env:XXX} patterns....
+	for len(matches) > 0 {
+		//log.Debugf("matches: %v", matches)
+		//log.Debugf("matches[%d] = %v", matches[0], output[matches[0]:]);
+		//log.Debugf("matches[%d] = %v", matches[1], output[matches[1]:]);
+
+		// grab the name between ${env: and }
+		name := output[matches[0]+6 : matches[1]-1]
+		// look it up
+		value := os.Getenv(name)
+		//log.Debugf("value '%v'", value)
+
+		// substitute it
+		output = output[0:matches[0]] + value + output[matches[1]:]
+		//log.Debugf("output '%v'", output)
+
+		// try to find another match
+		matches = pattern.FindStringIndex(output)
+	}
+	// all done!
+	// log.Debugf("output: %s", output)
+	return output
+}
+
+// SubstituteEnvironmentVariablesAsStream performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) io.Reader {
+	input, err := ioutil.ReadAll(inputStream)
+	if err != nil {
+		log.Fatal("couldn't ReadAll from inputStream")
+		os.Exit(1)
+	}
+	output := SubstituteEnvironmentVariablesAsString(string(input))
+	retStream := strings.NewReader(output)
+	return retStream
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
