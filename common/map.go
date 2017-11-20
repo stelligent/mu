@@ -55,8 +55,6 @@ func spliceOperation(destVal reflect.Value, srcVal reflect.Value) (bool, reflect
 			for i := 0; i < newSlice.Len(); i++ {
 				if i < mergeCount && (start+i) < destVal.Len() {
 					// merge
-					log.Errorf("destval:%v", destVal)
-					log.Errorf("newSlice:%v", newSlice)
 					_, mergedElement := appendOperation(valueOfInterface(destVal.Index(start+i)), valueOfInterface(newSlice.Index(i)))
 					returnVal = reflect.Append(returnVal, mergedElement)
 				} else {

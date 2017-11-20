@@ -64,6 +64,7 @@ func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, s
 
 	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
 	overrideRole(roleset, "CodeDeployRoleArn", rolesetMgr.context.Config.Service.Roles.CodeDeploy)
+	overrideRole(roleset, "EcsEventsRoleArn", rolesetMgr.context.Config.Service.Roles.EcsEvents)
 	overrideRole(roleset, "EcsServiceRoleArn", rolesetMgr.context.Config.Service.Roles.EcsService)
 	overrideRole(roleset, "EcsTaskRoleArn", rolesetMgr.context.Config.Service.Roles.EcsTask)
 	overrideRole(roleset, "ApplicationAutoScalingRoleArn", rolesetMgr.context.Config.Service.Roles.ApplicationAutoScaling)
