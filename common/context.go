@@ -122,7 +122,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 		yamlFile.Close()
 	}()
 
-	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
+	return ctx.InitializeConfig(SubstituteEnvironmentVariablesAsStream(bufio.NewReader(yamlFile)))
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
