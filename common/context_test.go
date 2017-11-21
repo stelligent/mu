@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bufio"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -81,8 +80,7 @@ func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
   - junk: prejunk/${env:junkymcjunkface}/postjunk `
 
 	reader := strings.NewReader(input)
-	scanner := bufio.NewScanner(reader)
-	evaluator := &EnvironmentVariableEvaluator{Scanner: *scanner}
+	evaluator := newEnvironmentReplacer(reader)
 
 	outputBytes, err := ioutil.ReadAll(evaluator)
 	if err != nil {

@@ -36,11 +36,6 @@ func NewContext() *Context {
 	return ctx
 }
 
-func newEnvironmentReplacer(yamlFile *os.File) io.Reader {
-	scanner := bufio.NewScanner(yamlFile)
-	return &EnvironmentVariableEvaluator{Scanner: *scanner}
-}
-
 // InitializeConfigFromFile loads config from file
 func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	absMuFile, err := filepath.Abs(muFile)
@@ -268,9 +263,17 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 	return u, nil
 }
 
+
 // EnvironmentVariableEvaluator implements an io.Reader
 type EnvironmentVariableEvaluator struct {
-	Scanner bufio.Scanner
+	Scanner *bufio.Scanner
+	Pattern *regexp.Regexp
+}
+
+func newEnvironmentReplacer(input io.Reader) io.Reader {
+	scanner := bufio.NewScanner(input)
+	pattern := regexp.MustCompile("\\${env:[a-zA-Z0-9_]*}")
+	return &EnvironmentVariableEvaluator{scanner, pattern}
 }
 
 // Read implements the reader interface
@@ -279,38 +282,10 @@ func (m *EnvironmentVariableEvaluator) Read(p []byte) (int, error) {
 		return 0, io.EOF
 	}
 	line := m.Scanner.Text() + "\n"
-	line = SubstituteEnvironmentVariablesAsString(line)
+	line = m.Pattern.ReplaceAllStringFunc(line, func(match string) string {
+		return os.Getenv(match[6 : len(match)-1])
+	})
 
 	bytesCopied := copy(p, []byte(line))
 	return bytesCopied, nil
-}
-
-// SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
-func SubstituteEnvironmentVariablesAsString(input string) string {
-	output := input
-	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
-	// find first match
-	matches := pattern.FindStringIndex(output)
-	// as long as there are more ${env:XXX} patterns....
-	for len(matches) > 0 {
-		//log.Debugf("matches: %v", matches)
-		//log.Debugf("matches[%d] = %v", matches[0], output[matches[0]:]);
-		//log.Debugf("matches[%d] = %v", matches[1], output[matches[1]:]);
-
-		// grab the name between ${env: and }
-		name := output[matches[0]+6 : matches[1]-1]
-		// look it up
-		value := os.Getenv(name)
-		//log.Debugf("value '%v'", value)
-
-		// substitute it
-		output = output[0:matches[0]] + value + output[matches[1]:]
-		//log.Debugf("output '%v'", output)
-
-		// try to find another match
-		matches = pattern.FindStringIndex(output)
-	}
-	// all done!
-	// log.Debugf("output: %s", output)
-	return output
 }
