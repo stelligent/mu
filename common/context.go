@@ -1,7 +1,7 @@
 package common
 
 import (
-	bufio "bufio"
+	"bufio"
 	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v2"
