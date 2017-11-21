@@ -1,13 +1,12 @@
 package common
 
 import (
+	"bufio"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
-	"bufio"
-	"io"
 )
 
 func TestNewContext(t *testing.T) {
@@ -61,40 +60,6 @@ service:
 	assert.Equal(2, config.Service.DesiredCount)
 }
 
-func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
-	assert := assert.New(t)
-	inputStream := strings.NewReader(`
----
-environments:
-  - name: prefix/${env:LOGNAME}/suffix
-  - home: prefix/${env:HOME}/suffix
-  - shell: prefix/${env:SHELL}/suffix
-  - junk: prejunk/${env:junkymcjunkface}/postjunk
-`)
-	substStream := SubstituteEnvironmentVariablesAsStream(inputStream)
-
-	outputBuffer, err := ioutil.ReadAll(substStream)
-	if err != nil {
-		assert.Fail("couldn't ReadAll on substStream: %v", err)
-	}
-	output := string(outputBuffer)
-
-	log.Infof("output1: %v", output)
-
-	assert.NotContains(output, "LOGNAME")
-	assert.Contains(output, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
-
-	assert.NotContains(output, "HOME")
-	assert.Contains(output, "prefix/"+os.Getenv("HOME")+"/suffix")
-
-	assert.NotContains(output, "SHELL")
-	assert.Contains(output, "prefix/"+os.Getenv("SHELL")+"/suffix")
-
-	// this variable should never exist, and should be replaced with nothing
-	assert.NotContains(output, "junkymcjunkface")
-	assert.Contains(output, "prejunk//postjunk")
-}
-
 func TestLoadBadYamlConfig(t *testing.T) {
 	assert := assert.New(t)
 
@@ -106,7 +71,7 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	assert.NotNil(err)
 }
 
-func TestMainForTestingStreamProcessor(t *testing.T) {
+func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
 	assert := assert.New(t)
 
 	input := `
@@ -115,18 +80,16 @@ func TestMainForTestingStreamProcessor(t *testing.T) {
   - shell: prefix/${env:SHELL}/suffix
   - junk: prejunk/${env:junkymcjunkface}/postjunk `
 
-	var reader1 io.Reader = strings.NewReader(input)
-	var reader2 *bufio.Reader = bufio.NewReader(reader1)
-	p := &StreamProcessor{ LineReader: *reader2 }
+	reader := strings.NewReader(input)
+	scanner := bufio.NewScanner(reader)
+	evaluator := &EnvironmentVariableEvaluator{Scanner: *scanner}
 
-	 outputBytes, err := ioutil.ReadAll(p)
-	 if err != nil {
-	 	log.Infof("error processing")
-	 	os.Exit(1)
-	 }
-	 outputString := string(outputBytes)
-
-	log.Infof("outputString '%v'", outputString)
+	outputBytes, err := ioutil.ReadAll(evaluator)
+	if err != nil {
+		log.Infof("error processing")
+		os.Exit(1)
+	}
+	outputString := string(outputBytes)
 
 	assert.NotContains(outputString, "LOGNAME")
 	assert.Contains(outputString, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
