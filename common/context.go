@@ -268,24 +268,18 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 // EnvironmentVariableEvaluator implements an io.Reader
 type EnvironmentVariableEvaluator struct {
 	Scanner bufio.Scanner
-	buf     bytes.Buffer
 }
 
 // Read implements the reader interface
 func (m *EnvironmentVariableEvaluator) Read(p []byte) (int, error) {
-	m.buf.Reset()
 	if !m.Scanner.Scan() {
 		return 0, io.EOF
 	}
 	line := m.Scanner.Text() + "\n"
 	line = SubstituteEnvironmentVariablesAsString(line)
-	n, werr := m.buf.Write([]byte(line))
 
-	copy(p, m.buf.Bytes())
-	if werr != nil {
-		return n, werr
-	}
-	return n, nil
+	bytesCopied := copy(p, []byte(line))
+	return bytesCopied, nil
 }
 
 // SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
