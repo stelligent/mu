@@ -36,6 +36,11 @@ func NewContext() *Context {
 	return ctx
 }
 
+func newEnvironmentReplacer(yamlFile *os.File) io.Reader {
+	scanner := bufio.NewScanner(yamlFile)
+	return &EnvironmentVariableEvaluator{Scanner: *scanner}
+}
+
 // InitializeConfigFromFile loads config from file
 func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	absMuFile, err := filepath.Abs(muFile)
@@ -122,9 +127,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	defer func() {
 		yamlFile.Close()
 	}()
-
-	scanner := bufio.NewScanner(yamlFile)
-	return ctx.InitializeConfig(&EnvironmentVariableEvaluator{Scanner: *scanner})
+	return ctx.InitializeConfig(newEnvironmentReplacer(yamlFile))
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
