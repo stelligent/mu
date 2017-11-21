@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"bufio"
+	"io"
 )
 
 func TestNewContext(t *testing.T) {
@@ -77,7 +79,7 @@ environments:
 	}
 	output := string(outputBuffer)
 
-	log.Infof("output: %v", output)
+	log.Infof("output1: %v", output)
 
 	assert.NotContains(output, "LOGNAME")
 	assert.Contains(output, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
@@ -102,4 +104,40 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	config := &context.Config
 	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
 	assert.NotNil(err)
+}
+
+func TestMainForTestingStreamProcessor(t *testing.T) {
+	assert := assert.New(t)
+
+	input := `
+  - name: prefix/${env:LOGNAME}/suffix
+  - home: prefix/${env:HOME}/suffix
+  - shell: prefix/${env:SHELL}/suffix
+  - junk: prejunk/${env:junkymcjunkface}/postjunk `
+
+	var reader1 io.Reader = strings.NewReader(input)
+	var reader2 *bufio.Reader = bufio.NewReader(reader1)
+	p := &StreamProcessor{ LineReader: *reader2 }
+
+	 outputBytes, err := ioutil.ReadAll(p)
+	 if err != nil {
+	 	log.Infof("error processing")
+	 	os.Exit(1)
+	 }
+	 outputString := string(outputBytes)
+
+	log.Infof("outputString '%v'", outputString)
+
+	assert.NotContains(outputString, "LOGNAME")
+	assert.Contains(outputString, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
+
+	assert.NotContains(outputString, "HOME")
+	assert.Contains(outputString, "prefix/"+os.Getenv("HOME")+"/suffix")
+
+	assert.NotContains(outputString, "SHELL")
+	assert.Contains(outputString, "prefix/"+os.Getenv("SHELL")+"/suffix")
+
+	// this variable should never exist, and should be replaced with nothing
+	assert.NotContains(outputString, "junkymcjunkface")
+	assert.Contains(outputString, "prejunk//postjunk")
 }

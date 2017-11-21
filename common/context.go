@@ -1,7 +1,7 @@
 package common
 
 import (
-	"bufio"
+	bufio "bufio"
 	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v2"
@@ -125,48 +125,6 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	}()
 
 	return ctx.InitializeConfig(SubstituteEnvironmentVariablesAsStream(bufio.NewReader(yamlFile)))
-}
-
-// SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
-func SubstituteEnvironmentVariablesAsString(input string) string {
-	output := input
-	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
-	// find first match
-	matches := pattern.FindStringIndex(output)
-	// as long as there are more ${env:XXX} patterns....
-	for len(matches) > 0 {
-		//log.Debugf("matches: %v", matches)
-		//log.Debugf("matches[%d] = %v", matches[0], output[matches[0]:]);
-		//log.Debugf("matches[%d] = %v", matches[1], output[matches[1]:]);
-
-		// grab the name between ${env: and }
-		name := output[matches[0]+6 : matches[1]-1]
-		// look it up
-		value := os.Getenv(name)
-		//log.Debugf("value '%v'", value)
-
-		// substitute it
-		output = output[0:matches[0]] + value + output[matches[1]:]
-		//log.Debugf("output '%v'", output)
-
-		// try to find another match
-		matches = pattern.FindStringIndex(output)
-	}
-	// all done!
-	// log.Debugf("output: %s", output)
-	return output
-}
-
-// SubstituteEnvironmentVariablesAsStream performns environment variable substitution according to Issue #209 (Dynamic Variables)
-func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) io.Reader {
-	input, err := ioutil.ReadAll(inputStream)
-	if err != nil {
-		log.Fatal("couldn't ReadAll from inputStream")
-		os.Exit(1)
-	}
-	output := SubstituteEnvironmentVariablesAsString(string(input))
-	retStream := strings.NewReader(output)
-	return retStream
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
@@ -305,4 +263,143 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 		log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
 	}
 	return u, nil
+}
+
+// DefaultChunkSize is the default amount of data read from an io.Reader
+const DefaultChunkSize = 1024 * 16
+
+// StreamProcessor implements an io.Reader
+type StreamProcessor struct {
+	LineReader bufio.Reader
+	buf  bytes.Buffer
+}
+
+// Reset the processor
+//func (m *StreamProcessor) Reset(src io.Reader) {
+//	m.Src = src
+//  m.buf.Reset()
+//}
+
+func (m *StreamProcessor) Read(p []byte) (int, error) {
+	m.buf.Reset()
+	line, err := m.LineReader.ReadString('\n')
+	if err != nil {
+		return len(line), err
+	}
+
+	log.Infof("before line %v", line)
+	line = SubstituteEnvironmentVariablesAsString(line)
+
+	log.Infof(" after line %v", line)
+
+	n, werr := m.buf.Write([]byte(line))
+
+	if werr != nil {
+		return n, werr
+	}
+	copy(p, m.buf.Bytes());
+	return n, err
+}
+
+// Replace reimplements bytes.Replace in a way that can reuse the buffer
+//func Replace(s, old, new []byte, n int, buf *bytes.Buffer) error {
+//	m := 0
+//
+//	if n != 0 {
+//		// Compute number of replacements.
+//		m = bytes.Count(s, old)
+//	}
+//
+//	if buf == nil {
+//		buf = &bytes.Buffer{}
+//	}
+//
+//	buf.Reset()
+//
+//	if m == 0 {
+//		// Just return a copy.
+//		_, err := buf.Write(s)
+//		return err
+//	}
+//
+//	if n < 0 || m < n {
+//		n = m
+//	}
+//
+//	// Apply replacements to buffer.
+//	buf.Grow(len(s) + n*(len(new)-len(old)))
+//
+//	start := 0
+//	for i := 0; i < n; i++ {
+//		j := start
+//
+//		if len(old) == 0 {
+//			if i > 0 {
+//				_, wid := utf8.DecodeRune(s[start:])
+//				j += wid
+//			}
+//		} else {
+//			j += bytes.Index(s[start:], old)
+//		}
+//
+//		if _, err := buf.Write(s[start:j]); err != nil {
+//			return err
+//		}
+//
+//		if _, err := buf.Write(new); err != nil {
+//			return err
+//		}
+//
+//		start = j + len(old)
+//	}
+//
+//	_, err := buf.Write(s[start:])
+//	return err
+//}
+
+func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) io.Reader {
+	// return substEnvVarReader{inputStream}
+
+	//type Reader interface {
+	//   Read(p []byte) (n int, err error)
+	//}
+
+	input, err := ioutil.ReadAll(inputStream)
+	if err != nil {
+		log.Fatal("couldn't ReadAll from inputStream")
+		os.Exit(1)
+	}
+	output := SubstituteEnvironmentVariablesAsString(string(input))
+	retStream := strings.NewReader(output)
+	return retStream
+}
+
+// SubstituteEnvironmentVariablesAsString performns environment variable substitution according to Issue #209 (Dynamic Variables)
+func SubstituteEnvironmentVariablesAsString(input string) string {
+	output := input
+	pattern, _ := regexp.Compile("\\$\\{env:[a-zA-Z0-9_]*\\}")
+	// find first match
+	matches := pattern.FindStringIndex(output)
+	// as long as there are more ${env:XXX} patterns....
+	for len(matches) > 0 {
+		//log.Debugf("matches: %v", matches)
+		//log.Debugf("matches[%d] = %v", matches[0], output[matches[0]:]);
+		//log.Debugf("matches[%d] = %v", matches[1], output[matches[1]:]);
+
+		// grab the name between ${env: and }
+		name := output[matches[0]+6 : matches[1]-1]
+		// look it up
+		value := os.Getenv(name)
+		//log.Debugf("value '%v'", value)
+
+		// substitute it
+		output = output[0:matches[0]] + value + output[matches[1]:]
+		//log.Debugf("output '%v'", output)
+
+		// try to find another match
+		matches = pattern.FindStringIndex(output)
+	}
+	// all done!
+	// log.Debugf("output: %s", output)
+	return output
 }
