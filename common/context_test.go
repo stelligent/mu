@@ -1,7 +1,10 @@
 package common
 
 import (
+	"bufio"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -55,7 +58,6 @@ service:
 	assert.Equal(5, config.Environments[1].Cluster.MaxSize)
 
 	assert.Equal(2, config.Service.DesiredCount)
-
 }
 
 func TestLoadBadYamlConfig(t *testing.T) {
@@ -67,4 +69,38 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	config := &context.Config
 	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
 	assert.NotNil(err)
+}
+
+func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
+	assert := assert.New(t)
+
+	input := `
+  - name: prefix/${env:LOGNAME}/suffix
+  - home: prefix/${env:HOME}/suffix
+  - shell: prefix/${env:SHELL}/suffix
+  - junk: prejunk/${env:junkymcjunkface}/postjunk `
+
+	reader := strings.NewReader(input)
+	scanner := bufio.NewScanner(reader)
+	evaluator := &EnvironmentVariableEvaluator{Scanner: *scanner}
+
+	outputBytes, err := ioutil.ReadAll(evaluator)
+	if err != nil {
+		log.Infof("error processing")
+		os.Exit(1)
+	}
+	outputString := string(outputBytes)
+
+	assert.NotContains(outputString, "LOGNAME")
+	assert.Contains(outputString, "prefix/"+os.Getenv("LOGNAME")+"/suffix")
+
+	assert.NotContains(outputString, "HOME")
+	assert.Contains(outputString, "prefix/"+os.Getenv("HOME")+"/suffix")
+
+	assert.NotContains(outputString, "SHELL")
+	assert.Contains(outputString, "prefix/"+os.Getenv("SHELL")+"/suffix")
+
+	// this variable should never exist, and should be replaced with nothing
+	assert.NotContains(outputString, "junkymcjunkface")
+	assert.Contains(outputString, "prejunk//postjunk")
 }
