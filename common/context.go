@@ -265,8 +265,6 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 	return u, nil
 }
 
-// func SubstituteEnvironmentVariablesAsStream(inputStream io.Reader) io.Reader
-
 // EnvironmentVariableEvaluator implements an io.Reader
 type EnvironmentVariableEvaluator struct {
 	Scanner bufio.Scanner
