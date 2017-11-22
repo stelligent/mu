@@ -18,6 +18,9 @@ Parameters:
     AllowedValues:
       - "ecs"
       - "ec2"
+  CodeDeployBucket:
+    Type: String
+    Description: Name of bucket to use for the CodeDeployBucket artifacts
 Conditions:
   IsEc2Service:
     "Fn::Equals":
@@ -91,8 +94,7 @@ Resources:
             - s3:ListBucketVersions
             - s3:ListMultipartUploadParts
             Resource:
-            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
-            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
+            - !Ref CodeDeployBucket
           - Effect: Allow
             Action:
             - cloudformation:DescribeStackEvents
