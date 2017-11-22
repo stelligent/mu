@@ -2,10 +2,11 @@ package workflows
 
 import (
 	"encoding/base64"
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestServiceLoader_FromConfig(t *testing.T) {
@@ -141,4 +142,33 @@ func TestServiceRepoUpserter(t *testing.T) {
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+}
+
+func TestCodeDeploy_BucketUpserter(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(serviceWorkflow)
+	workflow.serviceName = "my-service"
+
+	bucketStack := &common.Stack{
+		Status: common.StackStatusCreateComplete,
+		Outputs: map[string]string{
+			"Bucket": "foo-bucket",
+		},
+	}
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-bucket-codedeploy").Return(bucketStack)
+	stackManager.On("UpsertStack", "mu-bucket-codedeploy", mock.AnythingOfType("map[string]string")).Return(nil)
+
+	svc := new(common.Service)
+
+	err := workflow.serviceBucketUpserter("mu", svc, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	assert.Equal("foo-bucket", workflow.appRevisionBucket)
 }

@@ -16,7 +16,7 @@ func TestNewPipelineUpserter(t *testing.T) {
 	assert.NotNil(upserter)
 }
 
-func TestPipelineBucket_CreateStack(t *testing.T) {
+func TestServiceBucketUpsert_CreateStack(t *testing.T) {
 	assert := assert.New(t)
 
 	workflow := new(pipelineWorkflow)

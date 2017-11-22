@@ -188,15 +188,12 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 	}
 }
 
-func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, params map[string]string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 
-		if workflow.pipelineConfig.Bucket != "" {
-
-			params["CodeDeployBucket"] = workflow.pipelineConfig.Bucket
-
+		if service.Pipeline.Build.Bucket != "" {
+			workflow.appRevisionBucket = service.Pipeline.Build.Bucket
 		} else {
-
 			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
 			log.Noticef("Upserting Bucket for CodeDeploy")
 			bucketParams := make(map[string]string)
