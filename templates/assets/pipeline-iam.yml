@@ -11,6 +11,9 @@ Parameters:
   PipelineBucket:
     Type: String
     Description: Name of bucket to use for the CodePipeline artifacts
+  CodeDeployBucket:
+    Type: String
+    Description: Name of bucket to use for the CodeDeployBucket artifacts
   SourceProvider:
     Type: String
     Description: Provider for source repo
@@ -269,7 +272,7 @@ Resources:
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${CodeDeployBucket}/*
             Effect: Allow
           - Action:
             - cloudformation:DescribeStacks
@@ -407,7 +410,7 @@ Resources:
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${CodeDeployBucket}/*
             Effect: Allow
           - Action:
             - ssm:GetParameters
@@ -484,7 +487,7 @@ Resources:
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${CodeDeployBucket}/*
             Effect: Allow
           - Action:
             - ssm:GetParameters
@@ -553,4 +556,3 @@ Outputs:
       - IsProdEnabled
       - !GetAtt MuProdRole.Arn
       - ''
-
