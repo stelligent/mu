@@ -3,10 +3,11 @@ package workflows
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/stelligent/mu/common"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
+	"github.com/stelligent/mu/common"
 )
 
 type serviceWorkflow struct {
@@ -186,38 +187,45 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 		return nil
 	}
 }
-func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+
+func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, params map[string]string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
-		log.Noticef("Upserting Bucket for CodeDeploy")
-		bucketParams := make(map[string]string)
-		bucketParams["Namespace"] = namespace
-		bucketParams["BucketPrefix"] = "codedeploy"
 
-		tags := createTagMap(&PipelineTags{
-			Type:     common.StackTypeBucket,
-			Service:  workflow.serviceName,
-			Revision: workflow.codeRevision,
-			Repo:     workflow.repoName,
-		})
+		if workflow.pipelineConfig.Bucket != "" {
+			params["PipelineBucket"] = workflow.pipelineConfig.Bucket
+		} else {
 
-		err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, workflow.cloudFormationRoleArn)
-		if err != nil {
-			return err
+			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
+			log.Noticef("Upserting Bucket for CodeDeploy")
+			bucketParams := make(map[string]string)
+			bucketParams["Namespace"] = namespace
+			bucketParams["BucketPrefix"] = "codedeploy"
+
+			tags := createTagMap(&PipelineTags{
+				Type:     common.StackTypeBucket,
+				Service:  workflow.serviceName,
+				Revision: workflow.codeRevision,
+				Repo:     workflow.repoName,
+			})
+
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, workflow.cloudFormationRoleArn)
+			if err != nil {
+				return err
+			}
+
+			log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+			stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", bucketStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+
+			workflow.appRevisionBucket = stack.Outputs["Bucket"]
+
+			return nil
 		}
-
-		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
-		stack := stackWaiter.AwaitFinalStatus(bucketStackName)
-		if stack == nil {
-			return fmt.Errorf("Unable to create stack %s", bucketStackName)
-		}
-		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
-		}
-
-		workflow.appRevisionBucket = stack.Outputs["Bucket"]
-
-		return nil
 	}
 }
 

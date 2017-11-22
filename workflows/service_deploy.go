@@ -18,10 +18,6 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 
 	stackParams := make(map[string]string)
 
-	bucketExists := func() bool {
-		return ctx.Config.Service.Pipeline.Build.Bucket == ""
-	}
-
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
@@ -35,9 +31,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
-				newConditionalExecutor(bucketExists,
-					nil,
-					workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager)),
+				workflow.serviceBucketUpserter(ctx.Config.Namespace, stackParams, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
