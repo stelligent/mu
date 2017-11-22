@@ -355,7 +355,7 @@ func TestIamRolesetManager_UpsertPipelineRoleset(t *testing.T) {
 	}, nil)
 	stackManagerMock.On("UpsertStack", "mu-iam-pipeline-sv1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-pipeline-sv1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
-	err := i.UpsertPipelineRoleset("sv1")
+	err := i.UpsertPipelineRoleset("sv1", "test-bucket")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)

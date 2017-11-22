@@ -26,49 +26,49 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	stackParams := make(map[string]string)
 
-	bucketExists := func() bool {
-		return ctx.Config.Service.Pipeline.Bucket == ""
-	}
-
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
-		newConditionalExecutor(bucketExists,
-			nil,
-			workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager)),
+		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
 		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
 
 }
 
 // Setup the artifact bucket
-func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineBucket(namespace string, params map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codepipeline")
-		log.Noticef("Upserting Bucket for CodePipeline")
-		bucketParams := make(map[string]string)
-		bucketParams["Namespace"] = namespace
-		bucketParams["BucketPrefix"] = "codepipeline"
+		if workflow.pipelineConfig.Bucket != "" {
+			params["PipelineBucket"] = workflow.pipelineConfig.Bucket
+		} else {
+			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codepipeline")
+			log.Noticef("Upserting Bucket for CodePipeline")
+			bucketParams := make(map[string]string)
+			bucketParams["Namespace"] = namespace
+			bucketParams["BucketPrefix"] = "codepipeline"
 
-		tags := createTagMap(&PipelineTags{
-			Type: common.StackTypeBucket,
-		})
+			tags := createTagMap(&PipelineTags{
+				Type: common.StackTypeBucket,
+			})
 
-		err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
-		if err != nil {
-			// ignore error if stack is in progress already
-			if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
-				return err
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			if err != nil {
+				// ignore error if stack is in progress already
+				if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
+					return err
+				}
 			}
-		}
 
-		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
-		stack := stackWaiter.AwaitFinalStatus(bucketStackName)
-		if stack == nil {
-			return fmt.Errorf("Unable to create stack %s", bucketStackName)
-		}
-		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+			stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", bucketStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+
+			params["PipelineBucket"] = stack.Outputs["Bucket"]
 		}
 
 		return nil
@@ -115,7 +115,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 			}
 		}
 
-		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName)
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"])
 		if err != nil {
 			return err
 		}
