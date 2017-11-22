@@ -3,12 +3,13 @@ package workflows
 import (
 	"archive/zip"
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServicePusher create a new workflow for pushing a service to a repo
@@ -26,7 +27,7 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, dockerWr
 				workflow.serviceImagePusher(ctx.DockerManager, dockerWriter),
 			),
 			newPipelineExecutor(
-				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceBucketUpserter(ctx.Config.Namespace, nil, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceArchiveUploader(ctx.Config.Basedir, ctx.ArtifactManager),
 			)))
 

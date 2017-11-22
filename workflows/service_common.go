@@ -192,7 +192,9 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, params 
 	return func() error {
 
 		if workflow.pipelineConfig.Bucket != "" {
-			params["PipelineBucket"] = workflow.pipelineConfig.Bucket
+
+			params["CodeDeployBucket"] = workflow.pipelineConfig.Bucket
+
 		} else {
 
 			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
@@ -224,8 +226,9 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, params 
 
 			workflow.appRevisionBucket = stack.Outputs["Bucket"]
 
-			return nil
 		}
+
+		return nil
 	}
 }
 
