@@ -29,9 +29,50 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
+		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, stackParams, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
 		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
 
+}
+
+func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *common.Service, stackParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+
+		if service.Pipeline.Build.Bucket != "" {
+			stackParams["CodeDeployBucket"] = service.Pipeline.Build.Bucket
+		} else {
+			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
+			log.Noticef("Upserting Bucket for CodeDeploy")
+			bucketParams := make(map[string]string)
+			bucketParams["Namespace"] = namespace
+			bucketParams["BucketPrefix"] = "codedeploy"
+
+			tags := createTagMap(&PipelineTags{
+				Type:     common.StackTypeBucket,
+				Service:  workflow.serviceName,
+				Revision: workflow.codeRevision,
+				Repo:     workflow.repoName,
+			})
+
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			if err != nil {
+				return err
+			}
+
+			log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+			stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", bucketStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+
+			stackParams["CodeDeployBucket"] = stack.Outputs["Bucket"]
+		}
+
+		return nil
+	}
 }
 
 // Setup the artifact bucket
@@ -92,7 +133,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, params["CodeDeployBucket"])
 			if err != nil {
 				return err
 			}
@@ -109,13 +150,13 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, params["CodeDeployBucket"])
 			if err != nil {
 				return err
 			}
 		}
 
-		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"])
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], params["CodeDeployBucket"])
 		if err != nil {
 			return err
 		}

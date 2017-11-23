@@ -285,7 +285,7 @@ func initContext(muConfigFile string) (*common.Context, error) {
 		return nil, err
 	}
 
-	err = mu_aws.InitializeContext(context, "", "", "", "", true)
+	err = mu_aws.InitializeContext(context, "", "", "", "", true, "")
 	if err != nil {
 		return nil, err
 	}
