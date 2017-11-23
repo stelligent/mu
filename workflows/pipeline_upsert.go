@@ -29,17 +29,17 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
-		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, stackParams, ctx.StackManager, ctx.StackManager),
+		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
 		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
 
 }
 
-func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *common.Service, stackParams map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 
 		if service.Pipeline.Build.Bucket != "" {
-			stackParams["CodeDeployBucket"] = service.Pipeline.Build.Bucket
+			workflow.codeDeployBucket = service.Pipeline.Build.Bucket
 		} else {
 			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
 			log.Noticef("Upserting Bucket for CodeDeploy")
@@ -68,7 +68,7 @@ func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *co
 				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 			}
 
-			stackParams["CodeDeployBucket"] = stack.Outputs["Bucket"]
+			workflow.codeDeployBucket = stack.Outputs["Bucket"]
 		}
 
 		return nil
@@ -133,7 +133,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, params["CodeDeployBucket"])
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
 			if err != nil {
 				return err
 			}
@@ -150,13 +150,13 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, params["CodeDeployBucket"])
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], params["CodeDeployBucket"])
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], workflow.codeDeployBucket)
 		if err != nil {
 			return err
 		}
