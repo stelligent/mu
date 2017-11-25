@@ -48,10 +48,7 @@ func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *co
 			bucketParams["BucketPrefix"] = "codedeploy"
 
 			tags := createTagMap(&PipelineTags{
-				Type:     common.StackTypeBucket,
-				Service:  workflow.serviceName,
-				Revision: workflow.codeRevision,
-				Repo:     workflow.repoName,
+				Type: common.StackTypeBucket,
 			})
 
 			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")

@@ -235,7 +235,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, codeDeployBucket string, pipelineBucket string) error {
+func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, pipelineBucket string, codeDeployBucket string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of pipeline IAM roles.")
 		return nil
