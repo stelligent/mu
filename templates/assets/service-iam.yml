@@ -94,7 +94,8 @@ Resources:
             - s3:ListBucketVersions
             - s3:ListMultipartUploadParts
             Resource:
-            - !Ref CodeDeployBucket
+            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}
+            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}/*
           - Effect: Allow
             Action:
             - cloudformation:DescribeStackEvents
