@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -121,8 +122,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	defer func() {
 		yamlFile.Close()
 	}()
-
-	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
+	return ctx.InitializeConfig(newEnvironmentReplacer(yamlFile))
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
@@ -261,4 +261,31 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 		log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
 	}
 	return u, nil
+}
+
+
+// EnvironmentVariableEvaluator implements an io.Reader
+type EnvironmentVariableEvaluator struct {
+	Scanner *bufio.Scanner
+	Pattern *regexp.Regexp
+}
+
+func newEnvironmentReplacer(input io.Reader) io.Reader {
+	scanner := bufio.NewScanner(input)
+	pattern := regexp.MustCompile("\\${env:[a-zA-Z0-9_]*}")
+	return &EnvironmentVariableEvaluator{scanner, pattern}
+}
+
+// Read implements the reader interface
+func (m *EnvironmentVariableEvaluator) Read(p []byte) (int, error) {
+	if !m.Scanner.Scan() {
+		return 0, io.EOF
+	}
+	line := m.Scanner.Text() + "\n"
+	line = m.Pattern.ReplaceAllStringFunc(line, func(match string) string {
+		return os.Getenv(match[6 : len(match)-1])
+	})
+
+	bytesCopied := copy(p, []byte(line))
+	return bytesCopied, nil
 }
