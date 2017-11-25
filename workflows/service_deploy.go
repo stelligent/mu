@@ -3,9 +3,10 @@ package workflows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment
@@ -20,10 +21,10 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
-		workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
@@ -31,6 +32,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
@@ -92,7 +94,7 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 
-		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName)
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket)
 		if err != nil {
 			return err
 		}

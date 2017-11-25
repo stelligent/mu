@@ -263,7 +263,6 @@ func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
 	return u, nil
 }
 
-
 // EnvironmentVariableEvaluator implements an io.Reader
 type EnvironmentVariableEvaluator struct {
 	Scanner *bufio.Scanner
