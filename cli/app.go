@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/provider/aws"
 	"github.com/urfave/cli"
@@ -44,7 +45,12 @@ func NewApp() *cli.App {
 		}
 
 		// TODO: support initializing context from other cloud providers?
-		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), c.Bool("dryrun"), c.Bool("skip-version-check"))
+		log.Debugf("dryrun:%v path:%v", c.Bool("dryrun"), c.String("dryrun-output"))
+		dryrunPath := ""
+		if c.Bool("dryrun") {
+			dryrunPath = c.String("dryrun-output")
+		}
+		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), dryrunPath, c.Bool("skip-version-check"), c.String("proxy"))
 		if err != nil {
 			return err
 		}
@@ -86,8 +92,8 @@ func NewApp() *cli.App {
 			context.Config.Namespace = "mu"
 		}
 
-		return nil
-
+		// initialize extensions
+		return context.InitializeExtensions()
 	}
 
 	app.Flags = []cli.Flag{
@@ -124,6 +130,11 @@ func NewApp() *cli.App {
 			Name:  "dryrun, d",
 			Usage: "generate the cloudformation templates without upserting stacks",
 		},
+		cli.StringFlag{
+			Name:  "dryrun-output, O",
+			Usage: "output directory for dryrun",
+			Value: fmt.Sprintf("%s/mu-cloudformation", os.TempDir()),
+		},
 		cli.BoolFlag{
 			Name:  "disable-iam, I",
 			Usage: "disable the automatic creation of IAM resources",
@@ -131,6 +142,10 @@ func NewApp() *cli.App {
 		cli.BoolFlag{
 			Name:  "skip-version-check, F",
 			Usage: "disable the checking of stack major numbers before updating",
+		},
+		cli.StringFlag{
+			Name:  "proxy, P",
+			Usage: "Proxy to route AWS requests through",
 		},
 	}
 

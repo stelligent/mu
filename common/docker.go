@@ -17,7 +17,7 @@ import (
 
 // DockerImageBuilder for creating docker images
 type DockerImageBuilder interface {
-	ImageBuild(contextDir string, relDockerfile string, tags []string, dockerOut io.Writer) error
+	ImageBuild(contextDir string, serviceName string, relDockerfile string, tags []string, dockerOut io.Writer) error
 }
 
 // DockerImagePusher for pushing docker images
@@ -47,9 +47,10 @@ func newClientDockerManager() (DockerManager, error) {
 	}, nil
 }
 
-func (d *clientDockerManager) ImageBuild(contextDir string, relDockerfile string, tags []string, dockerOut io.Writer) error {
+func (d *clientDockerManager) ImageBuild(contextDir string, serviceName string, relDockerfile string, tags []string, dockerOut io.Writer) error {
 	options := types.ImageBuildOptions{
-		Tags: tags,
+		Tags:   tags,
+		Labels: map[string]string{"SERVICE_NAME": serviceName},
 	}
 
 	buildContext, err := createBuildContext(contextDir, relDockerfile)

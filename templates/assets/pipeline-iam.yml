@@ -8,6 +8,12 @@ Parameters:
   ServiceName:
     Type: String
     Description: Name of service used for resource namespace
+  PipelineBucket:
+    Type: String
+    Description: Name of bucket to use for the CodePipeline artifacts
+  CodeDeployBucket:
+    Type: String
+    Description: Name of bucket to use for the CodeDeployBucket artifacts
   SourceProvider:
     Type: String
     Description: Provider for source repo
@@ -15,9 +21,18 @@ Parameters:
     AllowedValues:
     - GitHub
     - CodeCommit
+    - S3
   SourceRepo:
     Type: String
     Description: Provider specific repository
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
   AcptEnv:
     Type: String
     Description: Name of mu environment to deploy to for testing
@@ -54,6 +69,19 @@ Parameters:
       - "true"
       - "false"
 Conditions:
+  IsS3:
+    "Fn::And":
+    - "Fn::Equals":
+        - !Ref SourceProvider
+        - 'S3'
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceBucket
+    - "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceObjectKey
   IsCodeCommit:
     "Fn::Equals":
       - !Ref SourceProvider
@@ -70,11 +98,21 @@ Conditions:
     "Fn::Equals":
       - !Ref EnableProdStage
       - 'true'
+  HasSourceBucket:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceBucket
+  HasSourceObjectKey:
+    "Fn::Not":
+      - "Fn::Equals":
+        - ""
+        - !Ref SourceObjectKey
 Resources:
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-codepipeline-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-codepipeline-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -96,7 +134,7 @@ Resources:
             - codebuild:BatchGetBuilds
             Effect: Allow
             Resource:
-            - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*'
+            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*
           - Fn::If:
             - IsCodeCommit
             - Action:
@@ -108,31 +146,48 @@ Resources:
               Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
               Effect: Allow
             - !Ref AWS::NoValue
+          - Fn::If:
+            - IsS3
+            - Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              Effect: Allow
+              Resource:
+              - Fn::Sub: arn:aws:s3:::${SourceRepo}
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - IsS3
+            - Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              Effect: Allow
+              Resource:
+              - Fn::Sub: arn:aws:s3:::${SourceBucket}/${SourceObjectKey}
+            - !Ref AWS::NoValue
+          - Fn::If:
+            - IsS3
+            - Action:
+              - s3:GetBucketVersioning
+              Effect: Allow
+              Resource:
+              - Fn::Sub: arn:aws:s3:::${SourceBucket}
+            - !Ref AWS::NoValue
           - Action:
             - s3:GetObject
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - !Sub
-              - arn:aws:s3:::${BucketName}/*
-              - BucketName:
-                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
             Effect: Allow
           - Action:
             - s3:GetBucketVersioning
             Resource:
-            - !Sub
-              - arn:aws:s3:::${BucketName}
-              - BucketName:
-                  Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+            - Fn::Sub: arn:aws:s3:::${PipelineBucket}
             Effect: Allow
           - Action:
             - iam:PassRole
             Resource:
-            - Fn::If:
-              - IsBuildEnabled
-              - !GetAtt CodeBuildCIRole.Arn
-              - !Ref AWS::NoValue
+            - !GetAtt CodeBuildCIRole.Arn
             - Fn::If:
               - IsAcptEnabled
               - !GetAtt CodeBuildCDAcptRole.Arn
@@ -148,10 +203,7 @@ Resources:
     Properties:
       PolicyName: codepipeline-access
       Roles:
-      - Fn::If:
-        - IsBuildEnabled
-        - !Ref CodeBuildCIRole
-        - !Ref AWS::NoValue
+      - !Ref CodeBuildCIRole
       - Fn::If:
         - IsAcptEnabled
         - !Ref CodeBuildCDAcptRole
@@ -165,6 +217,7 @@ Resources:
         Statement:
         - Action:
           - codepipeline:GetPipelineState
+          - codepipeline:GetPipeline
           Effect: Allow
           Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
         - Action:
@@ -186,25 +239,18 @@ Resources:
           - s3:GetObjectVersion
           - s3:PutObject
           Resource:
-          - !Sub
-            - arn:aws:s3:::${BucketName}/*
-            - BucketName:
-                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
           Effect: Allow
         - Action:
           - s3:GetBucketVersioning
           Resource:
-          - !Sub
-            - arn:aws:s3:::${BucketName}
-            - BucketName:
-                Fn::ImportValue: !Sub ${Namespace}-bucket-codepipeline
+          - Fn::Sub: arn:aws:s3:::${PipelineBucket}
           Effect: Allow
 
   CodeBuildCIRole:
     Type: AWS::IAM::Role
-    Condition: IsBuildEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-ci-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -276,7 +322,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-acpt-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-cd-acpt-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -301,7 +347,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-cd-prod-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-cd-prod-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -326,7 +372,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsAcptEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -387,7 +433,8 @@ Resources:
             Effect: Allow
             Condition:
               StringEquals:
-                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${AcptEnv}
+                "rds:cluster-tag/mu:service": !Sub ${ServiceName}
+                "rds:cluster-tag/mu:environment": !Sub ${AcptEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
@@ -402,7 +449,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsProdEnabled
     Properties:
-      RoleName: !Sub '${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}'
+      RoleName: !Sub ${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow
@@ -463,7 +510,8 @@ Resources:
             Effect: Allow
             Condition:
               StringEquals:
-                "rds:cluster-tag/aws:cloudformation:stack-name": !Sub ${Namespace}-database-${ServiceName}-${ProdEnv}
+                "rds:cluster-tag/mu:service": !Sub ${ServiceName}
+                "rds:cluster-tag/mu:environment": !Sub ${ProdEnv}
           - Action:
             - ec2:DescribeImages
             - elasticloadbalancing:DescribeRules
@@ -479,11 +527,7 @@ Outputs:
     Value: !GetAtt CodePipelineRole.Arn
   CodeBuildCIRoleArn:
     Description: Role assummed by CodeBuild for building the artifact and managing the image
-    Value:
-      Fn::If:
-      - IsBuildEnabled
-      - !GetAtt CodeBuildCIRole.Arn
-      - ''
+    Value: !GetAtt CodeBuildCIRole.Arn
   CodeBuildCDAcptRoleArn:
     Description: Role assummed by CodeBuild for deploying to ACPT
     Value:
@@ -512,4 +556,3 @@ Outputs:
       - IsProdEnabled
       - !GetAtt MuProdRole.Arn
       - ''
-

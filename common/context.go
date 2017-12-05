@@ -3,11 +3,14 @@ package common
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -119,8 +122,7 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 	defer func() {
 		yamlFile.Close()
 	}()
-
-	return ctx.InitializeConfig(bufio.NewReader(yamlFile))
+	return ctx.InitializeConfig(newEnvironmentReplacer(yamlFile))
 }
 
 func getRelMuFile(absMuFile string) (string, error) {
@@ -161,8 +163,60 @@ func (ctx *Context) InitializeConfig(configReader io.Reader) error {
 		return err
 	}
 
-	// register the stack overrides
-	registerStackOverrides(ctx.Config.Templates)
+	return nil
+}
+
+// InitializeExtensions loads extension objects
+func (ctx *Context) InitializeExtensions() error {
+	extMgr := ctx.ExtensionsManager
+	// load extensions from mu.yml
+	for _, extension := range ctx.Config.Extensions {
+		if extension.URL != "" {
+			u, err := parseAbsURL(extension.URL, ctx.Config.Basedir)
+			if err != nil {
+				log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+			} else {
+				ext, err := newTemplateArchiveExtension(u, ctx.ArtifactManager)
+				if err != nil {
+					log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+				} else {
+					err = extMgr.AddExtension(ext)
+					if err != nil {
+						log.Warningf("Unable to load extension '%s': %s", extension.URL, err)
+					}
+				}
+			}
+		} else if extension.Image != "" {
+			log.Warningf("Docker based extensions is not yet supported!")
+		}
+	}
+
+	// register the stack overrides from within the mu.yml
+	for stackName, template := range ctx.Config.Templates {
+		ext := newTemplateOverrideExtension(stackName, template)
+		err := extMgr.AddExtension(ext)
+		if err != nil {
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
+		}
+	}
+
+	// register the stack parameters from within the mu.yml
+	for stackName, parameters := range ctx.Config.Parameters {
+		ext := newParameterOverrideExtension(stackName, parameters)
+		err := extMgr.AddExtension(ext)
+		if err != nil {
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
+		}
+	}
+
+	// register the stack tags from within the mu.yml
+	for stackName, tags := range ctx.Config.Tags {
+		ext := newTagOverrideExtension(stackName, tags)
+		err := extMgr.AddExtension(ext)
+		if err != nil {
+			log.Warningf("Unable to load extension '%s': %s", ext.ID(), err)
+		}
+	}
 
 	return nil
 }
@@ -177,6 +231,12 @@ func (ctx *Context) InitializeContext() error {
 		return err
 	}
 
+	// initialize ExtensionsManager
+	ctx.ExtensionsManager, err = newExtensionsManager()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -184,4 +244,47 @@ func loadYamlConfig(config *Config, yamlReader io.Reader) error {
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(yamlReader)
 	return yaml.Unmarshal(yamlBuffer.Bytes(), config)
+}
+
+func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
+
+	if !u.IsAbs() {
+		basedirURL, err := url.Parse(fmt.Sprintf("file://%s/", basedir))
+		if err != nil {
+			return nil, err
+		}
+		u = basedirURL.ResolveReference(u)
+		log.Debugf("Resolved relative path to '%s' from basedir '%s'", u, basedirURL)
+	}
+	return u, nil
+}
+
+// EnvironmentVariableEvaluator implements an io.Reader
+type EnvironmentVariableEvaluator struct {
+	Scanner *bufio.Scanner
+	Pattern *regexp.Regexp
+}
+
+func newEnvironmentReplacer(input io.Reader) io.Reader {
+	scanner := bufio.NewScanner(input)
+	pattern := regexp.MustCompile("\\${env:[a-zA-Z0-9_]*}")
+	return &EnvironmentVariableEvaluator{scanner, pattern}
+}
+
+// Read implements the reader interface
+func (m *EnvironmentVariableEvaluator) Read(p []byte) (int, error) {
+	if !m.Scanner.Scan() {
+		return 0, io.EOF
+	}
+	line := m.Scanner.Text() + "\n"
+	line = m.Pattern.ReplaceAllStringFunc(line, func(match string) string {
+		return os.Getenv(match[6 : len(match)-1])
+	})
+
+	bytesCopied := copy(p, []byte(line))
+	return bytesCopied, nil
 }

@@ -1,11 +1,12 @@
 package workflows
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment
@@ -20,19 +21,22 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
-		workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, environmentName, ctx.StackManager, ctx.StackManager),
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+				// TODO - placeholder for doing serviceCreateSchedules for EC2, leaving out-of-scope per @cplee
 			),
 		),
 	)
@@ -90,10 +94,16 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 
-		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName)
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket)
 		if err != nil {
 			return err
 		}
+
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+		workflow.ecsEventsRoleArn = serviceRoleset["EcsEventsRoleArn"]
 
 		return nil
 	}
@@ -119,6 +129,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 
 		params["EcsServiceRoleArn"] = serviceRoleset["EcsServiceRoleArn"]
 		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
+		params["ApplicationAutoScalingRoleArn"] = serviceRoleset["ApplicationAutoScalingRoleArn"]
 		params["ServiceName"] = workflow.serviceName
 
 		return nil
@@ -137,10 +148,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			"SshAllow",
 			"InstanceType",
 			"ImageId",
-			"MaxSize",
 			"KeyName",
-			"ScaleInThreshold",
-			"ScaleOutThreshold",
 			"HttpProxy",
 			"ConsulServerAutoScalingGroup",
 			"ElbSecurityGroup",
@@ -183,6 +191,10 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			if nextAvailablePriority == 0 {
 				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
 			}
+		}
+
+		if service.TargetCPUUtilization != 0 {
+			params["TargetCPUUtilization"] = strconv.Itoa(service.TargetCPUUtilization)
 		}
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
@@ -229,6 +241,12 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if service.DesiredCount != 0 {
 			params["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
 		}
+		if service.MinSize != 0 {
+			params["ServiceMinSize"] = strconv.Itoa(service.MinSize)
+		}
+		if service.MaxSize != 0 {
+			params["ServiceMaxSize"] = strconv.Itoa(service.MaxSize)
+		}
 		if len(service.PathPatterns) > 0 {
 			params["PathPattern"] = strings.Join(service.PathPatterns, ",")
 		}
@@ -248,22 +266,16 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
-		overrides := common.GetStackOverrides(svcStackName)
-		template, err := templates.NewTemplate("service-ec2.yml", service, overrides)
-		if err != nil {
-			return err
-		}
 
-		var svcTags TagInterface = &ServiceTags{
+		tags := createTagMap(&ServiceTags{
 			Service:     workflow.serviceName,
 			Environment: environmentName,
 			Type:        common.StackTypeService,
 			Provider:    workflow.envStack.Outputs["provider"],
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(service.Tags, svcTags)
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		})
+		err := stackUpserter.UpsertStack(svcStackName, "service-ec2.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -287,26 +299,17 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 
 		resolveServiceEnvironment(service, environmentName)
-		overrides := common.GetStackOverrides(svcStackName)
-		template, err := templates.NewTemplate("service-ecs.yml", service, overrides)
-		if err != nil {
-			return err
-		}
 
-		var svcTags TagInterface = &ServiceTags{
+		tags := createTagMap(&ServiceTags{
 			Service:     workflow.serviceName,
 			Environment: environmentName,
 			Type:        common.StackTypeService,
 			Provider:    workflow.envStack.Outputs["provider"],
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
-		}
-		tags, err := concatTags(service.Tags, svcTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(svcStackName, template, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, "service-ecs.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -318,10 +321,55 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
+		workflow.microserviceTaskDefinitionArn = stack.Outputs["MicroserviceTaskDefinitionArn"]
 
 		return nil
 	}
+}
 
+func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, service *common.Service, environmentName string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
+	return func() error {
+		log.Noticef("Creating schedules for service '%s' to '%s'", workflow.serviceName, environmentName)
+		for _, schedule := range service.Schedule {
+			params := make(map[string]string)
+
+			params["ServiceName"] = workflow.serviceName
+			params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
+			params["MicroserviceTaskDefinitionArn"] = workflow.microserviceTaskDefinitionArn
+			params["EcsEventsRoleArn"] = workflow.ecsEventsRoleArn
+
+			// these parameters are specific to each of the defined schedules
+			params["ScheduleExpression"] = schedule.Expression
+			commandBytes, err := json.Marshal(schedule.Command)
+			if err != nil {
+				return err
+			}
+			params["ScheduleCommand"] = string(commandBytes)
+
+			scheduleStackName := common.CreateStackName(namespace, common.StackTypeSchedule, workflow.serviceName+"-"+strings.ToLower(schedule.Name), environmentName)
+			resolveServiceEnvironment(service, environmentName)
+
+			tags := createTagMap(&ScheduleTags{
+				Service:     workflow.serviceName,
+				Environment: environmentName,
+				Type:        common.StackTypeSchedule,
+			})
+
+			err = stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)
+			if err != nil {
+				return err
+			}
+			log.Debugf("Waiting for stack '%s' to complete", scheduleStackName)
+			stack := stackWaiter.AwaitFinalStatus(scheduleStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", scheduleStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+		}
+		return nil
+	}
 }
 
 func resolveServiceEnvironment(service *common.Service, environment string) {

@@ -1,10 +1,11 @@
 package workflows
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestNewServiceDeployer(t *testing.T) {
@@ -62,6 +63,7 @@ func TestServiceApplyCommon_Create(t *testing.T) {
 	elbRuleLister.AssertExpectations(t)
 	elbRuleLister.AssertNumberOfCalls(t, "ListRules", 1)
 }
+
 func TestServiceApplyCommon_Update(t *testing.T) {
 	assert := assert.New(t)
 	stackManager := new(mockedStackManagerForUpsert)
@@ -204,6 +206,7 @@ func TestServiceDeployer_serviceRolesetUpserter(t *testing.T) {
 	rolesetManager.On("UpsertCommonRoleset").Return(nil)
 	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
 	rolesetManager.On("UpsertServiceRoleset", "env1", "svc20").Return(nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{"EcsEventsRoleArn": "bar"}, nil)
 
 	workflow := new(serviceWorkflow)
 	workflow.serviceName = "svc20"

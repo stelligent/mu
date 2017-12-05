@@ -1,0 +1,18 @@
+---
+
+environments:
+  - name: myenv
+
+service:
+  name: myservice
+
+templates:
+  mu-service-myservice-myenv:
+    Resources:
+      ElbTargetGroup:
+        Properties:
+          TargetGroupAttributes:
+          - Key: stickiness.enabled
+            Value: true
+          - Key: stickiness.type
+            Value: lb_cookie

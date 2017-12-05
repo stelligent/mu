@@ -14,8 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/briandowns/spinner"
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"golang.org/x/crypto/ssh/terminal"
-	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -24,14 +24,18 @@ import (
 )
 
 type cloudformationStackManager struct {
-	dryrun           bool
-	skipVersionCheck bool
-	cfnAPI           cloudformationiface.CloudFormationAPI
-	ec2API           ec2iface.EC2API
+	dryrunPath        string
+	skipVersionCheck  bool
+	cfnAPI            cloudformationiface.CloudFormationAPI
+	ec2API            ec2iface.EC2API
+	extensionsManager common.ExtensionsManager
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(sess *session.Session, dryrun bool, skipVersionCheck bool) (common.StackManager, error) {
+func newStackManager(sess *session.Session, extensionsManager common.ExtensionsManager, dryrunPath string, skipVersionCheck bool) (common.StackManager, error) {
+	if dryrunPath != "" {
+		log.Debugf("Running in DRYRUN mode with path '%s'", dryrunPath)
+	}
 	log.Debug("Connecting to CloudFormation service")
 	cfnAPI := cloudformation.New(sess)
 
@@ -39,10 +43,11 @@ func newStackManager(sess *session.Session, dryrun bool, skipVersionCheck bool) 
 	ec2API := ec2.New(sess)
 
 	return &cloudformationStackManager{
-		dryrun:           dryrun,
-		skipVersionCheck: skipVersionCheck,
-		cfnAPI:           cfnAPI,
-		ec2API:           ec2API,
+		dryrunPath:        dryrunPath,
+		skipVersionCheck:  skipVersionCheck,
+		cfnAPI:            cfnAPI,
+		ec2API:            ec2API,
+		extensionsManager: extensionsManager,
 	}, nil
 
 }
@@ -82,7 +87,7 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error {
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	// delete stack if in rollback status
@@ -97,8 +102,8 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 	// check if stack is incompatible
 	if !cfnMgr.skipVersionCheck && stack != nil {
-		oldMajorVersion, e1 := strconv.Atoi(strings.Split(stack.Tags["version"], ".")[0])
-		newMajorVersion, e2 := strconv.Atoi(strings.Split(common.GetVersion(), ".")[0])
+		oldMajorVersion, e1 := strconv.Atoi(strings.Split(strings.Split(stack.Tags["version"], "-")[0], ".")[0])
+		newMajorVersion, e2 := strconv.Atoi(strings.Split(strings.Split(common.GetVersion(), "-")[0], ".")[0])
 
 		if e1 != nil {
 			log.Warningf("Unable to parse major number for existing stack: %s", stack.Tags["version"])
@@ -118,18 +123,31 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 
 	// load the template
+	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
+	if err != nil {
+		return err
+	}
+	templateBodyReader, err = cfnMgr.extensionsManager.DecorateStackTemplate(templateName, stackName, templateBodyReader)
+	if err != nil {
+		return err
+	}
 	templateBodyBytes := new(bytes.Buffer)
 	templateBodyBytes.ReadFrom(templateBodyReader)
 	templateBody := aws.String(templateBodyBytes.String())
 
 	// stack parameters
+	parameters, err = cfnMgr.extensionsManager.DecorateStackParameters(stackName, parameters)
+	if err != nil {
+		return err
+	}
 	stackParameters := buildStackParameters(parameters)
 
 	// stack tags
+	tags, err = cfnMgr.extensionsManager.DecorateStackTags(stackName, tags)
+	if err != nil {
+		return err
+	}
 	stackTags := buildStackTags(tags)
-
-	// directory to write cfn to
-	cfnDirectory := fmt.Sprintf("%s/mu-cloudformation", os.TempDir())
 
 	cfnAPI := cfnMgr.cfnAPI
 	if stack == nil || stack.Status == "" {
@@ -155,12 +173,13 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			}
 		}
 
-		if cfnMgr.dryrun {
-			writeTemplateAndConfig(cfnDirectory, stackName, templateBodyBytes, parameters)
-			log.Infof("  DRYRUN: Skipping create of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnDirectory)
+		if cfnMgr.dryrunPath != "" {
+			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping create of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
 			return nil
 		}
 
+		log.Debugf("about to cfnAPI.CreateStack(params) with: %v", params)
 		_, err := cfnAPI.CreateStack(params)
 		log.Debug("  Create stack complete err=%s", err)
 		if err != nil {
@@ -196,9 +215,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 			}
 		}
 
-		if cfnMgr.dryrun {
-			writeTemplateAndConfig(cfnDirectory, stackName, templateBodyBytes, parameters)
-			log.Infof("  DRYRUN: Skipping update of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnDirectory)
+		if cfnMgr.dryrunPath != "" {
+			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping update of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
 			return nil
 		}
 
@@ -221,6 +240,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 // AwaitFinalStatus waits for the stack to arrive in a final status
 //  returns: final status, or empty string if stack doesn't exist
 func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *common.Stack {
+
 	cfnAPI := cfnMgr.cfnAPI
 	params := &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
@@ -247,6 +267,23 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 		}
 		if err != nil || resp == nil || len(resp.Stacks) != 1 {
 			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
+
+			if cfnMgr.dryrunPath != "" {
+				stack := &common.Stack{
+					Name:           stackName,
+					ID:             "",
+					Status:         "DRYRUN_COMPLETE",
+					StatusReason:   "",
+					LastUpdateTime: time.Now(),
+					Tags:           make(map[string]string),
+					Outputs:        make(map[string]string),
+					Parameters:     make(map[string]string),
+				}
+
+				stack.Tags["version"] = common.GetVersion()
+				log.Debugf("  DRYRUN: Unable to find stack '%s'...returning stub", stackName)
+				return stack
+			}
 			return nil
 		}
 
@@ -425,7 +462,7 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 
 	params := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
 
-	if cfnMgr.dryrun {
+	if cfnMgr.dryrunPath != "" {
 		log.Infof("  DRYRUN: Skipping delete of stack named '%s'", stackName)
 		return nil
 	}

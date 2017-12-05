@@ -4,7 +4,6 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"io"
 	"testing"
 )
 
@@ -13,7 +12,7 @@ type mockedRolesetStackManager struct {
 	common.StackManager
 }
 
-func (m *mockedRolesetStackManager) UpsertStack(stackName string, templateBodyReader io.Reader, parameters map[string]string, tags map[string]string, roleArn string) error {
+func (m *mockedRolesetStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
@@ -295,7 +294,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_ManagedEnv(t *testing.T) {
 	stackManagerMock.On("UpsertStack", "mu-iam-service-sv1-env1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-service-sv1-env1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
 
-	err := i.UpsertServiceRoleset("env1", "sv1")
+	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -326,7 +325,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_SharedEnv(t *testing.T) {
 	}, nil)
 	stackManagerMock.On("UpsertStack", "mu-iam-service-sv1-env1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-service-sv1-env1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
-	err := i.UpsertServiceRoleset("env1", "sv1")
+	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)
@@ -356,7 +355,7 @@ func TestIamRolesetManager_UpsertPipelineRoleset(t *testing.T) {
 	}, nil)
 	stackManagerMock.On("UpsertStack", "mu-iam-pipeline-sv1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-pipeline-sv1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
-	err := i.UpsertPipelineRoleset("sv1")
+	err := i.UpsertPipelineRoleset("sv1", "test-bucket", "foo-bucket")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)

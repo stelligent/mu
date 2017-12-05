@@ -1,0 +1,19 @@
+--- 
+environments:
+  - name: acceptance
+    cluster:
+      maxSize: 1
+      keyName: timbaileyjones-labs-keypair
+service:
+  name: sample-service
+  healthEndpoint: /
+  port: 80
+  pathPatterns:
+    - /*
+  schedules:
+  - name: minutely
+    expression: cron(* * * * ? *)
+    command: ['curl','http://webhook.example.com/minute-cron']
+  - name: hourly
+    expression: cron(0 * * * ? *)
+    command: ['curl','http://webhook.example.com/hour-cron']

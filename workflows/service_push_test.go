@@ -21,7 +21,7 @@ type mockServiceBuilder struct {
 	common.DockerImageBuilder
 }
 
-func (m *mockServiceBuilder) ImageBuild(basedir string, dockerfile string, tags []string, dockerWriter io.Writer) error {
+func (m *mockServiceBuilder) ImageBuild(basedir string, serviceName string, dockerfile string, tags []string, dockerWriter io.Writer) error {
 	args := m.Called()
 	return args.Error(0)
 }

@@ -3,11 +3,12 @@ package workflows
 import (
 	"bytes"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -15,57 +16,97 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	workflow := new(pipelineWorkflow)
 	workflow.codeRevision = ctx.Config.Repo.Revision
-	workflow.codeBranch = ctx.Config.Repo.Branch
 	workflow.repoName = ctx.Config.Repo.Slug
+
+	if ctx.Config.Repo.Branch != "" {
+		workflow.codeBranch = ctx.Config.Repo.Branch
+	} else {
+		workflow.codeBranch = ctx.Config.Service.Pipeline.Source.Branch
+	}
 
 	stackParams := make(map[string]string)
 
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
-		workflow.pipelineBucket(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager),
+		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
+		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
-		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams),
-	)
+		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
+
+}
+
+func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+
+		if service.Pipeline.Build.Bucket != "" {
+			workflow.codeDeployBucket = service.Pipeline.Build.Bucket
+		} else {
+			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codedeploy")
+			log.Noticef("Upserting Bucket for CodeDeploy")
+			bucketParams := make(map[string]string)
+			bucketParams["Namespace"] = namespace
+			bucketParams["BucketPrefix"] = "codedeploy"
+
+			tags := createTagMap(&PipelineTags{
+				Type: common.StackTypeBucket,
+			})
+
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			if err != nil {
+				return err
+			}
+
+			log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+			stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", bucketStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+
+			workflow.codeDeployBucket = stack.Outputs["Bucket"]
+		}
+
+		return nil
+	}
 }
 
 // Setup the artifact bucket
-func (workflow *pipelineWorkflow) pipelineBucket(namespace string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *pipelineWorkflow) pipelineBucket(namespace string, params map[string]string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 
 	return func() error {
-		bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codepipeline")
-		overrides := common.GetStackOverrides(bucketStackName)
-		template, err := templates.NewTemplate("bucket.yml", nil, overrides)
-		if err != nil {
-			return err
-		}
-		log.Noticef("Upserting Bucket for CodePipeline")
-		bucketParams := make(map[string]string)
-		bucketParams["Namespace"] = namespace
-		bucketParams["BucketPrefix"] = "codepipeline"
+		if workflow.pipelineConfig.Bucket != "" {
+			params["PipelineBucket"] = workflow.pipelineConfig.Bucket
+		} else {
+			bucketStackName := common.CreateStackName(namespace, common.StackTypeBucket, "codepipeline")
+			log.Noticef("Upserting Bucket for CodePipeline")
+			bucketParams := make(map[string]string)
+			bucketParams["Namespace"] = namespace
+			bucketParams["BucketPrefix"] = "codepipeline"
 
-		var pipeTags TagInterface = &PipelineTags{
-			Type: common.StackTypeBucket,
-		}
-		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
-		if err != nil {
-			return err
-		}
+			tags := createTagMap(&PipelineTags{
+				Type: common.StackTypeBucket,
+			})
 
-		err = stackUpserter.UpsertStack(bucketStackName, template, bucketParams, tags, "")
-		if err != nil {
-			// ignore error if stack is in progress already
-			if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
-				return err
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			if err != nil {
+				// ignore error if stack is in progress already
+				if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
+					return err
+				}
 			}
-		}
 
-		log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
-		stack := stackWaiter.AwaitFinalStatus(bucketStackName)
-		if stack == nil {
-			return fmt.Errorf("Unable to create stack %s", bucketStackName)
-		}
-		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			log.Debugf("Waiting for stack '%s' to complete", bucketStackName)
+			stack := stackWaiter.AwaitFinalStatus(bucketStackName)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", bucketStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+
+			params["PipelineBucket"] = stack.Outputs["Bucket"]
 		}
 
 		return nil
@@ -89,7 +130,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
 			if err != nil {
 				return err
 			}
@@ -106,13 +147,13 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 				return err
 			}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName)
+			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName)
+		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], workflow.codeDeployBucket)
 		if err != nil {
 			return err
 		}
@@ -136,13 +177,8 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 	return func() error {
 		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
 		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
-		overrides := common.GetStackOverrides(pipelineStackName)
 
 		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
-		template, err := templates.NewTemplate("pipeline.yml", nil, overrides)
-		if err != nil {
-			return err
-		}
 		pipelineParams := params
 
 		pipelineParams["Namespace"] = namespace
@@ -150,7 +186,17 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		pipelineParams["MuFile"] = workflow.muFile
 		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
-		pipelineParams["SourceBranch"] = workflow.codeBranch
+
+		if workflow.codeBranch != "" {
+			pipelineParams["SourceBranch"] = workflow.codeBranch
+		}
+
+		if workflow.pipelineConfig.Source.Provider == "S3" {
+			repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
+			pipelineParams["SourceBucket"] = repoParts[0]
+			pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+		}
+
 		if workflow.pipelineConfig.Source.Provider == "GitHub" {
 			pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		}
@@ -194,7 +240,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
 
 		// get default buildspec
-		buildspec, err := templates.NewTemplate("buildspec.yml", nil, nil)
+		buildspec, err := templates.NewTemplate("buildspec.yml", nil)
 		if err != nil {
 			return err
 		}
@@ -214,18 +260,14 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 		if version != "" {
 			pipelineParams["MuDownloadVersion"] = version
 		}
-		var pipeTags TagInterface = &PipelineTags{
+		tags := createTagMap(&PipelineTags{
 			Type:     common.StackTypePipeline,
 			Service:  workflow.serviceName,
 			Revision: workflow.codeRevision,
 			Repo:     workflow.repoName,
-		}
-		tags, err := concatTags(workflow.pipelineConfig.Tags, pipeTags)
-		if err != nil {
-			return err
-		}
+		})
 
-		err = stackUpserter.UpsertStack(pipelineStackName, template, pipelineParams, tags, "")
+		err = stackUpserter.UpsertStack(pipelineStackName, "pipeline.yml", nil, pipelineParams, tags, "")
 		if err != nil {
 			return err
 		}
