@@ -256,7 +256,7 @@ Resources:
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
-                - mu --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -306,7 +306,7 @@ Resources:
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
-                - mu --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
