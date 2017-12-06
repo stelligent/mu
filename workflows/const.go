@@ -26,7 +26,7 @@ var SvcTaskContainerHeader = []string{"Environment", "Container", "Task", "Insta
 // PipeLineServiceHeader is the header for the pipeline service table
 var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
-// PipeLineServiceHeader is the header for the pipeline service table
+// PurgeHeader is the header for the purge summary table
 var PurgeHeader = []string{TypeHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // EnvironmentAMITableHeader is the header for the instance details
