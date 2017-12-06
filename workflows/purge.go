@@ -10,7 +10,6 @@ import (
 
 type purgeWorkflow struct {
 	repoName string
-
 }
 
 // NewPurge create a new workflow for purging mu resources
