@@ -145,11 +145,17 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		}
 		purgeMap["vpcs"] = vpcs
 
+		codePipelines, err := stackLister.ListStacks(common.StackTypePipeline)
+		if err != nil {
+			return err
+		}
+		purgeMap["pipelines"] = codePipelines
+
 		table := CreateTableSection(writer, PurgeHeader)
 		for stackType, stackList := range purgeMap {
 			for _, stack := range stackList {
 				log.Infof("stackType %v, stack %v", stackType, stack)
-				table.Append( []string{
+				table.Append([]string{
 					Bold(stackType),
 					stack.Name,
 					fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
@@ -164,8 +170,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 
 		svcWorkflow := new(serviceWorkflow)
 		envWorkflow := new(environmentWorkflow)
-		pipelineWorkflow := new(pipelineWorkflow)
-
+		codePipelineWorkflow := new(pipelineWorkflow)
 
 		// Add the terminator jobs to the master list for each environment
 		for _, environmentName := range environmentNames {
@@ -183,16 +188,16 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			executors = append(executors, envWorkflow.environmentVpcTerminator(ctx.Config.Namespace, environmentName.Name, ctx.StackManager, ctx.StackManager))
 		}
 		// now take care of thes pipeline (one for each service)
-		for _, service := range pip {
-			executors = append(executors, pipelineWorkflow.serviceFinder(service.Name, ctx))
-			executors = append(executors, pipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
-			executors = append(executors, pipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
+		for _, codePipeline := range codePipelines {
+			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Name, ctx))
+			executors = append(executors, codePipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
 		}
 
 		log.Infof("total of %d stacks to purge", len(executors))
 
 		// newPipelineExecutorNoStop is just like newPipelineExecutor, except that it doesn't stop on error
-		executor := newPipelineExecutorNoStop( executors... )
+		executor := newPipelineExecutorNoStop(executors...)
 
 		// run everything we've collected
 		executor()
