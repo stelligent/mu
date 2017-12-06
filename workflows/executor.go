@@ -23,6 +23,18 @@ func newPipelineExecutor(executors ...Executor) Executor {
 	}
 }
 
+func newPipelineExecutorNoStop(executors ...Executor) Executor {
+	return func() error {
+		for _, executor := range executors {
+			err := executor()
+			if err != nil {
+				log.Errorf("%v", err)
+			}
+		}
+		return nil
+	}
+}
+
 func newConditionalExecutor(conditional Conditional, trueExecutor Executor, falseExecutor Executor) Executor {
 	return func() error {
 		if conditional() == true {

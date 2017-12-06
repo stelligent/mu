@@ -25,6 +25,7 @@ func NewApp() *cli.App {
 		*newServicesCommand(context),
 		*newPipelinesCommand(context),
 		*newDatabasesCommand(context),
+		*newPurgeCommand(context),
 	}
 
 	app.Before = func(c *cli.Context) error {
