@@ -284,19 +284,24 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		environment := workflow.environment
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
 
+		stackParams := ecsStackParams
+
 		var templateName string
 		var imagePattern string
 		if environment.Provider == common.EnvProviderEcs {
 			templateName = "env-ecs.yml"
 			imagePattern = ecsImagePattern
+			stackParams["LaunchType"] = "EC2"
+		} else if environment.Provider == common.EnvProviderEcsFargate {
+			templateName = "env-ecs.yml"
+			imagePattern = ecsImagePattern
+			stackParams["LaunchType"] = "FARGATE"
 		} else if environment.Provider == common.EnvProviderEc2 {
 			templateName = "env-ec2.yml"
 			imagePattern = ec2ImagePattern
 		}
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
-
-		stackParams := ecsStackParams
 
 		if environment.Cluster.SSHAllow != "" {
 			stackParams["SshAllow"] = environment.Cluster.SSHAllow

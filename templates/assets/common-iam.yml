@@ -325,6 +325,18 @@ Resources:
             - rds:RevokeDBSecurityGroupIngress
             Resource: '*'
             Effect: Allow
+      - PolicyName: service-linked-roles
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - iam:CreateServiceLinkedRole
+            - iam:PutRolePolicy
+            Resource: arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*
+            Condition:
+              StringLike:
+                iam:AWSServiceName: ecs.amazonaws.com
+            Effect: Allow
 
 Outputs:
   CloudFormationRoleArn:

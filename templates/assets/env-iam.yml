@@ -21,12 +21,17 @@ Parameters:
     Default: "ecs"
     AllowedValues:
       - "ecs"
+      - "ecs-fargate"
       - "ec2"
 Conditions:
   IsEcsService:
     "Fn::Equals":
       - !Ref Provider
       - 'ecs'
+  IsEcsFargateService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs-fargate'
   IsConsulEnabled:
     "Fn::Equals":
       - !Ref EnableConsul

@@ -436,6 +436,30 @@ Resources:
       PortRange:
         From: '22'
         To: '22'
+  InstanceInboundPriviledgedPortNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref InstanceNetworkAcl
+      RuleNumber: '105'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: !Ref VpcCidrBlock
+      PortRange:
+        From: '0'
+        To: '65535'
+  InstanceInboundPriviledgedUdpPortNetworkAclEntry:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref InstanceNetworkAcl
+      RuleNumber: '106'
+      Protocol: '17'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: !Ref VpcCidrBlock
+      PortRange:
+        From: '0'
+        To: '65535'
   InstanceSubnetAZ1PublicNetworkAclAssociation:
     Type: AWS::EC2::SubnetNetworkAclAssociation
     Condition: HasInstanceSubnetAZ1

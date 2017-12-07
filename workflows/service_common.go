@@ -88,7 +88,8 @@ func (workflow *serviceWorkflow) isS3Provider() Conditional {
 
 func (workflow *serviceWorkflow) isEcsProvider() Conditional {
 	return func() bool {
-		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcs))
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcs)) ||
+			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
 	}
 }
 
