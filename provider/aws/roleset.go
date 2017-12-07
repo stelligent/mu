@@ -151,6 +151,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	stackParams := map[string]string{
 		"Namespace":       rolesetMgr.context.Config.Namespace,
 		"EnvironmentName": environmentName,
+		"Provider":        string(environment.Provider),
 	}
 
 	if strings.EqualFold(environment.Discovery.Provider, "consul") {

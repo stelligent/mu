@@ -113,15 +113,41 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 	return func() error {
 
 		params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
+		params["LaunchType"] = fmt.Sprintf("%s-LaunchType", workflow.envStack.Name)
+		params["ServiceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", workflow.envStack.Name)
+		params["ServiceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.envStack.Name)
+		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
 		params["ImageUrl"] = workflow.serviceImage
 
+		cpu := common.CPUMemorySupport[0]
 		if service.CPU != 0 {
 			params["ServiceCpu"] = strconv.Itoa(service.CPU)
-		}
-		if service.Memory != 0 {
-			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+			for _, cpu = range common.CPUMemorySupport {
+				if service.CPU <= cpu.CPU {
+					break
+				}
+			}
 		}
 
+		memory := cpu.Memory[0]
+		if service.Memory != 0 {
+			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+			for _, memory = range cpu.Memory {
+				if service.Memory <= memory {
+					break
+				}
+			}
+		}
+
+		params["TaskCpu"] = strconv.Itoa(cpu.CPU)
+		params["TaskMemory"] = strconv.Itoa(memory)
+
+		// force 'awsvpc' network mode for ecs-fargate
+		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
+			params["TaskNetworkMode"] = "awsvpc"
+		} else if service.NetworkMode != "" {
+			params["TaskNetworkMode"] = service.NetworkMode
+		}
 		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
 		if err != nil {
 			return err
@@ -218,7 +244,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if workflow.priority > 0 {
 			params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
 			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
-		} else if svcStack != nil {
+		} else if svcStack != nil && svcStack.Status != "ROLLBACK_COMPLETE" {
 			// no value in config, and this is an update...use prior value
 			params["PathListenerRulePriority"] = ""
 			params["HostListenerRulePriority"] = ""

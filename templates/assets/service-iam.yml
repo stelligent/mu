@@ -17,6 +17,7 @@ Parameters:
     Default: "ecs"
     AllowedValues:
       - "ecs"
+      - "ecs-fargate"
       - "ec2"
   CodeDeployBucket:
     Type: String
@@ -27,9 +28,13 @@ Conditions:
       - !Ref Provider
       - 'ec2'
   IsEcsService:
-    "Fn::Equals":
-      - !Ref Provider
-      - 'ecs'
+    "Fn::Or":
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'ecs'
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'ecs-fargate'
 Resources:
   CodeDeployRole:
     Type: AWS::IAM::Role
@@ -212,6 +217,21 @@ Resources:
             Condition:
               ArnEquals:
                 "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+      - PolicyName: task-execution
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            Resource: '*'
 
 Outputs:
   EC2InstanceProfileArn:

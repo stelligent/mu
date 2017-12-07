@@ -76,6 +76,13 @@ Parameters:
     Type: String
     Description: The security group to add to the ECS instance for access to consul (optional)
     Default: ''
+  LaunchType:
+    Type: String
+    Description: Launch type for services
+    Default: EC2
+    AllowedValues:
+    - EC2
+    - FARGATE
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -117,6 +124,11 @@ Conditions:
       - "Fn::Equals":
         - !Ref ConsulRpcClientSecurityGroup
         - ''
+  HasLaunchTypeEC2:
+    "Fn::Equals":
+      - !Ref LaunchType
+      - 'EC2'
+
 Resources:
   EcsCluster:
     Type: AWS::ECS::Cluster
@@ -158,6 +170,7 @@ Resources:
       DestinationSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
       GroupId: !GetAtt InstanceSecurityGroup.GroupId
   EcsAutoScalingGroup:
+    Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
     - ClusterLogGroup
@@ -185,6 +198,7 @@ Resources:
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
   CPUReservationPolicy:
+    Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -201,6 +215,7 @@ Resources:
           Statistic: Average
         TargetValue: !Ref TargetCPUReservation
   MemoryReservationPolicy:
+    Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AdjustmentType: ChangeInCapacity
@@ -217,6 +232,7 @@ Resources:
           Statistic: Average
         TargetValue: !Ref TargetMemoryReservation
   ContainerInstances:
+    Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       AWS::CloudFormation::Init:
@@ -407,11 +423,13 @@ Resources:
           end script
           --==BOUNDARY==--
   ClusterLogGroup:
+    Condition: HasLaunchTypeEC2
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Ref AWS::StackName
   ConsulAgentTaskDefinition:
+    Condition: HasLaunchTypeEC2
     Type: AWS::ECS::TaskDefinition
     Condition: HasConsulServer
     Properties:
@@ -485,4 +503,9 @@ Outputs:
     Description: Security Group ID for the microservice instances
     Export:
       Name: !Sub ${AWS::StackName}-InstanceSecurityGroup
+  LaunchType:
+    Value: !Ref LaunchType
+    Description: Launch type for services
+    Export:
+      Name: !Sub ${AWS::StackName}-LaunchType
 

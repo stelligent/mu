@@ -106,6 +106,35 @@ Parameters:
     Type: String
     Description: Target CPU Utilization for Tracking Policy on ASG
     Default: '75'
+  TaskCpu:
+    Type: Number
+    Description: CPU for Fargate services
+    Default: 256
+  TaskMemory:
+    Type: Number
+    Description: Memory for Fargate services
+    Default: 512
+  TaskNetworkMode:
+    Type: String
+    Default: bridge
+    AllowedValues:
+      - awsvpc
+      - none
+      - host
+      - bridge
+    Description: Network mode for tasks
+  LaunchType:
+    Type: String
+    Description: Name of value to import for service launch type
+  ServiceSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+  ServiceSecurityGroup:
+    Type: String
+    Description: Name of the value to import for the security group id
+  ElbSecurityGroup:
+    Type: String
+    Description: Name of the value to import for the ELB group id
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -153,7 +182,10 @@ Conditions:
          - !Sub ${ElbHttpsListenerArn}
          - ''
     - !Condition HasHostPattern
-
+  HasAwsVpcNetworkMode:
+    "Fn::Equals":
+      - !Sub ${TaskNetworkMode}
+      - 'awsvpc'
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -166,6 +198,20 @@ Resources:
       DeploymentConfiguration:
         MaximumPercent: 100
         MinimumHealthyPercent: 0
+      LaunchType:
+        Fn::ImportValue: !Sub ${LaunchType}
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Fn::If:
+            - HasAwsVpcNetworkMode
+            - SecurityGroups:
+                - Fn::ImportValue: !Sub ${ElbSecurityGroup}
+                - Fn::ImportValue: !Sub ${ServiceSecurityGroup}
+              Subnets:
+                Fn::Split:
+                - ","
+                - Fn::ImportValue: !Sub ${ServiceSubnetIds}
+            - !Ref AWS::NoValue
       LoadBalancers:
         - Fn::If:
           - HasTargetGroup
@@ -176,7 +222,10 @@ Resources:
       Role:
         Fn::If:
           - HasTargetGroup
-          - !Ref EcsServiceRoleArn
+          - Fn::If:
+             - HasAwsVpcNetworkMode
+             - !Ref AWS::NoValue
+             - !Ref EcsServiceRoleArn
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
   ServiceLogGroup:
@@ -187,6 +236,11 @@ Resources:
   MicroserviceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      RequiresCompatibilities:
+      - Fn::ImportValue: !Sub ${LaunchType}
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      NetworkMode: !Ref TaskNetworkMode
       ContainerDefinitions:
       - Name: !Ref ServiceName
         Cpu: !Ref ServiceCpu
@@ -222,9 +276,14 @@ Resources:
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: container
         PortMappings:
-        - HostPort: 0
+        - HostPort:
+            Fn::If:
+              - HasAwsVpcNetworkMode
+              - !Ref AWS::NoValue
+              - 0
           ContainerPort: !Ref ServicePort
       Volumes: []
+      ExecutionRoleArn: !Ref EcsTaskRoleArn
       TaskRoleArn: !Ref EcsTaskRoleArn
   ElbHttpPathListenerRule:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -297,6 +356,11 @@ Resources:
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 60
+      TargetType:
+        Fn::If:
+          - HasAwsVpcNetworkMode
+          - ip
+          - instance
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
