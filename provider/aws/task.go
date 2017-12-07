@@ -161,7 +161,11 @@ func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, e
 			if *container.Name != serviceName && len(serviceName) != Zero {
 				return nil, errors.New(common.Empty)
 			}
-			containers = append(containers, getContainer(taskMgr, cluster, *ecsTask.ContainerInstanceArn, *container))
+			if ecsTask.ContainerInstanceArn != nil {
+				containers = append(containers, getContainer(taskMgr, cluster, *ecsTask.ContainerInstanceArn, *container))
+			} else {
+				containers = append(containers, common.Container{Name: *container.Name, Instance: "FARGATE"})
+			}
 		}
 	}
 	task := common.Task{

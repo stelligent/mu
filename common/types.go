@@ -109,6 +109,7 @@ type Service struct {
 	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
 	CPU                  int                    `yaml:"cpu,omitempty"`
 	Memory               int                    `yaml:"memory,omitempty"`
+	NetworkMode          string                 `yaml:"networkMode,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
@@ -156,6 +157,7 @@ type Pipeline struct {
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
+		Bucket      string `yaml:"bucket,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
@@ -182,6 +184,7 @@ type Pipeline struct {
 		Pipeline string `yaml:"pipeline,omitempty"`
 		Build    string `yaml:"build,omitempty"`
 	} `yaml:"roles,omitempty"`
+	Bucket string `yaml:"bucket,omitempty"`
 }
 
 // Stack summary
@@ -274,8 +277,9 @@ type EnvProvider string
 
 // List of valid environment strategies
 const (
-	EnvProviderEcs EnvProvider = "ecs"
-	EnvProviderEc2             = "ec2"
+	EnvProviderEcs        EnvProvider = "ecs"
+	EnvProviderEcsFargate             = "ecs-fargate"
+	EnvProviderEc2                    = "ec2"
 )
 
 // ArtifactProvider describes supported artifact strategies
@@ -346,4 +350,19 @@ func TimeValue(v *time.Time) time.Time {
 		return *v
 	}
 	return time.Time{}
+}
+
+// CPUMemory represents valid cpu/memory structure
+type CPUMemory struct {
+	CPU    int
+	Memory []int
+}
+
+// CPUMemorySupport represents valid ECS combinations
+var CPUMemorySupport = []CPUMemory{
+	{CPU: 256, Memory: []int{512, 1, 2}},
+	{CPU: 512, Memory: []int{1, 2, 3, 4}},
+	{CPU: 1024, Memory: []int{2, 3, 4, 5, 6, 7, 8}},
+	{CPU: 2048, Memory: []int{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}},
+	{CPU: 4096, Memory: []int{8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}},
 }

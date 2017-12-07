@@ -151,6 +151,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	stackParams := map[string]string{
 		"Namespace":       rolesetMgr.context.Config.Namespace,
 		"EnvironmentName": environmentName,
+		"Provider":        string(environment.Provider),
 	}
 
 	if strings.EqualFold(environment.Discovery.Provider, "consul") {
@@ -174,7 +175,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string) error {
+func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of service IAM roles.")
 		return nil
@@ -211,10 +212,11 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 	}
 
 	stackParams := map[string]string{
-		"Namespace":       rolesetMgr.context.Config.Namespace,
-		"EnvironmentName": environmentName,
-		"ServiceName":     serviceName,
-		"Provider":        envProvider,
+		"Namespace":        rolesetMgr.context.Config.Namespace,
+		"EnvironmentName":  environmentName,
+		"ServiceName":      serviceName,
+		"Provider":         envProvider,
+		"CodeDeployBucket": codeDeployBucket,
 	}
 
 	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, "")
@@ -234,7 +236,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) error {
+func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, pipelineBucket string, codeDeployBucket string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of pipeline IAM roles.")
 		return nil
@@ -250,10 +252,12 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string) e
 	pipelineConfig := rolesetMgr.context.Config.Service.Pipeline
 
 	stackParams := map[string]string{
-		"Namespace":      rolesetMgr.context.Config.Namespace,
-		"ServiceName":    serviceName,
-		"SourceProvider": pipelineConfig.Source.Provider,
-		"SourceRepo":     pipelineConfig.Source.Repo,
+		"Namespace":        rolesetMgr.context.Config.Namespace,
+		"ServiceName":      serviceName,
+		"SourceProvider":   pipelineConfig.Source.Provider,
+		"SourceRepo":       pipelineConfig.Source.Repo,
+		"PipelineBucket":   pipelineBucket,
+		"CodeDeployBucket": codeDeployBucket,
 	}
 
 	if pipelineConfig.Source.Provider == "S3" {

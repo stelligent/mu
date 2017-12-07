@@ -1,0 +1,14 @@
+---
+
+environments:
+  - name: acceptance
+    provider: ecs-fargate
+  - name: production
+    provider: ecs-fargate
+
+service:
+  name: ecs-fargate-example
+  healthEndpoint: /
+  port: 80
+  pathPatterns:
+    - /*
