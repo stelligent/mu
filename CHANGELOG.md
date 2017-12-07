@@ -1,7 +1,43 @@
 # Change Log
 
-## [v1.2.1-develop](https://github.com/stelligent/mu/tree/v1.2.1-develop) (2017-11-16)
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.2...v1.2.1-develop)
+## [Unreleased](https://github.com/stelligent/mu/tree/HEAD)
+
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.2.1-develop...HEAD)
+
+**Merged pull requests:**
+
+- Release 1.2.1 [\#239](https://github.com/stelligent/mu/pull/239) ([cplee](https://github.com/cplee))
+
+## [v1.2.1-develop](https://github.com/stelligent/mu/tree/v1.2.1-develop) (2017-12-07)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.3...v1.2.1-develop)
+
+**Implemented enhancements:**
+
+- Add environment provider for ECS+Fargate [\#234](https://github.com/stelligent/mu/issues/234)
+
+**Fixed bugs:**
+
+- Mu files with different names are ignored when generating env.json [\#236](https://github.com/stelligent/mu/issues/236)
+
+**Merged pull requests:**
+
+- add support for fargate as an environment provider [\#238](https://github.com/stelligent/mu/pull/238) ([cplee](https://github.com/cplee))
+
+## [v1.1.3](https://github.com/stelligent/mu/tree/v1.1.3) (2017-12-05)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.2...v1.1.3)
+
+**Implemented enhancements:**
+
+- Externalize S3 Bucket creation [\#216](https://github.com/stelligent/mu/issues/216)
+- Dynamic variables in mu.yml [\#209](https://github.com/stelligent/mu/issues/209)
+- Add option to set the http proxy the SDK will use [\#223](https://github.com/stelligent/mu/pull/223) ([mince27](https://github.com/mince27))
+
+**Merged pull requests:**
+
+- Fix for issue 236: Added -c flag to env show command to generate env.… [\#237](https://github.com/stelligent/mu/pull/237) ([akuma12](https://github.com/akuma12))
+- Feature/externalize s3 bucket [\#226](https://github.com/stelligent/mu/pull/226) ([cplee](https://github.com/cplee))
+- Issue 209 documentation \(environment variable substitution\) [\#225](https://github.com/stelligent/mu/pull/225) ([timbaileyjones](https://github.com/timbaileyjones))
+- Issue 209 dynamic variables [\#224](https://github.com/stelligent/mu/pull/224) ([timbaileyjones](https://github.com/timbaileyjones))
 
 ## [v1.1.2](https://github.com/stelligent/mu/tree/v1.1.2) (2017-11-16)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.1.1...v1.1.2)
