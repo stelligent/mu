@@ -1,15 +1,7 @@
 # Change Log
 
-## [Unreleased](https://github.com/stelligent/mu/tree/HEAD)
-
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.2.1-develop...HEAD)
-
-**Merged pull requests:**
-
-- Release 1.2.1 [\#239](https://github.com/stelligent/mu/pull/239) ([cplee](https://github.com/cplee))
-
-## [v1.2.1-develop](https://github.com/stelligent/mu/tree/v1.2.1-develop) (2017-12-07)
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.3...v1.2.1-develop)
+## [v1.2.1](https://github.com/stelligent/mu/tree/v1.2.1) (2017-12-07)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.1.3...v1.2.1)
 
 **Implemented enhancements:**
 
@@ -21,6 +13,7 @@
 
 **Merged pull requests:**
 
+- Release 1.2.1 [\#239](https://github.com/stelligent/mu/pull/239) ([cplee](https://github.com/cplee))
 - add support for fargate as an environment provider [\#238](https://github.com/stelligent/mu/pull/238) ([cplee](https://github.com/cplee))
 
 ## [v1.1.3](https://github.com/stelligent/mu/tree/v1.1.3) (2017-12-05)
