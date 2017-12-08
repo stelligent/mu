@@ -386,7 +386,7 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType)
 
 				stack := buildStack(stackDetails)
 
-				if stack.Tags["type"] == string(stackType) {
+				if stackType == common.StackTypeAll || stack.Tags["type"] == string(stackType) {
 					stacks = append(stacks, stack)
 				}
 			}

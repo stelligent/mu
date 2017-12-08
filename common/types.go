@@ -254,7 +254,8 @@ type StackType string
 
 // List of valid stack types
 const (
-	StackTypeVpc          StackType = "vpc"
+	StackTypeAll          StackType = "*"
+	StackTypeVpc                    = "vpc"
 	StackTypeTarget                 = "target"
 	StackTypeIam                    = "iam"
 	StackTypeEnv                    = "environment"
@@ -267,7 +268,26 @@ const (
 	StackTypeDatabase               = "database"
 	StackTypeSchedule               = "schedule"
 	StackTypeBucket                 = "bucket"
+	// don't forget to add new StackTypes to AllStackTypes, below
 )
+
+// AllStackTypes should be const, but can't quite figure out how
+//
+//var AllStackTypes = [...]StackType{
+//	StackTypeVpc,
+//	StackTypeTarget,
+//	StackTypeIam,
+//	StackTypeEnv ,
+//	StackTypeLoadBalancer,
+//	StackTypeConsul,
+//	StackTypeRepo,
+//	StackTypeApp,
+//	StackTypeService,
+//	StackTypePipeline,
+//	StackTypeDatabase,
+//	StackTypeSchedule,
+//	StackTypeBucket,
+//}
 
 // EnvProvider describes supported environment strategies
 type EnvProvider string
