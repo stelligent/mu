@@ -201,17 +201,17 @@ Resources:
       LaunchType:
         Fn::ImportValue: !Sub ${LaunchType}
       NetworkConfiguration:
-        AwsvpcConfiguration:
-          Fn::If:
-            - HasAwsVpcNetworkMode
-            - SecurityGroups:
+        Fn::If:
+          - HasAwsVpcNetworkMode
+          - AwsvpcConfiguration:
+              SecurityGroups:
                 - Fn::ImportValue: !Sub ${ElbSecurityGroup}
                 - Fn::ImportValue: !Sub ${ServiceSecurityGroup}
               Subnets:
                 Fn::Split:
                 - ","
                 - Fn::ImportValue: !Sub ${ServiceSubnetIds}
-            - !Ref AWS::NoValue
+          - !Ref AWS::NoValue
       LoadBalancers:
         - Fn::If:
           - HasTargetGroup
