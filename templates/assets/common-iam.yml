@@ -78,6 +78,7 @@ Resources:
             - ec2:RevokeSecurityGroupEgress
             - ec2:RevokeSecurityGroupIngress
             - ec2:ReplaceNetworkAclAssociation
+            - ec2:ReplaceNetworkAclEntry
             - ec2:RunInstances
             - ec2:TerminateInstances
             - ec2:DescribeInstances
