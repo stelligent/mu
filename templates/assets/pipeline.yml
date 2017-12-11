@@ -260,6 +260,7 @@ Resources:
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f shell > mu-env.sh
                 - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -278,13 +279,6 @@ Resources:
         Type: !Ref TestType
         ComputeType: !Ref TestComputeType
         Image: !Sub ${TestImage}
-        EnvironmentVariables:
-         - Name: MU_CONFIG
-           Value: !Sub ${MuFile}
-         - Name: MU_ROLE
-           Value: !Sub ${MuAcptRoleArn}
-         - Name: MU_ENVIRONMENT
-           Value: !Sub ${AcptEnv}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 30
@@ -317,6 +311,7 @@ Resources:
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f shell > mu-env.sh
                 - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
           artifacts:
             files:
@@ -335,13 +330,6 @@ Resources:
         Type: !Ref TestType
         ComputeType: !Ref TestComputeType
         Image: !Sub ${TestImage}
-        EnvironmentVariables:
-         - Name: MU_CONFIG
-           Value: !Sub ${MuFile}
-         - Name: MU_ROLE
-           Value: !Sub ${MuProdRoleArn}
-         - Name: MU_ENVIRONMENT
-           Value: !Sub ${ProdEnv}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 30
