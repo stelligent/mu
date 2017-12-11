@@ -71,7 +71,7 @@ const (
 	LogsUsage                  = "show environment logs"
 	Format                     = "format"
 	FormatFlag                 = "format, f"
-	FormatFlagUsage            = "output format, either 'json' or 'cli' (default: cli)"
+	FormatFlagUsage            = "output format, either 'shell', 'json' or 'cli' (default: cli)"
 	FormatFlagDefault          = "cli"
 	Follow                     = "follow"
 	FollowFlag                 = "follow, f"

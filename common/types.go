@@ -109,6 +109,7 @@ type Service struct {
 	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
 	CPU                  int                    `yaml:"cpu,omitempty"`
 	Memory               int                    `yaml:"memory,omitempty"`
+	NetworkMode          string                 `yaml:"networkMode,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
@@ -156,6 +157,7 @@ type Pipeline struct {
 		Type        string `yaml:"type,omitempty"`
 		ComputeType string `yaml:"computeType,omitempty"`
 		Image       string `yaml:"image,omitempty"`
+		Bucket      string `yaml:"bucket,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
@@ -182,6 +184,7 @@ type Pipeline struct {
 		Pipeline string `yaml:"pipeline,omitempty"`
 		Build    string `yaml:"build,omitempty"`
 	} `yaml:"roles,omitempty"`
+	Bucket string `yaml:"bucket,omitempty"`
 }
 
 // Stack summary
@@ -294,8 +297,9 @@ type EnvProvider string
 
 // List of valid environment strategies
 const (
-	EnvProviderEcs EnvProvider = "ecs"
-	EnvProviderEc2             = "ec2"
+	EnvProviderEcs        EnvProvider = "ecs"
+	EnvProviderEcsFargate             = "ecs-fargate"
+	EnvProviderEc2                    = "ec2"
 )
 
 // ArtifactProvider describes supported artifact strategies
@@ -366,4 +370,23 @@ func TimeValue(v *time.Time) time.Time {
 		return *v
 	}
 	return time.Time{}
+}
+
+// CPUMemory represents valid cpu/memory structure
+type CPUMemory struct {
+	CPU    int
+	Memory []int
+}
+
+// GB count of MB
+var GB = 1024
+
+// CPUMemorySupport represents valid ECS combinations
+var CPUMemorySupport = []CPUMemory{
+	{CPU: 256, Memory: []int{512, 1 * GB, 2 * GB}},
+	{CPU: 512, Memory: []int{1 * GB, 2 * GB, 3 * GB, 4 * GB}},
+	{CPU: 1024, Memory: []int{2 * GB, 3 * GB, 4 * GB, 5 * GB, 6 * GB, 7 * GB, 8 * GB}},
+	{CPU: 2048, Memory: []int{4 * GB, 5 * GB, 6 * GB, 7 * GB, 8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB}},
+	{CPU: 4096, Memory: []int{8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB, 17 * GB, 18 * GB, 19 * GB, 20 * GB,
+		21 * GB, 22 * GB, 23 * GB, 24 * GB, 25 * GB, 26 * GB, 27 * GB, 28 * GB, 29 * GB, 30 * GB}},
 }

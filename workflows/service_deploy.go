@@ -3,9 +3,10 @@ package workflows
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServiceDeployer create a new workflow for deploying a service in an environment
@@ -20,10 +21,10 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
-		workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
@@ -31,6 +32,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceAppUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
@@ -92,7 +94,7 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 
-		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName)
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket)
 		if err != nil {
 			return err
 		}
@@ -111,15 +113,41 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 	return func() error {
 
 		params["EcsCluster"] = fmt.Sprintf("%s-EcsCluster", workflow.envStack.Name)
+		params["LaunchType"] = fmt.Sprintf("%s-LaunchType", workflow.envStack.Name)
+		params["ServiceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", workflow.envStack.Name)
+		params["ServiceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.envStack.Name)
+		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
 		params["ImageUrl"] = workflow.serviceImage
 
+		cpu := common.CPUMemorySupport[0]
 		if service.CPU != 0 {
 			params["ServiceCpu"] = strconv.Itoa(service.CPU)
-		}
-		if service.Memory != 0 {
-			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+			for _, cpu = range common.CPUMemorySupport {
+				if service.CPU <= cpu.CPU {
+					break
+				}
+			}
 		}
 
+		memory := cpu.Memory[0]
+		if service.Memory != 0 {
+			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+			for _, memory = range cpu.Memory {
+				if service.Memory <= memory {
+					break
+				}
+			}
+		}
+
+		params["TaskCpu"] = strconv.Itoa(cpu.CPU)
+		params["TaskMemory"] = strconv.Itoa(memory)
+
+		// force 'awsvpc' network mode for ecs-fargate
+		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
+			params["TaskNetworkMode"] = "awsvpc"
+		} else if service.NetworkMode != "" {
+			params["TaskNetworkMode"] = service.NetworkMode
+		}
 		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
 		if err != nil {
 			return err
@@ -216,7 +244,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if workflow.priority > 0 {
 			params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
 			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
-		} else if svcStack != nil {
+		} else if svcStack != nil && svcStack.Status != "ROLLBACK_COMPLETE" {
 			// no value in config, and this is an update...use prior value
 			params["PathListenerRulePriority"] = ""
 			params["HostListenerRulePriority"] = ""

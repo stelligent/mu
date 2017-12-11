@@ -6,12 +6,13 @@ import (
 )
 
 type pipelineWorkflow struct {
-	serviceName    string
-	muFile         string
-	pipelineConfig *common.Pipeline
-	codeRevision   string
-	codeBranch     string
-	repoName       string
+	serviceName      string
+	muFile           string
+	pipelineConfig   *common.Pipeline
+	codeRevision     string
+	codeBranch       string
+	repoName         string
+	codeDeployBucket string
 }
 
 func colorizeActionStatus(actionStatus string) string {

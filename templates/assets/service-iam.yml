@@ -17,16 +17,24 @@ Parameters:
     Default: "ecs"
     AllowedValues:
       - "ecs"
+      - "ecs-fargate"
       - "ec2"
+  CodeDeployBucket:
+    Type: String
+    Description: Name of bucket to use for the CodeDeployBucket artifacts
 Conditions:
   IsEc2Service:
     "Fn::Equals":
       - !Ref Provider
       - 'ec2'
   IsEcsService:
-    "Fn::Equals":
-      - !Ref Provider
-      - 'ecs'
+    "Fn::Or":
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'ecs'
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'ecs-fargate'
 Resources:
   CodeDeployRole:
     Type: AWS::IAM::Role
@@ -91,8 +99,8 @@ Resources:
             - s3:ListBucketVersions
             - s3:ListMultipartUploadParts
             Resource:
-            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
-            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
+            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}
+            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}/*
           - Effect: Allow
             Action:
             - cloudformation:DescribeStackEvents
@@ -209,6 +217,21 @@ Resources:
             Condition:
               ArnEquals:
                 "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+      - PolicyName: task-execution
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            Resource: '*'
 
 Outputs:
   EC2InstanceProfileArn:

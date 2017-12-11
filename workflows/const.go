@@ -48,6 +48,7 @@ const (
 	NA                     = "N/A"
 	UnknownValue           = "???"
 	JSON                   = "json"
+	SHELL                  = "shell"
 	LastUpdateTime         = "2006-01-02 15:04:05"
 	CPU                    = "CPU"
 	MEMORY                 = "MEMORY"

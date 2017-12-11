@@ -16,6 +16,8 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	var environmentViewer func() error
 	if format == JSON {
 		environmentViewer = workflow.environmentViewerJSON(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+	} else if format == SHELL {
+		environmentViewer = workflow.environmentViewerSHELL(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
 		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
 	}
@@ -44,6 +46,31 @@ func (workflow *environmentWorkflow) environmentViewerJSON(namespace string, env
 
 		enc := json.NewEncoder(writer)
 		enc.Encode(&output)
+
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentViewerSHELL(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+	return func() error {
+		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
+		lbStack, _ := stackGetter.GetStack(lbStackName)
+
+		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
+		clusterStack, _ := stackGetter.GetStack(clusterStackName)
+
+		output := common.JSONOutput{}
+		if lbStack != nil {
+			output.Values[FirstValueIndex].Key = BaseURLKey
+			output.Values[FirstValueIndex].Value = lbStack.Outputs[BaseURLValueKey]
+		} else if clusterStack != nil {
+			output.Values[FirstValueIndex].Key = BaseURLKey
+			output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
+		}
+
+		for _, val := range output.Values {
+			fmt.Fprintf(writer, "%s=%s\n", val.Key, val.Value)
+		}
 
 		return nil
 	}

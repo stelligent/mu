@@ -1,5 +1,5 @@
 hash: a347ca6193b19379665854c0b62754791dad7f467145a14c224cdbda7a3a9da4
-updated: 2017-10-31T15:44:34.984692935-07:00
+updated: 2017-12-08T16:15:02.211107-08:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 96358b8282b1a3aa66836d2f2fe66216cc419668
@@ -49,6 +49,7 @@ imports:
   - service/rds/rdsiface
   - service/s3
   - service/s3/s3iface
+  - service/s3/s3manager
   - service/ssm
   - service/ssm/ssmiface
   - service/sts
@@ -96,7 +97,7 @@ imports:
 - name: github.com/docker/go-units
   version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/dsnet/compress
-  version: c4dbed65594871659ea7347a85e1b8dcd97b9990
+  version: cc9eb1d7ad760af14e8f918698f745e80377af4f
   subpackages:
   - bzip2
   - bzip2/internal/sais
@@ -145,7 +146,7 @@ imports:
   subpackages:
   - xxHash32
 - name: github.com/pkg/errors
-  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/Sirupsen/logrus
   version: 61e43dc76f7ee59a82bdf3d71033dc12bea4c77d
 - name: github.com/speedata/mmap-go

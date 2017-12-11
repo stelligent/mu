@@ -3,12 +3,13 @@ package workflows
 import (
 	"archive/zip"
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServicePusher create a new workflow for pushing a service to a repo
