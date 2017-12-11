@@ -278,6 +278,13 @@ Resources:
         Type: !Ref TestType
         ComputeType: !Ref TestComputeType
         Image: !Sub ${TestImage}
+        EnvironmentVariables:
+         - Name: MU_CONFIG
+           Value: !Sub ${MuFile}
+         - Name: MU_ROLE
+           Value: !Sub ${MuAcptRoleArn}
+         - Name: MU_ENVIRONMENT
+           Value: !Sub ${AcptEnv}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 30
@@ -328,6 +335,13 @@ Resources:
         Type: !Ref TestType
         ComputeType: !Ref TestComputeType
         Image: !Sub ${TestImage}
+        EnvironmentVariables:
+         - Name: MU_CONFIG
+           Value: !Sub ${MuFile}
+         - Name: MU_ROLE
+           Value: !Sub ${MuProdRoleArn}
+         - Name: MU_ENVIRONMENT
+           Value: !Sub ${ProdEnv}
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 30
