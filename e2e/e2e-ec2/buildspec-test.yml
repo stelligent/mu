@@ -3,7 +3,7 @@ version: 0.1
 phases:
   build:
     commands:
-      - source mu-env.sh && curl -s ${BASE_URL} | grep 'ok'
+      - . ./mu-env.sh && curl -s ${BASE_URL} | grep 'ok'
 artifacts:
   files:
     - mu.yml
