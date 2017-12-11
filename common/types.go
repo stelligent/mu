@@ -358,11 +358,15 @@ type CPUMemory struct {
 	Memory []int
 }
 
+// GB count of MB
+var GB = 1024
+
 // CPUMemorySupport represents valid ECS combinations
 var CPUMemorySupport = []CPUMemory{
-	{CPU: 256, Memory: []int{512, 1, 2}},
-	{CPU: 512, Memory: []int{1, 2, 3, 4}},
-	{CPU: 1024, Memory: []int{2, 3, 4, 5, 6, 7, 8}},
-	{CPU: 2048, Memory: []int{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}},
-	{CPU: 4096, Memory: []int{8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}},
+	{CPU: 256, Memory: []int{512, 1 * GB, 2 * GB}},
+	{CPU: 512, Memory: []int{1 * GB, 2 * GB, 3 * GB, 4 * GB}},
+	{CPU: 1024, Memory: []int{2 * GB, 3 * GB, 4 * GB, 5 * GB, 6 * GB, 7 * GB, 8 * GB}},
+	{CPU: 2048, Memory: []int{4 * GB, 5 * GB, 6 * GB, 7 * GB, 8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB}},
+	{CPU: 4096, Memory: []int{8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB, 17 * GB, 18 * GB, 19 * GB, 20 * GB,
+		21 * GB, 22 * GB, 23 * GB, 24 * GB, 25 * GB, 26 * GB, 27 * GB, 28 * GB, 29 * GB, 30 * GB}},
 }
