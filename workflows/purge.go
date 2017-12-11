@@ -124,9 +124,13 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// create a grand master list of all the things we're going to delete
 		var executors []Executor
 
-		// add the services we're going to terminate
 		svcWorkflow := new(serviceWorkflow)
+
+		// add the services we're going to terminate
+
 		for _, stack := range filterStacksByType(stacks, common.StackTypeService) {
+			// TODO - scheduled tasks are attached to service, so must be deleted first.
+			// common.StackTypeSchedule
 			executors = append(executors, svcWorkflow.serviceInput(ctx, stack.Tags["service"]))
 			executors = append(executors, svcWorkflow.serviceUndeployer(ctx.Config.Namespace, stack.Tags["environment"], ctx.StackManager, ctx.StackManager))
 		}
@@ -134,7 +138,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// Add the terminator jobs to the master list for each environment
 		envWorkflow := new(environmentWorkflow)
 		for _, stack := range filterStacksByType(stacks, common.StackTypeEnv) {
-			// Add the terminator jobs to the master list for each service
+			// Add the terminator jobs to the master list for each environment
 			envName := stack.Tags["environment"]
 
 			executors = append(executors, envWorkflow.environmentServiceTerminator(envName, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.RolesetManager))
@@ -146,13 +150,37 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			executors = append(executors, envWorkflow.environmentVpcTerminator(ctx.Config.Namespace, envName, ctx.StackManager, ctx.StackManager))
 		}
 
-		// add the pipelines to terminate (one for each service?)
+		// add the pipelines to terminate
 		codePipelineWorkflow := new(pipelineWorkflow)
 		for _, codePipeline := range filterStacksByType(stacks, common.StackTypePipeline) {
-			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Name, ctx))
+			// log.Infof("%s %v", codePipeline.Name, codePipeline.Tags)
+			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Tags["service"], ctx))
 			executors = append(executors, codePipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
 			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
 		}
+
+		// add the ecs repos to terminate
+
+		for _, codePipeline := range filterStacksByType(stacks, common.StackTypePipeline) {
+			// log.Infof("%s %v", codePipeline.Name, codePipeline.Tags)
+			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Tags["service"], ctx))
+			executors = append(executors, codePipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
+		}
+
+		// QUESTION: do we want to delete stacks of type CodeCommit?  (currently, my example is github)
+
+		// common.StackTypeLoadBalancer
+		// common.StackTypeDatabase - databaseWorkflow
+		// common.StackTypeBucket
+		// common.StackTypeVpc
+
+		// logsWorkflow (for cloudwatch workflows)
+
+		// common.StackTypeRepo
+		// delete repo by AWS CLI remove, key is in Tags["repo"]
+
+
 
 		log.Infof("total of %d stacks of %d types to purge", stackCount, len(executors))
 
