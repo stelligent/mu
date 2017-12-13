@@ -12,8 +12,8 @@ import (
 type purgeWorkflow struct {
 	RepoName string
 }
-type bucketTerminateWorkflow struct {
-	Bucket *common.Stack
+type stackTerminateWorkflow struct {
+	Stack *common.Stack
 }
 
 // NewPurge create a new workflow for purging mu resources
@@ -95,21 +95,30 @@ func filterStacksByType(stacks []*common.Stack, stackType common.StackType) []*c
 	return ret
 }
 
-func (workflow *bucketTerminateWorkflow) bucketTerminator(ctx *common.Context, bucketDeleter common.BucketDeleter, bucketObjectDeleter common.BucketObjectDeleter, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
+func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, bucketDeleter common.BucketDeleter, bucketObjectDeleter common.BucketObjectDeleter, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		resources, err := stackLister.GetResourcesForStack(workflow.Bucket)
+		// get any dependent resources
+		resources, err := stackLister.GetResourcesForStack(workflow.Stack)
 		log.Info("resources %V", resources)
 		if err != nil {
 			return err
 		}
+		// do pre-delete API calls here (like deleting files from S3 bucket, before trying to delete bucket)
 		for _, resource := range resources {
-			fqBucketName := resource.PhysicalResourceId
-			log.Debugf("delete bucket: fullname=%s", *fqBucketName)
-			// empty the bucket first
-			bucketObjectDeleter.DeleteS3BucketObjects(*fqBucketName)
-		}
+			if *resource.ResourceType == "AWS::S3::Bucket" {
+				fqBucketName := resource.PhysicalResourceId
+				log.Debugf("delete bucket: fullname=%s", *fqBucketName)
+				// empty the bucket first
+				bucketObjectDeleter.DeleteS3BucketObjects(*fqBucketName)
+			} else if(*resource.ResourceType == "AWS::ECR::Repository") {
+				log.Infof("ECR::Repository %V", *resource)
 
-		err = stackDeleter.DeleteStack(workflow.Bucket.Name)
+			} else {
+				log.Infof("don't know how to delete a type %s", *resource.ResourceType)
+			}
+		}
+		// delete the stack object
+		err = stackDeleter.DeleteStack(workflow.Stack.Name)
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
 				log.Errorf("%v", aerr.Error())
@@ -117,24 +126,26 @@ func (workflow *bucketTerminateWorkflow) bucketTerminator(ctx *common.Context, b
 				log.Errorf("%v", err)
 			}
 		}
-		svcStack := stackWaiter.AwaitFinalStatus(workflow.Bucket.Name)
+		// wait for the result
+		svcStack := stackWaiter.AwaitFinalStatus(workflow.Stack.Name)
 		if svcStack != nil && !strings.HasSuffix(svcStack.Status, "_COMPLETE") {
 			log.Errorf("Ended in failed status %s %s", svcStack.Status, svcStack.StatusReason)
 		}
 
-		// stackManager.
+		// do post-delete API calls here (just in case anything was left over from the DeleteStack, abaove
 		for _, resource := range resources {
-			fqBucketName := resource.PhysicalResourceId
-			err2 := ctx.StackManager.DeleteS3Bucket(*fqBucketName)
-			if err2 != nil {
-				if aerr, ok := err2.(awserr.Error); ok {
-					log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, aerr.Error())
-				} else {
-					log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, err2)
+			if *resource.ResourceType == "AWS::S3::Bucket" {
+				fqBucketName := resource.PhysicalResourceId
+				err2 := ctx.StackManager.DeleteS3Bucket(*fqBucketName)
+				if err2 != nil {
+					if aerr, ok := err2.(awserr.Error); ok {
+						log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, aerr.Error())
+					} else {
+						log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, err2)
+					}
 				}
 			}
 		}
-		// ctx.Stack.DeleteS3Bucket(workflow.BucketName)
 		return nil
 	}
 }
@@ -209,14 +220,32 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
 		}
 
-		// add the ecs repos to terminate
-
+		// add the buckets to remove
 		for _, bucket := range filterStacksByType(stacks, common.StackTypeBucket) {
 			log.Infof("%s %v", bucket.Name, bucket.Tags)
-			workflow := new(bucketTerminateWorkflow)
-			workflow.Bucket = bucket
-			executors = append(executors, workflow.bucketTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = bucket
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
+
+		// add the buckets to remove
+		for _, repo := range filterStacksByType(stacks, common.StackTypeRepo) {
+			log.Infof("%s %v", repo.Name, repo.Tags)
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = repo
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+		}
+
+		// add the iam roles to delete
+		for _, roleStack := range filterStacksByType(stacks, common.StackTypeIam) {
+			log.Infof("%s %v", roleStack.Name, roleStack.Tags)
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = roleStack
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+		}
+
+
+		// add the ecs repos to terminate
 
 		// QUESTION: do we want to delete stacks of type CodeCommit?  (currently, my example is github)
 
