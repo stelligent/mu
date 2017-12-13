@@ -6,6 +6,7 @@ import (
 	"github.com/stelligent/mu/common"
 	"io"
 	"strings"
+	// "github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 type purgeWorkflow struct{}
@@ -49,7 +50,7 @@ func filterStacksByType(stacks []*common.Stack, stackType common.StackType) []*c
 	return ret
 }
 
-func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, ecrRepoDeleter common.EcrRepoDeleter, s3stackDeleter common.S3StackDeleter, stackWaiter common.StackWaiter) Executor {
+func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, ecrRepoDeleter common.EcrRepoDeleter, s3stackDeleter common.S3StackDeleter, stackWaiter common.StackWaiter, roleDeleter common.RoleDeleter) Executor {
 	return func() error {
 		// get any dependent resources
 		resources, err := stackLister.GetResourcesForStack(workflow.Stack)
@@ -95,6 +96,8 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 						log.Warningf("couldn't delete S3 Bucket %s %v", *fqBucketName, err2)
 					}
 				}
+			} else if *resource.ResourceType == "AWS::IAM::Role" {
+				roleDeleter.DeleteRolesForNamespace(workflow.Stack.Tags["namespace"])
 			}
 		}
 		return nil
@@ -135,7 +138,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		for _, scheduleStack := range filterStacksByType(stacks, common.StackTypeSchedule) {
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = scheduleStack
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the services we're going to terminate
@@ -172,7 +175,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", bucket.Name, bucket.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = bucket
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the ecr repos to remove
@@ -180,7 +183,15 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", repo.Name, repo.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = repo
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+		}
+
+		// add the vpc to delete
+		for _, vpcStack := range filterStacksByType(stacks, common.StackTypeVpc) {
+			log.Infof("%s %v", vpcStack.Name, vpcStack.Tags)
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = vpcStack
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the iam roles to delete
@@ -188,7 +199,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", roleStack.Name, roleStack.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = roleStack
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		log.Infof("total of %d stacks to purge", stackCount)

@@ -642,6 +642,11 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 	return nil
 }
 
+// DeleteRolesForNamespace deletes roles in a namespace (well, not yet)
+func (cfnMgr *cloudformationStackManager) DeleteRolesForNamespace(bucketName string) error {
+	return nil
+}
+
 func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string) error {
 	os.MkdirAll(cfnDirectory, 0700)
 	templateFile := fmt.Sprintf("%s/template-%s.yml", cfnDirectory, stackName)

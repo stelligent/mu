@@ -48,6 +48,11 @@ type EcrRepoDeleter interface {
 	DeleteImagesFromEcrRepo(repoName string) error
 }
 
+// RoleDeleter interface {
+type RoleDeleter interface {
+	DeleteRolesForNamespace(namespace string) error
+}
+
 // ImageFinder for finding latest image
 type ImageFinder interface {
 	FindLatestImageID(namePattern string) (string, error)
@@ -62,5 +67,6 @@ type StackManager interface {
 	StackDeleter
 	S3StackDeleter
 	EcrRepoDeleter
+	RoleDeleter
 	ImageFinder
 }
