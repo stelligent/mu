@@ -5,10 +5,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"io"
+	"strings"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 type purgeWorkflow struct {
-	repoName string
+	RepoName string
+}
+type bucketTerminateWorkflow struct {
+	Bucket *common.Stack
 }
 
 // NewPurge create a new workflow for purging mu resources
@@ -90,6 +95,50 @@ func filterStacksByType(stacks []*common.Stack, stackType common.StackType) []*c
 	return ret
 }
 
+func (workflow *bucketTerminateWorkflow) bucketTerminator(ctx *common.Context, bucketDeleter common.BucketDeleter, bucketObjectDeleter common.BucketObjectDeleter, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		resources, err := stackLister.GetResourcesForStack(workflow.Bucket)
+		log.Info("resources %V", resources)
+		if err != nil {
+			return err
+		}
+		for _, resource := range resources {
+			fqBucketName := resource.PhysicalResourceId
+			log.Debugf("delete bucket: fullname=%s", *fqBucketName)
+			// empty the bucket first
+			bucketObjectDeleter.DeleteS3BucketObjects(*fqBucketName)
+		}
+
+		err = stackDeleter.DeleteStack(workflow.Bucket.Name)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				log.Errorf("%v", aerr.Error())
+			} else {
+				log.Errorf("%v", err)
+			}
+		}
+		svcStack := stackWaiter.AwaitFinalStatus(workflow.Bucket.Name)
+		if svcStack != nil && !strings.HasSuffix(svcStack.Status, "_COMPLETE") {
+			log.Errorf("Ended in failed status %s %s", svcStack.Status, svcStack.StatusReason)
+		}
+
+		// stackManager.
+		for _, resource := range resources {
+			fqBucketName := resource.PhysicalResourceId
+			err2 := ctx.StackManager.DeleteS3Bucket(*fqBucketName)
+			if err2 != nil {
+				if aerr, ok := err2.(awserr.Error); ok {
+					log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, aerr.Error())
+				} else {
+					log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, err2)
+				}
+			}
+		}
+		// ctx.Stack.DeleteS3Bucket(workflow.BucketName)
+		return nil
+	}
+}
+
 func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister common.StackLister, writer io.Writer) Executor {
 	return func() error {
 
@@ -124,13 +173,14 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// create a grand master list of all the things we're going to delete
 		var executors []Executor
 
+		// TODO - scheduled tasks are attached to service, so must be deleted first.
+		// common.StackTypeSchedule
+
 		svcWorkflow := new(serviceWorkflow)
 
 		// add the services we're going to terminate
 
 		for _, stack := range filterStacksByType(stacks, common.StackTypeService) {
-			// TODO - scheduled tasks are attached to service, so must be deleted first.
-			// common.StackTypeSchedule
 			executors = append(executors, svcWorkflow.serviceInput(ctx, stack.Tags["service"]))
 			executors = append(executors, svcWorkflow.serviceUndeployer(ctx.Config.Namespace, stack.Tags["environment"], ctx.StackManager, ctx.StackManager))
 		}
@@ -161,11 +211,11 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 
 		// add the ecs repos to terminate
 
-		for _, codePipeline := range filterStacksByType(stacks, common.StackTypePipeline) {
-			// log.Infof("%s %v", codePipeline.Name, codePipeline.Tags)
-			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Tags["service"], ctx))
-			executors = append(executors, codePipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
-			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
+		for _, bucket := range filterStacksByType(stacks, common.StackTypeBucket) {
+			log.Infof("%s %v", bucket.Name, bucket.Tags)
+			workflow := new(bucketTerminateWorkflow)
+			workflow.Bucket = bucket
+			executors = append(executors, workflow.bucketTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// QUESTION: do we want to delete stacks of type CodeCommit?  (currently, my example is github)
@@ -179,8 +229,6 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 
 		// common.StackTypeRepo
 		// delete repo by AWS CLI remove, key is in Tags["repo"]
-
-
 
 		log.Infof("total of %d stacks of %d types to purge", stackCount, len(executors))
 

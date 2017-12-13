@@ -12,6 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/briandowns/spinner"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
@@ -27,7 +31,9 @@ type cloudformationStackManager struct {
 	dryrunPath        string
 	skipVersionCheck  bool
 	cfnAPI            cloudformationiface.CloudFormationAPI
+	s3API             s3iface.S3API
 	ec2API            ec2iface.EC2API
+	ecsAPI            ecsiface.ECSAPI
 	extensionsManager common.ExtensionsManager
 }
 
@@ -42,11 +48,19 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 	log.Debug("Connecting to EC2 service")
 	ec2API := ec2.New(sess)
 
+	log.Debug("Connecting to ECS service")
+	ecsAPI := ecs.New(sess)
+
+	log.Debug("Connecting to S3 service")
+	s3API := s3.New(sess)
+
 	return &cloudformationStackManager{
 		dryrunPath:        dryrunPath,
 		skipVersionCheck:  skipVersionCheck,
 		cfnAPI:            cfnAPI,
 		ec2API:            ec2API,
+		ecsAPI:            ecsAPI,
+		s3API:             s3API,
 		extensionsManager: extensionsManager,
 	}, nil
 
@@ -345,6 +359,15 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	} else {
 		stack.LastUpdateTime = aws.TimeValue(stackDetails.CreationTime)
 	}
+	// parse Region and Account out of ARN
+	arnChunks := strings.Split(stack.ID, ":")
+	if len(arnChunks) > 3 {
+		stack.Region = arnChunks[3]
+	}
+	if len(arnChunks) > 4 {
+		stack.AccountID = arnChunks[4]
+	}
+
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
 	stack.Parameters = make(map[string]string)
@@ -469,6 +492,103 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 
 	_, err := cfnAPI.DeleteStack(params)
 	return err
+}
+
+// GetBucketsForStack retrieves the list of buckets associated with a stack
+func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Stack) ([]*cloudformation.StackResource, error){
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.DescribeStackResourcesInput{StackName:  aws.String(stack.ID)}
+	output, err := cfnAPI.DescribeStackResources(params)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
+		} else {
+			log.Errorf("%v", err)
+		}
+		return nil, err
+	}
+	return output.StackResources, nil
+}
+
+// DeleteS3Bucket deletes a particular bucket, deleting all files first.
+func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) error {
+	s3API := cfnMgr.s3API
+
+	if cfnMgr.dryrunPath != "" {
+		log.Infof("  DRYRUN: Skipping delete of bucket named '%s'", bucketName)
+		return nil
+	}
+	log.Debugf("Deleting bucket named '%s'", bucketName)
+
+	_, err := s3API.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(bucketName)})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
+		} else {
+			log.Errorf("%v", err)
+		}
+		return nil
+	}
+	return err
+}
+
+// DeleteS3BucketObjects deletes a particular bucket, deleting all files first.
+func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName string) error {
+	s3API := cfnMgr.s3API
+
+	if cfnMgr.dryrunPath != "" {
+		log.Infof("  DRYRUN: Skipping delete of all objects in bucket named '%s'", bucketName)
+		return nil
+	}
+
+	hasMoreObjects := true
+	// Keep track of how many objects we delete
+	totalObjects := 0
+
+	for hasMoreObjects {
+		resp, err := s3API.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				case s3.ErrCodeNoSuchBucket:
+					log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
+				default:
+					log.Errorf(aerr.Error())
+				}
+			} else {
+				log.Errorf("%v", err)
+			}
+			return nil
+		}
+
+		numObjs := len(resp.Contents)
+		totalObjects += numObjs
+
+		// Create Delete object with slots for the objects to delete
+		var items s3.Delete
+		var objs = make([]*s3.ObjectIdentifier, numObjs)
+
+		for i, o := range resp.Contents {
+			// Add objects from command line to array
+			objs[i] = &s3.ObjectIdentifier{Key: aws.String(*o.Key)}
+		}
+
+		// Add list of objects to delete to Delete object
+		items.SetObjects(objs)
+
+		// Delete the items
+		_, err = s3API.DeleteObjects(&s3.DeleteObjectsInput{Bucket: &bucketName, Delete: &items})
+		if err != nil {
+			log.Errorf("Unable to delete objects from bucket %q, %v", bucketName, err)
+			return err
+		}
+
+		hasMoreObjects = *resp.IsTruncated
+	}
+
+	log.Debugf("Deleted", totalObjects, "object(s) from bucket", bucketName)
+	return nil
 }
 
 func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string) error {

@@ -194,6 +194,8 @@ type Stack struct {
 	Status         string
 	StatusReason   string
 	LastUpdateTime time.Time
+	Region         string
+	AccountID      string
 	Tags           map[string]string
 	Outputs        map[string]string
 	Parameters     map[string]string

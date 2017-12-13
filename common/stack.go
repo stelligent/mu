@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"strings"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 // CreateStackName will create a name for a stack
@@ -23,6 +24,7 @@ type StackUpserter interface {
 // StackLister for listing stacks
 type StackLister interface {
 	ListStacks(stackType StackType) ([]*Stack, error)
+	GetResourcesForStack(stack *Stack) ([]*cloudformation.StackResource, error)
 }
 
 // StackGetter for getting stacks
@@ -40,6 +42,16 @@ type ImageFinder interface {
 	FindLatestImageID(namePattern string) (string, error)
 }
 
+// BucketDeleter for deleting S3 Buckets {
+type BucketDeleter interface {
+	DeleteS3Bucket(bucketName string) error
+}
+
+// BucketObjectDeleter for deleting S3 Buckets {
+type BucketObjectDeleter interface {
+	DeleteS3BucketObjects(bucketName string) error
+}
+
 // StackManager composite of all stack capabilities
 type StackManager interface {
 	StackUpserter
@@ -48,4 +60,6 @@ type StackManager interface {
 	StackGetter
 	StackDeleter
 	ImageFinder
+	BucketDeleter
+	BucketObjectDeleter
 }
