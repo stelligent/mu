@@ -54,7 +54,7 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 	log.Debug("Connecting to ECS service")
 	ecsAPI := ecs.New(sess)
 
-	log.Debug("Connecting to ECS service")
+	log.Debug("Connecting to ECR service")
 	ecrAPI := ecr.New(sess)
 
 	log.Debug("Connecting to S3 service")
@@ -501,7 +501,7 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 	return err
 }
 
-// GetBucketsForStack retrieves the list of buckets associated with a stack
+// GetResourcesForStack retrieves the list of resources associated with a stack
 func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Stack) ([]*cloudformation.StackResource, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
@@ -509,9 +509,9 @@ func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Sta
 	output, err := cfnAPI.DescribeStackResources(params)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
+			log.Errorf("GetResourcesForStack %s %v ", stack.ID, aerr.Error())
 		} else {
-			log.Errorf("%v", err)
+			log.Errorf("GetResourcesForStack %s %v", stack.ID, err)
 		}
 		return nil, err
 	}
@@ -531,16 +531,16 @@ func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) erro
 	_, err := s3API.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(bucketName)})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
+			log.Errorf("Delete Bucket %s %v", bucketName, aerr.Error())
 		} else {
-			log.Errorf("%v", err)
+			log.Errorf("Delete Bucket %s %v", bucketName, err)
 		}
 		return nil
 	}
 	return err
 }
 
-// GetBucketsForStack retrieves the list of buckets associated with a stack
+// DeleteImagesFromEcrRepo deletes all the Docker images from a repo (so the repo itself can be deleted)
 func (cfnMgr *cloudformationStackManager) DeleteImagesFromEcrRepo(repoName string) error {
 	ecrAPI := cfnMgr.ecrAPI
 
@@ -589,7 +589,7 @@ func (cfnMgr *cloudformationStackManager) DeleteImagesFromEcrRepo(repoName strin
 	return nil
 }
 
-// DeleteS3BucketObjects deletes a particular bucket, deleting all files first.
+// DeleteS3BucketObjeexecutorscts deletes all files in an S3 bucket, so the bucket itself can be deleted
 func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName string) error {
 	s3API := cfnMgr.s3API
 
@@ -606,9 +606,9 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 		resp, err := s3API.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("%v", aerr.Error())
+				log.Errorf("DeleteS3BucketObjects %s %v", bucketName, aerr.Error())
 			} else {
-				log.Errorf("%v", err)
+				log.Errorf("DeleteS3BucketObjects %s %v", bucketName, err)
 			}
 			return err
 		}
@@ -629,7 +629,7 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 		items.SetObjects(objs)
 
 		// Delete the items
-		_, err = s3API.DeleteObjects(&s3.DeleteObjectsInput{Bucket: &bucketName, Delete: &items})
+		_, err = s3API.DeleteObjects(&s3.DeleteObjectsInput{Bucket: aws.String(bucketName), Delete: &items})
 		if err != nil {
 			log.Errorf("Unable to delete objects from bucket %q, %v", bucketName, err)
 			return err

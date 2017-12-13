@@ -3,15 +3,13 @@ package workflows
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"io"
 	"strings"
 )
 
-type purgeWorkflow struct {
-	RepoName string
-}
+type purgeWorkflow struct{}
+
 type stackTerminateWorkflow struct {
 	Stack *common.Stack
 }
@@ -25,51 +23,7 @@ func NewPurge(ctx *common.Context, writer io.Writer) Executor {
 	)
 }
 
-//
-//
-// main.go: main
-// cli/app.go: NewApp
-// cli/environments.go: newEnvironmentsCommand
-// cli/environments.go: newEnvironmentsTerminateCommand
-// workflows/environment_terminate.go: NewEnvironmentTerminate
-
-// main.go: main
-// cli/app.go: NewApp
-// cli/services.go: newServicesCommand
-// cli/services.go: newServicesUndeployCommand
-// workflows/service_undeploy.go: newServiceUndeployer
-
-//Workflow sequence
-//
-//for region in region-list (default to current, maybe implement a --region-list or --all-regions switch)
-//  for namespace in namespaces (default to specified namespace)
-//    for environment in all-environments (i.e. acceptance/production)
-//      for service in services (all services in environment)
-//         invoke 'svc undeploy'
-//         invoke `env term`
-//remove ECS repo
-//invoke `pipeline term`
-//remove s3 bucket containing environment name
-//remove RDS databases
-//
-//other artifacts to remove:
-//* common IAM roles
-//* cloudwatch buckets
-//* cloudwatch dashboards
-//* (should be covered by CFN stack removal)
-//* ECS scheduled tasks
-//* SES
-//* SNS
-//* SQS
-//* ELB
-//* EC2 subnet
-//* EC2 VPC Gateway attachment
-//* security groups
-//* EC2 Network ACL
-//* EC2 Routetable
-//* CF stacks
-
-func removeStacksByStatus(stacks []*common.Stack, statuses []string) []*common.Stack {
+func filterStacksByStatus(stacks []*common.Stack, statuses []string) []*common.Stack {
 	var ret []*common.Stack
 	for _, stack := range stacks {
 		found := false
@@ -99,7 +53,6 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 	return func() error {
 		// get any dependent resources
 		resources, err := stackLister.GetResourcesForStack(workflow.Stack)
-		log.Info("resources %V", resources)
 		if err != nil {
 			return err
 		}
@@ -111,19 +64,17 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 				// empty the bucket first
 				s3stackDeleter.DeleteS3BucketObjects(*fqBucketName)
 			} else if *resource.ResourceType == "AWS::ECR::Repository" {
-				log.Infof("ECR::Repository %V", resource.PhysicalResourceId)
+				log.Debugf("ECR::Repository %V", resource.PhysicalResourceId)
 				ecrRepoDeleter.DeleteImagesFromEcrRepo(*resource.PhysicalResourceId)
-			} else {
-				log.Infof("don't know how to delete a type %s", *resource.ResourceType)
 			}
 		}
 		// delete the stack object
 		err = stackDeleter.DeleteStack(workflow.Stack.Name)
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("%v", aerr.Error())
+				log.Errorf("DeleteStack %s %v", workflow.Stack.Name, aerr.Error())
 			} else {
-				log.Errorf("%v", err)
+				log.Errorf("DeleteStack %s %v", workflow.Stack.Name, err)
 			}
 		}
 		// wait for the result
@@ -139,9 +90,9 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 				err2 := s3stackDeleter.DeleteS3Bucket(*fqBucketName)
 				if err2 != nil {
 					if aerr, ok := err2.(awserr.Error); ok {
-						log.Errorf("couldn't delete S3 Bucket %s %v", *fqBucketName, aerr.Error())
+						log.Warningf("couldn't delete S3 Bucket %s %v", *fqBucketName, aerr.Error())
 					} else {
-						log.Errorf("couldn't delete S3 Bucket %s %v", *fqBucketName, err2)
+						log.Warningf("couldn't delete S3 Bucket %s %v", *fqBucketName, err2)
 					}
 				}
 			}
@@ -152,17 +103,13 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 
 func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister common.StackLister, writer io.Writer) Executor {
 	return func() error {
-
-		// TODO establish outer loop for regions
-		// TODO establish outer loop for multiple namespaces
-		// purgeMap := make(map[string][]*common.Stack)
-
 		// gather all the stackNames for each type (in parallel)
 		stacks, err := stackLister.ListStacks(common.StackTypeAll)
 		if err != nil {
 			log.Warning("couldn't list stacks (all)")
 		}
-		stacks = removeStacksByStatus(stacks, []string{cloudformation.StackStatusRollbackComplete})
+		// ignore those in ROLLBACK_COMPLETED status
+		// stacks = filterStacksByStatus(stacks, []string{cloudformation.StackStatusRollbackComplete})
 
 		table := CreateTableSection(writer, PurgeHeader)
 		stackCount := 0
@@ -184,13 +131,15 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// create a grand master list of all the things we're going to delete
 		var executors []Executor
 
-		// TODO - scheduled tasks are attached to service, so must be deleted first.
-		// common.StackTypeSchedule
-
-		svcWorkflow := new(serviceWorkflow)
+		// scheduled tasks are attached to services, so they must be deleted first.
+		for _, scheduleStack := range filterStacksByType(stacks, common.StackTypeSchedule) {
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = scheduleStack
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+		}
 
 		// add the services we're going to terminate
-
+		svcWorkflow := new(serviceWorkflow)
 		for _, stack := range filterStacksByType(stacks, common.StackTypeService) {
 			executors = append(executors, svcWorkflow.serviceInput(ctx, stack.Tags["service"]))
 			executors = append(executors, svcWorkflow.serviceUndeployer(ctx.Config.Namespace, stack.Tags["environment"], ctx.StackManager, ctx.StackManager))
@@ -201,7 +150,6 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		for _, stack := range filterStacksByType(stacks, common.StackTypeEnv) {
 			// Add the terminator jobs to the master list for each environment
 			envName := stack.Tags["environment"]
-
 			executors = append(executors, envWorkflow.environmentServiceTerminator(envName, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.RolesetManager))
 			executors = append(executors, envWorkflow.environmentDbTerminator(envName, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 			executors = append(executors, envWorkflow.environmentEcsTerminator(ctx.Config.Namespace, envName, ctx.StackManager, ctx.StackManager))
@@ -214,7 +162,6 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// add the pipelines to terminate
 		codePipelineWorkflow := new(pipelineWorkflow)
 		for _, codePipeline := range filterStacksByType(stacks, common.StackTypePipeline) {
-			// log.Infof("%s %v", codePipeline.Name, codePipeline.Tags)
 			executors = append(executors, codePipelineWorkflow.serviceFinder(codePipeline.Tags["service"], ctx))
 			executors = append(executors, codePipelineWorkflow.pipelineTerminator(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager))
 			executors = append(executors, codePipelineWorkflow.pipelineRolesetTerminator(ctx.RolesetManager))
@@ -225,13 +172,10 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", bucket.Name, bucket.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = bucket
-			//                                           (ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, ecrRepoDeleter common.EcrRepoDeleter, s3stackDeleter common.S3StackDeleter, stackWaiter common.StackWaiter) Executor {
 			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
-
-			// func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context,  stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
 		}
 
-		// add the buckets to remove
+		// add the ecr repos to remove
 		for _, repo := range filterStacksByType(stacks, common.StackTypeRepo) {
 			log.Infof("%s %v", repo.Name, repo.Tags)
 			workflow := new(stackTerminateWorkflow)
@@ -247,28 +191,9 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
-		// add the ecs repos to terminate
+		log.Infof("total of %d stacks to purge", stackCount)
 
-		// aws ecr describe-repositories
-		//	"repositories": [
-		//		"repositoryArn": "arn:aws:ecr:eu-west-1:324320755747:repository/mu-tim-mu-banana",
-		//		"registryId": "324320755747",
-		//		"repositoryName": "mu-tim-mu-banana",
-		//		"repositoryUri": "324320755747.dkr.ecr.eu-west-1.amazonaws.com/mu-tim-mu-banana",
-		//		"createdAt": 1511561499.0
-		// aws ecr describe-images --repository-name mu-tim-mu-banana
-		// aws ecr batch-delete-image --repository-name ubuntu --image-ids imageTag=precise
-
-		// QUESTION: do we want to delete stacks of type CodeCommit?  (currently, my example is github)
-
-		// common.StackTypeLoadBalancer
-		// common.StackTypeDatabase - databaseWorkflow
-		// common.StackTypeBucket
-		// common.StackTypeVpc
-
-		// logsWorkflow (for cloudwatch workflows)
-
-		log.Infof("total of %d stacks of %d types to purge", stackCount, len(executors))
+		// TODO: prompt the user if -y not present on command-line
 
 		// newPipelineExecutorNoStop is just like newPipelineExecutor, except that it doesn't stop on error
 		executor := newPipelineExecutorNoStop(executors...)
