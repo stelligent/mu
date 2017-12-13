@@ -95,7 +95,7 @@ func filterStacksByType(stacks []*common.Stack, stackType common.StackType) []*c
 	return ret
 }
 
-func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
+func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, ecrRepoDeleter common.EcrRepoDeleter, s3stackDeleter common.S3StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		// get any dependent resources
 		resources, err := stackLister.GetResourcesForStack(workflow.Stack)
@@ -109,10 +109,10 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 				fqBucketName := resource.PhysicalResourceId
 				log.Debugf("delete bucket: fullname=%s", *fqBucketName)
 				// empty the bucket first
-				stackDeleter.DeleteS3BucketObjects(*fqBucketName)
+				s3stackDeleter.DeleteS3BucketObjects(*fqBucketName)
 			} else if *resource.ResourceType == "AWS::ECR::Repository" {
 				log.Infof("ECR::Repository %V", resource.PhysicalResourceId)
-				stackDeleter.DeleteImagesFromEcrRepo(*resource.PhysicalResourceId)
+				ecrRepoDeleter.DeleteImagesFromEcrRepo(*resource.PhysicalResourceId)
 			} else {
 				log.Infof("don't know how to delete a type %s", *resource.ResourceType)
 			}
@@ -136,7 +136,7 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 		for _, resource := range resources {
 			if *resource.ResourceType == "AWS::S3::Bucket" {
 				fqBucketName := resource.PhysicalResourceId
-				err2 := ctx.StackManager.DeleteS3Bucket(*fqBucketName)
+				err2 := s3stackDeleter.DeleteS3Bucket(*fqBucketName)
 				if err2 != nil {
 					if aerr, ok := err2.(awserr.Error); ok {
 						log.Errorf("couldn't delete S3 Bucket %s %v", *fqBucketName, aerr.Error())
@@ -225,7 +225,8 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", bucket.Name, bucket.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = bucket
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			//                                           (ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, ecrRepoDeleter common.EcrRepoDeleter, s3stackDeleter common.S3StackDeleter, stackWaiter common.StackWaiter) Executor {
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 
 			// func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context,  stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
 		}
@@ -235,7 +236,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", repo.Name, repo.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = repo
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the iam roles to delete
@@ -243,7 +244,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", roleStack.Name, roleStack.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = roleStack
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the ecs repos to terminate

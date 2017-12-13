@@ -35,8 +35,16 @@ type StackGetter interface {
 // StackDeleter for deleting stacks
 type StackDeleter interface {
 	DeleteStack(stackName string) error
+}
+
+// S3StackDeleter for purging files from S3 buckets
+type S3StackDeleter interface {
 	DeleteS3Bucket(bucketName string) error
 	DeleteS3BucketObjects(bucketName string) error
+}
+
+// EcrRepoDeleter interface {
+type EcrRepoDeleter interface {
 	DeleteImagesFromEcrRepo(repoName string) error
 }
 
@@ -52,5 +60,7 @@ type StackManager interface {
 	StackLister
 	StackGetter
 	StackDeleter
+	S3StackDeleter
+	EcrRepoDeleter
 	ImageFinder
 }
