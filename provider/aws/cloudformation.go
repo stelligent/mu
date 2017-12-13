@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -34,6 +36,7 @@ type cloudformationStackManager struct {
 	s3API             s3iface.S3API
 	ec2API            ec2iface.EC2API
 	ecsAPI            ecsiface.ECSAPI
+	ecrAPI            ecriface.ECRAPI
 	extensionsManager common.ExtensionsManager
 }
 
@@ -51,6 +54,9 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 	log.Debug("Connecting to ECS service")
 	ecsAPI := ecs.New(sess)
 
+	log.Debug("Connecting to ECS service")
+	ecrAPI := ecr.New(sess)
+
 	log.Debug("Connecting to S3 service")
 	s3API := s3.New(sess)
 
@@ -60,6 +66,7 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 		cfnAPI:            cfnAPI,
 		ec2API:            ec2API,
 		ecsAPI:            ecsAPI,
+		ecrAPI:            ecrAPI,
 		s3API:             s3API,
 		extensionsManager: extensionsManager,
 	}, nil
@@ -495,10 +502,10 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 }
 
 // GetBucketsForStack retrieves the list of buckets associated with a stack
-func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Stack) ([]*cloudformation.StackResource, error){
+func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Stack) ([]*cloudformation.StackResource, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
-	params := &cloudformation.DescribeStackResourcesInput{StackName:  aws.String(stack.ID)}
+	params := &cloudformation.DescribeStackResourcesInput{StackName: aws.String(stack.ID)}
 	output, err := cfnAPI.DescribeStackResources(params)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -533,6 +540,55 @@ func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) erro
 	return err
 }
 
+// GetBucketsForStack retrieves the list of buckets associated with a stack
+func (cfnMgr *cloudformationStackManager) DeleteImagesFromEcrRepo(repoName string) error {
+	ecrAPI := cfnMgr.ecrAPI
+
+	if cfnMgr.dryrunPath != "" {
+		log.Infof("  DRYRUN: Skipping delete of all images in repo named '%s'", repoName)
+		return nil
+	}
+
+	hasMoreObjects := true
+	totalObjects := 0
+	totalFailures := 0
+
+	var nextToken *string
+	for hasMoreObjects {
+		// find all the images
+		resp, err := ecrAPI.ListImages(&ecr.ListImagesInput{RepositoryName: aws.String(repoName), NextToken: nextToken})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				log.Errorf("ListImagesInput %s %v", repoName, aerr.Error())
+			} else {
+				log.Errorf("ListImagesInput %s %v", repoName, err)
+			}
+			return err
+		}
+
+		// delete them all
+		result, err := ecrAPI.BatchDeleteImage(&ecr.BatchDeleteImageInput{ImageIds: resp.ImageIds, RepositoryName: &repoName})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				log.Errorf("BatchDeleteImage %v", aerr.Error())
+			} else {
+				log.Errorf("BatchDeleteImage %v", err)
+			}
+		}
+		numImages := len(resp.ImageIds)
+		numFailures := len(result.Failures)
+		log.Debugf("%d images submitted for deletion, %d failed", numImages, numFailures)
+
+		totalObjects += numImages
+		totalFailures += numFailures
+		nextToken = resp.NextToken
+		hasMoreObjects = nextToken != nil
+	}
+	log.Debugf("total number of images found: %d, number of failed deletes %d", totalObjects, totalFailures)
+
+	return nil
+}
+
 // DeleteS3BucketObjects deletes a particular bucket, deleting all files first.
 func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName string) error {
 	s3API := cfnMgr.s3API
@@ -550,16 +606,11 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 		resp, err := s3API.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
-				switch aerr.Code() {
-				case s3.ErrCodeNoSuchBucket:
-					log.Errorf("%v %v", s3.ErrCodeNoSuchBucket, aerr.Error())
-				default:
-					log.Errorf(aerr.Error())
-				}
+				log.Errorf("%v", aerr.Error())
 			} else {
 				log.Errorf("%v", err)
 			}
-			return nil
+			return err
 		}
 
 		numObjs := len(resp.Contents)

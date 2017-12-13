@@ -2,11 +2,11 @@ package workflows
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 	"io"
 	"strings"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
 type purgeWorkflow struct {
@@ -95,7 +95,7 @@ func filterStacksByType(stacks []*common.Stack, stackType common.StackType) []*c
 	return ret
 }
 
-func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, bucketDeleter common.BucketDeleter, bucketObjectDeleter common.BucketObjectDeleter, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
+func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		// get any dependent resources
 		resources, err := stackLister.GetResourcesForStack(workflow.Stack)
@@ -109,10 +109,10 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, buc
 				fqBucketName := resource.PhysicalResourceId
 				log.Debugf("delete bucket: fullname=%s", *fqBucketName)
 				// empty the bucket first
-				bucketObjectDeleter.DeleteS3BucketObjects(*fqBucketName)
-			} else if(*resource.ResourceType == "AWS::ECR::Repository") {
-				log.Infof("ECR::Repository %V", *resource)
-
+				stackDeleter.DeleteS3BucketObjects(*fqBucketName)
+			} else if *resource.ResourceType == "AWS::ECR::Repository" {
+				log.Infof("ECR::Repository %V", resource.PhysicalResourceId)
+				stackDeleter.DeleteImagesFromEcrRepo(*resource.PhysicalResourceId)
 			} else {
 				log.Infof("don't know how to delete a type %s", *resource.ResourceType)
 			}
@@ -139,9 +139,9 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, buc
 				err2 := ctx.StackManager.DeleteS3Bucket(*fqBucketName)
 				if err2 != nil {
 					if aerr, ok := err2.(awserr.Error); ok {
-						log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, aerr.Error())
+						log.Errorf("couldn't delete S3 Bucket %s %v", *fqBucketName, aerr.Error())
 					} else {
-						log.Errorf("couldn't delete S3 Bucket %s %v", fqBucketName, err2)
+						log.Errorf("couldn't delete S3 Bucket %s %v", *fqBucketName, err2)
 					}
 				}
 			}
@@ -225,7 +225,9 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", bucket.Name, bucket.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = bucket
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+
+			// func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context,  stackDeleter common.StackDeleter, stackLister common.StackLister, stackWaiter common.StackWaiter) Executor {
 		}
 
 		// add the buckets to remove
@@ -233,7 +235,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", repo.Name, repo.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = repo
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the iam roles to delete
@@ -241,11 +243,20 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			log.Infof("%s %v", roleStack.Name, roleStack.Tags)
 			workflow := new(stackTerminateWorkflow)
 			workflow.Stack = roleStack
-			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
-
 		// add the ecs repos to terminate
+
+		// aws ecr describe-repositories
+		//	"repositories": [
+		//		"repositoryArn": "arn:aws:ecr:eu-west-1:324320755747:repository/mu-tim-mu-banana",
+		//		"registryId": "324320755747",
+		//		"repositoryName": "mu-tim-mu-banana",
+		//		"repositoryUri": "324320755747.dkr.ecr.eu-west-1.amazonaws.com/mu-tim-mu-banana",
+		//		"createdAt": 1511561499.0
+		// aws ecr describe-images --repository-name mu-tim-mu-banana
+		// aws ecr batch-delete-image --repository-name ubuntu --image-ids imageTag=precise
 
 		// QUESTION: do we want to delete stacks of type CodeCommit?  (currently, my example is github)
 
@@ -255,9 +266,6 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		// common.StackTypeVpc
 
 		// logsWorkflow (for cloudwatch workflows)
-
-		// common.StackTypeRepo
-		// delete repo by AWS CLI remove, key is in Tags["repo"]
 
 		log.Infof("total of %d stacks of %d types to purge", stackCount, len(executors))
 
