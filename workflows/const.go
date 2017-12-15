@@ -27,7 +27,7 @@ var SvcTaskContainerHeader = []string{"Environment", "Container", "Task", "Insta
 var PipeLineServiceHeader = []string{SvcServiceHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // PurgeHeader is the header for the purge summary table
-var PurgeHeader = []string{TypeHeader, SvcStackHeader, SvcStatusHeader, "STATUS_REASON", SvcLastUpdateHeader}
+var PurgeHeader = []string{TypeHeader, SvcStackHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // EnvironmentAMITableHeader is the header for the instance details
 var EnvironmentAMITableHeader = []string{EC2Instance, TypeHeader, AMI, PrivateIP, AZ, ConnectedHeader, SvcStatusHeader, NumTasks, CPUAvail, MEMAvail}
