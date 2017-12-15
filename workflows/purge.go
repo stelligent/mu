@@ -204,7 +204,20 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 
 		log.Infof("total of %d stacks to purge", stackCount)
 
-		// TODO: prompt the user if -y not present on command-line
+		// prompt the user if -y not present on command-line
+		suppressConfirmation, _ := ctx.ParamManager.GetParam("suppressConfirmation")
+		if suppressConfirmation != "yes" {
+			phrase := "Yes, I want to purge everything."
+			fmt.Printf("Are you sure you want to purge the above resources? ")
+			fmt.Printf("(use '%s' to confirm): ", phrase)
+			scanner := bufio.NewScanner(os.Stdin)
+			scanner.Scan()
+			confirmation := scanner.Text()
+			if confirmation != phrase {
+				log.Errorf("Aborting at user request")
+				os.Exit(1)
+			}
+		}
 
 		// newPipelineExecutorNoStop is just like newPipelineExecutor, except that it doesn't stop on error
 		executor := newPipelineExecutorNoStop(executors...)

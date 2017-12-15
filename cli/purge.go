@@ -12,9 +12,24 @@ func newPurgeCommand(ctx *common.Context) *cli.Command {
 		Name:    "purge",
 		Aliases: []string{"nuke"},
 		Usage:   "purge",
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "yes, y",
+				Usage: "suppresses (Y/N) confirmation prompt",
+			},
+			cli.StringFlag{
+				Name:  "namespace, n",
+				Usage: "specify a namespace to filter",
+			},
+		},
 		Action: func(c *cli.Context) error {
-			forceFlag := c.Args().Get(1)
-			ctx.ParamManager.SetParam("forceFlag", forceFlag)
+			paramName := "yes"
+			suppressConfirmation := c.Bool(paramName)
+			if suppressConfirmation {
+				ctx.ParamManager.SetParam("suppressConfirmation", "yes")
+			} else {
+				ctx.ParamManager.SetParam("suppressConfirmation", "no")
+			}
 			workflow := workflows.NewPurge(ctx, os.Stdout)
 			return workflow()
 		},
