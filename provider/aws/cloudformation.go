@@ -629,7 +629,9 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 		items.SetObjects(objs)
 
 		// Delete the items
-		_, err = s3API.DeleteObjects(&s3.DeleteObjectsInput{Bucket: aws.String(bucketName), Delete: &items})
+		_, err = s3API.DeleteObjects(&s3.DeleteObjectsInput{
+			Bucket: aws.String(bucketName),
+			Delete: &items})
 		if err != nil {
 			log.Errorf("Unable to delete objects from bucket %q, %v", bucketName, err)
 			return err

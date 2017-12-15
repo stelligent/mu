@@ -1,12 +1,14 @@
 package workflows
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/stelligent/mu/common"
 	"io"
+	"os"
 	"strings"
-	// "github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 type purgeWorkflow struct{}
@@ -58,15 +60,21 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 			return err
 		}
 		// do pre-delete API calls here (like deleting files from S3 bucket, before trying to delete bucket)
+		if len(resources) > 0 {
+			log.Debugf("    stack %s (%s) has %d resources attached", workflow.Stack.Name, workflow.Stack.Tags["type"], len(resources))
+			for idx, resource := range resources {
+				log.Debugf("   %3d: %s (%s)", idx, aws.StringValue(resource.LogicalResourceId), aws.StringValue(resource.PhysicalResourceId))
+			}
+		}
 		for _, resource := range resources {
 			if *resource.ResourceType == "AWS::S3::Bucket" {
 				fqBucketName := resource.PhysicalResourceId
-				log.Debugf("delete bucket: fullname=%s", *fqBucketName)
+				log.Debugf("delete bucket: fullname=%s", aws.StringValue(fqBucketName))
 				// empty the bucket first
-				s3stackDeleter.DeleteS3BucketObjects(*fqBucketName)
+				s3stackDeleter.DeleteS3BucketObjects(aws.StringValue(fqBucketName))
 			} else if *resource.ResourceType == "AWS::ECR::Repository" {
-				log.Debugf("ECR::Repository %V", resource.PhysicalResourceId)
-				ecrRepoDeleter.DeleteImagesFromEcrRepo(*resource.PhysicalResourceId)
+				log.Debugf("ECR::Repository %V", aws.StringValue(resource.PhysicalResourceId))
+				ecrRepoDeleter.DeleteImagesFromEcrRepo(aws.StringValue(resource.PhysicalResourceId))
 			}
 		}
 		// delete the stack object
@@ -88,12 +96,12 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 		for _, resource := range resources {
 			if *resource.ResourceType == "AWS::S3::Bucket" {
 				fqBucketName := resource.PhysicalResourceId
-				err2 := s3stackDeleter.DeleteS3Bucket(*fqBucketName)
+				err2 := s3stackDeleter.DeleteS3Bucket(aws.StringValue(fqBucketName))
 				if err2 != nil {
 					if aerr, ok := err2.(awserr.Error); ok {
-						log.Warningf("couldn't delete S3 Bucket %s %v", *fqBucketName, aerr.Error())
+						log.Warningf("couldn't delete S3 Bucket %s %v", aws.StringValue(fqBucketName), aerr.Error())
 					} else {
-						log.Warningf("couldn't delete S3 Bucket %s %v", *fqBucketName, err2)
+						log.Warningf("couldn't delete S3 Bucket %s %v", aws.StringValue(fqBucketName), err2)
 					}
 				}
 			} else if *resource.ResourceType == "AWS::IAM::Role" {
@@ -123,7 +131,6 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 					Bold(stackType),
 					stack.Name,
 					fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stack.Status), stack.StatusReason),
-					stack.StatusReason,
 					stack.LastUpdateTime.Local().Format(LastUpdateTime),
 				})
 				stackCount++
@@ -160,6 +167,14 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 			executors = append(executors, envWorkflow.environmentRolesetTerminator(ctx.RolesetManager, envName))
 			executors = append(executors, envWorkflow.environmentElbTerminator(ctx.Config.Namespace, envName, ctx.StackManager, ctx.StackManager))
 			executors = append(executors, envWorkflow.environmentVpcTerminator(ctx.Config.Namespace, envName, ctx.StackManager, ctx.StackManager))
+		}
+
+		// add the consuls to terminate
+		for _, consul := range filterStacksByType(stacks, common.StackTypeConsul) {
+			log.Infof("%s %v", consul.Name, consul.Tags)
+			workflow := new(stackTerminateWorkflow)
+			workflow.Stack = consul
+			executors = append(executors, workflow.stackTerminator(ctx, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager))
 		}
 
 		// add the pipelines to terminate
