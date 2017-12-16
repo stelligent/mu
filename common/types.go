@@ -110,6 +110,7 @@ type Service struct {
 	CPU                  int                    `yaml:"cpu,omitempty"`
 	Memory               int                    `yaml:"memory,omitempty"`
 	NetworkMode          string                 `yaml:"networkMode,omitempty"`
+	Links                []string               `yaml:"links,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
