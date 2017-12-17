@@ -78,6 +78,7 @@ type Environment struct {
 		TargetCPUReservation    int    `yaml:"targetCPUReservation,omitempty"`
 		TargetMemoryReservation int    `yaml:"targetMemoryReservation,omitempty"`
 		HTTPProxy               string `yaml:"httpProxy,omitempty"`
+		ExtraUserData           string `yaml:"extraUserData,omitempty"`
 	} `yaml:"cluster,omitempty"`
 	Discovery struct {
 		Provider      string            `yaml:"provider,omitempty"`

@@ -83,6 +83,10 @@ Parameters:
     AllowedValues:
     - EC2
     - FARGATE
+  ExtraUserData:
+    Type: String
+    Description: Additional user data script
+    Default: ''
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -400,6 +404,8 @@ Resources:
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
+          ${ExtraUserData}
+
           --==BOUNDARY==
           Content-Type: text/text/upstart-job; charset="us-ascii"
 
@@ -421,6 +427,7 @@ Resources:
             instance_arn=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F/ '{print $NF}' )
             aws ecs start-task --cluster ${EcsCluster} --task-definition ${AWS::StackName}-consul-agent --container-instances $instance_arn --started-by $instance_arn --region ${AWS::Region}
           end script
+
           --==BOUNDARY==--
   ClusterLogGroup:
     Condition: HasLaunchTypeEC2
