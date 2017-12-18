@@ -123,6 +123,10 @@ Parameters:
       - host
       - bridge
     Description: Network mode for tasks
+  Links:
+    Description: Links to other docker containers
+    Type: CommaDelimitedList
+    Default: ''
   LaunchType:
     Type: String
     Description: Name of value to import for service launch type
@@ -186,6 +190,14 @@ Conditions:
     "Fn::Equals":
       - !Sub ${TaskNetworkMode}
       - 'awsvpc'
+  HasLinks:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join":
+          - ''
+          - !Ref Links
+        - ''
+
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -247,6 +259,11 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
+        Links:
+          Fn::If:
+          - HasLinks
+          - !Ref Links
+          - !Ref AWS::NoValue
         Environment:
         {{with .Environment}}
           {{range $key, $val := .}}
