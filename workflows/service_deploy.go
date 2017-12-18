@@ -141,6 +141,9 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 
 		params["TaskCpu"] = strconv.Itoa(cpu.CPU)
 		params["TaskMemory"] = strconv.Itoa(memory)
+		if len(service.Links) > 0 {
+			params["Links"] = strings.Join(service.Links, ",")
+		}
 
 		// force 'awsvpc' network mode for ecs-fargate
 		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
