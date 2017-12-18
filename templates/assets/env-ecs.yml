@@ -399,12 +399,11 @@ Resources:
             CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
           fi
 
+          ${ExtraUserData}
 
           yum install -y aws-cfn-bootstrap
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
-
-          ${ExtraUserData}
 
           --==BOUNDARY==
           Content-Type: text/text/upstart-job; charset="us-ascii"
