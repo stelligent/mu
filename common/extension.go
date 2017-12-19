@@ -2,7 +2,6 @@ package common
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -321,12 +320,20 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 // DecorateStackTemplate from template files in archive
 func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
 	outTemplate := inTemplate
-	if ext.mode == TemplateUpdateReplace {
-		log.Debugf("Replacing input template")
-		inTemplate = bytes.NewBufferString("")
-	}
 	assetPath := filepath.Join(ext.path, assetName)
+
+	if ext.mode == TemplateUpdateReplace {
+		f, err := os.Open(assetPath)
+		if err == nil {
+			log.Debugf("Replacing input template")
+			return f, nil
+		} else {
+			return inTemplate, nil
+		}
+	}
+
 	yamlFile, err := ioutil.ReadFile(assetPath)
+
 	if err != nil {
 		log.Debugf("Unable to find asset '%s' in extension '%s': %s", assetName, ext.id, err)
 	} else {
