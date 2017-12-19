@@ -324,12 +324,12 @@ func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, sta
 
 	if ext.mode == TemplateUpdateReplace {
 		f, err := os.Open(assetPath)
-		if err == nil {
-			log.Debugf("Replacing input template")
-			return f, nil
-		} else {
+		if err != nil {
+			log.Debugf("Error trying to replace template: %v", err)
 			return inTemplate, nil
 		}
+		log.Debugf("Replacing input template")
+		return f, nil
 	}
 
 	yamlFile, err := ioutil.ReadFile(assetPath)
