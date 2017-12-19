@@ -17,9 +17,9 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 	ecsImportParams := make(map[string]string)
 
 	return newPipelineExecutor(
-		workflow.databaseInput(ctx, ""),
+		workflow.databaseInput(ctx, "", environmentName),
 		workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
-		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager),
+		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
 	)
 }
@@ -41,7 +41,7 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(namespace string, en
 	}
 }
 
-func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter) Executor {
+func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, environmentName string) Executor {
 	return func() error {
 		err := rolesetUpserter.UpsertCommonRoleset()
 		if err != nil {
@@ -54,6 +54,13 @@ func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common
 		}
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
+
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(environmentName, workflow.serviceName)
+		if err != nil {
+			return err
+		}
+		workflow.databaseKeyArn = serviceRoleset["ServiceKeyArn"]
+
 		return nil
 	}
 }
@@ -90,12 +97,14 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		if dbPass == "" {
 			dbPass = randomPassword(32)
-			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass)
+			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {
 				return err
 			}
 		}
 		stackParams["DatabaseMasterPassword"] = dbPass
+
+		stackParams["DatabaseKeyArn"] = workflow.databaseKeyArn
 
 		tags := createTagMap(&DatabaseTags{
 			Environment: environmentName,

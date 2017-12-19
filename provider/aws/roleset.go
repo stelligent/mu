@@ -62,6 +62,7 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, serviceName string) (common.Roleset, error) {
 	roleset := rolesetMgr.getRolesetFromStack("service", serviceName, environmentName)
 
+	overrideRole(roleset, "ServiceKeyArn", rolesetMgr.context.Config.Service.KmsKey[environmentName])
 	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
 	overrideRole(roleset, "CodeDeployRoleArn", rolesetMgr.context.Config.Service.Roles.CodeDeploy)
 	overrideRole(roleset, "EcsEventsRoleArn", rolesetMgr.context.Config.Service.Roles.EcsEvents)
@@ -74,6 +75,7 @@ func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, s
 func (rolesetMgr *iamRolesetManager) GetPipelineRoleset(serviceName string) (common.Roleset, error) {
 	roleset := rolesetMgr.getRolesetFromStack("pipeline", serviceName)
 
+	overrideRole(roleset, "CodePipelineKeyArn", rolesetMgr.context.Config.Service.Pipeline.KmsKey)
 	overrideRole(roleset, "CodePipelineRoleArn", rolesetMgr.context.Config.Service.Pipeline.Roles.Pipeline)
 	overrideRole(roleset, "CodeBuildCIRoleArn", rolesetMgr.context.Config.Service.Pipeline.Roles.Build)
 	overrideRole(roleset, "CodeBuildCDAcptRoleArn", rolesetMgr.context.Config.Service.Pipeline.Acceptance.Roles.CodeBuild)

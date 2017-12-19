@@ -13,6 +13,31 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${Namespace}-${BucketPrefix}-${AWS::Region}-${AWS::AccountId}
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: SSEAndSSLPolicy
+        Statement:
+        - Sid: DenyUnEncryptedObjectUploads
+          Effect: Deny
+          Principal: '*'
+          Action: s3:PutObject
+          Resource: !Sub arn:aws:s3:::${Bucket}/*
+          Condition:
+            StringNotEquals:
+              s3:x-amz-server-side-encryption: aws:kms
+        - Sid: DenyInsecureConnections
+          Effect: Deny
+          Principal: '*'
+          Action: s3:*
+          Resource: !Sub arn:aws:s3:::${Bucket}/*
+          Condition:
+            Bool:
+              aws:SecureTransport": false
 Outputs:
   Bucket:
     Description: Name of the pipeline bucket

@@ -122,6 +122,9 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
+  CodePipelineKeyArn:
+    Type: String
+    Description: KMS key for CodePipeline
   CodePipelineRoleArn:
     Type: String
     Description: IAM Role for CodePipeline
@@ -190,8 +193,12 @@ Resources:
     Condition: IsBuildEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-artifact
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Build artifact from source
       ServiceRole: !Ref CodeBuildCIRoleArn
+      Cache:
+        Type: S3
+        Location: !Sub ${PipelineBucket}/${Namespace}-${ServiceName}/_cache/artifact
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -206,8 +213,12 @@ Resources:
     Condition: IsBuildEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-image
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Build image from artifact
       ServiceRole: !Ref CodeBuildCIRoleArn
+      Cache:
+        Type: S3
+        Location: !Sub ${PipelineBucket}/${Namespace}-${ServiceName}/_cache/image
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -226,7 +237,7 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} svc push
+                - mu -c ${MuFile} svc push -k ${CodePipelineKeyArn}
           artifacts:
             files:
               - ${MuFile}
@@ -236,8 +247,12 @@ Resources:
     Condition: IsAcptEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-deploy-acceptance
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Deploy image to test environment
       ServiceRole: !Ref CodeBuildCDAcptRoleArn
+      Cache:
+        Type: S3
+        Location: !Sub ${PipelineBucket}/${Namespace}-${ServiceName}/_cache/deploy-acceptance
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -271,8 +286,12 @@ Resources:
     Condition: IsAcptEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-test-acceptance
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Test in the acceptance environment
       ServiceRole: !Ref CodeBuildCIRoleArn
+      Cache:
+        Type: S3
+        Location: !Sub ${PipelineBucket}/${Namespace}-${ServiceName}/_cache/test-acceptance
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -287,8 +306,12 @@ Resources:
     Condition: IsProdEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-deploy-production
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Deploy image to prod environment
       ServiceRole: !Ref CodeBuildCDProdRoleArn
+      Cache:
+        Type: S3
+        Location: !Sub ${PipelineBucket}/${Namespace}-${ServiceName}/_cache/deploy-production
       Artifacts:
         Type: CODEPIPELINE
       Environment:
@@ -322,6 +345,7 @@ Resources:
     Condition: IsProdEnabled
     Properties:
       Name: !Sub ${Namespace}-pipeline-${ServiceName}-test-production
+      EncryptionKey: !Ref CodePipelineKeyArn
       Description: Test in the production environment
       ServiceRole: !Ref CodeBuildCIRoleArn
       Artifacts:
@@ -486,6 +510,9 @@ Resources:
         - !Ref AWS::NoValue
       ArtifactStore:
         Type: S3
+        EncryptionKey:
+          Id: !Ref CodePipelineKeyArn
+          Type: KMS
         Location: !Ref PipelineBucket
 Outputs:
   CodePipelineUrl:

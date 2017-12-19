@@ -2,7 +2,7 @@ package common
 
 // ParamSetter for setting parameters
 type ParamSetter interface {
-	SetParam(name string, value string) error
+	SetParam(name string, value string, kmsKey string) error
 }
 
 // ParamGetter for getting parameters

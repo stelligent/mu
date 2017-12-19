@@ -36,6 +36,43 @@ Conditions:
         - !Ref Provider
         - 'ecs-fargate'
 Resources:
+  ServiceKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub Service key for ${Namespace}-service-${ServiceName}-${EnvironmentName}
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !GetAtt EC2Role.Arn
+              - !GetAtt EcsTaskRole.Arn
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+          - Effect: "Deny"
+            Principal: '*'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: false
+  ServiceKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${Namespace}-service-${ServiceName}-${EnvironmentName}
+      TargetKeyId: !Ref ServiceKey
   CodeDeployRole:
     Type: AWS::IAM::Role
     Condition: IsEc2Service
@@ -234,6 +271,9 @@ Resources:
             Resource: '*'
 
 Outputs:
+  ServiceKeyArn:
+    Description: KMS key for CodePipeline
+    Value: !GetAtt ServiceKey.Arn
   EC2InstanceProfileArn:
     Description: Instance profile for EC2 instances
     Value:

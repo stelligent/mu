@@ -10,7 +10,8 @@ func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceNam
 	workflow := new(databaseWorkflow)
 
 	return newPipelineExecutor(
-		workflow.databaseInput(ctx, serviceName),
+		workflow.databaseInput(ctx, serviceName, environmentName),
+		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 		workflow.databaseSetPassword(ctx, environmentName, newPassword),
 	)
 }
@@ -19,7 +20,7 @@ func DatabaseSetPassword(ctx *common.Context, environmentName string, serviceNam
 func (workflow *databaseWorkflow) databaseSetPassword(ctx *common.Context, environmentName string, newPassword string) Executor {
 	return func() error {
 		dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
-		return ctx.ParamManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), newPassword)
+		return ctx.ParamManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), newPassword, workflow.databaseKeyArn)
 	}
 }
 
@@ -28,7 +29,7 @@ func DatabaseGetPassword(ctx *common.Context, environmentName string, serviceNam
 	workflow := new(databaseWorkflow)
 
 	return newPipelineExecutor(
-		workflow.databaseInput(ctx, serviceName),
+		workflow.databaseInput(ctx, serviceName, environmentName),
 		workflow.databaseGetPassword(ctx, environmentName),
 	)
 }

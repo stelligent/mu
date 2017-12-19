@@ -56,11 +56,16 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 				Name:  ProviderFlagName,
 				Usage: SvcPushProviderFlagUsage,
 			},
+			cli.StringFlag{
+				Name:  KmsKeyFlagName,
+				Usage: SvcPushKmsKeyFlagUsage,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			tag := c.String(Tag)
 			provider := c.String(Provider)
-			workflow := workflows.NewServicePusher(ctx, tag, provider, ctx.DockerOut)
+			kmsKey := c.String(KmsKey)
+			workflow := workflows.NewServicePusher(ctx, tag, provider, kmsKey, ctx.DockerOut)
 			return workflow()
 		},
 	}

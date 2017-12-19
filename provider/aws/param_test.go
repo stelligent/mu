@@ -51,7 +51,7 @@ func TestParamManager_SetParam(t *testing.T) {
 		ssmAPI: m,
 	}
 
-	err := paramMgr.SetParam("foo", "bar")
+	err := paramMgr.SetParam("foo", "bar", "key")
 	assert.Nil(err)
 
 	m.AssertExpectations(t)

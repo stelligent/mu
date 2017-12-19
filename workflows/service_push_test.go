@@ -12,7 +12,7 @@ import (
 func TestNewServicePusher(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
-	upserter := NewServicePusher(ctx, "foo", "", os.Stdout)
+	upserter := NewServicePusher(ctx, "foo", "", "", os.Stdout)
 	assert.NotNil(upserter)
 }
 

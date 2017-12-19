@@ -109,6 +109,47 @@ Conditions:
         - ""
         - !Ref SourceObjectKey
 Resources:
+  CodePipelineKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub Pipeline key for ${Namespace}-pipeline-${ServiceName}
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !GetAtt CodePipelineRole.Arn
+              - !GetAtt CodeBuildCIRole.Arn
+              - !GetAtt CodeBuildCDAcptRole.Arn
+              - !GetAtt CodeBuildCDProdRole.Arn
+              - !GetAtt MuAcptRole.Arn
+              - !GetAtt MuProdRole.Arn
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+          - Effect: "Deny"
+            Principal: '*'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: false
+  CodePipelineKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${Namespace}-pipeline-${ServiceName}
+      TargetKeyId: !Ref CodePipelineKey
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -522,6 +563,9 @@ Resources:
             Resource: !Ref ProdCloudFormationRoleArn
             Effect: Allow
 Outputs:
+  CodePipelineKeyArn:
+    Description: KMS key for CodePipeline
+    Value: !GetAtt CodePipelineKey.Arn
   CodePipelineRoleArn:
     Description: Role assummed by CodePipeline
     Value: !GetAtt CodePipelineRole.Arn

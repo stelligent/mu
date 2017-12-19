@@ -32,7 +32,7 @@ func newArtifactManager(sess *session.Session) (common.ArtifactManager, error) {
 }
 
 // CreateArtifact get the instances for a specific cluster
-func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL string) error {
+func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL string, kmsKey string) error {
 	s3API := s3Mgr.s3API
 
 	s3URL, err := url.Parse(destURL)
@@ -44,9 +44,11 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 	}
 
 	params := &s3.PutObjectInput{
-		Bucket: aws.String(s3URL.Host),
-		Key:    aws.String(s3URL.Path),
-		Body:   body,
+		Bucket:               aws.String(s3URL.Host),
+		Key:                  aws.String(s3URL.Path),
+		SSEKMSKeyId:          aws.String(kmsKey),
+		SSECustomerAlgorithm: aws.String("aws:kms"),
+		Body:                 body,
 	}
 
 	log.Debugf("Creating artifact at '%s'", destURL)

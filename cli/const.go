@@ -39,10 +39,12 @@ const (
 	SvcExeClusterFlagUsage     = "cluster name or full arn"
 	SvcPushTagFlagUsage        = "tag to push"
 	SvcPushProviderFlagUsage   = "provider to push to"
+	SvcPushKmsKeyFlagUsage     = "kms key to encrypt artifact with"
 	SvcDeployTagFlagUsage      = "tag to deploy"
 	SvcRestartBatchFlagUsage   = "number of tasks to restart concurrently"
 	TagFlagName                = "tag, t"
 	ProviderFlagName           = "provider, p"
+	KmsKeyFlagName             = "kms-key, k"
 	EnvCmd                     = "environment"
 	EnvAlias                   = "env"
 	EnvUsage                   = "options for managing environments"
@@ -50,6 +52,7 @@ const (
 	Tag                        = "tag"
 	BatchSize                  = "batch-size"
 	Provider                   = "provider"
+	KmsKey                     = "kms-key"
 	UpsertCmd                  = "upsert"
 	UpsertAlias                = "up"
 	UpsertUsage                = "create/update an environment"
@@ -110,7 +113,7 @@ const (
 const (
 	EnvAliasCount    = 1
 	SvcAliasCount    = 1
-	SvcFlagsCount    = 2
+	SvcFlagsCount    = 3
 	FailExitCode     = 1
 	Test             = "test"
 	TestEnv          = "fooenv"

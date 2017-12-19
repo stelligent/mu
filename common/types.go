@@ -112,6 +112,7 @@ type Service struct {
 	Memory               int                    `yaml:"memory,omitempty"`
 	NetworkMode          string                 `yaml:"networkMode,omitempty"`
 	Links                []string               `yaml:"links,omitempty"`
+	KmsKey               map[string]string      `yaml:"kmsKey,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
@@ -182,6 +183,7 @@ type Pipeline struct {
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`
 	MuVersion string `yaml:"muVersion,omitempty"`
+	KmsKey    string `yaml:"kmsKey,omitempty"`
 	Roles     struct {
 		Pipeline string `yaml:"pipeline,omitempty"`
 		Build    string `yaml:"build,omitempty"`
