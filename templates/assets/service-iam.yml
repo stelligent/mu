@@ -48,8 +48,51 @@ Resources:
           - Effect: "Allow"
             Principal:
               AWS:
-              - !GetAtt EC2Role.Arn
-              - !GetAtt EcsTaskRole.Arn
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:*'
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-cloudformation-common-${AWS::Region}
+            Action:
+              - kms:CreateGrant
+              - kms:ListGrants
+              - kms:RevokeGrant
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncrypt
+              - kms:Decrypt
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS: '*'
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "ssm.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::If:
+                - IsEc2Service
+                - !GetAtt EC2Role.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsEcsService
+                - !GetAtt EcsTaskRole.Arn
+                - !Ref AWS::NoValue
             Action:
               - kms:GenerateDataKey
               - kms:GenerateDataKeyWithoutPlaintext

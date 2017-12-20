@@ -47,7 +47,7 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 		Bucket:               aws.String(s3URL.Host),
 		Key:                  aws.String(s3URL.Path),
 		SSEKMSKeyId:          aws.String(kmsKey),
-		SSECustomerAlgorithm: aws.String("aws:kms"),
+		ServerSideEncryption: aws.String("aws:kms"),
 		Body:                 body,
 	}
 

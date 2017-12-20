@@ -121,12 +121,13 @@ Resources:
           - Effect: "Allow"
             Principal:
               AWS:
-              - !GetAtt CodePipelineRole.Arn
-              - !GetAtt CodeBuildCIRole.Arn
-              - !GetAtt CodeBuildCDAcptRole.Arn
-              - !GetAtt CodeBuildCDProdRole.Arn
-              - !GetAtt MuAcptRole.Arn
-              - !GetAtt MuProdRole.Arn
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:*'
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS: '*'
             Action:
               - kms:GenerateDataKey
               - kms:GenerateDataKeyWithoutPlaintext
@@ -135,6 +136,43 @@ Resources:
               - kms:ReEncryptTo
               - kms:Decrypt
             Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "s3.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !GetAtt CodePipelineRole.Arn
+              - !GetAtt CodeBuildCIRole.Arn
+              - Fn::If:
+                - IsAcptEnabled
+                - !GetAtt CodeBuildCDAcptRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsAcptEnabled
+                - !GetAtt MuAcptRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsProdEnabled
+                - !GetAtt CodeBuildCDProdRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsProdEnabled
+                - !GetAtt MuProdRole.Arn
+                - !Ref AWS::NoValue
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "s3.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
           - Effect: "Deny"
             Principal: '*'
             Action:
