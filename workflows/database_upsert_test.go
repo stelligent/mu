@@ -31,7 +31,7 @@ func (m *mockedParamManager) GetParam(name string) (string, error) {
 	args := m.Called(name)
 	return args.String(0), args.Error(1)
 }
-func (m *mockedParamManager) SetParam(name string, value string) error {
+func (m *mockedParamManager) SetParam(name string, value string, kmsKey string) error {
 	args := m.Called(name)
 	return args.Error(0)
 }
@@ -142,9 +142,10 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 
 	rolesetManager.On("UpsertCommonRoleset").Return(nil)
 	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{}, nil)
 
 	workflow := new(databaseWorkflow)
-	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager)()
+	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager, "")()
 	assert.Nil(err)
 	assert.Equal("bar", workflow.cloudFormationRoleArn)
 

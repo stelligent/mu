@@ -132,12 +132,13 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string `yaml:"name,omitempty"`
-	InstanceClass     string `yaml:"instanceClass,omitempty"`
-	Engine            string `yaml:"engine,omitempty"`
-	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
+	Name              string            `yaml:"name,omitempty"`
+	InstanceClass     string            `yaml:"instanceClass,omitempty"`
+	Engine            string            `yaml:"engine,omitempty"`
+	IamAuthentication bool              `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string            `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string            `yaml:"allocatedStorage,omitempty"`
+	KmsKey            map[string]string `yaml:"kmsKey,omitempty"`
 }
 
 // Schedule definition
@@ -182,6 +183,7 @@ type Pipeline struct {
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`
 	MuVersion string `yaml:"muVersion,omitempty"`
+	KmsKey    string `yaml:"kmsKey,omitempty"`
 	Roles     struct {
 		Pipeline string `yaml:"pipeline,omitempty"`
 		Build    string `yaml:"build,omitempty"`
