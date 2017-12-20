@@ -43,6 +43,7 @@ func (workflow *databaseWorkflow) databaseEnvironmentLoader(namespace string, en
 
 func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, environmentName string) Executor {
 	return func() error {
+
 		err := rolesetUpserter.UpsertCommonRoleset()
 		if err != nil {
 			return err
@@ -59,7 +60,7 @@ func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common
 		if err != nil {
 			return err
 		}
-		workflow.databaseKeyArn = serviceRoleset["ServiceKeyArn"]
+		workflow.databaseKeyArn = serviceRoleset["DatabaseKeyArn"]
 
 		return nil
 	}

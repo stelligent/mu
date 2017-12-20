@@ -36,7 +36,7 @@ Conditions:
         - !Ref Provider
         - 'ecs-fargate'
 Resources:
-  ServiceKey:
+  DatabaseKey:
     Type: AWS::KMS::Key
     Properties:
       Description: !Sub Service key for ${Namespace}-service-${ServiceName}-${EnvironmentName}
@@ -111,11 +111,11 @@ Resources:
             Condition:
               Bool:
                 kms:GrantIsForAWSResource: false
-  ServiceKeyAlias:
+  DatabaseKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
       AliasName: !Sub alias/${Namespace}-service-${ServiceName}-${EnvironmentName}
-      TargetKeyId: !Ref ServiceKey
+      TargetKeyId: !Ref DatabaseKey
   CodeDeployRole:
     Type: AWS::IAM::Role
     Condition: IsEc2Service
@@ -314,9 +314,9 @@ Resources:
             Resource: '*'
 
 Outputs:
-  ServiceKeyArn:
-    Description: KMS key for CodePipeline
-    Value: !GetAtt ServiceKey.Arn
+  DatabaseKeyArn:
+    Description: KMS key for RDS Databases
+    Value: !GetAtt DatabaseKey.Arn
   EC2InstanceProfileArn:
     Description: Instance profile for EC2 instances
     Value:

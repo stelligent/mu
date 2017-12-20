@@ -112,7 +112,6 @@ type Service struct {
 	Memory               int                    `yaml:"memory,omitempty"`
 	NetworkMode          string                 `yaml:"networkMode,omitempty"`
 	Links                []string               `yaml:"links,omitempty"`
-	KmsKey               map[string]string      `yaml:"kmsKey,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
@@ -133,12 +132,13 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string `yaml:"name,omitempty"`
-	InstanceClass     string `yaml:"instanceClass,omitempty"`
-	Engine            string `yaml:"engine,omitempty"`
-	IamAuthentication bool   `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string `yaml:"allocatedStorage,omitempty"`
+	Name              string            `yaml:"name,omitempty"`
+	InstanceClass     string            `yaml:"instanceClass,omitempty"`
+	Engine            string            `yaml:"engine,omitempty"`
+	IamAuthentication bool              `yaml:"iamAuthentication,omitempty"`
+	MasterUsername    string            `yaml:"masterUsername,omitempty"`
+	AllocatedStorage  string            `yaml:"allocatedStorage,omitempty"`
+	KmsKey            map[string]string `yaml:"kmsKey,omitempty"`
 }
 
 // Schedule definition
