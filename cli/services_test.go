@@ -34,7 +34,7 @@ func TestNewServicesShowCommand(t *testing.T) {
 
 	assertion.NotNil(command)
 	assertion.Equal(ShowCmd, command.Name, NameMessage)
-	assertion.Equal(Zero, len(command.Flags), FlagLenMessage)
+	assertion.Equal(2, len(command.Flags), FlagLenMessage)
 	assertion.Equal(SvcShowUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 }

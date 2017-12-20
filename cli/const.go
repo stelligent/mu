@@ -19,7 +19,6 @@ const (
 	SvcLogServiceFlagIndex     = 0
 	SvcLogFollowFlagIndex      = 1
 	SvcLogDurationFlagIndex    = 2
-	ShowFlagCount              = 1
 	ExeArgsCmdIndex            = 1
 	EnvLogsFlagCount           = 2
 	SvcPushTagFlagIndex        = 0
