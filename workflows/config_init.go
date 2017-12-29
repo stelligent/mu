@@ -49,7 +49,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 
 		// write config
 		config.Service.Port = listenPort
-		config.Service.Name = config.Repo.Name
+		//config.Service.Name = config.Repo.Name
 		config.Service.PathPatterns = []string{"/*"}
 		config.Service.Pipeline.Source.Repo = config.Repo.Slug
 		config.Service.Pipeline.Source.Provider = config.Repo.Provider
@@ -58,6 +58,10 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			config.Environments = append(config.Environments,
 				common.Environment{Name: "acceptance"},
 				common.Environment{Name: "production"})
+		}
+
+		if config.Namespace == "mu" {
+			config.Namespace = ""
 		}
 
 		configBytes, err := yaml.Marshal(config)

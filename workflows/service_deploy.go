@@ -139,8 +139,13 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			}
 		}
 
-		params["TaskCpu"] = strconv.Itoa(cpu.CPU)
-		params["TaskMemory"] = strconv.Itoa(memory)
+		if workflow.isFargateProvider()() {
+			params["TaskCpu"] = strconv.Itoa(cpu.CPU)
+			params["TaskMemory"] = strconv.Itoa(memory)
+		} else {
+			params["TaskCpu"] = params["ServiceCpu"]
+			params["TaskMemory"] = params["ServiceMemory"]
+		}
 		if len(service.Links) > 0 {
 			params["Links"] = strings.Join(service.Links, ",")
 		}
