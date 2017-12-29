@@ -109,11 +109,11 @@ Parameters:
   TaskCpu:
     Type: String
     Description: CPU for task
-    Default: '10'
+    Default: ''
   TaskMemory:
     Type: String
     Description: Memory for task
-    Default: '300'
+    Default: ''
   TaskNetworkMode:
     Type: String
     Default: bridge
@@ -197,7 +197,16 @@ Conditions:
           - ''
           - !Ref Links
         - ''
-
+  HasTaskMemory:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref TaskMemory
+        - ''
+  HasTaskCpu:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref TaskCpu
+        - ''
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -250,8 +259,16 @@ Resources:
     Properties:
       RequiresCompatibilities:
       - Fn::ImportValue: !Sub ${LaunchType}
-      Cpu: !Ref TaskCpu
-      Memory: !Ref TaskMemory
+      Cpu:
+        Fn::If:
+          - HasTaskCpu
+          - !Ref TaskCpu
+          - !Ref AWS::NoValue
+      Memory:
+        Fn::If:
+          - HasTaskMemory
+          - !Ref TaskMemory
+          - !Ref AWS::NoValue
       NetworkMode: !Ref TaskNetworkMode
       ContainerDefinitions:
       - Name: !Ref ServiceName

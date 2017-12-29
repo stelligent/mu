@@ -11,7 +11,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: Instance type to use.
-    Default: t2.small
+    Default: t2.micro
   DesiredCapacity:
     Type: Number
     Default: '1'
