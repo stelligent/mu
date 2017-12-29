@@ -107,13 +107,13 @@ Parameters:
     Description: Target CPU Utilization for Tracking Policy on ASG
     Default: '75'
   TaskCpu:
-    Type: Number
-    Description: CPU for Fargate services
-    Default: 256
+    Type: String
+    Description: CPU for task
+    Default: '10'
   TaskMemory:
-    Type: Number
-    Description: Memory for Fargate services
-    Default: 512
+    Type: String
+    Description: Memory for task
+    Default: '300'
   TaskNetworkMode:
     Type: String
     Default: bridge
