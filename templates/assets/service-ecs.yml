@@ -217,8 +217,8 @@ Resources:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
       DeploymentConfiguration:
-        MaximumPercent: 100
-        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LaunchType:
         Fn::ImportValue: !Sub ${LaunchType}
       NetworkConfiguration:
