@@ -109,6 +109,85 @@ Conditions:
         - ""
         - !Ref SourceObjectKey
 Resources:
+  CodePipelineKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub Pipeline key for ${Namespace}-pipeline-${ServiceName}
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:*'
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS: '*'
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "s3.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !GetAtt CodePipelineRole.Arn
+              - !GetAtt CodeBuildCIRole.Arn
+              - Fn::If:
+                - IsAcptEnabled
+                - !GetAtt CodeBuildCDAcptRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsAcptEnabled
+                - !GetAtt MuAcptRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsProdEnabled
+                - !GetAtt CodeBuildCDProdRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsProdEnabled
+                - !GetAtt MuProdRole.Arn
+                - !Ref AWS::NoValue
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "s3.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Deny"
+            Principal: '*'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: false
+  CodePipelineKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${Namespace}-pipeline-${ServiceName}
+      TargetKeyId: !Ref CodePipelineKey
   CodePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -522,6 +601,9 @@ Resources:
             Resource: !Ref ProdCloudFormationRoleArn
             Effect: Allow
 Outputs:
+  CodePipelineKeyArn:
+    Description: KMS key for CodePipeline
+    Value: !GetAtt CodePipelineKey.Arn
   CodePipelineRoleArn:
     Description: Role assummed by CodePipeline
     Value: !GetAtt CodePipelineRole.Arn

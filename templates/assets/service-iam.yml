@@ -36,6 +36,86 @@ Conditions:
         - !Ref Provider
         - 'ecs-fargate'
 Resources:
+  DatabaseKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub Service key for ${Namespace}-service-${ServiceName}-${EnvironmentName}
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:*'
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-cloudformation-common-${AWS::Region}
+            Action:
+              - kms:CreateGrant
+              - kms:ListGrants
+              - kms:RevokeGrant
+              - kms:DescribeKey
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncrypt
+              - kms:Decrypt
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS: '*'
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "ssm.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - Fn::If:
+                - IsEc2Service
+                - !GetAtt EC2Role.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsEcsService
+                - !GetAtt EcsTaskRole.Arn
+                - !Ref AWS::NoValue
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+          - Effect: "Deny"
+            Principal: '*'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: false
+  DatabaseKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${Namespace}-service-${ServiceName}-${EnvironmentName}
+      TargetKeyId: !Ref DatabaseKey
   CodeDeployRole:
     Type: AWS::IAM::Role
     Condition: IsEc2Service
@@ -234,6 +314,9 @@ Resources:
             Resource: '*'
 
 Outputs:
+  DatabaseKeyArn:
+    Description: KMS key for RDS Databases
+    Value: !GetAtt DatabaseKey.Arn
   EC2InstanceProfileArn:
     Description: Instance profile for EC2 instances
     Value:

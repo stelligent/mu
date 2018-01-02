@@ -9,7 +9,7 @@ import (
 )
 
 // NewEnvironmentViewer create a new workflow for showing an environment
-func NewEnvironmentViewer(ctx *common.Context, format string, environmentName string, writer io.Writer) Executor {
+func NewEnvironmentViewer(ctx *common.Context, format string, environmentName string, viewTasks bool, writer io.Writer) Executor {
 
 	workflow := new(environmentWorkflow)
 
@@ -19,7 +19,7 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	} else if format == SHELL {
 		environmentViewer = workflow.environmentViewerSHELL(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, writer)
+		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, viewTasks, writer)
 	}
 
 	return newPipelineExecutor(
@@ -76,7 +76,7 @@ func (workflow *environmentWorkflow) environmentViewerSHELL(namespace string, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, viewTasks bool, writer io.Writer) Executor {
 	return func() error {
 		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		lbStack, err := stackGetter.GetStack(lbStackName)
@@ -134,7 +134,9 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 		table := buildServiceTable(stacks, environmentName, writer)
 		table.Render()
 
-		buildContainerTable(namespace, taskManager, stacks, environmentName, writer)
+		if viewTasks {
+			buildContainerTable(namespace, taskManager, stacks, environmentName, writer)
+		}
 
 		fmt.Fprint(writer, NewLine)
 
@@ -147,7 +149,7 @@ func buildContainerTable(namespace string, taskManager common.TaskManager, stack
 		if stackValues.Tags[EnvTagKey] != environmentName {
 			continue
 		}
-		viewTasks(namespace, taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
+		doViewTasks(namespace, taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
 	}
 }
 

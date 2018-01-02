@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
+	"time"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {
@@ -72,6 +73,14 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				Usage: FormatFlagUsage,
 				Value: FormatFlagDefault,
 			},
+			cli.BoolFlag{
+				Name:  "tasks, t",
+				Usage: "show task detail",
+			},
+			cli.BoolFlag{
+				Name:  "watch, w",
+				Usage: "watch results",
+			},
 		},
 		ArgsUsage: EnvArgUsage,
 		Action: func(c *cli.Context) error {
@@ -80,8 +89,25 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				cli.ShowCommandHelp(c, ShowCmd)
 				return errors.New(NoEnvValidation)
 			}
-			workflow := workflows.NewEnvironmentViewer(ctx, c.String(Format), environmentName, os.Stdout)
-			return workflow()
+
+			viewTasks := c.Bool("tasks")
+			watch := c.Bool("watch")
+			workflow := workflows.NewEnvironmentViewer(ctx, c.String(Format), environmentName, viewTasks, os.Stdout)
+			for true {
+				if watch {
+					print("\033[H\033[2J")
+				}
+
+				err := workflow()
+				if err != nil {
+					return err
+				} else if watch {
+					time.Sleep(10 * time.Second)
+				} else {
+					break
+				}
+			}
+			return nil
 		},
 	}
 

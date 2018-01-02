@@ -28,7 +28,7 @@ func TestS3ArtifactManager_CreateArtifact(t *testing.T) {
 		s3API: s3Mock,
 	}
 
-	err := artifactManager.CreateArtifact(nil, "s3://bucket/key")
+	err := artifactManager.CreateArtifact(nil, "s3://bucket/key", "key")
 	assertion.Nil(err)
 
 	s3Mock.AssertExpectations(t)

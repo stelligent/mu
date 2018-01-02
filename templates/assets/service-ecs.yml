@@ -107,13 +107,13 @@ Parameters:
     Description: Target CPU Utilization for Tracking Policy on ASG
     Default: '75'
   TaskCpu:
-    Type: Number
-    Description: CPU for Fargate services
-    Default: 256
+    Type: String
+    Description: CPU for task
+    Default: ''
   TaskMemory:
-    Type: Number
-    Description: Memory for Fargate services
-    Default: 512
+    Type: String
+    Description: Memory for task
+    Default: ''
   TaskNetworkMode:
     Type: String
     Default: bridge
@@ -123,6 +123,10 @@ Parameters:
       - host
       - bridge
     Description: Network mode for tasks
+  Links:
+    Description: Links to other docker containers
+    Type: CommaDelimitedList
+    Default: ''
   LaunchType:
     Type: String
     Description: Name of value to import for service launch type
@@ -186,6 +190,23 @@ Conditions:
     "Fn::Equals":
       - !Sub ${TaskNetworkMode}
       - 'awsvpc'
+  HasLinks:
+    "Fn::Not":
+      - "Fn::Equals":
+        - "Fn::Join":
+          - ''
+          - !Ref Links
+        - ''
+  HasTaskMemory:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref TaskMemory
+        - ''
+  HasTaskCpu:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref TaskCpu
+        - ''
 Resources:
   EcsService:
     Type: AWS::ECS::Service
@@ -196,8 +217,8 @@ Resources:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
       DeploymentConfiguration:
-        MaximumPercent: 100
-        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       LaunchType:
         Fn::ImportValue: !Sub ${LaunchType}
       NetworkConfiguration:
@@ -238,8 +259,16 @@ Resources:
     Properties:
       RequiresCompatibilities:
       - Fn::ImportValue: !Sub ${LaunchType}
-      Cpu: !Ref TaskCpu
-      Memory: !Ref TaskMemory
+      Cpu:
+        Fn::If:
+          - HasTaskCpu
+          - !Ref TaskCpu
+          - !Ref AWS::NoValue
+      Memory:
+        Fn::If:
+          - HasTaskMemory
+          - !Ref TaskMemory
+          - !Ref AWS::NoValue
       NetworkMode: !Ref TaskNetworkMode
       ContainerDefinitions:
       - Name: !Ref ServiceName
@@ -247,6 +276,11 @@ Resources:
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
+        Links:
+          Fn::If:
+          - HasLinks
+          - !Ref Links
+          - !Ref AWS::NoValue
         Environment:
         {{with .Environment}}
           {{range $key, $val := .}}

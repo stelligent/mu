@@ -311,6 +311,9 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		if environment.Cluster.InstanceType != "" {
 			stackParams["InstanceType"] = environment.Cluster.InstanceType
 		}
+		if environment.Cluster.ExtraUserData != "" {
+			stackParams["ExtraUserData"] = environment.Cluster.ExtraUserData
+		}
 		if environment.Cluster.ImageID != "" {
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {

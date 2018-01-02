@@ -9,7 +9,6 @@ environments:
       maxSize: 5
 
 service:
-  name: basic-example
   healthEndpoint: /
   port: 80
   pathPatterns:
