@@ -115,7 +115,7 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, suppressConfirmation bool, stackLister common.StackLister, writer io.Writer) Executor {
 	return func() error {
 		// gather all the stackNames for each type (in parallel)
-		stacks, err := stackLister.ListStacks(common.StackTypeAll)
+		stacks, err := stackLister.ListAllStacks()
 		if err != nil {
 			log.Warning("couldn't list stacks (all)")
 		}

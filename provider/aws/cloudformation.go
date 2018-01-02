@@ -397,6 +397,35 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	return stack
 }
 
+// ListAllStacks will find all mu stacks,
+func (cfnMgr *cloudformationStackManager) ListAllStacks() ([]*common.Stack, error) {
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.DescribeStacksInput{}
+
+	var stacks []*common.Stack
+
+	err := cfnAPI.DescribeStacksPages(params,
+		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+			for _, stackDetails := range page.Stacks {
+				if cloudformation.StackStatusDeleteComplete == aws.StringValue(stackDetails.StackStatus) {
+					continue
+				}
+				stack := buildStack(stackDetails)
+				_, hasType := stack.Tags["type"]
+				if hasType {
+					stacks = append(stacks, stack)
+				}
+			}
+			return true
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	return stacks, nil
+}
+
 // ListStacks will find mu stacks, filtered by 'stackType', unless 'stackType' is common.StackTypeAll
 func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType) ([]*common.Stack, error) {
 	cfnAPI := cfnMgr.cfnAPI
@@ -415,7 +444,7 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType)
 				}
 				stack := buildStack(stackDetails)
 				sType, hasType := stack.Tags["type"]
-				if hasType && (stackType == common.StackTypeAll || sType == string(stackType)) {
+				if hasType && sType == string(stackType) {
 					stacks = append(stacks, stack)
 				}
 			}

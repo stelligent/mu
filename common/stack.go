@@ -23,6 +23,7 @@ type StackUpserter interface {
 
 // StackLister for listing stacks
 type StackLister interface {
+	ListAllStacks() ([]*Stack, error)
 	ListStacks(stackType StackType) ([]*Stack, error)
 	GetResourcesForStack(stack *Stack) ([]*cloudformation.StackResource, error)
 }

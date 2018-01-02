@@ -263,8 +263,7 @@ type StackType string
 
 // List of valid stack types
 const (
-	StackTypeAll          StackType = "*"
-	StackTypeVpc                    = "vpc"
+	StackTypeVpc          StackType = "vpc"
 	StackTypeTarget                 = "target"
 	StackTypeIam                    = "iam"
 	StackTypeEnv                    = "environment"
