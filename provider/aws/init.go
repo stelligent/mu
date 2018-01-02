@@ -15,6 +15,9 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 
+	if _, present := os.LookupEnv("MU_AWS_HTTP_DEBUG"); present {
+		sessOptions.Config.WithLogLevel(aws.LogDebugWithHTTPBody)
+	}
 	if region != common.Empty {
 		sessOptions.Config.Region = aws.String(region)
 	}
