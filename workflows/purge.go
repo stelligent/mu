@@ -18,11 +18,11 @@ type stackTerminateWorkflow struct {
 }
 
 // NewPurge create a new workflow for purging mu resources
-func NewPurge(ctx *common.Context, writer io.Writer) Executor {
+func NewPurge(ctx *common.Context, suppressConfirmation bool, writer io.Writer) Executor {
 	workflow := new(purgeWorkflow)
 
 	return newPipelineExecutor(
-		workflow.purgeWorker(ctx, ctx.StackManager, writer),
+		workflow.purgeWorker(ctx, suppressConfirmation, ctx.StackManager, writer),
 	)
 }
 
@@ -112,7 +112,7 @@ func (workflow *stackTerminateWorkflow) stackTerminator(ctx *common.Context, sta
 	}
 }
 
-func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister common.StackLister, writer io.Writer) Executor {
+func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, suppressConfirmation bool, stackLister common.StackLister, writer io.Writer) Executor {
 	return func() error {
 		// gather all the stackNames for each type (in parallel)
 		stacks, err := stackLister.ListStacks(common.StackTypeAll)
@@ -220,8 +220,7 @@ func (workflow *purgeWorkflow) purgeWorker(ctx *common.Context, stackLister comm
 		log.Infof("total of %d stacks to purge", stackCount)
 
 		// prompt the user if -y not present on command-line
-		suppressConfirmation, _ := ctx.ParamManager.GetParam("suppressConfirmation")
-		if suppressConfirmation != "yes" {
+		if suppressConfirmation == false {
 			phrase := "Yes, I want to purge everything."
 			fmt.Printf("Are you sure you want to purge the above resources? ")
 			fmt.Printf("(use '%s' to confirm): ", phrase)

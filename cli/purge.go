@@ -23,14 +23,8 @@ func newPurgeCommand(ctx *common.Context) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			paramName := "yes"
-			suppressConfirmation := c.Bool(paramName)
-			if suppressConfirmation {
-				ctx.ParamManager.SetParam("suppressConfirmation", "yes")
-			} else {
-				ctx.ParamManager.SetParam("suppressConfirmation", "no")
-			}
-			workflow := workflows.NewPurge(ctx, os.Stdout)
+			suppressConfirmation := c.Bool("yes")
+			workflow := workflows.NewPurge(ctx, suppressConfirmation, os.Stdout)
 			return workflow()
 		},
 	}
