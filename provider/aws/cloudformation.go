@@ -588,7 +588,7 @@ func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) erro
 	return err
 }
 
-// emptyS3Bucket get the artifact conditionally by etag.
+// emptyS3Bucket deletes the files from an S3 bucket
 func emptyS3Bucket(cfnMgr *cloudformationStackManager, bucketName string) error {
 	s3API := cfnMgr.s3API
 	log.Infof("s3ArtifactManager.EmptyArtifact called for bucket %s", bucketName)

@@ -280,8 +280,7 @@ func TestStack_DeleteStack(t *testing.T) {
 	cfn.On("DeleteStack").Return(&cloudformation.DeleteStackOutput{}, nil)
 	cfn.On("DescribeStackResources").Return(
 		&cloudformation.DescribeStackResourcesOutput{
-			StackResources: []*cloudformation.StackResource{
-			},
+			StackResources: []*cloudformation.StackResource{},
 		}, nil)
 
 	stackManager := cloudformationStackManager{
