@@ -517,37 +517,56 @@ func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) 
 func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 	cfnAPI := cfnMgr.cfnAPI
 
-	params := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
-
 	if cfnMgr.dryrunPath != "" {
 		log.Infof("  DRYRUN: Skipping delete of stack named '%s'", stackName)
 		return nil
 	}
-
-	log.Debugf("Deleting stack named '%s'", stackName)
-
-	_, err := cfnAPI.DeleteStack(params)
-	return err
-}
-
-// GetResourcesForStack retrieves the list of resources associated with a stack
-func (cfnMgr *cloudformationStackManager) GetResourcesForStack(stack *common.Stack) ([]*cloudformation.StackResource, error) {
-	cfnAPI := cfnMgr.cfnAPI
-
-	params := &cloudformation.DescribeStackResourcesInput{StackName: aws.String(stack.ID)}
+	// get any dependent resources
+	params := &cloudformation.DescribeStackResourcesInput{StackName: aws.String(stackName)}
 	output, err := cfnAPI.DescribeStackResources(params)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Errorf("GetResourcesForStack %s %v ", stack.ID, aerr.Error())
+			log.Errorf("GetResourcesForStack %s %v ", stackName, aerr.Error())
 		} else {
-			log.Errorf("GetResourcesForStack %s %v", stack.ID, err)
+			log.Errorf("GetResourcesForStack %s %v", stackName, err)
 		}
-		return nil, err
+		return err
 	}
-	return output.StackResources, nil
+	if output.StackResources != nil && len(output.StackResources) > 0 {
+		log.Debugf("    stack %s %d resources attached", stackName, len(output.StackResources))
+		for idx, resource := range output.StackResources {
+			log.Debugf("   %3d: %s (%s)", idx, aws.StringValue(resource.LogicalResourceId), aws.StringValue(resource.PhysicalResourceId))
+		}
+	}
+	// do pre-delete API calls here (like deleting files from S3 bucket, before trying to delete bucket)
+	for _, resource := range output.StackResources {
+		if *resource.ResourceType == "AWS::S3::Bucket" {
+			fqBucketName := aws.StringValue(resource.PhysicalResourceId)
+			log.Debugf("delete bucket: fullname=%s", aws.String(fqBucketName))
+
+			// empty the bucket first
+			err := emptyS3Bucket(cfnMgr, fqBucketName)
+			if err != nil {
+				log.Error("couldn't delete files from bucket %s", fqBucketName)
+			}
+		} else if *resource.ResourceType == "AWS::ECR::Repository" {
+			log.Debugf("ECR::Repository %V", aws.String(*resource.PhysicalResourceId))
+			// TODO  - implement the following method
+			err := deleteImagesFromEcrRepo(cfnMgr, *resource.PhysicalResourceId)
+			if err != nil {
+				log.Error("couldn't delete images from EcrRepo %s", *resource.PhysicalResourceId)
+			}
+		}
+	}
+
+	log.Debugf("Deleting stack named '%s'", stackName)
+
+	params2 := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
+	_, err = cfnAPI.DeleteStack(params2)
+	return err
 }
 
-// DeleteS3Bucket deletes a particular bucket, deleting all files first.
+// DeleteS3Bucket deletes a particular bucket
 func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) error {
 	s3API := cfnMgr.s3API
 
@@ -569,63 +588,10 @@ func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) erro
 	return err
 }
 
-// DeleteImagesFromEcrRepo deletes all the Docker images from a repo (so the repo itself can be deleted)
-func (cfnMgr *cloudformationStackManager) DeleteImagesFromEcrRepo(repoName string) error {
-	ecrAPI := cfnMgr.ecrAPI
-
-	if cfnMgr.dryrunPath != "" {
-		log.Infof("  DRYRUN: Skipping delete of all images in repo named '%s'", repoName)
-		return nil
-	}
-
-	hasMoreObjects := true
-	totalObjects := 0
-	totalFailures := 0
-
-	var nextToken *string
-	for hasMoreObjects {
-		// find all the images
-		resp, err := ecrAPI.ListImages(&ecr.ListImagesInput{RepositoryName: aws.String(repoName), NextToken: nextToken})
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("ListImagesInput %s %v", repoName, aerr.Error())
-			} else {
-				log.Errorf("ListImagesInput %s %v", repoName, err)
-			}
-			return err
-		}
-
-		// delete them all
-		result, err := ecrAPI.BatchDeleteImage(&ecr.BatchDeleteImageInput{ImageIds: resp.ImageIds, RepositoryName: &repoName})
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("BatchDeleteImage %v", aerr.Error())
-			} else {
-				log.Errorf("BatchDeleteImage %v", err)
-			}
-		}
-		numImages := len(resp.ImageIds)
-		numFailures := len(result.Failures)
-		log.Debugf("%d images submitted for deletion, %d failed", numImages, numFailures)
-
-		totalObjects += numImages
-		totalFailures += numFailures
-		nextToken = resp.NextToken
-		hasMoreObjects = nextToken != nil
-	}
-	log.Debugf("total number of images found: %d, number of failed deletes %d", totalObjects, totalFailures)
-
-	return nil
-}
-
-// DeleteS3BucketObjeexecutorscts deletes all files in an S3 bucket, so the bucket itself can be deleted
-func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName string) error {
+// emptyS3Bucket get the artifact conditionally by etag.
+func emptyS3Bucket(cfnMgr *cloudformationStackManager, bucketName string) error {
 	s3API := cfnMgr.s3API
-
-	if cfnMgr.dryrunPath != "" {
-		log.Infof("  DRYRUN: Skipping delete of all objects in bucket named '%s'", bucketName)
-		return nil
-	}
+	log.Infof("s3ArtifactManager.EmptyArtifact called for bucket %s", bucketName)
 
 	hasMoreObjects := true
 	// Keep track of how many objects we delete
@@ -670,6 +636,55 @@ func (cfnMgr *cloudformationStackManager) DeleteS3BucketObjects(bucketName strin
 	}
 
 	log.Debugf("Deleted", totalObjects, "object(s) from bucket", bucketName)
+	return nil
+}
+
+// deleteImagesFromEcrRepo deletes all the Docker images from a repo (so the repo itself can be deleted)
+func deleteImagesFromEcrRepo(cfnMgr *cloudformationStackManager, repoName string) error {
+	ecrAPI := cfnMgr.ecrAPI
+
+	if cfnMgr.dryrunPath != "" {
+		log.Infof("  DRYRUN: Skipping delete of all images in repo named '%s'", repoName)
+		return nil
+	}
+
+	hasMoreObjects := true
+	totalObjects := 0
+	totalFailures := 0
+
+	var nextToken *string
+	for hasMoreObjects {
+		// find all the images
+		resp, err := ecrAPI.ListImages(&ecr.ListImagesInput{RepositoryName: aws.String(repoName), NextToken: nextToken})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				log.Errorf("ListImagesInput %s %v", repoName, aerr.Error())
+			} else {
+				log.Errorf("ListImagesInput %s %v", repoName, err)
+			}
+			return err
+		}
+
+		// delete them all
+		result, err := ecrAPI.BatchDeleteImage(&ecr.BatchDeleteImageInput{ImageIds: resp.ImageIds, RepositoryName: &repoName})
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				log.Errorf("BatchDeleteImage %v", aerr.Error())
+			} else {
+				log.Errorf("BatchDeleteImage %v", err)
+			}
+		}
+		numImages := len(resp.ImageIds)
+		numFailures := len(result.Failures)
+		log.Debugf("%d images submitted for deletion, %d failed", numImages, numFailures)
+
+		totalObjects += numImages
+		totalFailures += numFailures
+		nextToken = resp.NextToken
+		hasMoreObjects = nextToken != nil
+	}
+	log.Debugf("total number of images found: %d, number of failed deletes %d", totalObjects, totalFailures)
+
 	return nil
 }
 

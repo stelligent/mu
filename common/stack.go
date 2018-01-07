@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"strings"
 )
 
@@ -25,7 +24,6 @@ type StackUpserter interface {
 type StackLister interface {
 	ListAllStacks() ([]*Stack, error)
 	ListStacks(stackType StackType) ([]*Stack, error)
-	GetResourcesForStack(stack *Stack) ([]*cloudformation.StackResource, error)
 }
 
 // StackGetter for getting stacks
@@ -36,22 +34,6 @@ type StackGetter interface {
 // StackDeleter for deleting stacks
 type StackDeleter interface {
 	DeleteStack(stackName string) error
-}
-
-// S3StackDeleter for purging files from S3 buckets
-type S3StackDeleter interface {
-	DeleteS3Bucket(bucketName string) error
-	DeleteS3BucketObjects(bucketName string) error
-}
-
-// EcrRepoDeleter interface {
-type EcrRepoDeleter interface {
-	DeleteImagesFromEcrRepo(repoName string) error
-}
-
-// RoleDeleter interface {
-type RoleDeleter interface {
-	DeleteRolesForNamespace(namespace string) error
 }
 
 // ImageFinder for finding latest image
@@ -66,8 +48,5 @@ type StackManager interface {
 	StackLister
 	StackGetter
 	StackDeleter
-	S3StackDeleter
-	EcrRepoDeleter
-	RoleDeleter
 	ImageFinder
 }
