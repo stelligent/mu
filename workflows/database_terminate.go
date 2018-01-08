@@ -12,7 +12,7 @@ func NewDatabaseTerminator(ctx *common.Context, serviceName string, environmentN
 	workflow := new(databaseWorkflow)
 
 	return newPipelineExecutor(
-		workflow.databaseInput(ctx, serviceName),
+		workflow.databaseInput(ctx, serviceName, environmentName),
 		workflow.databaseTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }

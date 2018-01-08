@@ -73,6 +73,7 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 			token := c.String("token")
 			workflow := workflows.NewPipelineUpserter(ctx, func(required bool) string {
 				if required && token == "" {
+					fmt.Println("CodePipeline requires a personal access token from GitHub - https://github.com/settings/tokens")
 					fmt.Print("  GitHub token: ")
 					byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
 					if err == nil {

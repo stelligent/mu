@@ -6,7 +6,7 @@ import (
 
 // ArtifactCreator for creating artifacts
 type ArtifactCreator interface {
-	CreateArtifact(body io.ReadSeeker, destURI string) error
+	CreateArtifact(body io.ReadSeeker, destURI string, kmsKey string) error
 }
 
 // ArtifactGetter for getting artifacts.  conditional get (based on etag).  returns body, etag and optional error

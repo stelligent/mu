@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"strings"
+	"time"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -33,10 +34,36 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 		Name:      ShowCmd,
 		Usage:     SvcShowUsage,
 		ArgsUsage: SvcShowUsage,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "tasks, t",
+				Usage: "show task detail",
+			},
+			cli.BoolFlag{
+				Name:  "watch, w",
+				Usage: "watch results",
+			},
+		},
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
-			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
-			return workflow()
+			viewTasks := c.Bool("tasks")
+			watch := c.Bool("watch")
+			workflow := workflows.NewServiceViewer(ctx, service, viewTasks, ctx.DockerOut)
+			for true {
+				if watch {
+					print("\033[H\033[2J")
+				}
+
+				err := workflow()
+				if err != nil {
+					return err
+				} else if watch {
+					time.Sleep(10 * time.Second)
+				} else {
+					break
+				}
+			}
+			return nil
 		},
 	}
 
@@ -56,11 +83,16 @@ func newServicesPushCommand(ctx *common.Context) *cli.Command {
 				Name:  ProviderFlagName,
 				Usage: SvcPushProviderFlagUsage,
 			},
+			cli.StringFlag{
+				Name:  KmsKeyFlagName,
+				Usage: SvcPushKmsKeyFlagUsage,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			tag := c.String(Tag)
 			provider := c.String(Provider)
-			workflow := workflows.NewServicePusher(ctx, tag, provider, ctx.DockerOut)
+			kmsKey := c.String(KmsKey)
+			workflow := workflows.NewServicePusher(ctx, tag, provider, kmsKey, ctx.DockerOut)
 			return workflow()
 		},
 	}

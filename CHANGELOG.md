@@ -1,5 +1,28 @@
 # Change Log
 
+## [v1.3.1](https://github.com/stelligent/mu/tree/v1.3.1) (2018-01-08)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.2.3...v1.3.1)
+
+**Implemented enhancements:**
+
+- Add support for linking containers [\#244](https://github.com/stelligent/mu/issues/244)
+- Add custom KMS key for mu [\#128](https://github.com/stelligent/mu/issues/128)
+- Support for extra user data script [\#246](https://github.com/stelligent/mu/pull/246) ([nilsga](https://github.com/nilsga))
+
+**Fixed bugs:**
+
+- Updated the ECSTaskDefinitionOutputKey output key constant to reflect what the templates use [\#256](https://github.com/stelligent/mu/pull/256) ([BrianJakovich](https://github.com/BrianJakovich))
+
+**Merged pull requests:**
+
+- use blue/green deploy as default [\#254](https://github.com/stelligent/mu/pull/254) ([brentley](https://github.com/brentley))
+
+## [v1.2.3](https://github.com/stelligent/mu/tree/v1.2.3) (2017-12-11)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.2.2...v1.2.3)
+
+## [v1.2.2](https://github.com/stelligent/mu/tree/v1.2.2) (2017-12-09)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.2.1...v1.2.2)
+
 ## [v1.2.1](https://github.com/stelligent/mu/tree/v1.2.1) (2017-12-07)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.1.3...v1.2.1)
 

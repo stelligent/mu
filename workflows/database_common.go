@@ -10,9 +10,10 @@ type databaseWorkflow struct {
 	codeRevision          string
 	repoName              string
 	cloudFormationRoleArn string
+	databaseKeyArn        string
 }
 
-func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string) Executor {
+func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {
 	return func() error {
 		// Repo Name
 		if serviceName != "" {
@@ -24,6 +25,7 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 		} else {
 			return errors.New("Service name must be provided")
 		}
+
 		return nil
 	}
 }

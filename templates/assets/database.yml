@@ -34,6 +34,9 @@ Parameters:
   InstanceSecurityGroup:
     Type: String
     Description: Name of the value to import for the security group id
+  DatabaseKeyArn:
+    Type: String
+    Description: KMS key for Database
 Conditions:
   IsClustered:
     "Fn::Equals":
@@ -90,6 +93,8 @@ Resources:
       DatabaseName: !Ref DatabaseName
       DBSubnetGroupName: !Ref DBSubnetsGroup
       Engine: !Ref DatabaseEngine
+      KmsKeyId: !Ref DatabaseKeyArn
+      StorageEncrypted: true
       MasterUsername: !Ref DatabaseMasterUsername
       MasterUserPassword: !Ref DatabaseMasterPassword
       Tags:
@@ -116,6 +121,8 @@ Resources:
     Properties:
       PubliclyAccessible: false
       AllocatedStorage: !Ref DatabaseStorage
+      KmsKeyId: !Ref DatabaseKeyArn
+      StorageEncrypted: true
       StorageType: gp2
       DBName: !Sub ${DatabaseName}
       DBInstanceClass: !Ref DatabaseInstanceClass

@@ -31,7 +31,7 @@ func (m *mockedParamManager) GetParam(name string) (string, error) {
 	args := m.Called(name)
 	return args.String(0), args.Error(1)
 }
-func (m *mockedParamManager) SetParam(name string, value string) error {
+func (m *mockedParamManager) SetParam(name string, value string, kmsKey string) error {
 	args := m.Called(name)
 	return args.Error(0)
 }
@@ -66,7 +66,7 @@ func TestDatabaseUpserter(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)
@@ -102,7 +102,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)
@@ -142,9 +142,10 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 
 	rolesetManager.On("UpsertCommonRoleset").Return(nil)
 	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{}, nil)
 
 	workflow := new(databaseWorkflow)
-	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager)()
+	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager, "")()
 	assert.Nil(err)
 	assert.Equal("bar", workflow.cloudFormationRoleArn)
 

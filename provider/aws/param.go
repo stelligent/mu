@@ -22,7 +22,7 @@ func newParamManager(sess *session.Session) (common.ParamManager, error) {
 }
 
 // SetParam set the value of a parameter
-func (paramMgr *paramManager) SetParam(name string, value string) error {
+func (paramMgr *paramManager) SetParam(name string, value string, kmsKey string) error {
 	ssmAPI := paramMgr.ssmAPI
 
 	log.Debug("Setting param '%s' to '%s'", name, value)
@@ -31,6 +31,7 @@ func (paramMgr *paramManager) SetParam(name string, value string) error {
 		Name:      aws.String(name),
 		Value:     aws.String(value),
 		Type:      aws.String(ssm.ParameterTypeSecureString),
+		KeyId:     aws.String(kmsKey),
 		Overwrite: aws.Bool(true),
 	}
 

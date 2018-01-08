@@ -92,6 +92,11 @@ func (workflow *serviceWorkflow) isEcsProvider() Conditional {
 			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
 	}
 }
+func (workflow *serviceWorkflow) isFargateProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
+	}
+}
 
 func (workflow *serviceWorkflow) isEc2Provider() Conditional {
 	return func() bool {

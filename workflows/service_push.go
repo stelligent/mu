@@ -13,7 +13,7 @@ import (
 )
 
 // NewServicePusher create a new workflow for pushing a service to a repo
-func NewServicePusher(ctx *common.Context, tag string, provider string, dockerWriter io.Writer) Executor {
+func NewServicePusher(ctx *common.Context, tag string, provider string, kmsKey string, dockerWriter io.Writer) Executor {
 
 	workflow := new(serviceWorkflow)
 
@@ -28,7 +28,7 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, dockerWr
 			),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceArchiveUploader(ctx.Config.Basedir, ctx.ArtifactManager),
+				workflow.serviceArchiveUploader(ctx.Config.Basedir, ctx.ArtifactManager, kmsKey),
 			)))
 
 }
@@ -47,7 +47,7 @@ func (workflow *serviceWorkflow) serviceImagePusher(imagePusher common.DockerIma
 	}
 }
 
-func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifactCreator common.ArtifactCreator) Executor {
+func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifactCreator common.ArtifactCreator, kmsKey string) Executor {
 	return func() error {
 		destURL := fmt.Sprintf("s3://%s/%s", workflow.appRevisionBucket, workflow.appRevisionKey)
 		log.Noticef("Pushing archive '%s' to '%s'", basedir, destURL)
@@ -58,7 +58,7 @@ func (workflow *serviceWorkflow) serviceArchiveUploader(basedir string, artifact
 		}
 		defer os.Remove(zipfile.Name()) // clean up
 
-		err = artifactCreator.CreateArtifact(zipfile, destURL)
+		err = artifactCreator.CreateArtifact(zipfile, destURL, kmsKey)
 		if err != nil {
 			return err
 		}

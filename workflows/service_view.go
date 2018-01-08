@@ -8,17 +8,17 @@ import (
 )
 
 // NewServiceViewer create a new workflow for showing an environment
-func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer) Executor {
+func NewServiceViewer(ctx *common.Context, serviceName string, viewTasks bool, writer io.Writer) Executor {
 
 	workflow := new(serviceWorkflow)
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceViewer(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, writer),
+		workflow.serviceViewer(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, viewTasks, writer),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, writer io.Writer) Executor {
+func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, viewTasks bool, writer io.Writer) Executor {
 
 	return func() error {
 		stacks, err := stackLister.ListStacks(common.StackTypeService)
@@ -51,7 +51,9 @@ func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister com
 		table := buildEnvTable(writer, stacks, workflow.serviceName)
 		table.Render()
 
-		viewTasks(namespace, taskManager, writer, stacks, workflow.serviceName)
+		if viewTasks {
+			doViewTasks(namespace, taskManager, writer, stacks, workflow.serviceName)
+		}
 
 		return nil
 	}
@@ -108,7 +110,7 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 	return table
 }
 
-func viewTasks(namespace string, taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
+func doViewTasks(namespace string, taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
 	containersTable := CreateTableSection(writer, SvcTaskContainerHeader)
 	for _, stack := range stacks {
 		if stack.Tags[SvcTagKey] != serviceName && len(serviceName) != Zero {
