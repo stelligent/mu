@@ -47,6 +47,14 @@ Parameters:
     Description: ECS AMI to launch
     Type: String
     Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
@@ -130,6 +138,8 @@ Outputs:
     Value: !Ref SshAllow
   ImageId:
     Value: !Ref ImageId
+  ImageOsType:
+    Value: !Ref ImageOsType
   HttpProxy:
     Value: !Ref HttpProxy
   ConsulServerAutoScalingGroup:

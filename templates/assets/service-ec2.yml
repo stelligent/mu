@@ -93,6 +93,14 @@ Parameters:
     Description: EC2 AMI to launch
     Type: String
     Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
   InstanceSubnetIds:
     Type: String
     Description: Name of the value to import for the ecs subnet ids
@@ -262,28 +270,19 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
       AWS::CloudFormation::Init:
-        config:
-          sources:
-            "/opt/consul/bin": !Ref ConsulUrl
+        configSets:
+          amazon:
+            - commonLinux
+            - amazonLinux
+          centos7:
+            - commonLinux
+            - centos7Linux
+        amazonLinux:
           packages:
             yum:
               awslogs: []
               aws-cli: []
-              ruby: []
           files:
-            "/etc/environment":
-              content: !Sub |
-                # created via mu
-              {{with .Environment}}
-              {{range $key, $val := .}}
-                {{$key}}={{$val}}
-              {{end}}
-              {{end}}
-            "/tmp/codedeploy-install":
-              source: !Sub https://aws-codedeploy-${AWS::Region}.s3.amazonaws.com/latest/install
-              mode: '000755'
-              owner: root
-              group: root
             "/etc/init/consul.conf":
               content: !Sub |
                 description "Consul Client process"
@@ -297,6 +296,71 @@ Resources:
               mode: '000755'
               owner: root
               group: root
+
+          services:
+            sysvinit:
+              codedeploy-agent:
+                enabled: 'true'
+                ensureRunning: 'true'
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+          commands:
+            start-consul:
+              command: "start consul"
+        centos7Linux:
+          files:
+            "/etc/systemd/system/consul.service":
+              content:
+                Fn::Sub: |
+                  [Unit]
+                  Description=Consul Agent
+
+                  [Service]
+                  Type=simple
+                  ExecStart=/opt/consul/bin/consul agent -config-dir /opt/consul/config
+                  Restart=always
+                  User=root
+                  Group=root
+                  LimitNOFILE=10240
+                  LimitFSIZE=infinity
+
+                  [Install]
+                  WantedBy=multi-user.target
+              group: root
+              mode: "000755"
+              owner: root
+          commands:
+            awscli-install:
+              command: pip install --upgrade awscli
+            awslogs-install:
+              command: curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O && python ./awslogs-agent-setup.py --region ${AWS::Region} --non-interactive --configfile=/etc/awslogs/awslogs.conf
+            start-consul:
+              command: "systemctl start consul.service && systemctl enable consul.service"
+        commonLinux:
+          sources:
+            "/opt/consul/bin": !Ref ConsulUrl
+          packages:
+            yum:
+              ruby: []
+          files:
+            "/etc/environment":
+              content: !Sub |
+                # created via mu
+              {{with .Environment}}
+              {{range $key, $val := .}}
+                {{$key}}={{$val}}
+              {{end}}
+              {{end}}
             "/opt/consul/config/service.json":
               content: !Sub |
                 {
@@ -320,6 +384,11 @@ Resources:
                     ]
                   }
                 }
+            "/tmp/codedeploy-install":
+              source: !Sub https://aws-codedeploy-${AWS::Region}.s3.amazonaws.com/latest/install
+              mode: '000755'
+              owner: root
+              group: root
             "/etc/codedeploy-agent/conf/codedeployagent.yml":
               content: !Sub |
                 ---
@@ -344,12 +413,20 @@ Resources:
                 [cfn-auto-reloader-hook]
                 triggers=post.update
                 path=Resources.ServiceInstances.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region}
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --configsets ${ImageOsType} --region ${AWS::Region}
                 runas=root
             "/etc/awslogs/etc/proxy.conf":
               content: !Sub |
                 HTTP_PROXY=http://${HttpProxy}/
                 HTTPS_PROXY=http://${HttpProxy}/
+            "/etc/profile.d/proxy.sh":
+              content: !Sub |
+                http_proxy=http://${HttpProxy}/
+                https_proxy=http://${HttpProxy}/
+                no_proxy=169.254.169.254
+              mode: '000755'
+              owner: root
+              group: root
             "/etc/awslogs/awscli.conf":
               content: !Sub |
                 [plugins]
@@ -401,27 +478,9 @@ Resources:
                 log_group_name = ${AWS::StackName}
           commands:
             codedeploy-install:
-              command: "./codedeploy-install auto"
+              command:
+                Fn::Sub: ./codedeploy-install auto --proxy http://${HttpProxy}
               cwd: "/tmp"
-            start-consul:
-              command: "start consul"
-          services:
-            sysvinit:
-              codedeploy-agent:
-                enabled: 'true'
-                ensureRunning: 'true'
-              awslogs:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/awslogs/awslogs.conf"
-                - "/etc/awslogs/etc/proxy.conf"
-              cfn-hup:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/cfn/cfn-hup.conf"
-                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
@@ -458,7 +517,7 @@ Resources:
           yum -y update
 
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
   DeployGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
