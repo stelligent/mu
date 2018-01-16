@@ -514,6 +514,83 @@ Resources:
           Id: !Ref CodePipelineKeyArn
           Type: KMS
         Location: !Ref PipelineBucket
+  PipelineNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${Namespace}-pipeline-${ServiceName}-notification
+  PipelineSucceededEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub Pipeline Succeeded Event Rule for service ${ServiceName}
+      EventPattern:
+        source:
+        - aws.codepipeline
+        detail-type:
+        - CodePipeline Pipeline Execution State Change
+        detail:
+          state:
+          - SUCCEEDED
+          pipeline:
+          - !Sub ${Namespace}-${ServiceName}
+      State: "ENABLED"
+      Targets:
+      - Arn: !Ref PipelineNotificationTopic
+        Id: "SucceededTopic"
+        InputTransformer:
+          InputTemplate: !Sub '"Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
+          InputPathsMap:
+            pipeline: "$.detail.pipeline"
+  PipelineApprovalEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub Pipeline Approval Event Rule for service ${ServiceName}
+      EventPattern:
+        source:
+        - aws.codepipeline
+        detail-type:
+        - CodePipeline Action Execution State Change
+        detail:
+          state:
+          - STARTED
+          pipeline:
+          - !Sub ${Namespace}-${ServiceName}
+          type:
+            owner:
+            - AWS
+            category:
+            - Approval
+            provider:
+            - Manual
+      State: "ENABLED"
+      Targets:
+      - Arn: !Ref PipelineNotificationTopic
+        Id: "ApprovalTopic"
+        InputTransformer:
+          InputTemplate: !Sub '"Pipeline <pipeline> requires approval. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
+          InputPathsMap:
+            pipeline: "$.detail.pipeline"
+  PipelineFailedEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub Pipeline Failed Event Rule for service ${ServiceName}
+      EventPattern:
+        source:
+        - aws.codepipeline
+        detail-type:
+        - CodePipeline Pipeline Execution State Change
+        detail:
+          state:
+          - FAILED
+          pipeline:
+          - !Sub ${Namespace}-${ServiceName}
+      State: "ENABLED"
+      Targets:
+      - Arn: !Ref PipelineNotificationTopic
+        Id: "FailedTopic"
+        InputTransformer:
+          InputTemplate: !Sub '"Pipeline <pipeline> has failed. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
+          InputPathsMap:
+            pipeline: "$.detail.pipeline"
 Outputs:
   CodePipelineUrl:
     Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
@@ -521,3 +598,6 @@ Outputs:
   PipelineName:
     Value: !Sub ${Pipeline}
     Description: Pipeline Name
+  PipelineNotificationTopicArn:
+    Value: !Ref PipelineNotificationTopic
+    Description: SNS Topic for pipeline notifications

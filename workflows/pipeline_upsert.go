@@ -31,7 +31,8 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
 		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
-		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
+		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams),
+		workflow.pipelineNotifyUpserter(ctx.Config.Namespace, &ctx.Config.Service.Pipeline))
 
 }
 
@@ -281,6 +282,20 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
+		workflow.notificationArn = stack.Outputs["PipelineNotificationTopicArn"]
+
+		return nil
+	}
+}
+
+func (workflow *pipelineWorkflow) pipelineNotifyUpserter(namespace string, pipeline *common.Pipeline) Executor {
+	return func() error {
+		if len(pipeline.Notify) > 0 {
+			log.Noticef("Updating pipeline notifications for service '%s' ...", workflow.serviceName)
+			for _, notify := range pipeline.Notify {
+				log.Infof("  Subscribing '%s' to '%s'", notify, workflow.notificationArn)
+			}
+		}
 		return nil
 	}
 }

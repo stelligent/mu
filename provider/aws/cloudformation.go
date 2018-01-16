@@ -300,6 +300,9 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 			numEvents := len(eventResp.StackEvents)
 			for i := numEvents - 1; i >= 0; i-- {
 				e := eventResp.StackEvents[i]
+				if aws.StringValue(e.ResourceType) == "AWS::CloudFormation::Stack" && strings.HasSuffix(aws.StringValue(e.ResourceStatus), "_COMPLETE") {
+					break
+				}
 				if priorEventTime == nil || priorEventTime.Before(aws.TimeValue(e.Timestamp)) {
 
 					status := aws.StringValue(e.ResourceStatus)
