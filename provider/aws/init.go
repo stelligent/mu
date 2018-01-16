@@ -108,6 +108,12 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 		return err
 	}
 
+	// initialize SubscriptionManager
+	ctx.SubscriptionManager, err = newSnsManager(sess)
+	if err != nil {
+		return err
+	}
+
 	// initialize the RolesetManager
 	ctx.RolesetManager, err = newRolesetManager(ctx)
 	if err != nil {

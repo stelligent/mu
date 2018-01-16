@@ -29,6 +29,8 @@ type cloudformationStackManager struct {
 	cfnAPI            cloudformationiface.CloudFormationAPI
 	ec2API            ec2iface.EC2API
 	extensionsManager common.ExtensionsManager
+	statusSpinner     *spinner.Spinner
+	spinnerRefCnt     int
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
@@ -42,12 +44,19 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 	log.Debug("Connecting to EC2 service")
 	ec2API := ec2.New(sess)
 
+	// initialize Spinner
+	var statusSpinner *spinner.Spinner
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		statusSpinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	}
+
 	return &cloudformationStackManager{
 		dryrunPath:        dryrunPath,
 		skipVersionCheck:  skipVersionCheck,
 		cfnAPI:            cfnAPI,
 		ec2API:            ec2API,
 		extensionsManager: extensionsManager,
+		statusSpinner:     statusSpinner,
 	}, nil
 
 }
@@ -226,7 +235,14 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
+					pauseSpinner := cfnMgr.spinnerRefCnt > 0
+					if pauseSpinner {
+						cfnMgr.stopSpinner()
+					}
 					log.Infof("  No changes for stack '%s'", stackName)
+					if pauseSpinner {
+						cfnMgr.startSpinner()
+					}
 					return nil
 				}
 			}
@@ -235,6 +251,21 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 	}
 	return nil
+}
+
+func (cfnMgr *cloudformationStackManager) startSpinner() {
+	if cfnMgr.statusSpinner != nil {
+		cfnMgr.statusSpinner.Start()
+		cfnMgr.spinnerRefCnt++
+	}
+}
+func (cfnMgr *cloudformationStackManager) stopSpinner() {
+	if cfnMgr.statusSpinner != nil {
+		cfnMgr.spinnerRefCnt--
+		//if cfnMgr.spinnerRefCnt == 0 {
+		cfnMgr.statusSpinner.Stop()
+		//}
+	}
 }
 
 // AwaitFinalStatus waits for the stack to arrive in a final status
@@ -246,25 +277,15 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 		StackName: aws.String(stackName),
 	}
 
-	// initialize Spinner
-	var statusSpinner *spinner.Spinner
-	if terminal.IsTerminal(int(os.Stdout.Fd())) {
-		statusSpinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	}
-
-	if statusSpinner != nil {
-		statusSpinner.Start()
-		defer statusSpinner.Stop()
-	}
+	cfnMgr.startSpinner()
+	defer cfnMgr.stopSpinner()
 
 	var priorEventTime *time.Time
 	for {
 
 		resp, err := cfnAPI.DescribeStacks(params)
 
-		if statusSpinner != nil {
-			statusSpinner.Stop()
-		}
+		//cfnMgr.stopSpinner()
 		if err != nil || resp == nil || len(resp.Stacks) != 1 {
 			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
 
@@ -296,20 +317,29 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 			StackName: aws.String(stackName),
 		}
 		eventResp, err := cfnAPI.DescribeStackEvents(eventParams)
-		if err == nil && eventResp != nil {
-			numEvents := len(eventResp.StackEvents)
-			for i := numEvents - 1; i >= 0; i-- {
+		numEvents := len(eventResp.StackEvents)
+		if err == nil && eventResp != nil && numEvents > 0 {
+			firstEventIndex := 0
+			for i := 0; i < numEvents; i++ {
+				e := eventResp.StackEvents[i]
+				firstEventIndex = i
+				if aws.StringValue(e.ResourceType) == "AWS::CloudFormation::Stack" && strings.HasSuffix(aws.StringValue(e.ResourceStatus), "_COMPLETE") {
+					break
+				}
+			}
+			for i := firstEventIndex; i >= 0; i-- {
 				e := eventResp.StackEvents[i]
 				if priorEventTime == nil || priorEventTime.Before(aws.TimeValue(e.Timestamp)) {
-
 					status := aws.StringValue(e.ResourceStatus)
-					eventMesg := fmt.Sprintf("  %s (%s) %s %s", aws.StringValue(e.LogicalResourceId),
+					eventMesg := fmt.Sprintf("  %s:  %s (%s) %s %s",
+						stackName,
+						aws.StringValue(e.LogicalResourceId),
 						aws.StringValue(e.ResourceType),
 						status,
 						aws.StringValue(e.ResourceStatusReason))
 					if strings.HasSuffix(status, "_IN_PROGRESS") {
-						if statusSpinner != nil {
-							statusSpinner.Suffix = eventMesg
+						if cfnMgr.statusSpinner != nil {
+							cfnMgr.statusSpinner.Suffix = eventMesg
 							log.Debug(eventMesg)
 						} else {
 							log.Info(eventMesg)
@@ -327,9 +357,7 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 		}
 
 		log.Debugf("  Not in final status (%s)...sleeping for 5 seconds", *resp.Stacks[0].StackStatus)
-		if statusSpinner != nil {
-			statusSpinner.Start()
-		}
+		cfnMgr.startSpinner()
 		time.Sleep(time.Second * 5)
 	}
 }

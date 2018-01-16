@@ -13,6 +13,7 @@ type pipelineWorkflow struct {
 	codeBranch       string
 	repoName         string
 	codeDeployBucket string
+	notificationArn  string
 }
 
 func colorizeActionStatus(actionStatus string) string {
