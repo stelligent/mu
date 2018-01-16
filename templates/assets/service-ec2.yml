@@ -288,6 +288,12 @@ Resources:
               awslogs: []
               aws-cli: []
           files:
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
             "/etc/init/consul.conf":
               content: !Sub |
                 description "Consul Client process"
@@ -484,11 +490,10 @@ Resources:
           commands:
             codedeploy-install:
               command:
-                Fn::Sub:
-                  Fn::If:
-                  - HasProxy
-                  - ./codedeploy-install auto --proxy http://${HttpProxy}
-                  - ./codedeploy-install auto
+                Fn::If:
+                - HasProxy
+                - Fn::Sub: ./codedeploy-install auto --proxy http://${HttpProxy}
+                - ./codedeploy-install auto
               cwd: "/tmp"
     Properties:
       ImageId: !Ref ImageId
