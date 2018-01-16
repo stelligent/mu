@@ -21,6 +21,7 @@ type Context struct {
 	DockerOut            io.Writer
 	TaskManager          TaskManager
 	ArtifactManager      ArtifactManager
+	SubscriptionManager  SubscriptionManager
 	RolesetManager       RolesetManager
 	ExtensionsManager    ExtensionsManager
 }
