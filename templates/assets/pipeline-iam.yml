@@ -264,6 +264,11 @@ Resources:
             - Fn::Sub: arn:aws:s3:::${PipelineBucket}
             Effect: Allow
           - Action:
+            - sns:Publish
+            Effect: Allow
+            Resource:
+            - Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Namespace}-pipeline-${ServiceName}-*
+          - Action:
             - iam:PassRole
             Resource:
             - !GetAtt CodeBuildCIRole.Arn

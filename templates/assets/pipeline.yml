@@ -480,6 +480,7 @@ Resources:
               Provider: Manual
             Configuration:
               CustomData: Approve deployment to production
+              NotificationArn: !Ref PipelineNotificationTopic
             RunOrder: 10
           - Name: Deploy
             ActionTypeId:
@@ -518,6 +519,22 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: !Sub ${Namespace}-pipeline-${ServiceName}-notification
+  PipelineNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref PipelineNotificationTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: "__default_policy_ID"
+        Statement:
+        - Sid: AWSEvents
+          Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sns:Publish
+          Resource: !Ref PipelineNotificationTopic
+
   PipelineSucceededEventRule:
     Type: AWS::Events::Rule
     Properties:
@@ -538,35 +555,6 @@ Resources:
         Id: "SucceededTopic"
         InputTransformer:
           InputTemplate: !Sub '"Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
-          InputPathsMap:
-            pipeline: "$.detail.pipeline"
-  PipelineApprovalEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: !Sub Pipeline Approval Event Rule for service ${ServiceName}
-      EventPattern:
-        source:
-        - aws.codepipeline
-        detail-type:
-        - CodePipeline Action Execution State Change
-        detail:
-          state:
-          - STARTED
-          pipeline:
-          - !Sub ${Namespace}-${ServiceName}
-          type:
-            owner:
-            - AWS
-            category:
-            - Approval
-            provider:
-            - Manual
-      State: "ENABLED"
-      Targets:
-      - Arn: !Ref PipelineNotificationTopic
-        Id: "ApprovalTopic"
-        InputTransformer:
-          InputTemplate: !Sub '"Pipeline <pipeline> requires approval. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
           InputPathsMap:
             pipeline: "$.detail.pipeline"
   PipelineFailedEventRule:
