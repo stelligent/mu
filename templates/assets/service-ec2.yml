@@ -163,6 +163,11 @@ Parameters:
     Description: Target CPU Utilization for Tracking Policy on ASG
     Default: '75'
 Conditions:
+  HasProxy:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref HttpProxy
+        - ''
   HasPathPattern:
     "Fn::Not":
       - "Fn::Equals":
@@ -479,7 +484,11 @@ Resources:
           commands:
             codedeploy-install:
               command:
-                Fn::Sub: ./codedeploy-install auto --proxy http://${HttpProxy}
+                Fn::Sub:
+                  Fn::If:
+                  - HasProxy
+                  - ./codedeploy-install auto --proxy http://${HttpProxy}
+                  - ./codedeploy-install auto
               cwd: "/tmp"
     Properties:
       ImageId: !Ref ImageId
