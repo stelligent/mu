@@ -556,7 +556,7 @@ Resources:
         InputTransformer:
           InputTemplate:
             Fn::Sub: >
-              Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>
+              "Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>"
           InputPathsMap:
             pipeline: "$.detail.pipeline"
   PipelineFailedEventRule:
@@ -580,7 +580,7 @@ Resources:
         InputTransformer:
           InputTemplate:
             Fn::Sub: >
-              Pipeline <pipeline> has failed. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>
+              "Pipeline <pipeline> has failed. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>"
           InputPathsMap:
             pipeline: "$.detail.pipeline"
 Outputs:
