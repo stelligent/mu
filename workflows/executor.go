@@ -16,6 +16,7 @@ func newPipelineExecutor(executors ...Executor) Executor {
 			err := executor()
 			if err != nil {
 				log.Errorf("%v", err)
+				log.Debugf("%+v", err)
 				return errors.New("")
 			}
 		}

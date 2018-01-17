@@ -305,7 +305,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 
 func (workflow *pipelineWorkflow) pipelineNotifyUpserter(namespace string, pipeline *common.Pipeline, subManager common.SubscriptionManager) Executor {
 	return func() error {
-		if len(pipeline.Notify) > 0 {
+		if len(workflow.notificationArn) > 0 && len(pipeline.Notify) > 0 {
 			log.Noticef("Updating pipeline notifications for service '%s' ...", workflow.serviceName)
 			for _, notify := range pipeline.Notify {
 				sub, _ := subManager.GetSubscription(workflow.notificationArn, "email", notify)

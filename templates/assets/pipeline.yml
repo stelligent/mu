@@ -554,7 +554,9 @@ Resources:
       - Arn: !Ref PipelineNotificationTopic
         Id: "SucceededTopic"
         InputTransformer:
-          InputTemplate: !Sub '"Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
+          InputTemplate:
+            Fn::Sub: >
+              Pipeline <pipeline> has succeeded. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>
           InputPathsMap:
             pipeline: "$.detail.pipeline"
   PipelineFailedEventRule:
@@ -576,7 +578,9 @@ Resources:
       - Arn: !Ref PipelineNotificationTopic
         Id: "FailedTopic"
         InputTransformer:
-          InputTemplate: !Sub '"Pipeline <pipeline> has failed. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>" '
+          InputTemplate:
+            Fn::Sub: >
+              Pipeline <pipeline> has failed. Details available at https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/<pipeline>
           InputPathsMap:
             pipeline: "$.detail.pipeline"
 Outputs:
