@@ -17,6 +17,10 @@ Parameters:
   ImageUrl:
     Type: String
     Description: Docker Image URL
+  ServiceDeploymentStrategy:
+    Type: String
+    Description: Deployment strategy for ECS cluster
+    Default: 'blue_green'
   ServicePort:
     Type: String
     Description: Port exposed in service

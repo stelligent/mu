@@ -101,6 +101,7 @@ type Environment struct {
 // Service defines the structure of the yml file for a service
 type Service struct {
 	Name                 string                 `yaml:"name,omitempty"`
+	DeploymentStrategy   string                 `yaml:"deploymentStrategy,omitempty"`
 	DesiredCount         int                    `yaml:"desiredCount,omitempty"`
 	MinSize              int                    `yaml:"minSize,omitempty"`
 	MaxSize              int                    `yaml:"maxSize,omitempty"`
