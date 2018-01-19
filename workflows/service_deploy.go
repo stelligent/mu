@@ -286,7 +286,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if len(service.HostPatterns) > 0 {
 			params["HostPattern"] = strings.Join(service.HostPatterns, ",")
 		}
-		if service.DeploymentStrategy != "blue_green" {
+		if service.DeploymentStrategy != "" {
 			params["ServiceDeploymentStrategy"] = service.DeploymentStrategy
 		}
 

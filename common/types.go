@@ -279,6 +279,15 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
+type DeploymentStrategy string
+
+const (
+	BlueGreenDeploymentStrategy		DeploymentStrategy = "blue_green"
+	RollingDeploymentStrategy						   = "rolling"
+	ReplaceDeploymentStrategy						   = "replace"
+
+)
+
 // EnvProvider describes supported environment strategies
 type EnvProvider string
 
