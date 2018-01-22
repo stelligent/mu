@@ -279,13 +279,14 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
+// DeploymentStrategy describes supported deployment strategies
 type DeploymentStrategy string
 
+// List of supported deployment strategies
 const (
-	BlueGreenDeploymentStrategy		DeploymentStrategy = "blue_green"
-	RollingDeploymentStrategy						   = "rolling"
-	ReplaceDeploymentStrategy						   = "replace"
-
+	BlueGreenDeploymentStrategy DeploymentStrategy = "blue_green"
+	RollingDeploymentStrategy                      = "rolling"
+	ReplaceDeploymentStrategy                      = "replace"
 )
 
 // EnvProvider describes supported environment strategies
