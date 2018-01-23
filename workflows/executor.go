@@ -2,6 +2,8 @@ package workflows
 
 import (
 	"errors"
+
+	"github.com/stelligent/mu/common"
 )
 
 // Executor define contract for the steps of a workflow
@@ -15,9 +17,15 @@ func newPipelineExecutor(executors ...Executor) Executor {
 		for _, executor := range executors {
 			err := executor()
 			if err != nil {
-				log.Errorf("%v", err)
-				log.Debugf("%+v", err)
-				return errors.New("")
+				switch err.(type) {
+				case common.Warning:
+					log.Warning(err.Error())
+					return nil
+				default:
+					log.Errorf("%v", err)
+					log.Debugf("%+v", err)
+					return errors.New("")
+				}
 			}
 		}
 		return nil

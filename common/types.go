@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"io"
 	"time"
 )
@@ -375,4 +376,22 @@ var CPUMemorySupport = []CPUMemory{
 	{CPU: 2048, Memory: []int{4 * GB, 5 * GB, 6 * GB, 7 * GB, 8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB}},
 	{CPU: 4096, Memory: []int{8 * GB, 9 * GB, 10 * GB, 11 * GB, 12 * GB, 13 * GB, 14 * GB, 15 * GB, 16 * GB, 17 * GB, 18 * GB, 19 * GB, 20 * GB,
 		21 * GB, 22 * GB, 23 * GB, 24 * GB, 25 * GB, 26 * GB, 27 * GB, 28 * GB, 29 * GB, 30 * GB}},
+}
+
+// Warning that implements `error` but safe to ignore
+type Warning struct {
+	Message string
+}
+
+// Error the contract for error
+func (w Warning) Error() string {
+	return w.Message
+}
+
+// Warningf create a warning
+func Warningf(format string, args ...interface{}) Warning {
+	w := Warning{
+		Message: fmt.Sprintf(format, args),
+	}
+	return w
 }

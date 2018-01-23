@@ -271,8 +271,8 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} 
+                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} 
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
                 - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f shell > mu-env.sh
@@ -330,8 +330,8 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} || echo "Skipping update of environment"
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} || echo "Skipping update of database"
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} 
+                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} 
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
                 - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f shell > mu-env.sh
