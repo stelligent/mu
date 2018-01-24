@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU IAM roles for pipeline
+Description: MU IAM roles and keys for pipeline
 Parameters:
   Namespace:
     Type: String
@@ -263,6 +263,11 @@ Resources:
             Resource:
             - Fn::Sub: arn:aws:s3:::${PipelineBucket}
             Effect: Allow
+          - Action:
+            - sns:Publish
+            Effect: Allow
+            Resource:
+            - Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Namespace}-pipeline-${ServiceName}-*
           - Action:
             - iam:PassRole
             Resource:

@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU IAM roles for a service
+Description: MU IAM roles and keys for a service
 Parameters:
   Namespace:
     Type: String

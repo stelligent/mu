@@ -2,12 +2,13 @@ package cli
 
 import (
 	"errors"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/workflows"
-	"github.com/urfave/cli"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/workflows"
+	"github.com/urfave/cli"
 )
 
 func newEnvironmentsCommand(ctx *common.Context) *cli.Command {

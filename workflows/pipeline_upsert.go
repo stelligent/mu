@@ -28,10 +28,12 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
+		workflow.pipelineToken(ctx.Config.Namespace, tokenProvider, ctx.StackManager, stackParams),
 		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
 		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
-		workflow.pipelineUpserter(ctx.Config.Namespace, tokenProvider, ctx.StackManager, ctx.StackManager, stackParams))
+		workflow.pipelineUpserter(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, stackParams),
+		workflow.pipelineNotifyUpserter(ctx.Config.Namespace, &ctx.Config.Service.Pipeline, ctx.SubscriptionManager))
 
 }
 
@@ -113,6 +115,18 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, params map[st
 	}
 }
 
+// Fetch token if needed
+func (workflow *pipelineWorkflow) pipelineToken(namespace string, tokenProvider func(bool) string, stackWaiter common.StackWaiter, params map[string]string) Executor {
+	return func() error {
+		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
+		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
+		if workflow.pipelineConfig.Source.Provider == "GitHub" {
+			params["GitHubToken"] = tokenProvider(pipelineStack == nil)
+		}
+		return nil
+	}
+}
+
 func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, params map[string]string) Executor {
 	return func() error {
 		err := rolesetUpserter.UpsertCommonRoleset()
@@ -120,21 +134,16 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 			return err
 		}
 
+		rolesetCount := 0
+		errChan := make(chan error)
+
 		if !workflow.pipelineConfig.Acceptance.Disabled {
 			envName := workflow.pipelineConfig.Acceptance.Environment
 			if envName == "" {
 				envName = "acceptance"
 			}
-			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
-			if err != nil {
-				return err
-			}
-
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
-			if err != nil {
-				return err
-			}
-
+			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, errChan)
+			rolesetCount++
 		}
 
 		if !workflow.pipelineConfig.Production.Disabled {
@@ -142,12 +151,12 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 			if envName == "" {
 				envName = "production"
 			}
-			err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
-			if err != nil {
-				return err
-			}
+			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, errChan)
+			rolesetCount++
+		}
 
-			err = rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket)
+		for i := 0; i < rolesetCount; i++ {
+			err := <-errChan
 			if err != nil {
 				return err
 			}
@@ -173,10 +182,21 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 	}
 }
 
-func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvider func(bool) string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, params map[string]string) Executor {
+func updateEnvRoleset(rolesetUpserter common.RolesetUpserter, envName string, serviceName string, codeDeployBucket string, errChan chan error) {
+	err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
+	err = rolesetUpserter.UpsertServiceRoleset(envName, serviceName, codeDeployBucket)
+	errChan <- err
+	return
+}
+
+func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, params map[string]string) Executor {
 	return func() error {
 		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
-		pipelineStack := stackWaiter.AwaitFinalStatus(pipelineStackName)
 
 		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
 		pipelineParams := params
@@ -195,10 +215,6 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 			repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
 			pipelineParams["SourceBucket"] = repoParts[0]
 			pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
-		}
-
-		if workflow.pipelineConfig.Source.Provider == "GitHub" {
-			pipelineParams["GitHubToken"] = tokenProvider(pipelineStack == nil)
 		}
 
 		if workflow.pipelineConfig.Build.Type != "" {
@@ -281,6 +297,28 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, tokenProvid
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
+		workflow.notificationArn = stack.Outputs["PipelineNotificationTopicArn"]
+
+		return nil
+	}
+}
+
+func (workflow *pipelineWorkflow) pipelineNotifyUpserter(namespace string, pipeline *common.Pipeline, subManager common.SubscriptionManager) Executor {
+	return func() error {
+		if len(workflow.notificationArn) > 0 && len(pipeline.Notify) > 0 {
+			log.Noticef("Updating pipeline notifications for service '%s' ...", workflow.serviceName)
+			for _, notify := range pipeline.Notify {
+				sub, _ := subManager.GetSubscription(workflow.notificationArn, "email", notify)
+				if sub == nil {
+					log.Infof("  Subscribing '%s' to '%s'", notify, workflow.notificationArn)
+					err := subManager.CreateSubscription(workflow.notificationArn, "email", notify)
+					if err != nil {
+						return err
+					}
+				}
+
+			}
+		}
 		return nil
 	}
 }
