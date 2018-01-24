@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mholt/archiver"
 	"github.com/stelligent/mu/common"
 )
 
@@ -287,7 +288,20 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostPattern"] = strings.Join(service.HostPatterns, ",")
 		}
 		if service.DeploymentStrategy != "" {
-			params["ServiceDeploymentStrategy"] = service.DeploymentStrategy
+			switch {
+			case service.DeploymentStrategy == "blue_green":
+				params["MinimumHealthPercent"] = "100"
+				params["MaximumHealthPercent"] = "200"
+			case service.DeploymentStrategy == "replace":
+				params["MinimumHealthPercent"] = "0"
+				params["MaximumHealthPercent"] = "100"
+			case service.DeploymentStrategy == "rolling":
+				params["MinimumHealthPercent"] = "50"
+				params["MaximumHealthPercent"] = "100"
+			default:
+				params["MinimumHealthPercent"] = "100"
+				params["MaximumHealthPercent"] = "200"
+			}
 		}
 
 		return nil
