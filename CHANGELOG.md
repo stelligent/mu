@@ -1,5 +1,46 @@
 # Change Log
 
+## [v1.4.1](https://github.com/stelligent/mu/tree/v1.4.1) (2018-01-23)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.3.2...v1.4.1)
+
+**Implemented enhancements:**
+
+- Add support for pipeline failure notifications [\#230](https://github.com/stelligent/mu/issues/230)
+
+**Closed issues:**
+
+- is it possible to infer the repo path from the local checkout? [\#268](https://github.com/stelligent/mu/issues/268)
+- Use codepipeline ecs deploy target, rather than cloudformation? [\#266](https://github.com/stelligent/mu/issues/266)
+- prompt for github token near the beginning of "mu pipeline up" [\#263](https://github.com/stelligent/mu/issues/263)
+- support discovering subnet values and vpc id by targeting another mu service by name [\#253](https://github.com/stelligent/mu/issues/253)
+
+**Merged pull requests:**
+
+- add support for centos7 for env provider [\#262](https://github.com/stelligent/mu/pull/262) ([cplee](https://github.com/cplee))
+
+## [v1.3.2](https://github.com/stelligent/mu/tree/v1.3.2) (2018-01-11)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.3.1...v1.3.2)
+
+**Fixed bugs:**
+
+- Unable to update Service with target tracking capabilities if they weren't already there [\#259](https://github.com/stelligent/mu/issues/259)
+- Issue 259 Added application-autoscaling:DescribeScheduledActions perm… [\#260](https://github.com/stelligent/mu/pull/260) ([akuma12](https://github.com/akuma12))
+
+**Merged pull requests:**
+
+- v1.3.2 [\#261](https://github.com/stelligent/mu/pull/261) ([cplee](https://github.com/cplee))
+
+## [v0.2.6](https://github.com/stelligent/mu/tree/v0.2.6) (2018-01-10)
+[Full Changelog](https://github.com/stelligent/mu/compare/v0.2.5...v0.2.6)
+
+**Implemented enhancements:**
+
+- Add support for CodeBuild's caching feature  [\#229](https://github.com/stelligent/mu/issues/229)
+
+**Closed issues:**
+
+- Add support for artifact caching in CodeBuild [\#242](https://github.com/stelligent/mu/issues/242)
+
 ## [v1.3.1](https://github.com/stelligent/mu/tree/v1.3.1) (2018-01-08)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.2.3...v1.3.1)
 
@@ -16,6 +57,9 @@
 **Merged pull requests:**
 
 - use blue/green deploy as default [\#254](https://github.com/stelligent/mu/pull/254) ([brentley](https://github.com/brentley))
+- v1.3.1 [\#249](https://github.com/stelligent/mu/pull/249) ([cplee](https://github.com/cplee))
+- Issue 128 [\#247](https://github.com/stelligent/mu/pull/247) ([cplee](https://github.com/cplee))
+- Add support for docker links [\#245](https://github.com/stelligent/mu/pull/245) ([nilsga](https://github.com/nilsga))
 
 ## [v1.2.3](https://github.com/stelligent/mu/tree/v1.2.3) (2017-12-11)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.2.2...v1.2.3)
