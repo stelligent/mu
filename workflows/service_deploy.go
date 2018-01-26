@@ -288,14 +288,14 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostPattern"] = strings.Join(service.HostPatterns, ",")
 		}
 		if service.DeploymentStrategy != "" {
-			switch {
-			case service.DeploymentStrategy == "blue_green":
+			switch service.DeploymentStrategy {
+			case string(common.BlueGreenDeploymentStrategy):
 				params["MinimumHealthPercent"] = "100"
 				params["MaximumHealthPercent"] = "200"
-			case service.DeploymentStrategy == "replace":
+			case string(common.ReplaceDeploymentStrategy):
 				params["MinimumHealthPercent"] = "0"
 				params["MaximumHealthPercent"] = "100"
-			case service.DeploymentStrategy == "rolling":
+			case string(common.RollingDeploymentStrategy):
 				params["MinimumHealthPercent"] = "50"
 				params["MaximumHealthPercent"] = "100"
 			default:
@@ -303,7 +303,6 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 				params["MaximumHealthPercent"] = "200"
 			}
 		}
-
 		return nil
 	}
 }
