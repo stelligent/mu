@@ -3,6 +3,11 @@ package aws
 import (
 	"crypto/md5"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -10,10 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/stelligent/mu/common"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
 )
 
 type s3ArtifactManager struct {
@@ -40,7 +41,7 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 		return err
 	}
 	if s3URL.Scheme != "s3" {
-		return fmt.Errorf("destURL must have scheme of 's3', recieved '%s'", s3URL.Scheme)
+		return fmt.Errorf("destURL must have scheme of 's3', received '%s'", s3URL.Scheme)
 	}
 
 	params := &s3.PutObjectInput{
