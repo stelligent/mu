@@ -254,6 +254,7 @@ Resources:
             - application-autoscaling:DescribeScalableTargets
             - application-autoscaling:DescribeScalingActivities
             - application-autoscaling:DescribeScalingPolicies
+            - application-autoscaling:DescribeScheduledActions
             - application-autoscaling:PutScalingPolicy
             - application-autoscaling:DeleteScalingPolicy
             - application-autoscaling:RegisterScalableTarget

@@ -66,7 +66,7 @@ func TestDatabaseUpserter(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)
@@ -102,7 +102,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
 	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
 
 	rdsManager := new(mockedRdsManager)

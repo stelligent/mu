@@ -161,8 +161,8 @@ Resources:
       - Name:
           Fn::If:
           - HasElbHostName
-          - !Sub ${ElbHostName}.${ElbDomainName}.
-          - !Sub ${ElbDomainName}.
+          - Fn::Sub: ${ElbHostName}.${ElbDomainName}.
+          - Fn::Sub: ${ElbDomainName}.
         Type: A
         AliasTarget:
           HostedZoneId: !GetAtt Elb.CanonicalHostedZoneID
@@ -171,8 +171,8 @@ Resources:
       - Name:
           Fn::If:
           - HasElbHostName
-          - !Sub '*.${ElbHostName}.${ElbDomainName}.'
-          - !Sub '*.${ElbDomainName}.'
+          - Fn::Sub: '*.${ElbHostName}.${ElbDomainName}.'
+          - Fn::Sub: '*.${ElbDomainName}.'
         Type: A
         AliasTarget:
           HostedZoneId: !GetAtt Elb.CanonicalHostedZoneID

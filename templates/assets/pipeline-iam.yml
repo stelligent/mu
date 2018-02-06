@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU IAM roles for pipeline
+Description: MU IAM roles and keys for pipeline
 Parameters:
   Namespace:
     Type: String
@@ -264,6 +264,11 @@ Resources:
             - Fn::Sub: arn:aws:s3:::${PipelineBucket}
             Effect: Allow
           - Action:
+            - sns:Publish
+            Effect: Allow
+            Resource:
+            - Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Namespace}-pipeline-${ServiceName}-*
+          - Action:
             - iam:PassRole
             Resource:
             - !GetAtt CodeBuildCIRole.Arn
@@ -472,6 +477,7 @@ Resources:
             - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
@@ -549,6 +555,7 @@ Resources:
             - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*

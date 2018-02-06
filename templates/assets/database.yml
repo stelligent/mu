@@ -39,14 +39,16 @@ Parameters:
     Description: KMS key for Database
 Conditions:
   IsClustered:
-    "Fn::Equals":
-      - !Ref DatabaseEngine
-      - 'aurora'
+    "Fn::Or":
+      - "Fn::Equals":
+          - !Ref DatabaseEngine
+          - 'aurora-postgresql'
+      - "Fn::Equals":
+          - !Ref DatabaseEngine
+          - 'aurora'
   IsStandalone:
     "Fn::Not":
-      - "Fn::Equals":
-        - !Ref DatabaseEngine
-        - 'aurora'
+      - !Condition IsClustered
 Resources:
   DBSubnetsGroup:
     Type: "AWS::RDS::DBSubnetGroup"

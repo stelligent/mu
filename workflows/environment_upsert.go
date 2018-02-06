@@ -2,9 +2,10 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strconv"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
@@ -43,7 +44,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 				return nil
 			}
 		}
-		return fmt.Errorf("Unable to find environment named '%s' in configuration", environmentName)
+		return common.Warningf("Unable to find environment named '%s' in configuration", environmentName)
 	}
 }
 

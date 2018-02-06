@@ -26,7 +26,7 @@ func (rdsMgr *rdsManager) SetIamAuthentication(dbInstanceIdentifier string, enab
 	rdsAPI := rdsMgr.rdsAPI
 
 	var err error
-	if dbEngine == "aurora" || dbEngine == "" {
+	if dbEngine == "aurora" || dbEngine == "aurora-postgresql" || dbEngine == "" {
 		params := &rds.ModifyDBClusterInput{
 			DBClusterIdentifier:             aws.String(dbInstanceIdentifier),
 			EnableIAMDatabaseAuthentication: aws.Bool(enabled),

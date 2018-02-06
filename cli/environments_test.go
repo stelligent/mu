@@ -2,10 +2,11 @@ package cli
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
-	"testing"
 )
 
 func TestNewEnvironmentsCommand(t *testing.T) {
@@ -44,10 +45,12 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assertion.NotNil(err)
 	assertion.Equal(FailExitCode, lastExitCode)
 
+	lastExitCode = 0
+
 	args = []string{UpsertCmd, TestEnv}
 	err = runCommand(command, args)
-	assertion.NotNil(err)
-	assertion.Equal(FailExitCode, lastExitCode)
+	assertion.Nil(err)
+	assertion.Equal(0, lastExitCode)
 }
 
 func TestNewEnvironmentsListCommand(t *testing.T) {

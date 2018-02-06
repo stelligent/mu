@@ -130,7 +130,11 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 
 		// update IAM Authentication
-		return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
+		if stack.Outputs["DatabaseIdentifier"] != "" {
+			return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
+		}
+
+		return nil
 	}
 }
 

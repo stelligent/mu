@@ -26,6 +26,7 @@ deps:
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
+	go get "github.com/fzipp/gocyclo"
 	glide install
 	patch -p1 < go-git.v4.patch
 
@@ -58,7 +59,12 @@ nag:
     	exit 1 ;\
     fi
 
-test: lint gen nag
+cyclo:
+	@echo "=== cyclomatic complexity ==="
+	@gocyclo -over 30 `glide nv -x |grep /`
+	@gocyclo -over 15 `glide nv -x |grep /` || echo "WARNING: cyclomatic complexity is high"
+	
+test: lint gen nag cyclo
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit

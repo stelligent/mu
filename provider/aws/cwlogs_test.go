@@ -1,13 +1,14 @@
 package aws
 
 import (
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 type mockedCwLogs struct {
@@ -34,7 +35,7 @@ func TestLogsManager_ViewLogs(t *testing.T) {
 						Message: aws.String("hello world"),
 					},
 					{
-						Message: aws.String("hello agains"),
+						Message: aws.String("hello again"),
 					},
 				},
 			}, true)

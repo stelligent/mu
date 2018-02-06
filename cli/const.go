@@ -39,7 +39,7 @@ const (
 	SvcPushTagFlagUsage        = "tag to push"
 	SvcPushProviderFlagUsage   = "provider to push to"
 	SvcPushKmsKeyFlagUsage     = "kms key to encrypt artifact with"
-	SvcDeployTagFlagUsage      = "tag to deploy"
+	SvcDeployTagFlagUsage      = "docker image tag to deploy"
 	SvcRestartBatchFlagUsage   = "number of tasks to restart concurrently"
 	TagFlagName                = "tag, t"
 	ProviderFlagName           = "provider, p"

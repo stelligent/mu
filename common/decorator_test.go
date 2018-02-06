@@ -3,10 +3,11 @@ package common
 import (
 	"bytes"
 	"fmt"
+	"testing"
+
 	"github.com/stelligent/mu/templates"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
-	"testing"
 )
 
 func TestDecorateTemplate(t *testing.T) {
@@ -50,6 +51,7 @@ Resources:
 
 	finalMap := make(map[interface{}]interface{})
 	err = yaml.Unmarshal(templateBodyBytes.Bytes(), finalMap)
+	assert.Nil(err)
 	assert.Equal("${Namespace}-bucket-${BucketPrefix}", nestedMap(finalMap, "Outputs", "Bucket", "Export", "Name")["Fn::Sub"])
 }
 

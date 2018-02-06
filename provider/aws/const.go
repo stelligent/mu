@@ -14,7 +14,7 @@ const (
 	ListTasks                   = "ListTasks"
 	DescribeTasks               = "DescribeTasks"
 	DescribeContainerInstances  = "DescribeContainerInstances"
-	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinition"
+	ECSTaskDefinitionOutputKey  = "MicroserviceTaskDefinitionArn"
 	ECSClusterOutputKey         = "EcsCluster"
 	SvcCmdStackLog              = "Getting stack '%s'..."
 	EcsConnectionLog            = "Connecting to ECS service"
