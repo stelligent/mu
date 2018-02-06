@@ -581,7 +581,7 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 		} else if *resource.ResourceType == "AWS::ECR::Repository" {
 			log.Debugf("ECR::Repository %V", aws.String(*resource.PhysicalResourceId))
 			// TODO  - implement the following method
-			err := deleteImagesFromEcrRepo(cfnMgr, *resource.PhysicalResourceId)
+			err := DeleteImagesFromEcrRepo(cfnMgr.ecrAPI, *resource.PhysicalResourceId)
 			if err != nil {
 				log.Error("couldn't delete images from EcrRepo %s", *resource.PhysicalResourceId)
 			}
@@ -665,55 +665,6 @@ func emptyS3Bucket(cfnMgr *cloudformationStackManager, bucketName string) error 
 	}
 
 	log.Debugf("Deleted", totalObjects, "object(s) from bucket", bucketName)
-	return nil
-}
-
-// deleteImagesFromEcrRepo deletes all the Docker images from a repo (so the repo itself can be deleted)
-func deleteImagesFromEcrRepo(cfnMgr *cloudformationStackManager, repoName string) error {
-	ecrAPI := cfnMgr.ecrAPI
-
-	if cfnMgr.dryrunPath != "" {
-		log.Infof("  DRYRUN: Skipping delete of all images in repo named '%s'", repoName)
-		return nil
-	}
-
-	hasMoreObjects := true
-	totalObjects := 0
-	totalFailures := 0
-
-	var nextToken *string
-	for hasMoreObjects {
-		// find all the images
-		resp, err := ecrAPI.ListImages(&ecr.ListImagesInput{RepositoryName: aws.String(repoName), NextToken: nextToken})
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("ListImagesInput %s %v", repoName, aerr.Error())
-			} else {
-				log.Errorf("ListImagesInput %s %v", repoName, err)
-			}
-			return err
-		}
-
-		// delete them all
-		result, err := ecrAPI.BatchDeleteImage(&ecr.BatchDeleteImageInput{ImageIds: resp.ImageIds, RepositoryName: &repoName})
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				log.Errorf("BatchDeleteImage %v", aerr.Error())
-			} else {
-				log.Errorf("BatchDeleteImage %v", err)
-			}
-		}
-		numImages := len(resp.ImageIds)
-		numFailures := len(result.Failures)
-		log.Debugf("%d images submitted for deletion, %d failed", numImages, numFailures)
-
-		totalObjects += numImages
-		totalFailures += numFailures
-		nextToken = resp.NextToken
-		hasMoreObjects = nextToken != nil
-	}
-	log.Debugf("total number of images found: %d, number of failed deletes %d", totalObjects, totalFailures)
-
 	return nil
 }
 

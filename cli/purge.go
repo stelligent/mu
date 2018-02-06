@@ -1,10 +1,11 @@
 package cli
 
 import (
+	"os"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
-	"os"
 )
 
 func newPurgeCommand(ctx *common.Context) *cli.Command {
