@@ -395,14 +395,6 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	} else {
 		stack.LastUpdateTime = aws.TimeValue(stackDetails.CreationTime)
 	}
-	// parse Region and Account out of ARN
-	arnChunks := strings.Split(stack.ID, ":")
-	if len(arnChunks) > 3 {
-		stack.Region = arnChunks[3]
-	}
-	if len(arnChunks) > 4 {
-		stack.AccountID = arnChunks[4]
-	}
 
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
