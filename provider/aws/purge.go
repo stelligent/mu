@@ -7,7 +7,34 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
+
+// ShowResources shows the resources in an array
+func ShowResources(output *cloudformation.DescribeStackResourcesOutput) {
+	if output.StackResources != nil && len(output.StackResources) > 0 {
+		stackName := output.StackResources[0].StackName
+		log.Debugf("    stack %s %d resources attached", stackName, len(output.StackResources))
+		for idx, resource := range output.StackResources {
+			log.Debugf("   %3d: %s (%s)", idx, aws.StringValue(resource.LogicalResourceId), aws.StringValue(resource.PhysicalResourceId))
+		}
+	}
+}
+
+// DeleteAnyEcrRepos deletes any resources of type AWS::ECR::Repository
+func DeleteAnyEcrRepos(ecrAPI ecriface.ECRAPI, resources []*cloudformation.StackResource) {
+	// do pre-delete API calls here (like deleting files from S3 bucket, before trying to delete bucket)
+	for _, resource := range resources {
+		if *resource.ResourceType == "AWS::ECR::Repository" {
+			log.Debugf("ECR::Repository %V", aws.String(*resource.PhysicalResourceId))
+			// TODO  - implement the following method
+			err := DeleteImagesFromEcrRepo(ecrAPI, *resource.PhysicalResourceId)
+			if err != nil {
+				log.Error("couldn't delete images from EcrRepo %s", *resource.PhysicalResourceId)
+			}
+		}
+	}
+}
 
 // DeleteImagesFromEcrRepo deletes all the Docker images from a repo (so the repo itself can be deleted)
 func DeleteImagesFromEcrRepo(ecrAPI ecriface.ECRAPI, repoName string) error {
@@ -52,26 +79,15 @@ func DeleteImagesFromEcrRepo(ecrAPI ecriface.ECRAPI, repoName string) error {
 	return nil
 }
 
-// ShowResources shows the resources in an array
-func ShowResources(output *cloudformation.DescribeStackResourcesOutput) {
-	if output.StackResources != nil && len(output.StackResources) > 0 {
-		stackName := output.StackResources[0].StackName
-		log.Debugf("    stack %s %d resources attached", stackName, len(output.StackResources))
-		for idx, resource := range output.StackResources {
-			log.Debugf("   %3d: %s (%s)", idx, aws.StringValue(resource.LogicalResourceId), aws.StringValue(resource.PhysicalResourceId))
-		}
-	}
-}
-
 // DeleteAnyS3Buckets deletes any resources of type AWS::S3::Bucket
-func DeleteAnyS3Buckets(cfnMgr *cloudformationStackManager, resources []*cloudformation.StackResource) {
+func DeleteAnyS3Buckets(s3API s3iface.S3API, resources []*cloudformation.StackResource) {
 	for _, resource := range resources {
 		if *resource.ResourceType == "AWS::S3::Bucket" {
 			fqBucketName := aws.StringValue(resource.PhysicalResourceId)
 			log.Debugf("delete bucket: fullname=%s", aws.String(fqBucketName))
 
 			// empty the bucket first
-			err := EmptyS3Bucket(cfnMgr, fqBucketName)
+			err := EmptyS3Bucket(s3API, fqBucketName)
 			if err != nil {
 				log.Error("couldn't delete files from bucket %s", fqBucketName)
 			}
@@ -79,29 +95,8 @@ func DeleteAnyS3Buckets(cfnMgr *cloudformationStackManager, resources []*cloudfo
 	}
 }
 
-// DeleteAnyEcrRepos deletes any resources of type AWS::ECR::Repository
-func DeleteAnyEcrRepos(cfnMgr *cloudformationStackManager, resources []*cloudformation.StackResource) {
-	// do pre-delete API calls here (like deleting files from S3 bucket, before trying to delete bucket)
-	for _, resource := range resources {
-		if *resource.ResourceType == "AWS::ECR::Repository" {
-			log.Debugf("ECR::Repository %V", aws.String(*resource.PhysicalResourceId))
-			// TODO  - implement the following method
-			err := DeleteImagesFromEcrRepo(cfnMgr.ecrAPI, *resource.PhysicalResourceId)
-			if err != nil {
-				log.Error("couldn't delete images from EcrRepo %s", *resource.PhysicalResourceId)
-			}
-		}
-	}
-}
-
 // DeleteS3Bucket deletes a particular bucket
-func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) error {
-	s3API := cfnMgr.s3API
-
-	if cfnMgr.dryrunPath != "" {
-		log.Infof("  DRYRUN: Skipping delete of bucket named '%s'", bucketName)
-		return nil
-	}
+func DeleteS3Bucket(s3API s3iface.S3API, bucketName string) error {
 	log.Debugf("Deleting bucket named '%s'", bucketName)
 
 	_, err := s3API.DeleteBucket(&s3.DeleteBucketInput{Bucket: aws.String(bucketName)})
@@ -117,8 +112,7 @@ func (cfnMgr *cloudformationStackManager) DeleteS3Bucket(bucketName string) erro
 }
 
 // EmptyS3Bucket deletes the files from an S3 bucket
-func EmptyS3Bucket(cfnMgr *cloudformationStackManager, bucketName string) error {
-	s3API := cfnMgr.s3API
+func EmptyS3Bucket(s3API s3iface.S3API, bucketName string) error {
 	log.Infof("s3ArtifactManager.EmptyArtifact called for bucket %s", bucketName)
 
 	hasMoreObjects := true

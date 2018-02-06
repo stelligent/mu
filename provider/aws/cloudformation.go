@@ -554,8 +554,8 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 		return err
 	}
 	ShowResources(output)
-	DeleteAnyS3Buckets(cfnMgr, output.StackResources)
-	DeleteAnyEcrRepos(cfnMgr, output.StackResources)
+	DeleteAnyS3Buckets(cfnMgr.s3API, output.StackResources)
+	DeleteAnyEcrRepos(cfnMgr.ecrAPI, output.StackResources)
 
 	log.Debugf("Deleting stack named '%s'", stackName)
 
