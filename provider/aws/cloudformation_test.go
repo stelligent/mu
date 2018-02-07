@@ -44,6 +44,10 @@ func (m *mockedCloudFormation) DescribeStacks(input *cloudformation.DescribeStac
 	args := m.Called()
 	return args.Get(0).(*cloudformation.DescribeStacksOutput), args.Error(1)
 }
+func (m *mockedCloudFormation) DescribeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
+	args := m.Called()
+	return args.Get(0).(*cloudformation.DescribeStackResourcesOutput), args.Error(1)
+}
 func (m *mockedCloudFormation) DescribeStackEvents(input *cloudformation.DescribeStackEventsInput) (*cloudformation.DescribeStackEventsOutput, error) {
 	args := m.Called()
 	return args.Get(0).(*cloudformation.DescribeStackEventsOutput), args.Error(1)
@@ -274,6 +278,10 @@ func TestStack_DeleteStack(t *testing.T) {
 
 	cfn := new(mockedCloudFormation)
 	cfn.On("DeleteStack").Return(&cloudformation.DeleteStackOutput{}, nil)
+	cfn.On("DescribeStackResources").Return(
+		&cloudformation.DescribeStackResourcesOutput{
+			StackResources: []*cloudformation.StackResource{},
+		}, nil)
 
 	stackManager := cloudformationStackManager{
 		cfnAPI: cfn,

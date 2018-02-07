@@ -18,6 +18,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/briandowns/spinner"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
@@ -28,7 +34,10 @@ type cloudformationStackManager struct {
 	dryrunPath        string
 	skipVersionCheck  bool
 	cfnAPI            cloudformationiface.CloudFormationAPI
+	s3API             s3iface.S3API
 	ec2API            ec2iface.EC2API
+	ecsAPI            ecsiface.ECSAPI
+	ecrAPI            ecriface.ECRAPI
 	extensionsManager common.ExtensionsManager
 	statusSpinner     *spinner.Spinner
 	spinnerRefCnt     int
@@ -51,11 +60,23 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 		statusSpinner = spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	}
 
+	log.Debug("Connecting to ECS service")
+	ecsAPI := ecs.New(sess)
+
+	log.Debug("Connecting to ECR service")
+	ecrAPI := ecr.New(sess)
+
+	log.Debug("Connecting to S3 service")
+	s3API := s3.New(sess)
+
 	return &cloudformationStackManager{
 		dryrunPath:        dryrunPath,
 		skipVersionCheck:  skipVersionCheck,
 		cfnAPI:            cfnAPI,
 		ec2API:            ec2API,
+		ecsAPI:            ecsAPI,
+		ecrAPI:            ecrAPI,
+		s3API:             s3API,
 		extensionsManager: extensionsManager,
 		statusSpinner:     statusSpinner,
 	}, nil
@@ -374,6 +395,7 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	} else {
 		stack.LastUpdateTime = aws.TimeValue(stackDetails.CreationTime)
 	}
+
 	stack.Tags = make(map[string]string)
 	stack.Outputs = make(map[string]string)
 	stack.Parameters = make(map[string]string)
@@ -396,7 +418,36 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	return stack
 }
 
-// ListStacks will find mu stacks
+// ListAllStacks will find all mu stacks,
+func (cfnMgr *cloudformationStackManager) ListAllStacks() ([]*common.Stack, error) {
+	cfnAPI := cfnMgr.cfnAPI
+
+	params := &cloudformation.DescribeStacksInput{}
+
+	var stacks []*common.Stack
+
+	err := cfnAPI.DescribeStacksPages(params,
+		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+			for _, stackDetails := range page.Stacks {
+				if cloudformation.StackStatusDeleteComplete == aws.StringValue(stackDetails.StackStatus) {
+					continue
+				}
+				stack := buildStack(stackDetails)
+				_, hasType := stack.Tags["type"]
+				if hasType {
+					stacks = append(stacks, stack)
+				}
+			}
+			return true
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	return stacks, nil
+}
+
+// ListStacks will find mu stacks, filtered by 'stackType', unless 'stackType' is common.StackTypeAll
 func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType) ([]*common.Stack, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
@@ -412,14 +463,12 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType)
 				if cloudformation.StackStatusDeleteComplete == aws.StringValue(stackDetails.StackStatus) {
 					continue
 				}
-
 				stack := buildStack(stackDetails)
-
-				if stack.Tags["type"] == string(stackType) {
+				sType, hasType := stack.Tags["type"]
+				if hasType && sType == string(stackType) {
 					stacks = append(stacks, stack)
 				}
 			}
-
 			return true
 		})
 
@@ -489,16 +538,29 @@ func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) 
 func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 	cfnAPI := cfnMgr.cfnAPI
 
-	params := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
-
 	if cfnMgr.dryrunPath != "" {
 		log.Infof("  DRYRUN: Skipping delete of stack named '%s'", stackName)
 		return nil
 	}
+	// get any dependent resources
+	params := &cloudformation.DescribeStackResourcesInput{StackName: aws.String(stackName)}
+	output, err := cfnAPI.DescribeStackResources(params)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Errorf("GetResourcesForStack %s %v ", stackName, aerr.Error())
+		} else {
+			log.Errorf("GetResourcesForStack %s %v", stackName, err)
+		}
+		return err
+	}
+	ShowResources(output)
+	DeleteAnyS3Buckets(cfnMgr.s3API, output.StackResources)
+	DeleteAnyEcrRepos(cfnMgr.ecrAPI, output.StackResources)
 
 	log.Debugf("Deleting stack named '%s'", stackName)
 
-	_, err := cfnAPI.DeleteStack(params)
+	params2 := &cloudformation.DeleteStackInput{StackName: aws.String(stackName)}
+	_, err = cfnAPI.DeleteStack(params2)
 	return err
 }
 
