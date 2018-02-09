@@ -2,11 +2,12 @@ package cli
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/provider/aws"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"os"
 )
 
 // NewApp creates a new CLI app

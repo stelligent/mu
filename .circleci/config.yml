@@ -10,13 +10,6 @@ jobs:
         - /^v[0-9]/
 
     steps:
-      - run:
-          name: Install Glide
-          command: |
-            sudo add-apt-repository ppa:masterminds/glide -y
-            sudo apt-get update
-            sudo apt-get install glide -y
-
       - checkout
 
       - run:

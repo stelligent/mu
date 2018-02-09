@@ -1,12 +1,13 @@
 ORG := stelligent
 PACKAGE := mu
 TARGET_OS := linux windows darwin
+SRC_PACKAGES = provider workflows cli common templates e2e 
 
 ###
 BRANCH := $(or $(TRAVIS_BRANCH), $(shell git rev-parse --abbrev-ref HEAD))
 IS_MASTER := $(filter master, $(BRANCH))
 VERSION := $(shell cat VERSION)$(if $(IS_MASTER),,-$(BRANCH))
-SRC_FILES = $(shell glide nv)
+SRC_FILES = $(foreach pkg, $(SRC_PACKAGES), ./$(pkg)/...) .
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
 BUILD_DIR = .release
@@ -22,13 +23,15 @@ default: all
 
 deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
+	go get "github.com/golang/dep/cmd/dep"
 	go get "github.com/jteeuwen/go-bindata/..."
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
 	go get "github.com/fzipp/gocyclo"
-	glide install
+	dep ensure
 	patch -p1 < go-git.v4.patch
+	go build -i -o .mu && rm .mu
 
 ifeq ($(CIRCLECI),true)
 	gem install cfn-nag
@@ -42,7 +45,7 @@ gen:
 lint: fmt
 	@echo "=== linting ==="
 	go vet $(SRC_FILES)
-	glide novendor | xargs -n1 golint -set_exit_status
+	echo $(SRC_FILES) | xargs -n1 golint -set_exit_status
 
 nag:
 	@echo "=== cfn_nag ==="
@@ -61,8 +64,8 @@ nag:
 
 cyclo:
 	@echo "=== cyclomatic complexity ==="
-	@gocyclo -over 30 `glide nv -x |grep /`
-	@gocyclo -over 15 `glide nv -x |grep /` || echo "WARNING: cyclomatic complexity is high"
+	@gocyclo -over 30 $(SRC_PACKAGES)
+	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 	
 test: lint gen nag cyclo
 	@echo "=== testing ==="

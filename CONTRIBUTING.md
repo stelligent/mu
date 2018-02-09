@@ -52,7 +52,7 @@ Pull requests should target the `develop` branch.  Ensure you have a successful 
 When submitting code, please make every effort to follow existing conventions and style in order to keep the code as readable as possible.  Here are a few points to keep in mind:
 
 * Please run `go fmt ./...` before committing to ensure code aligns with go standards.
-* All dependencies must be defined in the `glide.yaml` file and pinned to a patch range.  This is accomplished via a command like `glide get github.com/depuser/deprepo`
+* All dependencies must be defined in the `Gopkg.toml` file and pinned to a patch range.  This is accomplished via a command like `glide get github.com/depuser/deprepo`
 * For details on the approved style, check out [Effective Go](https://golang.org/doc/effective_go.html).
 
 Also, consider the original design principles:
