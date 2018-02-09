@@ -31,7 +31,6 @@ deps:
 	go get "github.com/fzipp/gocyclo"
 	dep ensure
 	patch -p1 < go-git.v4.patch
-	go build -i -o .mu && rm .mu
 
 ifeq ($(CIRCLECI),true)
 	gem install cfn-nag
