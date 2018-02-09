@@ -1,13 +1,14 @@
 package aws
 
 import (
+	"net/http"
+	"net/url"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stelligent/mu/common"
-	"net/http"
-	"net/url"
-	"os"
 )
 
 // InitializeContext loads manager objects
@@ -122,6 +123,9 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 
 	// initialize LocalCodePipelineManager
 	localSess, err := session.NewSession()
+	if err != nil {
+		return err
+	}
 	ctx.LocalPipelineManager, _ = newPipelineManager(localSess)
 
 	ctx.DockerOut = os.Stdout

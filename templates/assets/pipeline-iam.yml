@@ -477,6 +477,7 @@ Resources:
             - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
@@ -554,6 +555,7 @@ Resources:
             - cloudformation:DescribeStackEvents
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
+            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-consul-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*

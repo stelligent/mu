@@ -1,6 +1,19 @@
 # Change Log
 
-## [v1.4.1](https://github.com/stelligent/mu/tree/v1.4.1) (2018-01-23)
+## [1.4.2](https://github.com/stelligent/mu/tree/v1.4.2) (2018-02-09)
+
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.1...v1.4.2)
+
+**Closed issues:**
+
+- Update ASG health check to EC2 when no target group for EC2 provider [\#276](https://github.com/stelligent/mu/issues/276)
+- Fix issue with missing resources in IAM policies for VPC targeting
+- Add gocyclo checking
+- Migrate from glide to dep
+
+
+
+## [v1.4.1](https://github.com/stelligent/mu/tree/v1.4.1) (2018-01-24)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.3.2...v1.4.1)
 
 **Implemented enhancements:**
@@ -16,10 +29,12 @@
 
 **Merged pull requests:**
 
+- v1.4.1 [\#269](https://github.com/stelligent/mu/pull/269) ([cplee](https://github.com/cplee))
+- Issue 230 [\#264](https://github.com/stelligent/mu/pull/264) ([cplee](https://github.com/cplee))
 - add support for centos7 for env provider [\#262](https://github.com/stelligent/mu/pull/262) ([cplee](https://github.com/cplee))
 
 ## [v1.3.2](https://github.com/stelligent/mu/tree/v1.3.2) (2018-01-11)
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.3.1...v1.3.2)
+[Full Changelog](https://github.com/stelligent/mu/compare/v0.2.6...v1.3.2)
 
 **Fixed bugs:**
 
@@ -31,7 +46,7 @@
 - v1.3.2 [\#261](https://github.com/stelligent/mu/pull/261) ([cplee](https://github.com/cplee))
 
 ## [v0.2.6](https://github.com/stelligent/mu/tree/v0.2.6) (2018-01-10)
-[Full Changelog](https://github.com/stelligent/mu/compare/v0.2.5...v0.2.6)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.3.1...v0.2.6)
 
 **Implemented enhancements:**
 

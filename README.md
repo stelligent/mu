@@ -64,11 +64,10 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 
 ## Building from source
 
+* Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
 * Install Go tools 1.7+ - (https://golang.org/doc/install)
-* Install [Glide](https://github.com/Masterminds/glide) via `curl https://glide.sh/get | sh`
 * Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
 * Go to src `cd $GOPATH/src/github.com/stelligent/mu`
-* Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
 * Build with `make`
 * Run unit tests with `make test`
 * Run end-to-end tests with `make e2e`...takes about 30 minutes and will incur charges in your AWS account.

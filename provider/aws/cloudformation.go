@@ -5,6 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,11 +22,6 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"golang.org/x/crypto/ssh/terminal"
-	"io/ioutil"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type cloudformationStackManager struct {
@@ -123,7 +124,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 		if e1 == nil && e2 == nil {
 			if oldMajorVersion < newMajorVersion {
-				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to newer version '%s' (can be overriden with -F)", stackName, stack.Tags["version"], common.GetVersion())
+				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to newer version '%s' (can be overridden with -F)", stackName, stack.Tags["version"], common.GetVersion())
 			}
 			if oldMajorVersion > newMajorVersion {
 				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to older version '%s' (can be overridden with -F)", stackName, stack.Tags["version"], common.GetVersion())
@@ -516,6 +517,5 @@ func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyB
 		return err
 	}
 	configFile := fmt.Sprintf("%s/config-%s.json", cfnDirectory, stackName)
-	err = ioutil.WriteFile(configFile, configBody, 0600)
-	return nil
+	return ioutil.WriteFile(configFile, configBody, 0600)
 }
