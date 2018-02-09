@@ -73,7 +73,7 @@ Parameters:
     Description: The build compute type to use for mu commands
   MuImage:
     Type: String
-    Default: "aws/codebuild/docker:1.12.1"
+    Default: "aws/codebuild/docker:17.09.0"
     Description: The build image to use for mu commands
   MuDownloadBaseurl:
     Type: String
