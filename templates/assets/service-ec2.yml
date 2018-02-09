@@ -240,10 +240,17 @@ Resources:
         - ","
         - Fn::ImportValue: !Sub ${InstanceSubnetIds}
       LaunchConfigurationName: !Ref ServiceInstances
-      HealthCheckType: ELB
+      HealthCheckType: 
+        Fn::If:
+          - HasTargetGroup
+          - ELB
+          - EC2
       HealthCheckGracePeriod: 600
       TargetGroupARNs:
-        - !Ref ElbTargetGroup
+        - Fn::If:
+          - HasTargetGroup
+          - !Ref ElbTargetGroup
+          - !Ref AWS::NoValue
       MinSize: !Ref ServiceMinSize
       MaxSize: !Ref ServiceMaxSize
       DesiredCapacity: !Ref ServiceDesiredCount
