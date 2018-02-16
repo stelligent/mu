@@ -257,6 +257,7 @@ Resources:
   MicroserviceTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      Family: !Sub ${AWS::StackName}
       RequiresCompatibilities:
       - Fn::ImportValue: !Sub ${LaunchType}
       Cpu:
