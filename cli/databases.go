@@ -3,13 +3,13 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/howeyc/gopass"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
-	"os"
-	"strings"
-	"syscall"
 )
 
 func newDatabasesCommand(ctx *common.Context) *cli.Command {
@@ -118,8 +118,7 @@ func newDatabaseSetPasswordCommand(ctx *common.Context) *cli.Command {
 				return errors.New("environment must be provided")
 			}
 			var newPassword string
-			fmt.Print("  Database password: ")
-			byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
+			byteToken, err := gopass.GetPasswdPrompt("  Database password: ", true, os.Stdin, os.Stdout)
 			if err == nil {
 				newPassword = strings.TrimSpace(string(byteToken))
 				fmt.Println("")
