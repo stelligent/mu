@@ -68,7 +68,7 @@ func TestNewPipelineLogViewer(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
-	//ctx.Config.Namespace = "mu"
+	ctx.Config.Namespace = "mu"
 
 	logsManager := new(mockedLogsManager)
 	logsManager.On("ViewLogs", "/aws/codebuild/mu-pipeline-my-service-artifact").Return(nil)
