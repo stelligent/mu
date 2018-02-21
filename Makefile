@@ -70,7 +70,7 @@ test: lint gen nag cyclo
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
-	go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml && [ $${PIPESTATUS[0]} = "0" ]
+	bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
 	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
