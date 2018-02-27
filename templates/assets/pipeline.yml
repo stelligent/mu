@@ -226,6 +226,8 @@ Resources:
         ComputeType: !Ref MuComputeType
         Image: !Sub ${MuImage}
         EnvironmentVariables:
+         - Name: MU_NAMESPACE
+           Value: !Ref Namespace
          - Name: DOCKER_API_VERSION
            Value: 1.24
       Source:
@@ -259,6 +261,9 @@ Resources:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
         Image: !Sub ${MuImage}
+        EnvironmentVariables:
+         - Name: MU_NAMESPACE
+           Value: !Ref Namespace
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
@@ -318,6 +323,9 @@ Resources:
         Type: !Ref MuType
         ComputeType: !Ref MuComputeType
         Image: !Sub ${MuImage}
+        EnvironmentVariables:
+         - Name: MU_NAMESPACE
+           Value: !Ref Namespace
       Source:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
