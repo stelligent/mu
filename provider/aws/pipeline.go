@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -103,6 +105,9 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 				}
 
 				if actionState.CurrentRevision != nil && actionState.CurrentRevision.RevisionId != nil {
+					fmt.Println(reflect.TypeOf(actionState.CurrentRevision.RevisionId))
+					// Remove leading period, if it exists
+					*actionState.CurrentRevision.RevisionId = strings.TrimPrefix(*actionState.CurrentRevision.RevisionId, ".")
 					gitInfo.Revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
 				}
 				return gitInfo, nil
