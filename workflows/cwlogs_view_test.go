@@ -1,12 +1,13 @@
 package workflows
 
 import (
-	"github.com/stelligent/mu/common"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 type mockedLogsManager struct {
@@ -67,6 +68,7 @@ func TestNewPipelineLogViewer(t *testing.T) {
 	assert := assert.New(t)
 
 	ctx := new(common.Context)
+	ctx.Config.Namespace = "mu"
 
 	logsManager := new(mockedLogsManager)
 	logsManager.On("ViewLogs", "/aws/codebuild/mu-pipeline-my-service-artifact").Return(nil)

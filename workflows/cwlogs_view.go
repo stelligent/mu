@@ -2,11 +2,12 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"io"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/stelligent/mu/common"
 )
 
 type logsWorkflow struct {
@@ -42,7 +43,7 @@ func NewPipelineLogViewer(ctx *common.Context, searchDuration time.Duration, fol
 	var logGroups []string
 
 	for _, job := range jobs {
-		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/mu-pipeline-%s-%s", getServiceName(ctx, serviceName), job))
+		logGroups = append(logGroups, fmt.Sprintf("/aws/codebuild/%s-pipeline-%s-%s", ctx.Config.Namespace, getServiceName(ctx, serviceName), job))
 	}
 
 	return newPipelineExecutor(

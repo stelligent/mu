@@ -167,6 +167,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/howeyc/gopass"
+  packages = ["."]
+  revision = "bf9dde6d0d2c004a008c27aaee91170c786f6db8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/jbenet/go-context"
   packages = ["io"]
   revision = "d14ea06fba99483203c19d92cfcd13ebe73135f4"
@@ -420,6 +426,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9ccac3c8728a1db371895ce8a3c7d3d5febe3d0010c69d9356a90b55a384420d"
+  inputs-digest = "6982744b99cdcfd47f3b1a42cc50cce10fab3b1f2da38c45bd509d906c7859b3"
   solver-name = "gps-cdcl"
   solver-version = 1

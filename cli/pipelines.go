@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 
+	"github.com/howeyc/gopass"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 func newPipelinesCommand(ctx *common.Context) *cli.Command {
@@ -74,8 +73,7 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 			workflow := workflows.NewPipelineUpserter(ctx, func(required bool) string {
 				if required && token == "" {
 					fmt.Println("CodePipeline requires a personal access token from GitHub - https://github.com/settings/tokens")
-					fmt.Print("  GitHub token: ")
-					byteToken, err := terminal.ReadPassword(int(syscall.Stdin))
+					byteToken, err := gopass.GetPasswdPrompt("  GitHub token: ", true, os.Stdin, os.Stdout)
 					if err == nil {
 						token = strings.TrimSpace(string(byteToken))
 						fmt.Println("")
