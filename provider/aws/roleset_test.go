@@ -1,10 +1,11 @@
 package aws
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 type mockedRolesetStackManager struct {
@@ -78,8 +79,7 @@ func TestIamRolesetManager_GetEnvironmentRoleset(t *testing.T) {
 	stackManagerMock := new(mockedRolesetStackManager)
 	stackManagerMock.On("AwaitFinalStatus", "n2-iam-environment-env1").Return(&common.Stack{
 		Outputs: map[string]string{
-			"EC2InstanceProfileArn":   "foo1",
-			"ConsulClientTaskRoleArn": "foo2",
+			"EC2InstanceProfileArn": "foo1",
 		},
 	}, nil)
 
@@ -96,9 +96,8 @@ func TestIamRolesetManager_GetEnvironmentRoleset(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(roleset)
 	stackManagerMock.AssertExpectations(t)
-	assert.Equal(2, len(roleset))
+	assert.Equal(1, len(roleset))
 	assert.Equal("foo1", roleset["EC2InstanceProfileArn"])
-	assert.Equal("foo2", roleset["ConsulClientTaskRoleArn"])
 
 	i.context.Config.Environments = []common.Environment{
 		{
@@ -115,7 +114,7 @@ func TestIamRolesetManager_GetEnvironmentRoleset(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(roleset)
 	stackManagerMock.AssertExpectations(t)
-	assert.Equal(2, len(roleset))
+	assert.Equal(1, len(roleset))
 	assert.Equal("bar1", roleset["EC2InstanceProfileArn"])
 
 }

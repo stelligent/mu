@@ -82,10 +82,6 @@ type Environment struct {
 		HTTPProxy               string `yaml:"httpProxy,omitempty"`
 		ExtraUserData           string `yaml:"extraUserData,omitempty"`
 	} `yaml:"cluster,omitempty"`
-	Discovery struct {
-		Provider      string            `yaml:"provider,omitempty"`
-		Configuration map[string]string `yaml:"configuration,omitempty"`
-	} `yaml:"discovery,omitempty"`
 	VpcTarget struct {
 		VpcID             string   `yaml:"vpcId,omitempty"`
 		InstanceSubnetIds []string `yaml:"instanceSubnetIds,omitempty"`
@@ -94,10 +90,7 @@ type Environment struct {
 		Namespace         string   `yaml:"namespace"`
 	} `yaml:"vpcTarget,omitempty"`
 	Roles struct {
-		EcsInstance      string `yaml:"ecsInstance,omitempty"`
-		ConsulClientTask string `yaml:"consulClientTask,omitempty"`
-		ConsulInstance   string `yaml:"consulInstance,omitempty"`
-		ConsulServerTask string `yaml:"consulServerTask,omitempty"`
+		EcsInstance string `yaml:"ecsInstance,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
@@ -271,7 +264,6 @@ const (
 	StackTypeIam                    = "iam"
 	StackTypeEnv                    = "environment"
 	StackTypeLoadBalancer           = "loadbalancer"
-	StackTypeConsul                 = "consul"
 	StackTypeRepo                   = "repo"
 	StackTypeApp                    = "app"
 	StackTypeService                = "service"

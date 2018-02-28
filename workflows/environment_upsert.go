@@ -17,16 +17,14 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	workflow := new(environmentWorkflow)
 	ecsStackParams := make(map[string]string)
 	elbStackParams := make(map[string]string)
-	consulStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, consulStackParams, ecsStackParams),
-		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, ecsStackParams),
+		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ctx.Config.Namespace, consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -48,7 +46,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -129,15 +127,11 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 		elbStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		elbStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
 
-		consulStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		consulStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
-		consulStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
-
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, consulStackParams map[string]string, ecsStackParams map[string]string) Executor {
+func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, ecsStackParams map[string]string) Executor {
 	return func() error {
 		err := rolesetUpserter.UpsertCommonRoleset()
 		if err != nil {
@@ -161,73 +155,7 @@ func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter 
 			return err
 		}
 
-		consulStackParams["EC2InstanceProfileArn"] = environmentRoleset["ConsulEC2InstanceProfileArn"]
-		consulStackParams["ConsulTaskRoleArn"] = environmentRoleset["ConsulServerTaskRoleArn"]
-
 		ecsStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
-		ecsStackParams["ConsulTaskRoleArn"] = environmentRoleset["ConsulClientTaskRoleArn"]
-
-		return nil
-	}
-}
-
-func (workflow *environmentWorkflow) environmentConsulUpserter(namespace string, consulStackParams map[string]string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
-	return func() error {
-		environment := workflow.environment
-		consulStackName := common.CreateStackName(namespace, common.StackTypeConsul, environment.Name)
-
-		log.Noticef("Upserting Consul environment '%s' ...", environment.Name)
-
-		stackParams := consulStackParams
-
-		if environment.Cluster.SSHAllow != "" {
-			stackParams["SshAllow"] = environment.Cluster.SSHAllow
-		} else {
-			stackParams["SshAllow"] = "0.0.0.0/0"
-		}
-		if environment.Cluster.KeyName != "" {
-			stackParams["KeyName"] = environment.Cluster.KeyName
-		}
-		if environment.Cluster.HTTPProxy != "" {
-			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
-		}
-		if environment.Cluster.InstanceType != "" {
-			stackParams["InstanceType"] = environment.Cluster.InstanceType
-		}
-		if environment.Cluster.ImageID != "" {
-			stackParams["ImageId"] = environment.Cluster.ImageID
-		} else {
-			var err error
-			stackParams["ImageId"], err = imageFinder.FindLatestImageID(ecsImagePattern)
-			if err != nil {
-				return err
-			}
-
-		}
-
-		tags := createTagMap(&EnvironmentTags{
-			Environment: environment.Name,
-			Type:        string(common.StackTypeConsul),
-			Provider:    string(environment.Provider),
-			Revision:    workflow.codeRevision,
-			Repo:        workflow.repoName,
-		})
-		err := stackUpserter.UpsertStack(consulStackName, "consul.yml", environment, stackParams, tags, workflow.cloudFormationRoleArn)
-		if err != nil {
-			return err
-		}
-		log.Debugf("Waiting for stack '%s' to complete", consulStackName)
-		stack := stackWaiter.AwaitFinalStatus(consulStackName)
-
-		if stack == nil {
-			return fmt.Errorf("Unable to create stack %s", consulStackName)
-		}
-		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
-		}
-
-		ecsStackParams["ConsulServerAutoScalingGroup"] = stack.Outputs["ConsulServerAutoScalingGroup"]
-		ecsStackParams["ConsulRpcClientSecurityGroup"] = stack.Outputs["ConsulRpcClientSecurityGroup"]
 
 		return nil
 	}

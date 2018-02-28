@@ -5,9 +5,6 @@ Parameters:
   EC2InstanceProfileArn:
     Type: String
     Description: ARN of instance profile for EC2 instance to assume
-  ConsulTaskRoleArn:
-    Type: String
-    Description: ARN of IAM role for consul task to assume
   InstanceType:
     Type: String
     Description: Instance type to use.
@@ -65,17 +62,9 @@ Parameters:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
     Default: ''
-  ConsulServerAutoScalingGroup:
-    Type: String
-    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
-    Default: ''
   ElbSecurityGroup:
     Type: String
     Description: The security group to add to the ECS instance for ELB access
-  ConsulRpcClientSecurityGroup:
-    Type: String
-    Description: The security group to add to the ECS instance for access to consul (optional)
-    Default: ''
 Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -142,10 +131,5 @@ Outputs:
     Value: !Ref ImageOsType
   HttpProxy:
     Value: !Ref HttpProxy
-  ConsulServerAutoScalingGroup:
-    Value: !Ref ConsulServerAutoScalingGroup
   ElbSecurityGroup:
     Value: !Ref ElbSecurityGroup
-  ConsulRpcClientSecurityGroup:
-    Value: !Ref ConsulRpcClientSecurityGroup
-
