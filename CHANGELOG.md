@@ -1,17 +1,28 @@
 # Change Log
 
-## [1.4.2](https://github.com/stelligent/mu/tree/v1.4.2) (2018-02-09)
+## [v1.4.3](https://github.com/stelligent/mu/tree/v1.4.3) (2018-02-27)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.2...v1.4.3)
 
+**Fixed bugs:**
+
+- Need to propagate the namespace from the pipeline into the mu calls [\#281](https://github.com/stelligent/mu/issues/281)
+- Fix for issue \#283 [\#284](https://github.com/stelligent/mu/pull/284) ([akuma12](https://github.com/akuma12))
+
+**Merged pull requests:**
+
+- add `MU\_NAMESPACE` for mu commands [\#282](https://github.com/stelligent/mu/pull/282) ([cplee](https://github.com/cplee))
+
+## [v1.4.2](https://github.com/stelligent/mu/tree/v1.4.2) (2018-02-09)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.4.1...v1.4.2)
 
 **Closed issues:**
 
 - Update ASG health check to EC2 when no target group for EC2 provider [\#276](https://github.com/stelligent/mu/issues/276)
-- Fix issue with missing resources in IAM policies for VPC targeting
-- Add gocyclo checking
-- Migrate from glide to dep
 
+**Merged pull requests:**
 
+- v1.4.2 [\#278](https://github.com/stelligent/mu/pull/278) ([cplee](https://github.com/cplee))
+- Issue 276 [\#277](https://github.com/stelligent/mu/pull/277) ([cplee](https://github.com/cplee))
 
 ## [v1.4.1](https://github.com/stelligent/mu/tree/v1.4.1) (2018-01-24)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.3.2...v1.4.1)
