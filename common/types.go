@@ -90,6 +90,8 @@ type Environment struct {
 		VpcID             string   `yaml:"vpcId,omitempty"`
 		InstanceSubnetIds []string `yaml:"instanceSubnetIds,omitempty"`
 		ElbSubnetIds      []string `yaml:"elbSubnetIds,omitempty"`
+		Environment       string   `yaml:"environment"`
+		Namespace         string   `yaml:"namespace"`
 	} `yaml:"vpcTarget,omitempty"`
 	Roles struct {
 		EcsInstance      string `yaml:"ecsInstance,omitempty"`

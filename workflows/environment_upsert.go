@@ -56,7 +56,23 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 
 		var vpcStackName string
 		var vpcTemplateName string
-		if environment.VpcTarget.VpcID == "" {
+		if environment.VpcTarget.Environment != "" {
+			targetNamespace := environment.VpcTarget.Namespace
+			if targetNamespace == "" {
+				targetNamespace = namespace
+			}
+			log.Debugf("VpcTarget exists for different environment; targeting that VPC")
+			vpcStackName = common.CreateStackName(targetNamespace, common.StackTypeVpc, environment.VpcTarget.Environment)
+		} else if environment.VpcTarget.VpcID != "" {
+			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
+			vpcStackName = common.CreateStackName(namespace, common.StackTypeTarget, environment.Name)
+			vpcTemplateName = "vpc-target.yml"
+
+			// target VPC referenced from config
+			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
+			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
+			vpcStackParams["InstanceSubnetIds"] = strings.Join(environment.VpcTarget.InstanceSubnetIds, ",")
+		} else {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
 			vpcTemplateName = "vpc.yml"
@@ -78,40 +94,33 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 			}
 
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
-		} else {
-			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
-			vpcStackName = common.CreateStackName(namespace, common.StackTypeTarget, environment.Name)
-			vpcTemplateName = "vpc-target.yml"
-
-			// target VPC referenced from config
-			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
-			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
-			vpcStackParams["InstanceSubnetIds"] = strings.Join(environment.VpcTarget.InstanceSubnetIds, ",")
 		}
 
-		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
+		if vpcTemplateName != "" {
+			log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
-		tags := createTagMap(&EnvironmentTags{
-			Environment: environment.Name,
-			Type:        string(common.StackTypeVpc),
-			Provider:    string(environment.Provider),
-			Revision:    workflow.codeRevision,
-			Repo:        workflow.repoName,
-		})
+			tags := createTagMap(&EnvironmentTags{
+				Environment: environment.Name,
+				Type:        string(common.StackTypeVpc),
+				Provider:    string(environment.Provider),
+				Revision:    workflow.codeRevision,
+				Repo:        workflow.repoName,
+			})
 
-		err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, workflow.cloudFormationRoleArn)
-		if err != nil {
-			return err
-		}
+			err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, workflow.cloudFormationRoleArn)
+			if err != nil {
+				return err
+			}
 
-		log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
-		stack := stackWaiter.AwaitFinalStatus(vpcStackName)
+			log.Debugf("Waiting for stack '%s' to complete", vpcStackName)
+			stack := stackWaiter.AwaitFinalStatus(vpcStackName)
 
-		if stack == nil {
-			return fmt.Errorf("Unable to create stack %s", vpcStackName)
-		}
-		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
-			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", vpcStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
 		}
 
 		ecsStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
