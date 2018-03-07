@@ -179,5 +179,13 @@ fmt:
 changelog:
 	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
 
+promote:
+	@echo "=== fetch origin/master ==="
+	@git fetch origin master
+
+	@echo "=== rebase origin/master ==="
+	@git rebase origin/master
+
+
 
 .PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage
