@@ -187,7 +187,7 @@ promote:
 	@git merge $(BRANCH)
 
 	@echo "=== generate changelog ==="
-	@make changelog 
+	@github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(shell cat VERSION)
 	@git add CHANGELOG.md
 	@git commit -m "update CHANGELOG for $(TAG_VERSION)"
 	#@git push origin master
