@@ -133,8 +133,8 @@ ifneq ($(IS_MASTER),)
 	@echo "=== releasing $(VERSION) ==="
 	github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
 
-	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop || echo "No pre-release to cleanup"
-	git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
+	#github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop || echo "No pre-release to cleanup"
+	#git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
 endif
 
 formula:
@@ -177,7 +177,7 @@ fmt:
 	go fmt $(SRC_FILES)
 
 changelog:
-	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN)
+	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
 
 
 .PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage
