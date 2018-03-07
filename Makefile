@@ -180,11 +180,26 @@ changelog:
 	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
 
 promote:
-	@echo "=== fetch origin/master ==="
+	@echo "=== merge $(BRANCH) -> master ==="
 	@git fetch origin master
+	@git branch -f promote-$(BRANCH) origin/master
+	@git checkout promote-$(BRANCH)
+	@git merge $(BRANCH)
 
-	@echo "=== rebase origin/master ==="
-	@git rebase origin/master
+	@echo "=== generate changelog ==="
+	@make changelog 
+	@git add CHANGELOG.md
+	@git commit -m "update CHANGELOG for $(TAG_VERSION)"
+	#@git push origin master
+
+	@echo "=== generate changelog ==="
+	#@git checkout develop
+	#@git pull
+	#@git merge master
+
+	@git checkout $(BRANCH)
+
+
 
 
 
