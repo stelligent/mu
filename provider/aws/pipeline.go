@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -105,9 +104,9 @@ func (cplMgr *codePipelineManager) GetGitInfo(pipelineName string) (common.GitIn
 				}
 
 				if actionState.CurrentRevision != nil && actionState.CurrentRevision.RevisionId != nil {
-					fmt.Println(reflect.TypeOf(actionState.CurrentRevision.RevisionId))
-					// Remove leading period, if it exists
-					*actionState.CurrentRevision.RevisionId = strings.TrimPrefix(*actionState.CurrentRevision.RevisionId, ".")
+					// Remove invalid characters from RevisionID
+					replacer := strings.NewReplacer(".", "", "_", "", "-", "")
+					*actionState.CurrentRevision.RevisionId = replacer.Replace(*actionState.CurrentRevision.RevisionId)
 					gitInfo.Revision = aws.StringValue(actionState.CurrentRevision.RevisionId)
 				}
 				return gitInfo, nil
