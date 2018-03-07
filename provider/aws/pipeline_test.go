@@ -177,7 +177,7 @@ func TestCodePipelineManager_GetGitInfo_S3(t *testing.T) {
 								Status: aws.String("Succeeded"),
 							},
 							CurrentRevision: &codepipeline.ActionRevision{
-								RevisionId: aws.String(".NN2QtU0xO2HlXFWnMb1C8bzsoP9eiG7q"),
+								RevisionId: aws.String(".N-N_2QtU0xO2HlXFWnMb1C8bzsoP9eiG7q"),
 							},
 						},
 					},
