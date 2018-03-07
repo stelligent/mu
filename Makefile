@@ -36,6 +36,7 @@ ifeq ($(CIRCLECI),true)
 	gem install cfn-nag
 else
 	gem list | grep cfn-nag || sudo gem install cfn-nag
+	gem list | grep github_changelog_generator || sudo gem install github_changelog_generator
 endif
 
 gen:
