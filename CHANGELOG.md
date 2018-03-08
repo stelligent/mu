@@ -1,7 +1,7 @@
 # Change Log
 
-## [1.4.4](https://github.com/stelligent/mu/tree/1.4.4) (2018-03-07)
-[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.3...1.4.4)
+## [v1.4.4](https://github.com/stelligent/mu/tree/v1.4.4) (2018-03-07)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.3...v1.4.4)
 
 **Fixed bugs:**
 

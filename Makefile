@@ -197,9 +197,9 @@ endif
 	@git merge --no-edit $(BRANCH)
 
 	@echo "=== generate changelog $(shell cat VERSION) ==="
-	@github_changelog_generator --no-verbose -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(shell cat VERSION)
+	@github_changelog_generator --no-verbose -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release v$(shell cat VERSION)
 	@git add CHANGELOG.md
-	@git commit -m "update CHANGELOG for $(shell cat VERSION)"
+	@git commit -m "update CHANGELOG for v$(shell cat VERSION)"
 
 	@echo "=== push master ==="
 	@git push origin HEAD:master
