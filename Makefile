@@ -132,7 +132,7 @@ dev-release: $(TARGET_OS)
 release: dev-release
 ifneq ($(IS_MASTER),)
 	@echo "=== releasing $(VERSION) ==="
-	github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)
+	awk -v n=2 '/^##/{n--}; n > 0' CHANGELOG.md | github-release edit -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) -d - 
 
 	#github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION)-develop || echo "No pre-release to cleanup"
 	#git push --delete origin $(TAG_VERSION)-develop || echo "No pre-release tag to delete"
@@ -180,6 +180,7 @@ fmt:
 changelog:
 ifndef GITHUB_TOKEN
 	@echo GITHUB_TOKEN is undefined
+	@echo Create one at https://github.com/settings/tokens
 	@exit 1
 endif
 	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
@@ -187,6 +188,7 @@ endif
 promote:
 ifndef GITHUB_TOKEN
 	@echo GITHUB_TOKEN is undefined
+	@echo Create one at https://github.com/settings/tokens
 	@exit 1
 endif
 	@echo "=== merge $(BRANCH) -> master ==="
@@ -200,7 +202,7 @@ endif
 	@git commit -m "update CHANGELOG for $(shell cat VERSION)"
 
 	@echo "=== push master ==="
-	#@git push origin master
+	@git push origin master
 	@git checkout master
 	@git pull
 
@@ -216,13 +218,12 @@ endif
 	@git commit -m "bump version"
 
 	@echo "=== push master ==="
-	#@git push origin develop
+	@git push origin develop
 	@git checkout develop
 	@git pull
 
 	@echo "=== checkout $(BRANCH) ==="
 	@git checkout $(BRANCH)
-
 
 
 
