@@ -29,6 +29,7 @@ deps:
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
 	go get "github.com/fzipp/gocyclo"
+	go get github.com/giantswarm/semver-bump
 	dep ensure
 	patch -p1 < go-git.v4.patch
 
@@ -177,14 +178,21 @@ fmt:
 	go fmt $(SRC_FILES)
 
 changelog:
+ifndef GITHUB_TOKEN
+	@echo GITHUB_TOKEN is undefined
+	@exit 1
+endif
 	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
 
 promote:
+ifndef GITHUB_TOKEN
+	@echo GITHUB_TOKEN is undefined
+	@exit 1
+endif
 	@echo "=== merge $(BRANCH) -> master ==="
 	@git fetch origin master
-	@git branch -f promote-$(BRANCH) origin/master
-	@git checkout promote-$(BRANCH)
-	@git merge $(BRANCH)
+	@git checkout origin/master
+	@git merge --no-edit $(BRANCH)
 
 	@echo "=== generate changelog $(shell cat VERSION) ==="
 	@github_changelog_generator --no-verbose -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(shell cat VERSION)
@@ -192,12 +200,25 @@ promote:
 	@git commit -m "update CHANGELOG for $(shell cat VERSION)"
 
 	@echo "=== push master ==="
-	#@git push origin promote-$(BRANCH):master
+	#@git push origin master
+	@git checkout master
+	@git pull
+
+
+	@echo "=== update develop ==="
+	@git fetch origin develop
+	@git checkout origin/develop
+	@git merge --no-edit origin/master
 
 	@echo "=== bump version ==="
-	#@git checkout develop
-	#@git pull
-	#@git merge master
+	@semver-bump patch-release
+	@git add VERSION
+	@git commit -m "bump version"
+
+	@echo "=== push master ==="
+	#@git push origin develop
+	@git checkout develop
+	@git pull
 
 	@echo "=== checkout $(BRANCH) ==="
 	@git checkout $(BRANCH)
@@ -206,4 +227,4 @@ promote:
 
 
 
-.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage
+.PHONY: default all lint test e2e build deps gen clean release-clean release-create dev-release release install $(UPLOAD_FILES) $(BUILD_FILES) $(TARGET_OS) keypair stage promote
