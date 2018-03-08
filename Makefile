@@ -109,7 +109,7 @@ stage: fmt $(BUILD_DIR)/$(PACKAGE)-linux-$(ARCH)
 	aws s3 sync $(BUILD_DIR) s3://$$BUCKET_NAME/v$(VERSION)/ --acl public-read --exclude "*" --include "$(PACKAGE)-linux-*" ;\
 	echo https://$$BUCKET_NAME.s3.amazonaws.com
 
-release-clean:
+release-clean: check_github_token
 ifeq ($(IS_MASTER),)
 	@echo "=== clearing old release $(VERSION) ==="
 	github-release info -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) && github-release delete -u $(ORG) -r $(PACKAGE) -t $(TAG_VERSION) || echo "No release to cleanup"
@@ -177,26 +177,23 @@ fmt:
 	@echo "=== formatting ==="
 	go fmt $(SRC_FILES)
 
-changelog:
+check_github_token:
 ifndef GITHUB_TOKEN
 	@echo GITHUB_TOKEN is undefined
 	@echo Create one at https://github.com/settings/tokens
 	@exit 1
 endif
+
+changelog: check_github_token
 	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
 
-promote:
-ifndef GITHUB_TOKEN
-	@echo GITHUB_TOKEN is undefined
-	@echo Create one at https://github.com/settings/tokens
-	@exit 1
-endif
+promote: check_github_token
 	@echo "=== merge $(BRANCH) -> master ==="
 	@git fetch origin master
 	@git checkout origin/master
 	@git merge --no-edit $(BRANCH)
 
-	@echo "=== generate changelog $(shell cat VERSION) ==="
+	@echo "=== generate changelog v$(shell cat VERSION) ==="
 	@github_changelog_generator --no-verbose -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release v$(shell cat VERSION)
 	@git add CHANGELOG.md
 	@git commit -m "update CHANGELOG for v$(shell cat VERSION)"
