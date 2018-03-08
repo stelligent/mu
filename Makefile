@@ -202,7 +202,7 @@ endif
 	@git commit -m "update CHANGELOG for $(shell cat VERSION)"
 
 	@echo "=== push master ==="
-	@git push origin master
+	@git push origin HEAD:master
 	@git checkout master
 	@git pull
 
@@ -218,7 +218,7 @@ endif
 	@git commit -m "bump version"
 
 	@echo "=== push develop ==="
-	@git push origin develop
+	@git push origin HEAD:develop
 	@git checkout develop
 	@git pull
 
