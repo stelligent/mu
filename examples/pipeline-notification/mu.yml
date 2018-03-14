@@ -1,0 +1,7 @@
+---
+
+service:
+  pipeline:
+    notify:
+    - joe@getmu.io
+    - bob@getmu.io
