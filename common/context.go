@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"net/url"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 var version string
@@ -92,6 +93,11 @@ func (ctx *Context) InitializeConfigFromFile(muFile string) error {
 				}
 
 				sourceVersion := os.Getenv("CODEBUILD_RESOLVED_SOURCE_VERSION")
+
+				// Remove invalid characters from sourceVersion
+				replacer := strings.NewReplacer(".", "", "_", "", "-", "")
+				sourceVersion = replacer.Replace(sourceVersion)
+
 				if sourceVersion == "" {
 					sourceVersion = gitInfo.Revision
 				}
