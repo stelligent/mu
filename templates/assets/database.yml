@@ -12,8 +12,8 @@ Parameters:
     Default: db.t2.small
   DatabaseMasterUsername:
     Type: String
+    NoEcho: true
     Description: Username of database
-    Default: admin
   DatabaseName:
     Type: String
     Description: Name of database

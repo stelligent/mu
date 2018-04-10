@@ -3,8 +3,9 @@ package workflows
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewDatabaseUpserter create a new workflow for deploying a database in an environment
@@ -92,6 +93,8 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 		if service.Database.MasterUsername != "" {
 			stackParams["DatabaseMasterUsername"] = service.Database.MasterUsername
+		} else {
+			stackParams["DatabaseMasterUsername"] = "admin"
 		}
 
 		//DatabaseMasterPassword:
