@@ -61,8 +61,10 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 			log.Debugf("Determining repo provider by checking for existence of '%s'", dockerfilePath)
 
 			if _, err := os.Stat(dockerfilePath); !os.IsNotExist(err) {
+				log.Infof("Dockerfile found, assuming ECR pipeline")
 				workflow.artifactProvider = common.ArtifactProviderEcr
 			} else {
+				log.Infof("No Dockerfile found, assuming CodeDeploy pipeline")
 				workflow.artifactProvider = common.ArtifactProviderS3
 			}
 		} else {
