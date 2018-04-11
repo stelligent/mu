@@ -2,6 +2,9 @@ version: 2
 
 jobs:
   build:
+    environment:
+        AWS_REGION: us-west-2
+
     machine: true
 
     ## Don't build when new release tags are pushed
