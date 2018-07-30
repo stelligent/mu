@@ -320,6 +320,7 @@ type Task struct {
 	Name           string
 	Environment    string
 	Service        string
+	Status         string
 	TaskDefinition string
 	Cluster        string
 	Command        []string

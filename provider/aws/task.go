@@ -1,13 +1,14 @@
 package aws
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
-	"strings"
 )
 
 type ecsTaskManager struct {
@@ -154,7 +155,6 @@ func (taskMgr *ecsTaskManager) StopTask(namespace string, environment string, ta
 }
 
 func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, environment string, serviceName string) (*common.Task, error) {
-	log.Debugf(SvcGetTaskInfoLog, *ecsTask.TaskArn)
 	containers := []common.Container{}
 	if len(ecsTask.Containers) > Zero {
 		for _, container := range ecsTask.Containers {
@@ -172,6 +172,7 @@ func getTaskDetail(ecsTask *ecs.Task, taskMgr *ecsTaskManager, cluster string, e
 		Name:        strings.Split(*ecsTask.TaskArn, TaskARNSeparator)[1],
 		Environment: environment,
 		Service:     serviceName,
+		Status:      aws.StringValue(ecsTask.LastStatus),
 		Containers:  containers,
 	}
 	log.Debugf(SvcTaskDetailLog, task)
