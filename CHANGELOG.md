@@ -1,5 +1,22 @@
 # Change Log
 
+## [v1.4.6](https://github.com/stelligent/mu/tree/v1.4.6) (2018-07-30)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.5...v1.4.6)
+
+**Closed issues:**
+
+- can i change the pipeline name [\#311](https://github.com/stelligent/mu/issues/311)
+- Can I use mu to initiate a rollback?  [\#310](https://github.com/stelligent/mu/issues/310)
+- period\(.\) in image tag in mu version 1.4.5 [\#308](https://github.com/stelligent/mu/issues/308)
+- Update DB Username field in CFN for cfn\_nag F24 [\#306](https://github.com/stelligent/mu/issues/306)
+- Logging provider assumptions during push [\#304](https://github.com/stelligent/mu/issues/304)
+- Support for Gitlab as pipeline source provider [\#302](https://github.com/stelligent/mu/issues/302)
+- Invalid image tag [\#295](https://github.com/stelligent/mu/issues/295)
+
+**Merged pull requests:**
+
+- Log provider assumptions [\#305](https://github.com/stelligent/mu/pull/305) ([rmc3](https://github.com/rmc3))
+
 ## [v1.4.5](https://github.com/stelligent/mu/tree/v1.4.5) (2018-03-15)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.4.4...v1.4.5)
 
