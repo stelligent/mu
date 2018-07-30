@@ -65,7 +65,7 @@ nag:
 
 cyclo:
 	@echo "=== cyclomatic complexity ==="
-	@gocyclo -over 30 $(SRC_PACKAGES)
+	@gocyclo -over 35 $(SRC_PACKAGES)
 	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 	
 test: lint gen nag cyclo
