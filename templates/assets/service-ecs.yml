@@ -17,6 +17,14 @@ Parameters:
   ImageUrl:
     Type: String
     Description: Docker Image URL
+  MaximumHealthPercent:
+    Type: String
+    Description: Maximum percent for deployment strategy
+    Default: '200'
+  MinimumHealthPercent:
+    Type: String
+    Description: Minimum percent for deployment strategy
+    Default: '100'
   ServicePort:
     Type: String
     Description: Port exposed in service
@@ -217,8 +225,8 @@ Resources:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
       DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
+        MaximumPercent: !Ref MaximumHealthPercent
+        MinimumHealthyPercent: !Ref MinimumHealthPercent
       LaunchType:
         Fn::ImportValue: !Sub ${LaunchType}
       NetworkConfiguration:
