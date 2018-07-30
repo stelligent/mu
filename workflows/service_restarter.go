@@ -29,7 +29,7 @@ func (workflow *serviceWorkflow) serviceRestarter(namespace string, taskManager 
 		}
 
 		for taskIdx, task := range tasks {
-			log.Noticef("Stopping task %s in environment %s", task.Name, environmentName)
+			log.Noticef("Restarting task %s in environment %s", task.Name, environmentName)
 			stopErr := taskManager.StopTask(namespace, environmentName, task.Name)
 			if stopErr != nil {
 				fmt.Println(stopErr)
