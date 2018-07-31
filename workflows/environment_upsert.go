@@ -24,7 +24,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
 		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, consulStackParams, ecsStackParams),
-		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, consulStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isConsulEnabled(), workflow.environmentConsulUpserter(ctx.Config.Namespace, consulStackParams, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
@@ -48,7 +48,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, consulStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -88,6 +88,15 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 			vpcStackParams["ElbSubnetIds"] = strings.Join(environment.VpcTarget.ElbSubnetIds, ",")
 			vpcStackParams["InstanceSubnetIds"] = strings.Join(environment.VpcTarget.InstanceSubnetIds, ",")
 		}
+
+		azCount, err := azCounter.CountAZs()
+		if err != nil {
+			return err
+		}
+		if azCount < 2 {
+			return fmt.Errorf("Only found %v availability zones...need at least 2", azCount)
+		}
+		vpcStackParams["AZCount"] = strconv.Itoa(azCount)
 
 		log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 

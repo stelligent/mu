@@ -11,6 +11,10 @@ Parameters:
   ElbSubnetIds:
     Description: ELB subnet ids
     Type: CommaDelimitedList
+  AZCount:
+    Description: Number of availability zones to use
+    Type: String
+    Default: '3'
 Resources:
   WaitHandle:
     Type: "AWS::CloudFormation::WaitConditionHandle"

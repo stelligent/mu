@@ -2,11 +2,12 @@ package workflows
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v2"
-	"testing"
 )
 
 func TestEnvironmentFinder(t *testing.T) {
@@ -69,6 +70,10 @@ func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateName
 func (m *mockedStackManagerForUpsert) FindLatestImageID(pattern string) (string, error) {
 	args := m.Called()
 	return args.String(0), args.Error(1)
+}
+func (m *mockedStackManagerForUpsert) CountAZs() (int, error) {
+	args := m.Called()
+	return args.Int(0), nil
 }
 
 func TestEnvironmentEcsUpserter(t *testing.T) {
@@ -196,8 +201,9 @@ func TestEnvironmentVpcUpserter(t *testing.T) {
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
+	stackManager.On("CountAZs").Return(3)
 
-	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -221,8 +227,9 @@ func TestEnvironmentVpcUpserter_NoBastion(t *testing.T) {
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("AwaitFinalStatus", "mu-vpc-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
 	stackManager.On("UpsertStack", "mu-vpc-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("CountAZs").Return(3)
 
-	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err := workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-vpc-foo-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-vpc-foo-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])
@@ -254,11 +261,12 @@ environments:
 	stackManager := new(mockedStackManagerForUpsert)
 	stackManager.On("UpsertStack", "mu-target-dev", mock.AnythingOfType("map[string]string")).Return(nil)
 	stackManager.On("AwaitFinalStatus", "mu-target-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("CountAZs").Return(3)
 
 	workflow := new(environmentWorkflow)
 	workflow.environment = &config.Environments[0]
 
-	err = workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager)()
+	err = workflow.environmentVpcUpserter("mu", vpcInputParams, vpcInputParams, vpcInputParams, stackManager, stackManager, stackManager, stackManager)()
 	assert.Nil(err)
 	assert.Equal("mu-target-dev-VpcId", vpcInputParams["VpcId"])
 	assert.Equal("mu-target-dev-InstanceSubnetIds", vpcInputParams["InstanceSubnetIds"])

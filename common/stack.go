@@ -40,6 +40,11 @@ type ImageFinder interface {
 	FindLatestImageID(namePattern string) (string, error)
 }
 
+// AZCounter for counting availability zones in a region
+type AZCounter interface {
+	CountAZs() (int, error)
+}
+
 // StackManager composite of all stack capabilities
 type StackManager interface {
 	StackUpserter
@@ -48,4 +53,5 @@ type StackManager interface {
 	StackGetter
 	StackDeleter
 	ImageFinder
+	AZCounter
 }
