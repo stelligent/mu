@@ -2,6 +2,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU load balancer for an environment
 Parameters:
+  ServiceDiscoveryName:
+    Type: String
+    Description: Name for the service discovery namespace
   ElbInternal:
     Description: Should ELB be internal?
     Type: String
@@ -53,6 +56,14 @@ Conditions:
       - !Ref ElbInternal
       - 'true'
 Resources:
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Description: !Sub Service Discovery Namespace for ${AWS::StackName}
+      Vpc: 
+        Fn::ImportValue: !Sub ${VpcId}
+      Name: 
+        Ref: ServiceDiscoveryName
   ElbInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -220,3 +231,13 @@ Outputs:
     Description: Arn of the ELB HTTPS Listener.
     Export:
       Name: !Sub ${AWS::StackName}-ElbHttpsListenerArn
+  ServiceDiscoveryId:
+    Value: !Ref ServiceDiscoveryNamespace
+    Description: Id of the Service Discovery Namespace
+    Export:
+      Name: !Sub ${AWS::StackName}-ServiceDiscoveryId
+  ServiceDiscoveryName:
+    Value: !Ref ServiceDiscoveryName
+    Description: Name of the Service Discovery Namespace
+    Export:
+      Name: !Sub ${AWS::StackName}-ServiceDiscoveryName

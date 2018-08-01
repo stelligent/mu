@@ -83,8 +83,8 @@ type Environment struct {
 		ExtraUserData           string `yaml:"extraUserData,omitempty"`
 	} `yaml:"cluster,omitempty"`
 	Discovery struct {
-		Provider      string            `yaml:"provider,omitempty"`
-		Configuration map[string]string `yaml:"configuration,omitempty"`
+		Provider string `yaml:"provider,omitempty"`
+		Name     string `yaml:"name,omitempty"`
 	} `yaml:"discovery,omitempty"`
 	VpcTarget struct {
 		VpcID             string   `yaml:"vpcId,omitempty"`

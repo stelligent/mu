@@ -257,6 +257,12 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			}
 		}
 
+		if environment.Discovery.Name == "" {
+			stackParams["ServiceDiscoveryName"] = fmt.Sprintf("%s.%s.local", environment.Name, namespace)
+		} else {
+			stackParams["ServiceDiscoveryName"] = environment.Discovery.Name
+		}
+
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
 		tags := createTagMap(&EnvironmentTags{
