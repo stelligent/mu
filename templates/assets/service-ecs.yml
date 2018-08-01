@@ -17,6 +17,14 @@ Parameters:
   ImageUrl:
     Type: String
     Description: Docker Image URL
+  MaximumPercent:
+    Type: String
+    Description: Maximum percent for deployment strategy
+    Default: '200'
+  MinimumHealthyPercent:
+    Type: String
+    Description: Minimum percent for deployment strategy
+    Default: '100'
   ServicePort:
     Type: String
     Description: Port exposed in service
@@ -139,6 +147,16 @@ Parameters:
   ElbSecurityGroup:
     Type: String
     Description: Name of the value to import for the ELB group id
+  ServiceDiscoveryTTL:
+    Type: String
+    Description: The amount of time, in seconds, that you want DNS resolvers to cache the settings for this record.
+    Default: '60'
+  ServiceDiscoveryId:
+    Type: String
+    Description: Name of the value to import for the service discovery namespace id
+  ServiceDiscoveryName:
+    Type: String
+    Description: Name of the value to import for the service discovery namespace name
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -208,6 +226,21 @@ Conditions:
         - !Ref TaskCpu
         - ''
 Resources:
+  EcsServiceName:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig: 
+        NamespaceId:
+          Fn::ImportValue: !Sub ${ServiceDiscoveryId}
+        DnsRecords:
+        - Type: A
+          TTL: !Ref ServiceDiscoveryTTL
+        - Type: SRV
+          TTL: !Ref ServiceDiscoveryTTL
+      HealthCheckCustomConfig: 
+        FailureThreshold: 5
+      Name: 
+        Ref: ServiceName
   EcsService:
     Type: AWS::ECS::Service
     DependsOn:
@@ -217,8 +250,8 @@ Resources:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
       DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
+        MaximumPercent: !Ref MaximumPercent
+        MinimumHealthyPercent: !Ref MinimumHealthyPercent
       LaunchType:
         Fn::ImportValue: !Sub ${LaunchType}
       NetworkConfiguration:
@@ -249,6 +282,9 @@ Resources:
              - !Ref EcsServiceRoleArn
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
+      ServiceRegistries:
+      - RegistryArn: !Sub ${EcsServiceName.Arn}
+        Port: !Ref ServicePort
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
@@ -282,6 +318,8 @@ Resources:
           - HasLinks
           - !Ref Links
           - !Ref AWS::NoValue
+        #DnsSearchDomains:
+        #- Fn::ImportValue: !Sub ${ServiceDiscoveryName}
         Environment:
         {{with .Environment}}
           {{range $key, $val := .}}
@@ -289,6 +327,9 @@ Resources:
             Value: !Sub {{$val}}
           {{end}}
         {{end}}
+          - Name: _SERVICE_DISCOVERY_NAME
+            Value:
+              Fn::ImportValue: !Sub ${ServiceDiscoveryName}
           - Name: _PRIMARY_ELB_LISTENER
             Value:
               Fn::If:

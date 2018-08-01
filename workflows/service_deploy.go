@@ -117,6 +117,8 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ServiceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", workflow.envStack.Name)
 		params["ServiceSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.envStack.Name)
 		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
+		params["ServiceDiscoveryId"] = fmt.Sprintf("%s-ServiceDiscoveryId", workflow.lbStack.Name)
+		params["ServiceDiscoveryName"] = fmt.Sprintf("%s-ServiceDiscoveryName", workflow.lbStack.Name)
 		params["ImageUrl"] = workflow.serviceImage
 
 		cpu := common.CPUMemorySupport[0]
@@ -163,6 +165,21 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["EcsTaskRoleArn"] = serviceRoleset["EcsTaskRoleArn"]
 		params["ApplicationAutoScalingRoleArn"] = serviceRoleset["ApplicationAutoScalingRoleArn"]
 		params["ServiceName"] = workflow.serviceName
+
+		switch service.DeploymentStrategy {
+		case string(common.BlueGreenDeploymentStrategy):
+			params["MinimumHealthyPercent"] = "100"
+			params["MaximumPercent"] = "200"
+		case string(common.ReplaceDeploymentStrategy):
+			params["MinimumHealthyPercent"] = "0"
+			params["MaximumPercent"] = "100"
+		case string(common.RollingDeploymentStrategy):
+			params["MinimumHealthyPercent"] = "50"
+			params["MaximumPercent"] = "100"
+		default:
+			params["MinimumHealthyPercent"] = "100"
+			params["MaximumPercent"] = "200"
+		}
 
 		return nil
 	}
@@ -286,7 +303,6 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if len(service.HostPatterns) > 0 {
 			params["HostPattern"] = strings.Join(service.HostPatterns, ",")
 		}
-
 		return nil
 	}
 }

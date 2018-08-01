@@ -123,6 +123,8 @@ Resources:
           Version: '2012-10-17'
           Statement:
           - Action:
+            - route53:CreateHostedZone
+            - route53:DeleteHostedZone
             - route53:ChangeResourceRecordSets
             - route53:ChangeTagsForResource
             - route53:GetHostedZone
@@ -131,6 +133,26 @@ Resources:
             - route53:ListResourceRecordSets
             - route53:ListTagsForResource
             - route53:ListTagsForResources
+            - route53:ListQueryLoggingConfigs
+            - route53:UpdateHostedZoneComment
+            Resource: '*'
+            Effect: Allow
+      - PolicyName: update-servicediscovery
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - servicediscovery:CreatePrivateDnsNamespace
+            - servicediscovery:CreateService
+            - servicediscovery:DeleteNamespace
+            - servicediscovery:DeleteService
+            - servicediscovery:GetNamespace
+            - servicediscovery:GetService
+            - servicediscovery:GetOperation
+            - servicediscovery:ListNamespaces
+            - servicediscovery:ListServices
+            - servicediscovery:ListOperations
+            - servicediscovery:UpdateService
             Resource: '*'
             Effect: Allow
       - PolicyName: deploy-cluster

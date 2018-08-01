@@ -83,8 +83,8 @@ type Environment struct {
 		ExtraUserData           string `yaml:"extraUserData,omitempty"`
 	} `yaml:"cluster,omitempty"`
 	Discovery struct {
-		Provider      string            `yaml:"provider,omitempty"`
-		Configuration map[string]string `yaml:"configuration,omitempty"`
+		Provider string `yaml:"provider,omitempty"`
+		Name     string `yaml:"name,omitempty"`
 	} `yaml:"discovery,omitempty"`
 	VpcTarget struct {
 		VpcID             string   `yaml:"vpcId,omitempty"`
@@ -102,6 +102,7 @@ type Environment struct {
 // Service defines the structure of the yml file for a service
 type Service struct {
 	Name                 string                 `yaml:"name,omitempty"`
+	DeploymentStrategy   string                 `yaml:"deploymentStrategy,omitempty"`
 	DesiredCount         int                    `yaml:"desiredCount,omitempty"`
 	MinSize              int                    `yaml:"minSize,omitempty"`
 	MaxSize              int                    `yaml:"maxSize,omitempty"`
@@ -279,6 +280,16 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
+// DeploymentStrategy describes supported deployment strategies
+type DeploymentStrategy string
+
+// List of supported deployment strategies
+const (
+	BlueGreenDeploymentStrategy DeploymentStrategy = "blue_green"
+	RollingDeploymentStrategy                      = "rolling"
+	ReplaceDeploymentStrategy                      = "replace"
+)
+
 // EnvProvider describes supported environment strategies
 type EnvProvider string
 
@@ -309,6 +320,7 @@ type Task struct {
 	Name           string
 	Environment    string
 	Service        string
+	Status         string
 	TaskDefinition string
 	Cluster        string
 	Command        []string

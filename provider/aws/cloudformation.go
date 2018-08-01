@@ -446,6 +446,25 @@ func (cfnMgr *cloudformationStackManager) GetStack(stackName string) (*common.St
 	return stack, nil
 }
 
+// CountAZs for current region
+func (cfnMgr *cloudformationStackManager) CountAZs() (int, error) {
+	ec2Api := cfnMgr.ec2API
+	resp, err := ec2Api.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("state"),
+				Values: []*string{
+					aws.String("available"),
+				},
+			},
+		},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return len(resp.AvailabilityZones), nil
+}
+
 // FindLatestImageID for a given
 func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) (string, error) {
 	ec2Api := cfnMgr.ec2API
