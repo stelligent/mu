@@ -369,7 +369,14 @@ Resources:
               StringLike:
                 iam:AWSServiceName: elasticloadbalancing.amazonaws.com
             Effect: Allow
-
+          - Action:
+            - iam:CreateServiceLinkedRole
+            - iam:PutRolePolicy
+            Resource: arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*
+            Condition:
+              StringLike:
+                iam:AWSServiceName: rds.amazonaws.com
+            Effect: Allow
 Outputs:
   CloudFormationRoleArn:
     Description: Role assummed by CloudFormation

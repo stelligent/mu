@@ -1,0 +1,25 @@
+---
+
+environments:
+  - name: e2e-fargate-dev
+    provider: ecs-fargate
+
+service:
+  healthEndpoint: /
+  port: 5000
+  pathPatterns:
+    - /*
+  database:
+    name: e2efgate
+    engine: mysql
+  environment:
+    DB_HOST: ${DatabaseEndpointAddress}
+    DB_PORT: ${DatabaseEndpointPort}
+    DB_USERNAME: ${DatabaseMasterUsername}
+    DB_PASSWORD: ${DatabaseMasterPassword}
+    DB_NAME: mysql
+  pipeline:
+    acceptance:
+      environment: e2e-fargate-dev
+    production:
+      disabled: true

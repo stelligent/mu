@@ -233,10 +233,13 @@ Resources:
         NamespaceId:
           Fn::ImportValue: !Sub ${ServiceDiscoveryId}
         DnsRecords:
-        - Type: A
-          TTL: !Ref ServiceDiscoveryTTL
         - Type: SRV
           TTL: !Ref ServiceDiscoveryTTL
+        - Fn::If:
+          - HasAwsVpcNetworkMode
+          - Type: A
+            TTL: !Ref ServiceDiscoveryTTL
+          - !Ref AWS::NoValue
       HealthCheckCustomConfig: 
         FailureThreshold: 5
       Name: 
@@ -273,18 +276,16 @@ Resources:
             ContainerPort: !Ref ServicePort
             TargetGroupArn: !Ref ElbTargetGroup
           - !Ref AWS::NoValue
-      Role:
-        Fn::If:
-          - HasTargetGroup
-          - Fn::If:
-             - HasAwsVpcNetworkMode
-             - !Ref AWS::NoValue
-             - !Ref EcsServiceRoleArn
-          - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
       ServiceRegistries:
-      - RegistryArn: !Sub ${EcsServiceName.Arn}
-        Port: !Ref ServicePort
+      - Fn::If:
+        - HasAwsVpcNetworkMode
+        - RegistryArn: !Sub ${EcsServiceName.Arn}
+          Port: !Ref ServicePort
+        - !Ref AWS::NoValue
+          #RegistryArn: !Sub ${EcsServiceName.Arn}
+          #ContainerName: !Ref ServiceName
+          #ContainerPort: !Ref ServicePort
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
