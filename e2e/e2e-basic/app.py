@@ -20,7 +20,4 @@ def hello():
   finally:
       connection.close()
 
-  res = requests.get("%s/v1/catalog/nodes" % os.environ['CONSUL_ENDPOINT']).json()
-  assert len(res) > 0
-
   return "ok"

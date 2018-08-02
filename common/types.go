@@ -90,12 +90,11 @@ type Environment struct {
 		VpcID             string   `yaml:"vpcId,omitempty"`
 		InstanceSubnetIds []string `yaml:"instanceSubnetIds,omitempty"`
 		ElbSubnetIds      []string `yaml:"elbSubnetIds,omitempty"`
+		Environment       string   `yaml:"environment"`
+		Namespace         string   `yaml:"namespace"`
 	} `yaml:"vpcTarget,omitempty"`
 	Roles struct {
-		EcsInstance      string `yaml:"ecsInstance,omitempty"`
-		ConsulClientTask string `yaml:"consulClientTask,omitempty"`
-		ConsulInstance   string `yaml:"consulInstance,omitempty"`
-		ConsulServerTask string `yaml:"consulServerTask,omitempty"`
+		EcsInstance string `yaml:"ecsInstance,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
@@ -270,7 +269,6 @@ const (
 	StackTypeIam                    = "iam"
 	StackTypeEnv                    = "environment"
 	StackTypeLoadBalancer           = "loadbalancer"
-	StackTypeConsul                 = "consul"
 	StackTypeRepo                   = "repo"
 	StackTypeApp                    = "app"
 	StackTypeService                = "service"

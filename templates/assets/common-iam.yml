@@ -208,9 +208,6 @@ Resources:
             - iam:PassRole
             Resource:
             - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-consul-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-consul-*-instance-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-consul-*-task-${AWS::Region}
             Effect: Allow
       - PolicyName: deploy-service
         PolicyDocument:

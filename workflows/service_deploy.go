@@ -200,9 +200,7 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 			"ImageOsType",
 			"KeyName",
 			"HttpProxy",
-			"ConsulServerAutoScalingGroup",
 			"ElbSecurityGroup",
-			"ConsulRpcClientSecurityGroup",
 			"InstanceSecurityGroup",
 		} {
 			params[key] = workflow.envStack.Outputs[key]
