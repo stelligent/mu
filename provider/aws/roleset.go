@@ -49,9 +49,6 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
 			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EcsInstance)
-			overrideRole(roleset, "ConsulClientTaskRoleArn", e.Roles.ConsulClientTask)
-			overrideRole(roleset, "ConsulEC2InstanceProfileArn", e.Roles.ConsulInstance)
-			overrideRole(roleset, "ConsulServerTaskRoleArn", e.Roles.ConsulServerTask)
 			break
 		}
 	}
@@ -155,10 +152,6 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		"Namespace":       rolesetMgr.context.Config.Namespace,
 		"EnvironmentName": environmentName,
 		"Provider":        string(environment.Provider),
-	}
-
-	if strings.EqualFold(environment.Discovery.Provider, "consul") {
-		stackParams["EnableConsul"] = "true"
 	}
 
 	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "env-iam.yml", environment, stackParams, stackTags, "")

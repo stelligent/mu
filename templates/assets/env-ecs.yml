@@ -5,9 +5,6 @@ Parameters:
   EC2InstanceProfileArn:
     Type: String
     Description: ARN of instance profile for EC2 instance to assume
-  ConsulTaskRoleArn:
-    Type: String
-    Description: ARN of IAM role for consul task to assume
   InstanceType:
     Type: String
     Description: Instance type to use.
@@ -65,17 +62,9 @@ Parameters:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
     Default: ''
-  ConsulServerAutoScalingGroup:
-    Type: String
-    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
-    Default: ''
   ElbSecurityGroup:
     Type: String
     Description: The security group to add to the ECS instance for ELB access
-  ConsulRpcClientSecurityGroup:
-    Type: String
-    Description: The security group to add to the ECS instance for access to consul (optional)
-    Default: ''
   LaunchType:
     Type: String
     Description: Launch type for services
@@ -117,16 +106,6 @@ Conditions:
     "Fn::Not":
       - "Fn::Equals":
         - !Ref KeyName
-        - ''
-  HasConsulServer:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ConsulServerAutoScalingGroup
-        - ''
-  HasConsulClientSG:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ConsulRpcClientSecurityGroup
         - ''
   HasLaunchTypeEC2:
     "Fn::Equals":
@@ -349,10 +328,6 @@ Resources:
       SecurityGroups:
       - !Ref InstanceSecurityGroup
       - !Ref ElbSecurityGroup
-      - Fn::If:
-          - HasConsulClientSG
-          - !Ref ConsulRpcClientSecurityGroup
-          - !Ref "AWS::NoValue"
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:
@@ -406,86 +381,12 @@ Resources:
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
-          Content-Type: text/text/upstart-job; charset="us-ascii"
-
-          #upstart-job
-          description "Consul Agent"
-          author "Stelligent"
-          start on started ecs
-
-          script
-            exec 2>>/var/log/consul-start.log
-            set -x
-            until curl -s http://localhost:51678/v1/metadata
-            do
-                sleep 1
-            done
-
-            echo "Initializing consul agent: ${ConsulServerAutoScalingGroup}"
-
-            instance_arn=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F/ '{print $NF}' )
-            aws ecs start-task --cluster ${EcsCluster} --task-definition ${AWS::StackName}-consul-agent --container-instances $instance_arn --started-by $instance_arn --region ${AWS::Region}
-          end script
-
-          --==BOUNDARY==--
   ClusterLogGroup:
     Condition: HasLaunchTypeEC2
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
     Properties:
       LogGroupName: !Ref AWS::StackName
-  ConsulAgentTaskDefinition:
-    Condition: HasLaunchTypeEC2
-    Type: AWS::ECS::TaskDefinition
-    Condition: HasConsulServer
-    Properties:
-      NetworkMode: host
-      Family: !Sub "${AWS::StackName}-consul-agent"
-      ContainerDefinitions:
-      - Name: consul-agent
-        Cpu: 200
-        Essential: 'true'
-        Image: 'consul:1.0.0'
-        Memory: 128
-        Environment:
-          - Name: CONSUL_BIND_INTERFACE
-            Value: eth0
-          - Name: CONSUL_CLIENT_INTERFACE
-            Value: docker0
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            awslogs-group: !Ref AWS::StackName
-            awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: instance
-        Command:
-          - 'agent'
-          - '-datacenter'
-          - !Ref AWS::Region
-          - '-retry-join'
-          - !Sub 'provider=aws tag_key=aws:autoscaling:groupName tag_value=${ConsulServerAutoScalingGroup}'
-      - Name: registrator
-        Cpu: 200
-        Essential: 'true'
-        Image: 'gliderlabs/registrator'
-        Memory: 128
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            awslogs-group: !Ref AWS::StackName
-            awslogs-region: !Ref AWS::Region
-            awslogs-stream-prefix: instance
-        Command:
-          - "-retry-attempts=-1"
-          - !Sub "consul://172.17.0.1:8500"
-        MountPoints:
-          - ContainerPath: /tmp/docker.sock
-            SourceVolume: dockersock
-      Volumes:
-        - Name: dockersock
-          Host:
-            SourcePath: /var/run/docker.sock
-      TaskRoleArn: !Ref ConsulTaskRoleArn
 Outputs:
   InstanceSubnetIds:
     Value:

@@ -1,10 +1,11 @@
 package workflows
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestNewEnvironmentTerminator(t *testing.T) {
@@ -45,26 +46,6 @@ func TestNewEnvironmentEcsTerminator(t *testing.T) {
 	stackManager.On("DeleteStack", "mu-environment-foo").Return(nil)
 
 	err := workflow.environmentEcsTerminator("mu", "foo", stackManager, stackManager)()
-	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
-	stackManager.AssertNumberOfCalls(t, "DeleteStack", 1)
-}
-
-func TestNewEnvironmentConsulTerminator(t *testing.T) {
-	assert := assert.New(t)
-
-	workflow := new(environmentWorkflow)
-	workflow.environment = &common.Environment{
-		Name: "foo",
-	}
-
-	stackManager := new(mockedStackManagerForTerminate)
-	stackManager.On("AwaitFinalStatus", "mu-consul-foo").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
-	stackManager.On("DeleteStack", "mu-consul-foo").Return(nil)
-
-	err := workflow.environmentConsulTerminator("mu", "foo", stackManager, stackManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

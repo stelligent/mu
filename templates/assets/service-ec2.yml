@@ -85,10 +85,6 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  ConsulUrl:
-    Description: URL for downloading Consul
-    Type: String
-    Default: 'https://releases.hashicorp.com/consul/1.0.0/consul_1.0.0_linux_amd64.zip'
   ImageId:
     Description: EC2 AMI to launch
     Type: String
@@ -111,17 +107,9 @@ Parameters:
     Type: String
     Description: Proxy to use from ECS cluster instances (host:port)
     Default: ''
-  ConsulServerAutoScalingGroup:
-    Type: String
-    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
-    Default: ''
   ElbSecurityGroup:
     Type: String
     Description: The security group to add to the ECS instance for ELB access
-  ConsulRpcClientSecurityGroup:
-    Type: String
-    Description: The security group to add to the ECS instance for access to consul (optional)
-    Default: ''
   ElbHttpListenerArn:
     Type: String
     Description: Name of the value to import for the Arn of the ELB listener to attach the target group to.
@@ -150,14 +138,6 @@ Parameters:
     Type: String
     Description: Endpoint port of database
     Default: ""
-  ConsulServerAutoScalingGroup:
-    Type: String
-    Description: The Autoscaling group name for consul servers to connect to.  Consul is disabled if not provided
-    Default: ''
-  ConsulRpcClientSecurityGroup:
-    Type: String
-    Description: The security group to add to the ECS instance for access to consul (optional)
-    Default: ''
   TargetCPUUtilization:
     Type: String
     Description: Target CPU Utilization for Tracking Policy on ASG
@@ -218,16 +198,6 @@ Conditions:
     "Fn::Not":
       - "Fn::Equals":
         - !Ref KeyName
-        - ''
-  HasConsulClientSG:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ConsulRpcClientSecurityGroup
-        - ''
-  HasConsulServer:
-    "Fn::Not":
-      - "Fn::Equals":
-        - !Ref ConsulServerAutoScalingGroup
         - ''
 Resources:
   ServiceAutoScalingGroup:
@@ -301,20 +271,6 @@ Resources:
                 cwlogs = cwlogs
                 [default]
                 region = ${AWS::Region}
-            "/etc/init/consul.conf":
-              content: !Sub |
-                description "Consul Client process"
-
-                start on (local-filesystems and net-device-up IFACE=eth0)
-                stop on runlevel [!12345]
-
-                respawn
-
-                exec /opt/consul/bin/consul agent -config-dir /opt/consul/config
-              mode: '000755'
-              owner: root
-              group: root
-
           services:
             sysvinit:
               codedeploy-agent:
@@ -332,41 +288,13 @@ Resources:
                 files:
                 - "/etc/cfn/cfn-hup.conf"
                 - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
-          commands:
-            start-consul:
-              command: "start consul"
         centos7Linux:
-          files:
-            "/etc/systemd/system/consul.service":
-              content:
-                Fn::Sub: |
-                  [Unit]
-                  Description=Consul Agent
-
-                  [Service]
-                  Type=simple
-                  ExecStart=/opt/consul/bin/consul agent -config-dir /opt/consul/config
-                  Restart=always
-                  User=root
-                  Group=root
-                  LimitNOFILE=10240
-                  LimitFSIZE=infinity
-
-                  [Install]
-                  WantedBy=multi-user.target
-              group: root
-              mode: "000755"
-              owner: root
           commands:
             awscli-install:
               command: pip install --upgrade awscli
             awslogs-install:
               command: curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O && python ./awslogs-agent-setup.py --region ${AWS::Region} --non-interactive --configfile=/etc/awslogs/awslogs.conf
-            start-consul:
-              command: "systemctl start consul.service && systemctl enable consul.service"
         commonLinux:
-          sources:
-            "/opt/consul/bin": !Ref ConsulUrl
           packages:
             yum:
               ruby: []
@@ -379,29 +307,6 @@ Resources:
                 {{$key}}={{$val}}
               {{end}}
               {{end}}
-            "/opt/consul/config/service.json":
-              content: !Sub |
-                {
-                  "datacenter": "${AWS::Region}",
-                  "data_dir": "/opt/consul/data",
-                  "retry_join": ["provider=aws tag_key=aws:autoscaling:groupName tag_value=${ConsulServerAutoScalingGroup}"],
-                  "service": {
-                    "name": "${ServiceName}",
-                    "tags": ["${ServiceName}"],
-                    "port": ${ServicePort},
-                    "checks": [
-                      {
-                        "id": "health",
-                        "name": "${ServiceProtocol} health on port ${ServicePort}",
-                        "http": "${ServiceProtocol}://localhost:${ServicePort}${ServiceHealthEndpoint}",
-                        "tls_skip_verify": true,
-                        "method": "GET",
-                        "interval": "10s",
-                        "timeout": "1s"
-                      }
-                    ]
-                  }
-                }
             "/tmp/codedeploy-install":
               source: !Sub https://aws-codedeploy-${AWS::Region}.s3.amazonaws.com/latest/install
               mode: '000755'
@@ -507,10 +412,6 @@ Resources:
       SecurityGroups:
       - !Ref InstanceSecurityGroup
       - !Ref ElbSecurityGroup
-      - Fn::If:
-          - HasConsulClientSG
-          - !Ref ConsulRpcClientSecurityGroup
-          - !Ref "AWS::NoValue"
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:

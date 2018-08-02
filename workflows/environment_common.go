@@ -1,9 +1,10 @@
 package workflows
 
 import (
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/stelligent/mu/common"
-	"strings"
 )
 
 type environmentWorkflow struct {
@@ -26,12 +27,6 @@ func colorizeStackStatus(stackStatus string) string {
 		color = blue
 	}
 	return color(stackStatus)
-}
-
-func (workflow *environmentWorkflow) isConsulEnabled() Conditional {
-	return func() bool {
-		return strings.EqualFold(workflow.environment.Discovery.Provider, "consul")
-	}
 }
 
 func (workflow *environmentWorkflow) isEcsProvider() Conditional {

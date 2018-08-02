@@ -1,9 +1,0 @@
----
-
-environments:
-  - name: dev
-    cluster:
-      keyName: casey-lee-mbp
-      maxSize: 2
-    discovery:
-      provider: consul
