@@ -31,7 +31,6 @@ Assuming your project already has a Dockerfile, you can initialize your mu.yml f
 Check out the [examples](examples) to see snippets of `mu.yml` configuration files that you can use in your own project:
 
 * **[Basic](examples/basic)** - Simple website with continuous delivery pipeline deploying to dev and prod environments
-* **[Service Discovery](examples/consul)** - Service discovery via [Consul](https://www.consul.io/) and [Registrator](http://gliderlabs.com/registrator/latest/)
 * **[Test Automation](examples/pipeline-newman)** - Automating end-to-end testing via [Newman](https://github.com/postmanlabs/newman)
 * **[RDS Database](examples/database)** - Defining a database for a service
 * **[Env Variables](examples/service-env-vars)** - Defining environment variables for the service

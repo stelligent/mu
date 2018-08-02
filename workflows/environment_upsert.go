@@ -39,6 +39,11 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 					e.Provider = common.EnvProviderEcs
 				}
 				workflow.environment = &e
+
+				if e.Discovery.Provider == "consul" {
+					return fmt.Errorf("Consul is no longer supported as a service discovery provider.  Check out the mu-consul extension for an alternative: https://github.com/stelligent/mu-consul")
+				}
+
 				return nil
 			}
 		}
@@ -192,10 +197,6 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			} else {
 				stackParams["ElbHostName"] = environment.Loadbalancer.Name
 			}
-		}
-
-		if environment.Discovery.Provider == "consul" {
-			return fmt.Errorf("Consul is no longer supported as a service discovery provider.  Check out the mu-consul extension for an alternative: https://github.com/stelligent/mu-consul")
 		}
 
 		if environment.Discovery.Name == "" {
