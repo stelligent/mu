@@ -241,7 +241,7 @@ Resources:
             TTL: !Ref ServiceDiscoveryTTL
           - !Ref AWS::NoValue
       HealthCheckCustomConfig: 
-        FailureThreshold: 5
+        FailureThreshold: 1
       Name: 
         Ref: ServiceName
   EcsService:
