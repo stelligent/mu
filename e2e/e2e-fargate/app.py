@@ -21,7 +21,7 @@ def hello():
   finally:
       connection.close()
 
-  res = socket.gethostbyname_ex("e2e-fargate.%s" % os.environ['_SERVICE_DISCOVERY_NAME'])[2]
+  res = socket.gethostbyname_ex("e2e-fargate.%s" % os.environ['_SERVICE_DISCOVERY_NAMESPACE'])[2]
   assert len(res) > 0
 
   return "ok"
