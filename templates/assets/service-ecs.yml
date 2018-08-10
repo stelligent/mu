@@ -328,7 +328,7 @@ Resources:
             Value: !Sub {{$val}}
           {{end}}
         {{end}}
-          - Name: _SERVICE_DISCOVERY_NAMESPACE
+          - Name: _SERVICE_DISCOVERY_NAME
             Value:
               Fn::ImportValue: !Sub ${ServiceDiscoveryName}
           - Name: _PRIMARY_ELB_LISTENER
