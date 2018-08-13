@@ -122,6 +122,7 @@ type Service struct {
 	Database             Database               `yaml:"database,omitempty"`
 	Schedule             []Schedule             `yaml:"schedules,omitempty"`
 	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
+	DiscoveryTTL         string                 `yaml:"discoveryTTL,omitempty"`
 	Roles                struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty"`
 		CodeDeploy             string `yaml:"codeDeploy,omitempty"`

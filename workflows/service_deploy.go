@@ -119,6 +119,9 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
 		params["ServiceDiscoveryId"] = fmt.Sprintf("%s-ServiceDiscoveryId", workflow.lbStack.Name)
 		params["ServiceDiscoveryName"] = fmt.Sprintf("%s-ServiceDiscoveryName", workflow.lbStack.Name)
+		if service.DiscoveryTTL != "" {
+			params["ServiceDiscoveryTTL"] = service.DiscoveryTTL
+		}
 		params["ImageUrl"] = workflow.serviceImage
 
 		cpu := common.CPUMemorySupport[0]
