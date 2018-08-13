@@ -116,9 +116,10 @@ Conditions:
         - ''
   HasElbSubnetAZ3:
     "Fn::And":
-      - "Fn::Equals":
-        - !Ref AZCount
-        - '3'
+      - "Fn::Not":
+        - "Fn::Equals":
+          - !Ref AZCount
+          - '2'
       - "Fn::Not":
         - "Fn::Equals":
           - !Ref ElbSubnetAZ3CidrBlock
@@ -135,9 +136,10 @@ Conditions:
         - ''
   HasInstanceSubnetAZ3:
     "Fn::And":
-      - "Fn::Equals":
-        - !Ref AZCount
-        - '3'
+      - "Fn::Not":
+        - "Fn::Equals":
+          - !Ref AZCount
+          - '2'
       - "Fn::Not":
         - "Fn::Equals":
           - !Ref InstanceSubnetAZ3CidrBlock
