@@ -1,5 +1,28 @@
 # Change Log
 
+## [v1.5.1](https://github.com/stelligent/mu/tree/v1.5.1) (2018-08-14)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.4.6...v1.5.1)
+
+**Fixed bugs:**
+
+- mu svc restart appears to restart all services, rather than the specified service [\#279](https://github.com/stelligent/mu/issues/279)
+- Problems converging a base environment in us-west-1 [\#195](https://github.com/stelligent/mu/issues/195)
+
+**Closed issues:**
+
+- Use existing ECS Cluster [\#301](https://github.com/stelligent/mu/issues/301)
+- Integrate with new native ECS service discovery [\#299](https://github.com/stelligent/mu/issues/299)
+- mu pipeline term not removing the pipeline? [\#288](https://github.com/stelligent/mu/issues/288)
+- codepipeline may be making unauthenticated calls to github [\#287](https://github.com/stelligent/mu/issues/287)
+- mu-env.sh has a weird string included in 1.4.3 [\#286](https://github.com/stelligent/mu/issues/286)
+- Support adding a hosted internal route53 zone [\#252](https://github.com/stelligent/mu/issues/252)
+- Support choosing deployment strategy [\#251](https://github.com/stelligent/mu/issues/251)
+
+**Merged pull requests:**
+
+- Remove consul [\#314](https://github.com/stelligent/mu/pull/314) ([cplee](https://github.com/cplee))
+- 1.5.1 development [\#313](https://github.com/stelligent/mu/pull/313) ([cplee](https://github.com/cplee))
+
 ## [v1.4.6](https://github.com/stelligent/mu/tree/v1.4.6) (2018-07-30)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.4.5...v1.4.6)
 
