@@ -167,10 +167,11 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		log.Debugf("  Assume role:\n\t%s", roleArn)
 		log.Debugf("  Stack tags:\n\t%s", stackTags)
 		params := &cloudformation.CreateStackInput{
-			StackName:    aws.String(stackName),
-			Parameters:   stackParameters,
-			TemplateBody: templateBody,
-			Tags:         stackTags,
+			StackName:        aws.String(stackName),
+			Parameters:       stackParameters,
+			TemplateBody:     templateBody,
+			Tags:             stackTags,
+			TimeoutInMinutes: aws.Int64(60),
 		}
 
 		if roleArn != "" {
