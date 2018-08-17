@@ -2,9 +2,10 @@ package workflows
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
-	"io"
 )
 
 // NewServiceViewer create a new workflow for showing an environment
@@ -21,7 +22,7 @@ func NewServiceViewer(ctx *common.Context, serviceName string, viewTasks bool, w
 func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, viewTasks bool, writer io.Writer) Executor {
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypeService)
+		stacks, err := stackLister.ListStacks(common.StackTypeService, namespace)
 		if err != nil {
 			return err
 		}

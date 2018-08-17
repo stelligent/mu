@@ -3,9 +3,10 @@ package workflows
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
-	"io"
 )
 
 // NewEnvironmentViewer create a new workflow for showing an environment
@@ -127,7 +128,7 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 
 		fmt.Fprint(writer, NewLine)
 		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ServicesHeader))
-		stacks, err := stackLister.ListStacks(common.StackTypeService)
+		stacks, err := stackLister.ListStacks(common.StackTypeService, namespace)
 		if err != nil {
 			return err
 		}

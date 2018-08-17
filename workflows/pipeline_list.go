@@ -2,8 +2,9 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"io"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewPipelineLister create a new workflow for listing environments
@@ -12,14 +13,14 @@ func NewPipelineLister(ctx *common.Context, writer io.Writer) Executor {
 	workflow := new(pipelineWorkflow)
 
 	return newPipelineExecutor(
-		workflow.pipelineLister(ctx.StackManager, writer),
+		workflow.pipelineLister(ctx.Config.Namespace, ctx.StackManager, writer),
 	)
 }
 
-func (workflow *pipelineWorkflow) pipelineLister(stackLister common.StackLister, writer io.Writer) Executor {
+func (workflow *pipelineWorkflow) pipelineLister(namespace string, stackLister common.StackLister, writer io.Writer) Executor {
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypePipeline)
+		stacks, err := stackLister.ListStacks(common.StackTypePipeline, namespace)
 		if err != nil {
 			return err
 		}

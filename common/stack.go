@@ -22,7 +22,7 @@ type StackUpserter interface {
 
 // StackLister for listing stacks
 type StackLister interface {
-	ListStacks(stackType StackType) ([]*Stack, error)
+	ListStacks(stackType StackType, namespace string) ([]*Stack, error)
 }
 
 // StackGetter for getting stacks
