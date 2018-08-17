@@ -2,8 +2,9 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"io"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewDatabaseLister create a new workflow for listing databases
@@ -12,14 +13,14 @@ func NewDatabaseLister(ctx *common.Context, writer io.Writer) Executor {
 	workflow := new(databaseWorkflow)
 
 	return newPipelineExecutor(
-		workflow.databaseLister(ctx.StackManager, writer),
+		workflow.databaseLister(ctx.Config.Namespace, ctx.StackManager, writer),
 	)
 }
 
-func (workflow *databaseWorkflow) databaseLister(stackLister common.StackLister, writer io.Writer) Executor {
+func (workflow *databaseWorkflow) databaseLister(namespace string, stackLister common.StackLister, writer io.Writer) Executor {
 
 	return func() error {
-		stacks, err := stackLister.ListStacks(common.StackTypeDatabase)
+		stacks, err := stackLister.ListStacks(common.StackTypeDatabase, namespace)
 		if err != nil {
 			return err
 		}
