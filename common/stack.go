@@ -37,7 +37,7 @@ type StackDeleter interface {
 
 // ImageFinder for finding latest image
 type ImageFinder interface {
-	FindLatestImageID(namePattern string) (string, error)
+	FindLatestImageID(owner string, namePattern string) (string, error)
 }
 
 // AZCounter for counting availability zones in a region

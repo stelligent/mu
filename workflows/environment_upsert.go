@@ -8,24 +8,28 @@ import (
 	"github.com/stelligent/mu/common"
 )
 
+var ecsImageOwner = "amazon"
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+var eksImageOwner = "602401143452"
+var eksImagePattern = "eks-worker-v*"
+var ec2ImageOwner = "amazon"
 var ec2ImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
-	ecsStackParams := make(map[string]string)
+	envStackParams := make(map[string]string)
 	elbStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
-		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, ecsStackParams),
-		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentUpserter(ctx.Config.Namespace, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, envStackParams),
+		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 	)
 }
 
@@ -51,7 +55,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -90,7 +94,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 			}
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
-				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImagePattern)
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImageOwner, ec2ImagePattern)
 				if err != nil {
 					return err
 				}
@@ -135,8 +139,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 			}
 		}
 
-		ecsStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		ecsStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
+		envStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		envStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
 
 		elbStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		elbStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
@@ -145,7 +149,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, ec
 	}
 }
 
-func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, ecsStackParams map[string]string) Executor {
+func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, envStackParams map[string]string) Executor {
 	return func() error {
 		err := rolesetUpserter.UpsertCommonRoleset()
 		if err != nil {
@@ -169,13 +173,16 @@ func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter 
 			return err
 		}
 
-		ecsStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
+		envStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
+		if workflow.environment.Provider == common.EnvProviderEks {
+			envStackParams["EksServiceRoleArn"] = environmentRoleset["EksServiceRoleArn"]
+		}
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		envStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environment.Name)
@@ -229,34 +236,44 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		ecsStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
+		envStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentUpserter(namespace string, envStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
 
 		environment := workflow.environment
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
 
-		stackParams := ecsStackParams
+		stackParams := envStackParams
 
 		var templateName string
 		var imagePattern string
+		var imageOwner string
 		if environment.Provider == common.EnvProviderEcs {
 			templateName = "env-ecs.yml"
 			imagePattern = ecsImagePattern
+			imageOwner = ecsImageOwner
 			stackParams["LaunchType"] = "EC2"
 		} else if environment.Provider == common.EnvProviderEcsFargate {
 			templateName = "env-ecs.yml"
 			imagePattern = ecsImagePattern
+			imageOwner = ecsImageOwner
 			stackParams["LaunchType"] = "FARGATE"
 		} else if environment.Provider == common.EnvProviderEc2 {
 			templateName = "env-ec2.yml"
 			imagePattern = ec2ImagePattern
+			imageOwner = ec2ImageOwner
+		} else if environment.Provider == common.EnvProviderEks {
+			templateName = "env-eks.yml"
+			imagePattern = eksImagePattern
+			imageOwner = eksImageOwner
+		} else if environment.Provider == common.EnvProviderEksFargate {
+			return fmt.Errorf("nvironment provider `eks-fargate` is not yet supported")
 		}
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
@@ -276,7 +293,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 			stackParams["ImageId"] = environment.Cluster.ImageID
 		} else {
 			var err error
-			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imageOwner, imagePattern)
 			if err != nil {
 				return err
 			}

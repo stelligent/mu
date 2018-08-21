@@ -1,0 +1,12 @@
+version: 0.1
+
+phases:
+  build:
+    commands:
+      - echo "replace me with real build commands..."
+
+artifacts:
+  files:
+    - index.html
+    - mu.yml
+    - Dockerfile
