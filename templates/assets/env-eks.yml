@@ -237,15 +237,15 @@ Resources:
       - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}'
         Value: 'owned'
         PropagateAtLaunch: 'true'
-    #CreationPolicy:
-    #  ResourceSignal:
-    #    Timeout: PT15M
-    #UpdatePolicy:
-    #  AutoScalingRollingUpdate:
-    #    MinInstancesInService: '1'
-    #    MaxBatchSize: '1'
-    #    PauseTime: PT15M
-    #    WaitOnResourceSignals: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
 
 
   WorkerInstances:
