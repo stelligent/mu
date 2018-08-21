@@ -48,7 +48,8 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
-			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EcsInstance)
+			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.Instance)
+			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EksService)
 			break
 		}
 	}

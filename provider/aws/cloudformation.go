@@ -468,10 +468,10 @@ func (cfnMgr *cloudformationStackManager) CountAZs() (int, error) {
 }
 
 // FindLatestImageID for a given
-func (cfnMgr *cloudformationStackManager) FindLatestImageID(namePattern string) (string, error) {
+func (cfnMgr *cloudformationStackManager) FindLatestImageID(owner string, namePattern string) (string, error) {
 	ec2Api := cfnMgr.ec2API
 	resp, err := ec2Api.DescribeImages(&ec2.DescribeImagesInput{
-		Owners: []*string{aws.String("amazon")},
+		Owners: []*string{aws.String(owner)},
 		Filters: []*ec2.Filter{
 			{
 				Name: aws.String("name"),

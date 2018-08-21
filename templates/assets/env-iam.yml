@@ -15,6 +15,8 @@ Parameters:
     AllowedValues:
       - "ecs"
       - "ecs-fargate"
+      - "eks"
+      - "eks-fargate"
       - "ec2"
 Conditions:
   IsEcsService:
@@ -25,17 +27,51 @@ Conditions:
     "Fn::Equals":
       - !Ref Provider
       - 'ecs-fargate'
+  IsEksService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'eks'
+  IsEksFargateService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'eks-fargate'
+  HasEksServiceRole:
+    "Fn::Or":
+      - !Condition IsEksService
+      - !Condition IsEksFargateService
+  HasEC2InstanceProfile:
+    "Fn::Or":
+      - !Condition IsEksService
+      - !Condition IsEcsService
+
 Resources:
+  EksServiceRole:
+    Type: AWS::IAM::Role
+    Condition: HasEksServiceRole
+    Properties:
+      RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-eks-service-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
-    Condition: IsEcsService
+    Condition: HasEC2InstanceProfile
     Properties:
       Path: "/"
       Roles:
       - !Ref EC2Role
   EC2Role:
     Type: AWS::IAM::Role
-    Condition: IsEcsService
+    Condition: HasEC2InstanceProfile
     Properties:
       RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-instance-${AWS::Region}
       AssumeRolePolicyDocument:
@@ -48,37 +84,48 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        Fn::If:
+        - IsEksService
+        - - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
-      - PolicyName: ecs-service
+      - Fn::If:
+        - IsEcsService
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+              - ecs:RegisterContainerInstance
+              - ecs:DeregisterContainerInstance
+              - ecs:SubmitContainerStateChange
+              - ecs:SubmitTaskStateChange
+              Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:StartTelemetrySession
+              - ecs:Poll
+              Resource: "*"
+              Condition:
+                ArnEquals:
+                  "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:StartTask
+              Resource: "*"
+              Condition:
+                ArnEquals:
+                  "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:DiscoverPollEndpoint
+              Resource: "*"
+        - !Ref AWS::NoValue
+      - PolicyName: env-common
         PolicyDocument:
           Statement:
-          - Effect: Allow
-            Action:
-            - ecs:RegisterContainerInstance
-            - ecs:DeregisterContainerInstance
-            - ecs:SubmitContainerStateChange
-            - ecs:SubmitTaskStateChange
-            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
-          - Effect: Allow
-            Action:
-            - ecs:StartTelemetrySession
-            - ecs:Poll
-            Resource: "*"
-            Condition:
-              ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
-          - Effect: Allow
-            Action:
-            - ecs:StartTask
-            Resource: "*"
-            Condition:
-              ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
-          - Effect: Allow
-            Action:
-            - ecs:DiscoverPollEndpoint
-            Resource: "*"
           - Effect: Allow
             Action:
             - logs:CreateLogGroup
@@ -94,6 +141,13 @@ Outputs:
     Description: Instance profile for ECS container instances
     Value:
       Fn::If:
-      - IsEcsService
+      - HasEC2InstanceProfile
       - !GetAtt EC2InstanceProfile.Arn
+      - ''
+  EksServiceRoleArn:
+    Description: IAM role ARN for EKS clusters
+    Value:
+      Fn::If:
+      - HasEksServiceRole
+      - !GetAtt EksServiceRole.Arn
       - ''

@@ -94,7 +94,8 @@ type Environment struct {
 		Namespace         string   `yaml:"namespace"`
 	} `yaml:"vpcTarget,omitempty"`
 	Roles struct {
-		EcsInstance string `yaml:"ecsInstance,omitempty"`
+		Instance   string `yaml:"instance,omitempty"`
+		EksService string `yaml:"eksService,omitempty"`
 	} `yaml:"roles,omitempty"`
 }
 
@@ -297,6 +298,8 @@ const (
 	EnvProviderEcs        EnvProvider = "ecs"
 	EnvProviderEcsFargate             = "ecs-fargate"
 	EnvProviderEc2                    = "ec2"
+	EnvProviderEks                    = "eks"
+	EnvProviderEksFargate             = "eks-fargate"
 )
 
 // ArtifactProvider describes supported artifact strategies

@@ -28,7 +28,7 @@ func (m *mockedStackManagerForTerminate) DeleteStack(stackName string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
-func (m *mockedStackManagerForTerminate) FindLatestImageID(pattern string) (string, error) {
+func (m *mockedStackManagerForTerminate) FindLatestImageID(owner string, pattern string) (string, error) {
 	args := m.Called()
 	return args.String(0), args.Error(1)
 }

@@ -1,0 +1,16 @@
+---
+
+environments:
+  - name: acceptance
+    provider: eks
+    cluster:
+      keyName: mu-key
+  - name: production
+    provider: eks
+
+service:
+  name: eks-example
+  healthEndpoint: /
+  port: 80
+  pathPatterns:
+    - /*
