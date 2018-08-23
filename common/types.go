@@ -159,11 +159,12 @@ type Pipeline struct {
 		Branch   string `yaml:"branch,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
-		Disabled    bool   `yaml:"disabled,omitempty"`
-		Type        string `yaml:"type,omitempty"`
-		ComputeType string `yaml:"computeType,omitempty"`
-		Image       string `yaml:"image,omitempty"`
-		Bucket      string `yaml:"bucket,omitempty"`
+		Disabled     bool   `yaml:"disabled,omitempty"`
+		Type         string `yaml:"type,omitempty"`
+		ComputeType  string `yaml:"computeType,omitempty"`
+		Image        string `yaml:"image,omitempty"`
+		Bucket       string `yaml:"bucket,omitempty"`
+		BuildTimeout string `yaml:"timeout,omitempty"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
@@ -175,6 +176,7 @@ type Pipeline struct {
 			CodeBuild string `yaml:"codeBuild,omitempty"`
 			Mu        string `yaml:"mu,omitempty"`
 		} `yaml:"roles,omitempty"`
+		BuildTimeout string `yaml:"timeout,omitempty"`
 	} `yaml:"acceptance,omitempty"`
 	Production struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
@@ -183,6 +185,7 @@ type Pipeline struct {
 			CodeBuild string `yaml:"codeBuild,omitempty"`
 			Mu        string `yaml:"mu,omitempty"`
 		} `yaml:"roles,omitempty"`
+		BuildTimeout string `yaml:"timeout,omitempty"`
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`
 	MuVersion string `yaml:"muVersion,omitempty"`
