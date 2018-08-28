@@ -102,3 +102,48 @@ func TestPipelineUpserter(t *testing.T) {
 	assert.Equal("", stackParams["Branch"])
 	assert.Equal("my-token", stackParams["GitHubToken"])
 }
+
+func TestPipelineParams(t *testing.T) {
+
+	assert := assert.New(t)
+
+	yamlConfig :=
+		`
+---
+environments:
+  - name: acceptance
+  - name: production
+service:
+  port: 80
+  healthEndpoint: /
+  pathPatterns:
+    - /*
+  pipeline:
+    source:
+      provider: GitHub
+      repo: foo/bar
+    acceptance:
+      timeout: 15
+    build:
+      timeout: 25
+    production:
+      timeout: 480
+`
+
+	ctx := common.NewContext()
+	config, err := loadYamlConfig(yamlConfig)
+
+	assert.Nil(err)
+
+	ctx.Config = *config
+
+	workflow := new(pipelineWorkflow)
+	workflow.serviceName = "my-service"
+	workflow.pipelineConfig = &ctx.Config.Service.Pipeline
+
+	params, err2 := PipelineParams(workflow, "mu", make(map[string]string))
+	assert.Nil(err2)
+	assert.Equal(params["PipelineBuildAcceptanceTimeout"], "15")
+	assert.Equal(params["PipelineBuildTimeout"], "25")
+	assert.Equal(params["PipelineBuildProductionTimeout"], "480")
+}

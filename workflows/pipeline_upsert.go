@@ -199,83 +199,12 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 		pipelineStackName := common.CreateStackName(namespace, common.StackTypePipeline, workflow.serviceName)
 
 		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
-		pipelineParams := params
 
-		pipelineParams["Namespace"] = namespace
-		pipelineParams["ServiceName"] = workflow.serviceName
-		pipelineParams["MuFile"] = workflow.muFile
-		pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
-		pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
-
-		if workflow.codeBranch != "" {
-			pipelineParams["SourceBranch"] = workflow.codeBranch
-		}
-
-		if workflow.pipelineConfig.Source.Provider == "S3" {
-			repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
-			pipelineParams["SourceBucket"] = repoParts[0]
-			pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
-		}
-
-		if workflow.pipelineConfig.Build.Type != "" {
-			pipelineParams["BuildType"] = workflow.pipelineConfig.Build.Type
-		}
-		if workflow.pipelineConfig.Build.ComputeType != "" {
-			pipelineParams["BuildComputeType"] = workflow.pipelineConfig.Build.ComputeType
-		}
-
-		if workflow.pipelineConfig.Build.Image != "" {
-			pipelineParams["BuildImage"] = workflow.pipelineConfig.Build.Image
-		}
-
-		if workflow.pipelineConfig.Acceptance.Type != "" {
-			pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
-		}
-		if workflow.pipelineConfig.Acceptance.ComputeType != "" {
-			pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
-		}
-
-		if workflow.pipelineConfig.Acceptance.Image != "" {
-			pipelineParams["TestImage"] = workflow.pipelineConfig.Acceptance.Image
-		}
-
-		if workflow.pipelineConfig.Acceptance.Environment != "" {
-			pipelineParams["AcptEnv"] = workflow.pipelineConfig.Acceptance.Environment
-		}
-
-		if workflow.pipelineConfig.Production.Environment != "" {
-			pipelineParams["ProdEnv"] = workflow.pipelineConfig.Production.Environment
-		}
-
-		if workflow.pipelineConfig.MuBaseurl != "" {
-			pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
-		}
-
-		pipelineParams["EnableBuildStage"] = strconv.FormatBool(!workflow.pipelineConfig.Build.Disabled)
-		pipelineParams["EnableAcptStage"] = strconv.FormatBool(!workflow.pipelineConfig.Acceptance.Disabled)
-		pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
-
-		// get default buildspec
-		buildspec, err := templates.NewTemplate("buildspec.yml", nil)
+		pipelineParams, err := PipelineParams(workflow, namespace, params)
 		if err != nil {
 			return err
 		}
-		buildspecBytes := new(bytes.Buffer)
-		buildspecBytes.ReadFrom(buildspec)
-		newlineRegexp := regexp.MustCompile(`\r?\n`)
-		buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
-		pipelineParams["DefaultBuildspec"] = buildspecString
 
-		version := workflow.pipelineConfig.MuVersion
-		if version == "" {
-			version = common.GetVersion()
-			if version == "0.0.0-local" {
-				version = ""
-			}
-		}
-		if version != "" {
-			pipelineParams["MuDownloadVersion"] = version
-		}
 		tags := createTagMap(&PipelineTags{
 			Type:     common.StackTypePipeline,
 			Service:  workflow.serviceName,
@@ -301,6 +230,104 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 
 		return nil
 	}
+}
+
+// PipelineParams creates a map of params to send to the CFN pipeline template
+func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[string]string) (map[string]string, error) {
+
+	pipelineParams := params
+
+	pipelineParams["Namespace"] = namespace
+	pipelineParams["ServiceName"] = workflow.serviceName
+	pipelineParams["MuFile"] = workflow.muFile
+	pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
+	pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
+
+	if workflow.codeBranch != "" {
+		pipelineParams["SourceBranch"] = workflow.codeBranch
+	}
+
+	if workflow.pipelineConfig.Source.Provider == "S3" {
+		repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
+		pipelineParams["SourceBucket"] = repoParts[0]
+		pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+	}
+
+	if workflow.pipelineConfig.Build.Type != "" {
+		pipelineParams["BuildType"] = workflow.pipelineConfig.Build.Type
+	}
+	if workflow.pipelineConfig.Build.ComputeType != "" {
+		pipelineParams["BuildComputeType"] = workflow.pipelineConfig.Build.ComputeType
+	}
+
+	if workflow.pipelineConfig.Build.Image != "" {
+		pipelineParams["BuildImage"] = workflow.pipelineConfig.Build.Image
+	}
+
+	if workflow.pipelineConfig.Build.BuildTimeout != "" {
+		pipelineParams["PipelineBuildTimeout"] = workflow.pipelineConfig.Build.BuildTimeout
+	}
+
+	if workflow.pipelineConfig.Acceptance.Type != "" {
+		pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
+	}
+
+	if workflow.pipelineConfig.Acceptance.ComputeType != "" {
+		pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
+	}
+
+	if workflow.pipelineConfig.Acceptance.Image != "" {
+		pipelineParams["TestImage"] = workflow.pipelineConfig.Acceptance.Image
+	}
+
+	if workflow.pipelineConfig.Acceptance.Environment != "" {
+		pipelineParams["AcptEnv"] = workflow.pipelineConfig.Acceptance.Environment
+	}
+
+	if workflow.pipelineConfig.Acceptance.BuildTimeout != "" {
+		pipelineParams["PipelineBuildAcceptanceTimeout"] = workflow.pipelineConfig.Acceptance.BuildTimeout
+	}
+
+	if workflow.pipelineConfig.Production.Environment != "" {
+		pipelineParams["ProdEnv"] = workflow.pipelineConfig.Production.Environment
+	}
+
+	if workflow.pipelineConfig.Production.BuildTimeout != "" {
+		pipelineParams["PipelineBuildProductionTimeout"] = workflow.pipelineConfig.Production.BuildTimeout
+	}
+
+	if workflow.pipelineConfig.MuBaseurl != "" {
+		pipelineParams["MuDownloadBaseurl"] = workflow.pipelineConfig.MuBaseurl
+	}
+
+	pipelineParams["EnableBuildStage"] = strconv.FormatBool(!workflow.pipelineConfig.Build.Disabled)
+	pipelineParams["EnableAcptStage"] = strconv.FormatBool(!workflow.pipelineConfig.Acceptance.Disabled)
+	pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
+
+	// get default buildspec
+	buildspec, err := templates.NewTemplate("buildspec.yml", nil)
+	if err != nil {
+		return nil, err
+	}
+	buildspecBytes := new(bytes.Buffer)
+	buildspecBytes.ReadFrom(buildspec)
+	newlineRegexp := regexp.MustCompile(`\r?\n`)
+	buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
+
+	params["DefaultBuildspec"] = buildspecString
+
+	version := workflow.pipelineConfig.MuVersion
+	if version == "" {
+		version = common.GetVersion()
+		if version == "0.0.0-local" {
+			version = ""
+		}
+	}
+	if version != "" {
+		params["MuDownloadVersion"] = version
+	}
+
+	return pipelineParams, nil
 }
 
 func (workflow *pipelineWorkflow) pipelineNotifyUpserter(namespace string, pipeline *common.Pipeline, subManager common.SubscriptionManager) Executor {

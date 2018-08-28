@@ -148,6 +148,24 @@ Parameters:
     Type: String
     Description: IAM Role for Prod Stage - used for cross account access
     Default: ""
+  PipelineBuildAcceptanceTimeout:
+    Type: Number
+    Description: The number of minutes after which AWS CodeBuild stops the build if it's not complete
+    Default: 30
+    MinValue: 5
+    MaxValue: 480
+  PipelineBuildTimeout:
+    Type: Number
+    Description: The number of minutes after which AWS CodeBuild stops the build if it's not complete
+    Default: 30
+    MinValue: 5
+    MaxValue: 480
+  PipelineBuildProductionTimeout:
+    Type: Number
+    Description: The number of minutes after which AWS CodeBuild stops the build if it's not complete
+    Default: 30
+    MinValue: 5
+    MaxValue: 480
 Conditions:
   IsS3:
     "Fn::And":
@@ -243,7 +261,7 @@ Resources:
           artifacts:
             files:
               - ${MuFile}
-      TimeoutInMinutes: 30
+      TimeoutInMinutes: !Ref PipelineBuildTimeout
   DeployAcceptance:
     Type: AWS::CodeBuild::Project
     Condition: IsAcptEnabled
@@ -305,7 +323,7 @@ Resources:
         Image: !Sub ${TestImage}
       Source:
         Type: CODEPIPELINE
-      TimeoutInMinutes: 30
+      TimeoutInMinutes: !Ref PipelineBuildAcceptanceTimeout
   DeployProduction:
     Type: AWS::CodeBuild::Project
     Condition: IsProdEnabled
@@ -364,7 +382,7 @@ Resources:
         Image: !Sub ${TestImage}
       Source:
         Type: CODEPIPELINE
-      TimeoutInMinutes: 30
+      TimeoutInMinutes: !Ref PipelineBuildProductionTimeout
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
