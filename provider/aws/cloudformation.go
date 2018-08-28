@@ -398,7 +398,7 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 }
 
 // ListStacks will find mu stacks
-func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType) ([]*common.Stack, error) {
+func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType, namespace string) ([]*common.Stack, error) {
 	cfnAPI := cfnMgr.cfnAPI
 
 	params := &cloudformation.DescribeStacksInput{}
@@ -415,8 +415,9 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType)
 				}
 
 				stack := buildStack(stackDetails)
+				stackNamespace := strings.Split(stack.Name, "-")[0]
 
-				if stack.Tags["type"] == string(stackType) {
+				if stack.Tags["type"] == string(stackType) && stackNamespace == namespace {
 					stacks = append(stacks, stack)
 				}
 			}
