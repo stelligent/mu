@@ -1,5 +1,25 @@
 # Change Log
 
+## [v1.5.2](https://github.com/stelligent/mu/tree/v1.5.2) (2018-08-30)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.5.1...v1.5.2)
+
+**Fixed bugs:**
+
+- Unable to provision schedule tasks [\#322](https://github.com/stelligent/mu/issues/322)
+- Namespace not honored when terminating environments [\#316](https://github.com/stelligent/mu/issues/316)
+- AccessDenied when directory's name different from repo's name [\#300](https://github.com/stelligent/mu/issues/300)
+
+**Closed issues:**
+
+- Quickstart Basic Guide Fails on mu pipeline up [\#318](https://github.com/stelligent/mu/issues/318)
+- Code pipeline error [\#312](https://github.com/stelligent/mu/issues/312)
+- Parameterised timeouts for pipeline steps [\#214](https://github.com/stelligent/mu/issues/214)
+
+**Merged pull requests:**
+
+- Issue \#214 - Added DeployTimeout to allow pipline timeout override [\#321](https://github.com/stelligent/mu/pull/321) ([mneil](https://github.com/mneil))
+- fix \#316 - Namespace not honored when terminating environments [\#317](https://github.com/stelligent/mu/pull/317) ([cplee](https://github.com/cplee))
+
 ## [v1.5.1](https://github.com/stelligent/mu/tree/v1.5.1) (2018-08-14)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.4.6...v1.5.1)
 
