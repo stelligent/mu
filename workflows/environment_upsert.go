@@ -30,6 +30,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesUpserter(ctx.KubernetesManager), nil),
 	)
 }
 
@@ -346,6 +347,16 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesUpserter(namespace string, kubernetesClientProvider common.KubernetesClientProvider) Executor {
+	return func() error {
+		environment := workflow.environment
+		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
+		kubernetesClientProvider.GetClient(clusterName)
+		log.Noticef("Upserting kubernetes environment '%s' ...", clusterName)
 		return nil
 	}
 }

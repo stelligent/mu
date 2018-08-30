@@ -20,6 +20,7 @@ type Context struct {
 	LogsManager          LogsManager
 	DockerManager        DockerManager
 	DockerOut            io.Writer
+	KubernetesManager    KubernetesManager
 	TaskManager          TaskManager
 	ArtifactManager      ArtifactManager
 	SubscriptionManager  SubscriptionManager

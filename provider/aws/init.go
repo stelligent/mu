@@ -128,6 +128,12 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	}
 	ctx.LocalPipelineManager, _ = newPipelineManager(localSess)
 
+	// initialize KubernetesManager
+	ctx.KubernetesManager, err = newEksKubernetesManager(sess)
+	if err != nil {
+		return err
+	}
+
 	ctx.DockerOut = os.Stdout
 
 	return nil

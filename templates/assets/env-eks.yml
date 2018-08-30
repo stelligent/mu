@@ -433,12 +433,9 @@ Outputs:
     Description: Vpc Id for the environment
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EksClusterEndpoint:
-    Value: !GetAtt EksCluster.Endpoint
-    Description: Endpoint of the EKS cluster.
-  EksClusterCertificateAuthorityData:
-    Value: !GetAtt EksCluster.CertificateAuthorityData
-    Description: Cert Auth of the EKS cluster.
+  EksClusterName:
+    Value: !Ref EksCluster
+    Description: Name of the EKS cluster.
   InstanceSecurityGroup:
     Value: !Ref NodeSecurityGroup
     Description: Security Group ID for the microservice instances

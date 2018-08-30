@@ -35,6 +35,13 @@ func (workflow *environmentWorkflow) isEcsProvider() Conditional {
 	}
 }
 
+func (workflow *environmentWorkflow) isKubernetesProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEks)) ||
+			strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEksFargate))
+	}
+}
+
 func (workflow *environmentWorkflow) isEc2Provider() Conditional {
 	return func() bool {
 		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEc2))

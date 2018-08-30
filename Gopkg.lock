@@ -24,20 +24,27 @@
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
     "aws/credentials/stscreds",
+    "aws/csm",
     "aws/defaults",
     "aws/ec2metadata",
     "aws/endpoints",
     "aws/request",
     "aws/session",
     "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/sdkuri",
     "internal/shareddefaults",
     "private/protocol",
     "private/protocol/ec2query",
+    "private/protocol/eventstream",
+    "private/protocol/eventstream/eventstreamapi",
     "private/protocol/json/jsonutil",
     "private/protocol/jsonrpc",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
+    "private/protocol/restjson",
     "private/protocol/restxml",
     "private/protocol/xml/xmlutil",
     "service/cloudformation",
@@ -53,6 +60,8 @@
     "service/ecr/ecriface",
     "service/ecs",
     "service/ecs/ecsiface",
+    "service/eks",
+    "service/eks/eksiface",
     "service/elbv2",
     "service/elbv2/elbv2iface",
     "service/rds",
@@ -66,8 +75,8 @@
     "service/ssm/ssmiface",
     "service/sts"
   ]
-  revision = "96358b8282b1a3aa66836d2f2fe66216cc419668"
-  version = "v1.8.44"
+  revision = "e21dfa909e14ce93f88f1f3505764bc4952a11be"
+  version = "v1.15.18"
 
 [[projects]]
   name = "github.com/briandowns/spinner"
@@ -148,6 +157,19 @@
   revision = "cc9eb1d7ad760af14e8f918698f745e80377af4f"
 
 [[projects]]
+  name = "github.com/ericchiang/k8s"
+  packages = [
+    ".",
+    "apis/meta/v1",
+    "runtime",
+    "runtime/schema",
+    "util/intstr",
+    "watch/versioned"
+  ]
+  revision = "677cf3318ef83bf681a38821f81a233a9be09641"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/fatih/color"
   packages = ["."]
   revision = "34e4ee095d12986a2cef5ddb9aeb3b8cfcfea17c"
@@ -156,8 +178,14 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "e3c2d47c61e5333f9aa2974695dd94396eb69c75"
-  version = "v1.24.0"
+  revision = "5cf292cae48347c2490ac1a58fe36735fb78df7e"
+  version = "v1.38.2"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -180,7 +208,7 @@
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
-  revision = "bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d"
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -341,6 +369,10 @@
   packages = [
     "context",
     "context/ctxhttp",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "lex/httplex",
     "proxy"
   ]
   revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
@@ -426,6 +458,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6982744b99cdcfd47f3b1a42cc50cce10fab3b1f2da38c45bd509d906c7859b3"
+  inputs-digest = "e4e081159172cd23b8eabef3804c380f2e53e34eb30865161765592fd4b95ef5"
   solver-name = "gps-cdcl"
   solver-version = 1
