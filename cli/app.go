@@ -26,6 +26,7 @@ func NewApp() *cli.App {
 		*newServicesCommand(context),
 		*newPipelinesCommand(context),
 		*newDatabasesCommand(context),
+		*newValidateCommand(context),
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -36,7 +37,6 @@ func NewApp() *cli.App {
 			common.SetupLogging(0)
 		} else {
 			common.SetupLogging(1)
-
 		}
 
 		// initialize context

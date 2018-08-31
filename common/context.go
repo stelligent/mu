@@ -249,7 +249,7 @@ func (ctx *Context) InitializeContext() error {
 func loadYamlConfig(config *Config, yamlReader io.Reader) error {
 	yamlBuffer := new(bytes.Buffer)
 	yamlBuffer.ReadFrom(yamlReader)
-	return yaml.Unmarshal(yamlBuffer.Bytes(), config)
+	return yaml.UnmarshalStrict(yamlBuffer.Bytes(), config)
 }
 
 func parseAbsURL(urlString string, basedir string) (*url.URL, error) {
