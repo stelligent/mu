@@ -184,6 +184,14 @@
   version = "v1.24.0"
 
 [[projects]]
+  branch = "v2"
+  digest = "1:b6539350da50de0d3c9b83ae587c06b89be9cb5750443bdd887f1c4077f57776"
+  name = "github.com/go-validator/validator"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "135c24b11c19e52befcae2ec3fca5d9b78c4e98e"
+
+[[projects]]
   branch = "master"
   digest = "1:29a5ab9fa9e845fd8e8726f31b187d710afd271ef1eb32085fe3d604b7e06382"
   name = "github.com/golang/snappy"
@@ -554,6 +562,7 @@
     "github.com/docker/docker/pkg/fileutils",
     "github.com/fatih/color",
     "github.com/go-ini/ini",
+    "github.com/go-validator/validator",
     "github.com/howeyc/gopass",
     "github.com/mholt/archiver",
     "github.com/mitchellh/go-homedir",

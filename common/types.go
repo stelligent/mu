@@ -29,7 +29,7 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
-	Namespace    string        `yaml:"namespace,omitempty"`
+	Namespace    string        `yaml:"namespace,omitempty" validate:"regexp=^[a-z][a-z0-9-]+$"`
 	Environments []Environment `yaml:"environments,omitempty"`
 	Service      Service       `yaml:"service,omitempty"`
 	Basedir      string        `yaml:"-"`
@@ -107,7 +107,7 @@ type Service struct {
 	MaxSize              int                    `yaml:"maxSize,omitempty"`
 	Dockerfile           string                 `yaml:"dockerfile,omitempty"`
 	ImageRepository      string                 `yaml:"imageRepository,omitempty"`
-	Port                 int                    `yaml:"port,omitempty"`
+	Port                 int                    `yaml:"port,omitempty" validate:"max=65535"`
 	Protocol             string                 `yaml:"protocol,omitempty"`
 	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
 	CPU                  int                    `yaml:"cpu,omitempty"`

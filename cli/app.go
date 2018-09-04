@@ -57,10 +57,14 @@ func NewApp() *cli.App {
 		}
 
 		err = context.InitializeConfigFromFile(c.String("config"))
-		if err != nil {
-			// ignore errors for init command
-			if c.Args().First() != "init" {
+		if c.Args().First() != "init" {
+			if err != nil {
 				log.Warningf("Unable to load mu config: %v", err)
+			}
+			common.Validators()
+			if err = context.Config.Validate(); err != nil {
+				log.Errorf("Invalid Config: %v", err)
+				return nil
 			}
 		}
 
