@@ -61,7 +61,6 @@ func NewApp() *cli.App {
 			if err != nil {
 				log.Warningf("Unable to load mu config: %v", err)
 			}
-			common.Validators()
 			if err = context.Config.Validate(); err != nil {
 				log.Errorf("Invalid Config: %v", err)
 				return nil

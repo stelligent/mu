@@ -29,7 +29,7 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
-	Namespace    string        `yaml:"namespace,omitempty" validate:"regexp=^[a-z][a-z0-9-]+$"`
+	Namespace    string        `yaml:"namespace,omitempty" validate:"emptyRegexp=^[a-z][a-z0-9-]+$"`
 	Environments []Environment `yaml:"environments,omitempty"`
 	Service      Service       `yaml:"service,omitempty"`
 	Basedir      string        `yaml:"-"`
@@ -59,30 +59,12 @@ type Extension struct {
 
 // Environment defines the structure of the yml file for an environment
 type Environment struct {
-	Name         string      `yaml:"name,omitempty"`
-	Provider     EnvProvider `yaml:"provider,omitempty"`
-	Loadbalancer struct {
-		HostedZone  string `yaml:"hostedzone,omitempty"`
-		Name        string `yaml:"name,omitempty"`
-		Certificate string `yaml:"certificate,omitempty"`
-		Internal    bool   `yaml:"internal,omitempty"`
-	} `yaml:"loadbalancer,omitempty"`
-	Cluster struct {
-		InstanceType            string `yaml:"instanceType,omitempty"`
-		ImageID                 string `yaml:"imageId,omitempty"`
-		ImageOsType             string `yaml:"osType,omitempty"`
-		InstanceTenancy         string `yaml:"instanceTenancy,omitempty"`
-		DesiredCapacity         int    `yaml:"desiredCapacity,omitempty"`
-		MinSize                 int    `yaml:"minSize,omitempty"`
-		MaxSize                 int    `yaml:"maxSize,omitempty"`
-		KeyName                 string `yaml:"keyName,omitempty"`
-		SSHAllow                string `yaml:"sshAllow,omitempty"`
-		TargetCPUReservation    int    `yaml:"targetCPUReservation,omitempty"`
-		TargetMemoryReservation int    `yaml:"targetMemoryReservation,omitempty"`
-		HTTPProxy               string `yaml:"httpProxy,omitempty"`
-		ExtraUserData           string `yaml:"extraUserData,omitempty"`
-	} `yaml:"cluster,omitempty"`
-	Discovery struct {
+	// Name is used for tagging, for ELB domain (default), and stack name. 63=max label length in DNS record
+	Name         string       `yaml:"name,omitempty" validate:"emptyRegexp=^[a-z0-9][a-z0-9-]+$,max=63"`
+	Provider     EnvProvider  `yaml:"provider,omitempty"`
+	Loadbalancer Loadbalancer `yaml:"loadbalancer,omitempty"`
+	Cluster      Cluster      `yaml:"cluster,omitempty"`
+	Discovery    struct {
 		Provider string `yaml:"provider,omitempty"`
 		Name     string `yaml:"name,omitempty"`
 	} `yaml:"discovery,omitempty"`
@@ -96,6 +78,33 @@ type Environment struct {
 	Roles struct {
 		EcsInstance string `yaml:"ecsInstance,omitempty"`
 	} `yaml:"roles,omitempty"`
+}
+
+// Loadbalancer defines the scructure of the yml file for a loadbalancer
+type Loadbalancer struct {
+	// DNS name
+	HostedZone string `yaml:"hostedzone,omitempty" validate:"emptyRegexp=^[a-z0-9][a-z0-9-.]+$,max=255"`
+	// ELB name
+	Name        string `yaml:"name,omitempty"  validate:"emptyRegexp=^[a-z0-9][a-z0-9-]+$,max=32"`
+	Certificate string `yaml:"certificate,omitempty"`
+	Internal    bool   `yaml:"internal,omitempty"`
+}
+
+// Cluster defines the scructure of the yml file for a cluster of EC2 instance AWS::AutoScaling::LaunchConfiguration
+type Cluster struct {
+	InstanceType            string          `yaml:"instanceType,omitempty" validate:"emptyRegexp=^[a-z0-9]+\\.[a-z0-9.]+$"`
+	ImageID                 string          `yaml:"imageId,omitempty" validate:"emptyRegexp=^ami-[a-z0-9.]+$"`
+	ImageOsType             string          `yaml:"osType,omitempty"`
+	InstanceTenancy         InstanceTenancy `yaml:"instanceTenancy,omitempty"`
+	DesiredCapacity         int             `yaml:"desiredCapacity,omitempty"`
+	MinSize                 int             `yaml:"minSize,omitempty"`
+	MaxSize                 int             `yaml:"maxSize,omitempty"`
+	KeyName                 string          `yaml:"keyName,omitempty"`
+	SSHAllow                string          `yaml:"sshAllow,omitempty"`
+	TargetCPUReservation    int             `yaml:"targetCPUReservation,omitempty"`
+	TargetMemoryReservation int             `yaml:"targetMemoryReservation,omitempty"`
+	HTTPProxy               string          `yaml:"httpProxy,omitempty"`
+	ExtraUserData           string          `yaml:"extraUserData,omitempty"`
 }
 
 // Service defines the structure of the yml file for a service
@@ -300,6 +309,16 @@ const (
 	EnvProviderEcs        EnvProvider = "ecs"
 	EnvProviderEcsFargate             = "ecs-fargate"
 	EnvProviderEc2                    = "ec2"
+)
+
+// InstanceTenancy describes supported tenancy options for EC2
+type InstanceTenancy string
+
+// List of valid tenancies
+const (
+	InstanceTenancyDedicated = "dedicated"
+	InstanceTenancyHost      = "host"
+	InstanceTenancyDefault   = "default"
 )
 
 // ArtifactProvider describes supported artifact strategies
