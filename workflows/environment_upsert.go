@@ -30,7 +30,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesUpserter(ctx.KubernetesManager), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesUpserter(ctx.Config.Namespace, ctx.KubernetesManager), nil),
 	)
 }
 
