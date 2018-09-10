@@ -25,6 +25,7 @@ func validators() {
 	validator.SetValidationFunc("validateURL", validateURL)
 	validator.SetValidationFunc("validateInstanceType", validateInstanceType)
 	validator.SetValidationFunc("validateCIDR", validateCIDR)
+	validator.SetValidationFunc("validateDockerImage", validateDockerImage)
 }
 
 func validateResourceID(v interface{}, param string) error {
@@ -58,6 +59,11 @@ func isSlice(v interface{}) (reflect.Value, error) {
 func validateCIDR(v interface{}, param string) error {
 	pattern := "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
 	return regexpLength(reflect.ValueOf(v).String(), pattern, 18)
+}
+
+func validateDockerImage(v interface{}, param string) error {
+	// TODO: Validate Docker Image registry/image:tag
+	return nil
 }
 
 // validateRoleARN validates that the value is an valid role ARN

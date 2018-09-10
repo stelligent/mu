@@ -174,7 +174,7 @@ type Pipeline struct {
 		Disabled     bool            `yaml:"disabled,omitempty"`
 		Type         EnvironmentType `yaml:"type,omitempty"`
 		ComputeType  ComputeType     `yaml:"computeType,omitempty"`
-		Image        string          `yaml:"image,omitempty" validate:"validateResourceID=ami"`
+		Image        string          `yaml:"image,omitempty" validate:"validateDockerImage"`
 		Bucket       string          `yaml:"bucket,omitempty"`
 		BuildTimeout string          `yaml:"timeout,omitempty" validate:"max=480"`
 	} `yaml:"build,omitempty"`
@@ -183,7 +183,7 @@ type Pipeline struct {
 		Environment string          `yaml:"environment,omitempty"`
 		Type        EnvironmentType `yaml:"type,omitempty"`
 		ComputeType ComputeType     `yaml:"computeType,omitempty"`
-		Image       string          `yaml:"image,omitempty" validate:"validateResourceID=ami"`
+		Image       string          `yaml:"image,omitempty" validate:"validateDockerImage"`
 		Roles       struct {
 			CodeBuild string `yaml:"codeBuild,omitempty" validate:"validateRoleARN"`
 			Mu        string `yaml:"mu,omitempty" validate:"validateRoleARN"`
