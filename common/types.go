@@ -89,7 +89,7 @@ type Cluster struct {
 	MinSize                 int             `yaml:"minSize,omitempty"`
 	MaxSize                 int             `yaml:"maxSize,omitempty"`
 	KeyName                 string          `yaml:"keyName,omitempty"`
-	SSHAllow                string          `yaml:"sshAllow,omitempty"`
+	SSHAllow                string          `yaml:"sshAllow,omitempty" validate:"validateCIDR"`
 	TargetCPUReservation    int             `yaml:"targetCPUReservation,omitempty" validate:"max=100"`
 	TargetMemoryReservation int             `yaml:"targetMemoryReservation,omitempty" validate:"max=100"`
 	HTTPProxy               string          `yaml:"httpProxy,omitempty"  validate:"validateURL"`
@@ -113,27 +113,27 @@ type EnvironmentRoles struct {
 // Service defines the structure of the yml file for a service
 type Service struct {
 	Name                 string                 `yaml:"name,omitempty" validate:"validateLeadingAlphaNumericDash"`
-	DeploymentStrategy   string                 `yaml:"deploymentStrategy,omitempty"`
+	DeploymentStrategy   DeploymentStrategy     `yaml:"deploymentStrategy,omitempty"`
 	DesiredCount         int                    `yaml:"desiredCount,omitempty"`
 	MinSize              int                    `yaml:"minSize,omitempty"`
 	MaxSize              int                    `yaml:"maxSize,omitempty"`
 	Dockerfile           string                 `yaml:"dockerfile,omitempty"`
 	ImageRepository      string                 `yaml:"imageRepository,omitempty"`
 	Port                 int                    `yaml:"port,omitempty" validate:"max=65535"`
-	Protocol             string                 `yaml:"protocol,omitempty"`
-	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty"`
+	Protocol             ServiceProtocol        `yaml:"protocol,omitempty"`
+	HealthEndpoint       string                 `yaml:"healthEndpoint,omitempty" validate:"validateURL"`
 	CPU                  int                    `yaml:"cpu,omitempty"`
 	Memory               int                    `yaml:"memory,omitempty"`
-	NetworkMode          string                 `yaml:"networkMode,omitempty"`
+	NetworkMode          NetworkMode            `yaml:"networkMode,omitempty"`
 	Links                []string               `yaml:"links,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
-	Priority             int                    `yaml:"priority,omitempty"`
+	Priority             int                    `yaml:"priority,omitempty" validate:"max=50000"`
 	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
 	Database             Database               `yaml:"database,omitempty"`
 	Schedule             []Schedule             `yaml:"schedules,omitempty"`
-	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty"`
+	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty" validate:"max=100"`
 	DiscoveryTTL         string                 `yaml:"discoveryTTL,omitempty"`
 	Roles                struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty" validate:"validateRoleARN"`
@@ -147,9 +147,9 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string            `yaml:"name,omitempty"`
-	InstanceClass     string            `yaml:"instanceClass,omitempty"`
-	Engine            string            `yaml:"engine,omitempty"`
+	Name              string            `yaml:"name,omitempty" validate:"validateLeadingAlphaNumericDash"`
+	InstanceClass     string            `yaml:"instanceClass,omitempty" validate:"validateInstanceType"`
+	Engine            string            `yaml:"engine,omitempty" validate:"validateAlphaNumericDash"`
 	IamAuthentication bool              `yaml:"iamAuthentication,omitempty"`
 	MasterUsername    string            `yaml:"masterUsername,omitempty"`
 	AllocatedStorage  string            `yaml:"allocatedStorage,omitempty"`
@@ -158,7 +158,7 @@ type Database struct {
 
 // Schedule definition
 type Schedule struct {
-	Name       string   `yaml:"name,omitempty"`
+	Name       string   `yaml:"name,omitempty" validate:"validateLeadingAlphaNumericDash"`
 	Expression string   `yaml:"expression,omitempty"`
 	Command    []string `yaml:"command,omitempty"`
 }
@@ -171,24 +171,24 @@ type Pipeline struct {
 		Branch   string `yaml:"branch,omitempty"`
 	} `yaml:"source,omitempty"`
 	Build struct {
-		Disabled     bool   `yaml:"disabled,omitempty"`
-		Type         string `yaml:"type,omitempty"`
-		ComputeType  string `yaml:"computeType,omitempty"`
-		Image        string `yaml:"image,omitempty"`
-		Bucket       string `yaml:"bucket,omitempty"`
-		BuildTimeout string `yaml:"timeout,omitempty"`
+		Disabled     bool            `yaml:"disabled,omitempty"`
+		Type         EnvironmentType `yaml:"type,omitempty"`
+		ComputeType  ComputeType     `yaml:"computeType,omitempty"`
+		Image        string          `yaml:"image,omitempty" validate:"validateResourceID=ami"`
+		Bucket       string          `yaml:"bucket,omitempty"`
+		BuildTimeout string          `yaml:"timeout,omitempty" validate:"max=480"`
 	} `yaml:"build,omitempty"`
 	Acceptance struct {
-		Disabled    bool   `yaml:"disabled,omitempty"`
-		Environment string `yaml:"environment,omitempty"`
-		Type        string `yaml:"type,omitempty"`
-		ComputeType string `yaml:"computeType,omitempty"`
-		Image       string `yaml:"image,omitempty"`
+		Disabled    bool            `yaml:"disabled,omitempty"`
+		Environment string          `yaml:"environment,omitempty"`
+		Type        EnvironmentType `yaml:"type,omitempty"`
+		ComputeType ComputeType     `yaml:"computeType,omitempty"`
+		Image       string          `yaml:"image,omitempty" validate:"validateResourceID=ami"`
 		Roles       struct {
 			CodeBuild string `yaml:"codeBuild,omitempty" validate:"validateRoleARN"`
 			Mu        string `yaml:"mu,omitempty" validate:"validateRoleARN"`
 		} `yaml:"roles,omitempty"`
-		BuildTimeout string `yaml:"timeout,omitempty"`
+		BuildTimeout string `yaml:"timeout,omitempty" validate:"max=480"`
 	} `yaml:"acceptance,omitempty"`
 	Production struct {
 		Disabled    bool   `yaml:"disabled,omitempty"`
@@ -197,7 +197,7 @@ type Pipeline struct {
 			CodeBuild string `yaml:"codeBuild,omitempty" validate:"validateRoleARN"`
 			Mu        string `yaml:"mu,omitempty" validate:"validateRoleARN"`
 		} `yaml:"roles,omitempty"`
-		BuildTimeout string `yaml:"timeout,omitempty"`
+		BuildTimeout string `yaml:"timeout,omitempty" validate:"max=480"`
 	} `yaml:"production,omitempty"`
 	MuBaseurl string `yaml:"muBaseurl,omitempty"`
 	MuVersion string `yaml:"muVersion,omitempty"`
@@ -331,6 +331,45 @@ type ArtifactProvider string
 const (
 	ArtifactProviderEcr ArtifactProvider = "ecr"
 	ArtifactProviderS3                   = "s3"
+)
+
+// ServiceProtocol describes exposed ports for ECS service
+type ServiceProtocol string
+
+// List of supported service protocols
+const (
+	ServiceProtocolHTTP  = "HTTP"
+	ServiceProtocolHTTPS = "HTTPS"
+)
+
+// NetworkMode describes the ecs docker network mode
+type NetworkMode string
+
+// List of supported network modes
+const (
+	NetworkModeNone   = "none"
+	NetworkModeBridge = "bridge"
+	NetworkModeAwsVpc = "awsvpc"
+	NetworkModeHost   = "host"
+)
+
+// ComputeType describes the compute type of a codebuild project
+type ComputeType string
+
+// List of supported compute types
+const (
+	ComputeTypeSmall  = "BUILD_GENERAL1_SMALL"
+	ComputeTypeMedium = "BUILD_GENERAL1_MEDIUM"
+	ComputeTypeLarge  = "BUILD_GENERAL1_LARGE"
+)
+
+// EnvironmentType describes the codebuild project environment type
+type EnvironmentType string
+
+// List of supported environment types
+const (
+	EnvironmentTypeLinux   = "LINUX_CONTAINER"
+	EnvironmentTypeWindows = "WINDOWS_CONTAINER"
 )
 
 // Container describes container details

@@ -24,6 +24,7 @@ func validators() {
 	validator.SetValidationFunc("validateResourceID", validateResourceID)
 	validator.SetValidationFunc("validateURL", validateURL)
 	validator.SetValidationFunc("validateInstanceType", validateInstanceType)
+	validator.SetValidationFunc("validateCIDR", validateCIDR)
 }
 
 func validateResourceID(v interface{}, param string) error {
@@ -44,6 +45,11 @@ func validateResourceID(v interface{}, param string) error {
 	return validator.ErrBadParameter
 }
 
+func validateCIDR(v interface{}, param string) error {
+	pattern := "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+	return validateEmptyRegexp(v, pattern)
+}
+
 // validateRoleARN validates that the value is an valid role ARN
 func validateRoleARN(v interface{}, param string) error {
 	value := reflect.ValueOf(v).String()
@@ -54,7 +60,7 @@ func validateRoleARN(v interface{}, param string) error {
 // validateInstanceType validates the value is an instance type https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html
 func validateInstanceType(v interface{}, param string) error {
 	value := reflect.ValueOf(v).String()
-	pattern := "^[a-zA-Z0-9]{2,3}\\.[a-zA-Z0-9]{4,10}$"
+	pattern := "^[a-zA-Z0-9]{2,3}\\.([a-zA-Z0-9]{2,3}\\.)?[a-zA-Z0-9]{4,10}$"
 	return regexpLength(value, pattern, 95)
 }
 

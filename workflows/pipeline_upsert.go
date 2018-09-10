@@ -254,10 +254,11 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	}
 
 	if workflow.pipelineConfig.Build.Type != "" {
-		pipelineParams["BuildType"] = workflow.pipelineConfig.Build.Type
+		pipelineParams["BuildType"] = string(workflow.pipelineConfig.Build.Type)
 	}
+
 	if workflow.pipelineConfig.Build.ComputeType != "" {
-		pipelineParams["BuildComputeType"] = workflow.pipelineConfig.Build.ComputeType
+		pipelineParams["BuildComputeType"] = string(workflow.pipelineConfig.Build.ComputeType)
 	}
 
 	if workflow.pipelineConfig.Build.Image != "" {
@@ -269,11 +270,11 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	}
 
 	if workflow.pipelineConfig.Acceptance.Type != "" {
-		pipelineParams["TestType"] = workflow.pipelineConfig.Acceptance.Type
+		pipelineParams["TestType"] = string(workflow.pipelineConfig.Acceptance.Type)
 	}
 
 	if workflow.pipelineConfig.Acceptance.ComputeType != "" {
-		pipelineParams["TestComputeType"] = workflow.pipelineConfig.Acceptance.ComputeType
+		pipelineParams["TestComputeType"] = string(workflow.pipelineConfig.Acceptance.ComputeType)
 	}
 
 	if workflow.pipelineConfig.Acceptance.Image != "" {
