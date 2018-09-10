@@ -77,7 +77,7 @@ func validateInstanceType(v interface{}, param string) error {
 // validateURL validates that the string is a valid http resource
 func validateURL(v interface{}, param string) error {
 	value := reflect.ValueOf(v).String()
-	pattern := "^[a-zA-Z0-9][a-zA-Z0-9-\\./_]+$"
+	pattern := "^[a-zA-Z0-9/][a-zA-Z0-9-\\./_]*?$"
 	return regexpLength(value, pattern, 255)
 }
 

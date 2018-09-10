@@ -65,6 +65,9 @@ func TestValidateInstanceType(t *testing.T) {
 func TestValidateURL(t *testing.T) {
 	assert := assert.New(t)
 	assert.Nil(validateURL("foo.BAR/foo-bar_", ""))
+	assert.Nil(validateURL("/", ""))
+	assert.Nil(validateURL("/ping", ""))
+	assert.Nil(validateURL("a", ""))
 	assert.NotNil(validateURL("foo@bar.foo-bar", ""))
 	assert.NotNil(validateURL("http://foo.bar", ""))
 }
