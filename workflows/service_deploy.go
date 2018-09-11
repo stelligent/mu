@@ -155,10 +155,11 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 
 		// force 'awsvpc' network mode for ecs-fargate
 		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
-			params["TaskNetworkMode"] = "awsvpc"
+			params["TaskNetworkMode"] = common.NetworkModeAwsVpc
 		} else if service.NetworkMode != "" {
-			params["TaskNetworkMode"] = service.NetworkMode
+			params["TaskNetworkMode"] = string(service.NetworkMode)
 		}
+
 		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
 		if err != nil {
 			return err
@@ -170,13 +171,13 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ServiceName"] = workflow.serviceName
 
 		switch service.DeploymentStrategy {
-		case string(common.BlueGreenDeploymentStrategy):
+		case common.BlueGreenDeploymentStrategy:
 			params["MinimumHealthyPercent"] = "100"
 			params["MaximumPercent"] = "200"
-		case string(common.ReplaceDeploymentStrategy):
+		case common.ReplaceDeploymentStrategy:
 			params["MinimumHealthyPercent"] = "0"
 			params["MaximumPercent"] = "100"
-		case string(common.RollingDeploymentStrategy):
+		case common.RollingDeploymentStrategy:
 			params["MinimumHealthyPercent"] = "50"
 			params["MaximumPercent"] = "100"
 		default:
@@ -284,7 +285,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["ServicePort"] = strconv.Itoa(service.Port)
 		}
 		if service.Protocol != "" {
-			params["ServiceProtocol"] = strings.ToUpper(service.Protocol)
+			params["ServiceProtocol"] = string(service.Protocol)
 		}
 		if service.HealthEndpoint != "" {
 			params["ServiceHealthEndpoint"] = service.HealthEndpoint

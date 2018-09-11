@@ -26,6 +26,7 @@ func NewApp() *cli.App {
 		*newServicesCommand(context),
 		*newPipelinesCommand(context),
 		*newDatabasesCommand(context),
+		*newValidateCommand(context),
 	}
 
 	app.Before = func(c *cli.Context) error {
@@ -36,7 +37,6 @@ func NewApp() *cli.App {
 			common.SetupLogging(0)
 		} else {
 			common.SetupLogging(1)
-
 		}
 
 		// initialize context
@@ -57,10 +57,13 @@ func NewApp() *cli.App {
 		}
 
 		err = context.InitializeConfigFromFile(c.String("config"))
-		if err != nil {
-			// ignore errors for init command
-			if c.Args().First() != "init" {
+		if c.Args().First() != "init" {
+			if err != nil {
 				log.Warningf("Unable to load mu config: %v", err)
+			}
+			if err = context.Config.Validate(); err != nil {
+				log.Errorf("Invalid Config: %v", err)
+				return nil
 			}
 		}
 

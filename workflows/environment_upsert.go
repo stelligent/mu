@@ -86,7 +86,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, en
 			vpcTemplateName = "vpc.yml"
 
 			if environment.Cluster.InstanceTenancy != "" {
-				vpcStackParams["InstanceTenancy"] = environment.Cluster.InstanceTenancy
+				vpcStackParams["InstanceTenancy"] = string(environment.Cluster.InstanceTenancy)
 			}
 			if environment.Cluster.SSHAllow != "" {
 				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow

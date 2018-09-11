@@ -71,7 +71,7 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
-  version = "4.0.0-rc13"
+  version = "4.7.0"
 
 [prune]
   go-tests = true
@@ -84,3 +84,7 @@
 [[constraint]]
   name = "github.com/ericchiang/k8s"
   version = "1.1.0"
+
+[[constraint]]
+  branch = "v2"
+  name = "github.com/go-validator/validator"

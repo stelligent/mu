@@ -71,6 +71,29 @@ func TestLoadBadYamlConfig(t *testing.T) {
 	assert.NotNil(err)
 }
 
+func TestLoadInvalidParam(t *testing.T) {
+	assert := assert.New(t)
+
+	yamlConfig :=
+		`
+---
+environments:
+  - name: dev
+    loadbalancer:
+      hostedzone: api-dev.example.com
+    cluster:
+      desiredCapacity: 1
+      maxSize: 1
+service:
+  invalidParam: 2
+`
+
+	context := NewContext()
+	config := &context.Config
+	err := loadYamlConfig(config, strings.NewReader(yamlConfig))
+	assert.NotNil(err)
+}
+
 func TestSubstituteEnvironmentVariablessAsStream(t *testing.T) {
 	assert := assert.New(t)
 
