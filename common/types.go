@@ -108,8 +108,8 @@ type VpcTarget struct {
 
 // EnvironmentRoles defines the structure of the yml file for environment roles
 type EnvironmentRoles struct {
-	EcsInstance string `yaml:"ecsInstance,omitempty" validate:"validateRoleARN"`
-	EksService  string `yaml:"eksService,omitempty" validate:"validateRoleARN"`
+	Instance   string `yaml:"instance,omitempty" validate:"validateRoleARN"`
+	EksService string `yaml:"eksService,omitempty" validate:"validateRoleARN"`
 }
 
 // Service defines the structure of the yml file for a service

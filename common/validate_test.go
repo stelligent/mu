@@ -335,7 +335,7 @@ func TestValidateConfigEnvironmentRoles(t *testing.T) {
 		Environments: []Environment{
 			Environment{
 				Roles: EnvironmentRoles{
-					EcsInstance: "arn:aws:iam:000000000000:role/6",
+					Instance: "arn:aws:iam:000000000000:role/6",
 				},
 			},
 		},
@@ -344,7 +344,7 @@ func TestValidateConfigEnvironmentRoles(t *testing.T) {
 		Environments: []Environment{
 			Environment{
 				Roles: EnvironmentRoles{
-					EcsInstance: "arn:aws:iam::000000000000:role/AbHQZQa4UUwfJm7hekFBf7sg92cUFy3SwxHRLV65uI7Ddp0zv5K4I5d3ZS9Y9U6kH",
+					Instance: "arn:aws:iam::000000000000:role/AbHQZQa4UUwfJm7hekFBf7sg92cUFy3SwxHRLV65uI7Ddp0zv5K4I5d3ZS9Y9U6kH",
 				},
 			},
 		},
@@ -353,7 +353,7 @@ func TestValidateConfigEnvironmentRoles(t *testing.T) {
 		Environments: []Environment{
 			Environment{
 				Roles: EnvironmentRoles{
-					EcsInstance: "arn:aws:iam::000000000000:role/-+=,.@_4UUwfJm7hekFBf7sg92cUFy3wxHRLV65uI7Ddp0zv5K4I5d3ZS9Y9U6kH",
+					Instance: "arn:aws:iam::000000000000:role/-+=,.@_4UUwfJm7hekFBf7sg92cUFy3wxHRLV65uI7Ddp0zv5K4I5d3ZS9Y9U6kH",
 				},
 			},
 		},
@@ -365,8 +365,8 @@ func TestValidateConfigEnvironmentRoles(t *testing.T) {
 	tooLong := configTooLong.Validate()
 	tooLongErrs := tooLong.(validator.ErrorMap)
 
-	assert.Equal(invalidCharErrs["Environments[0].Roles.EcsInstance"][0].Error(), "regular expression mismatch")
-	assert.Equal(tooLongErrs["Environments[0].Roles.EcsInstance"][0].Error(), "greater than max")
+	assert.Equal(invalidCharErrs["Environments[0].Roles.Instance"][0].Error(), "regular expression mismatch")
+	assert.Equal(tooLongErrs["Environments[0].Roles.Instance"][0].Error(), "greater than max")
 	assert.Nil(configEmpty.Validate())
 	assert.Nil(config.Validate())
 }

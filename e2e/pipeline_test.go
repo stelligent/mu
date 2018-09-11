@@ -8,6 +8,16 @@ import (
 	hm "crypto/hmac"
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
+	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
@@ -21,15 +31,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"net/url"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 )
 
 var contexts []*common.Context
@@ -354,7 +355,9 @@ func setupRepo(sess *session.Session, name string, dir string) error {
 	// git push
 	remote, err := repo.CreateRemote(&config.RemoteConfig{
 		Name: "origin",
-		URL:  common.StringValue(resp.RepositoryMetadata.CloneUrlHttp),
+		URLs: []string{
+			common.StringValue(resp.RepositoryMetadata.CloneUrlHttp),
+		},
 	})
 	if err != nil {
 		fmt.Printf("Failure create remote '%s'\n", name)
@@ -363,7 +366,10 @@ func setupRepo(sess *session.Session, name string, dir string) error {
 
 	username, password := credentialHelper(sess, common.StringValue(resp.RepositoryMetadata.CloneUrlHttp))
 
-	auth := http.NewBasicAuth(username, password)
+	auth := &http.BasicAuth{
+		Username: username,
+		Password: password,
+	}
 	err = remote.Push(&git.PushOptions{
 		RemoteName: "origin",
 		Auth:       auth,
