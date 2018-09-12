@@ -415,9 +415,9 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType,
 				}
 
 				stack := buildStack(stackDetails)
-				stackNamespace := strings.Split(stack.Name, "-")[0]
+				expectedStackPrefix := fmt.Sprintf("%s-%s", namespace, stackType)
 
-				if stack.Tags["type"] == string(stackType) && stackNamespace == namespace {
+				if stack.Tags["type"] == string(stackType) && strings.HasPrefix(stack.Name, expectedStackPrefix) {
 					stacks = append(stacks, stack)
 				}
 			}
