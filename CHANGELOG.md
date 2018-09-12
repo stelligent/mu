@@ -1,5 +1,20 @@
 # Change Log
 
+## [v1.5.3](https://github.com/stelligent/mu/tree/v1.5.3) (2018-09-12)
+[Full Changelog](https://github.com/stelligent/mu/compare/v1.5.2...v1.5.3)
+
+**Fixed bugs:**
+
+- Namespace with hyphen [\#327](https://github.com/stelligent/mu/issues/327)
+
+**Closed issues:**
+
+- Validate config file [\#258](https://github.com/stelligent/mu/issues/258)
+
+**Merged pull requests:**
+
+- Issue 258 - Validation [\#325](https://github.com/stelligent/mu/pull/325) ([mneil](https://github.com/mneil))
+
 ## [v1.5.2](https://github.com/stelligent/mu/tree/v1.5.2) (2018-08-30)
 [Full Changelog](https://github.com/stelligent/mu/compare/v1.5.1...v1.5.2)
 
