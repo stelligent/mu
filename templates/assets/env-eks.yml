@@ -12,10 +12,10 @@ Parameters:
     Type: String
     Description: Instance type to use.
     Default: t2.medium
-  MaxPodsPerNode:
+  BootstrapArguments:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: ""
     Type: String
-    Description: Max pods to run per worker node
-    Default: 17
   MinSize:
     Type: Number
     Default: '1'
@@ -215,6 +215,28 @@ Resources:
       SourceSecurityGroupId: !Ref NodeSecurityGroup
       GroupId: !Ref NodeSecurityGroup
 
+  NodeSecurityGroupFromControlPlaneOn443Ingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  ControlPlaneEgressToNodeSecurityGroupOn443:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
   EksAutoScalingGroup:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -347,22 +369,13 @@ Resources:
           commands:
             01_kube_config:
               command: !Sub |
-                #!/bin/bash -xe
-                INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
-                DNS_CLUSTER_IP=10.100.0.10
-                if [[ $INTERNAL_IP == 10.* ]] ; then DNS_CLUSTER_IP=172.20.0.10; fi
-                sed -i s,MASTER_ENDPOINT,${EksCluster.Endpoint},g /var/lib/kubelet/kubeconfig
-                sed -i s,CLUSTER_NAME,${AWS::StackName},g /var/lib/kubelet/kubeconfig
-                sed -i s,REGION,${AWS::Region},g /etc/systemd/system/kubelet.service
-                sed -i s,MAX_PODS,${MaxPodsPerNode},g /etc/systemd/system/kubelet.service
-                sed -i s,MASTER_ENDPOINT,$MASTER_ENDPOINT,g /etc/systemd/system/kubelet.service
-                sed -i s,INTERNAL_IP,$INTERNAL_IP,g /etc/systemd/system/kubelet.service
-                sed -i s,DNS_CLUSTER_IP,$DNS_CLUSTER_IP,g  /etc/systemd/system/kubelet.service
-                sed -i s,CERTIFICATE_AUTHORITY_FILE,/etc/kubernetes/pki/ca.crt,g /var/lib/kubelet/kubeconfig
-                sed -i s,CLIENT_CA_FILE,/etc/kubernetes/pki/ca.crt,g  /etc/systemd/system/kubelet.service
-                base64 -d /etc/kubernetes/pki/ca.enc > /etc/kubernetes/pki/ca.crt
-                systemctl daemon-reload
-                systemctl restart kubelet
+               #!/bin/bash
+               set -o xtrace
+               /etc/eks/bootstrap.sh ${EksCluster} ${BootstrapArguments}
+               /opt/aws/bin/cfn-signal --exit-code $? \
+                  --stack  ${AWS::StackName} \
+                  --resource EksAutoScalingGroup  \
+                  --region ${AWS::Region}
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:

@@ -179,7 +179,10 @@
   name = "github.com/ericchiang/k8s"
   packages = [
     ".",
+    "apis/apiextensions/v1beta1",
+    "apis/core/v1",
     "apis/meta/v1",
+    "apis/resource",
     "runtime",
     "runtime/schema",
     "util/intstr",
@@ -529,6 +532,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "37d2ba413683f683b9a1e7594a33ab0978f93257547d1bdd4eff36f8d816b44a"
+  inputs-digest = "e25e8776012cca21d45996df40f310eb7ca17f462e9eeba40aefc0ca6e07e947"
   solver-name = "gps-cdcl"
   solver-version = 1

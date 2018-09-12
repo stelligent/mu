@@ -1,10 +1,12 @@
 package workflows
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 
+	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 )
@@ -20,7 +22,7 @@ func NewEnvironmentViewer(ctx *common.Context, format string, environmentName st
 	} else if format == SHELL {
 		environmentViewer = workflow.environmentViewerSHELL(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, viewTasks, writer)
+		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, ctx.KubernetesManager, viewTasks, writer)
 	}
 
 	return newPipelineExecutor(
@@ -77,7 +79,7 @@ func (workflow *environmentWorkflow) environmentViewerSHELL(namespace string, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, viewTasks bool, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, kubernetesClientProvider common.KubernetesClientProvider, viewTasks bool, writer io.Writer) Executor {
 	return func() error {
 		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		lbStack, err := stackGetter.GetStack(lbStackName)
@@ -124,6 +126,20 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 
 			table := buildInstanceTable(writer, containerInstances, instances)
 			table.Render()
+		} else if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEks) {
+			clusterName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
+			k8sClient, err := kubernetesClientProvider.GetClient(clusterName)
+			if err != nil {
+				return err
+			}
+
+			var nodes corev1.NodeList
+			if err = k8sClient.List(context.Background(), "", &nodes); err != nil {
+				return err
+			}
+			for _, node := range nodes.Items {
+				fmt.Printf("name=%q schedulable=%t\n", *node.Metadata.Name, !*node.Spec.Unschedulable)
+			}
 		}
 
 		fmt.Fprint(writer, NewLine)
