@@ -2,12 +2,14 @@ package workflows
 
 import (
 	"errors"
+
 	"github.com/stelligent/mu/common"
 )
 
 type databaseWorkflow struct {
 	serviceName           string
 	codeRevision          string
+	appRevisionBucket     string
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
@@ -25,6 +27,8 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 		} else {
 			return errors.New("Service name must be provided")
 		}
+
+		workflow.appRevisionBucket = ctx.Config.Service.Pipeline.Build.Bucket
 
 		return nil
 	}

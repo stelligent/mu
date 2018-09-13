@@ -99,7 +99,7 @@ func (m *mockedRolesetManagerForService) GetServiceRoleset(env string, svc strin
 	return roleset.(common.Roleset), args.Error(1)
 }
 func (m *mockedRolesetManagerForService) UpsertServiceRoleset(env string, svc string, codedeployBucket string) error {
-	args := m.Called(env, svc)
+	args := m.Called(env, svc, codedeployBucket)
 	return args.Error(0)
 }
 
