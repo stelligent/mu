@@ -44,6 +44,7 @@ func NewApp() *cli.App {
 		if err != nil {
 			return err
 		}
+		log.Debugf("version:%v", common.GetVersion())
 
 		// TODO: support initializing context from other cloud providers?
 		log.Debugf("dryrun:%v path:%v", c.Bool("dryrun"), c.String("dryrun-output"))
