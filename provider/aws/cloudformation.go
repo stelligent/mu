@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -96,6 +97,117 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 	return stackTags
 }
 
+type stackInput struct {
+	RoleARN      *string
+	Capabilities []*string
+}
+
+func cleanParams(paramsI interface{}, roleArn string, tags map[string]string) {
+	// Reflection to work with both CreateStackInput and UpdateStackInput
+	params := reflect.ValueOf(paramsI).Elem()
+
+	roleArnField := params.FieldByName("RoleARN")
+	capabilitiesField := params.FieldByName("Capabilities")
+	capabilitiesValue := []*string{
+		aws.String(cloudformation.CapabilityCapabilityNamedIam),
+	}
+
+	if roleArn != "" {
+		roleArnField.Set(reflect.ValueOf(aws.String(roleArn)))
+	}
+
+	if tags["mu:type"] == string(common.StackTypeIam) {
+		capabilitiesField.Set(reflect.ValueOf(capabilitiesValue))
+	}
+}
+
+func dryrunWrite(cfnMgr *cloudformationStackManager, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string,
+	operation string) bool {
+	if cfnMgr.dryrunPath != "" {
+		writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+		log.Infof("  DRYRUN: Skipping %s of stack named '%s'.  Template and parameters written to '%s'", operation, stackName, cfnMgr.dryrunPath)
+		return true
+	}
+	return false
+}
+
+func createStack(stackName string, stackParameters []*cloudformation.Parameter,
+	parameters map[string]string,
+	roleArn string, stackTags []*cloudformation.Tag, tags map[string]string,
+	templateBody *string, templateBodyBytes *bytes.Buffer,
+	cfnMgr *cloudformationStackManager) error {
+	operation := "create"
+	log.Debugf("  Creating stack named '%s'", stackName)
+	log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+	log.Debugf("  Assume role:\n\t%s", roleArn)
+	log.Debugf("  Stack tags:\n\t%s", stackTags)
+	params := &cloudformation.CreateStackInput{
+		StackName:        aws.String(stackName),
+		Parameters:       stackParameters,
+		TemplateBody:     templateBody,
+		Tags:             stackTags,
+		TimeoutInMinutes: aws.Int64(60),
+	}
+	cleanParams(params, roleArn, tags)
+	if dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation) {
+		return nil
+	}
+	log.Debugf("about to cfnAPI.CreateStack(params) with: %v", params)
+	_, err := cfnMgr.cfnAPI.CreateStack(params)
+	log.Debug("  Create stack complete err=%s", err)
+	if err != nil {
+		return err
+	}
+	waitParams := &cloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	}
+	log.Debug("  Waiting for stack to exist...")
+	cfnMgr.cfnAPI.WaitUntilStackExists(waitParams)
+	log.Debug("  Stack exists.")
+	return nil
+}
+
+func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
+	parameters map[string]string,
+	roleArn string, stackTags []*cloudformation.Tag, tags map[string]string,
+	stack *common.Stack, templateBody *string, templateBodyBytes *bytes.Buffer,
+	cfnMgr *cloudformationStackManager) error {
+	operation := "update"
+	log.Debugf("  Updating stack named '%s'", stackName)
+	log.Debugf("  Prior state: %s", stack.Status)
+	log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+	log.Debugf("  Stack tags:\n\t%s", stackTags)
+	params := &cloudformation.UpdateStackInput{
+		StackName:    aws.String(stackName),
+		Parameters:   stackParameters,
+		TemplateBody: templateBody,
+		Tags:         stackTags,
+	}
+	cleanParams(params, roleArn, tags)
+	if dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation) {
+		return nil
+	}
+	_, err := cfnMgr.cfnAPI.UpdateStack(params)
+	log.Debug("  Update stack complete err=%s", err)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
+				pauseSpinner := cfnMgr.spinnerRefCnt > 0
+				if pauseSpinner {
+					cfnMgr.stopSpinner()
+				}
+				log.Infof("  No changes for stack '%s'", stackName)
+				if pauseSpinner {
+					cfnMgr.startSpinner()
+				}
+				return nil
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 // UpsertStack will create/update the cloudformation stack
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
@@ -162,100 +274,14 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 	stackTags := buildStackTags(tags)
 
-	cfnAPI := cfnMgr.cfnAPI
 	if stack == nil || stack.Status == "" {
-
-		log.Debugf("  Creating stack named '%s'", stackName)
-		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
-		log.Debugf("  Assume role:\n\t%s", roleArn)
-		log.Debugf("  Stack tags:\n\t%s", stackTags)
-		params := &cloudformation.CreateStackInput{
-			StackName:        aws.String(stackName),
-			Parameters:       stackParameters,
-			TemplateBody:     templateBody,
-			Tags:             stackTags,
-			TimeoutInMinutes: aws.Int64(60),
-		}
-
-		if roleArn != "" {
-			params.RoleARN = aws.String(roleArn)
-		}
-
-		if tags["mu:type"] == string(common.StackTypeIam) {
-			params.Capabilities = []*string{
-				aws.String(cloudformation.CapabilityCapabilityNamedIam),
-			}
-		}
-
-		if cfnMgr.dryrunPath != "" {
-			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
-			log.Infof("  DRYRUN: Skipping create of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
-			return nil
-		}
-
-		log.Debugf("about to cfnAPI.CreateStack(params) with: %v", params)
-		_, err := cfnAPI.CreateStack(params)
-		log.Debug("  Create stack complete err=%s", err)
-		if err != nil {
-			return err
-		}
-
-		waitParams := &cloudformation.DescribeStacksInput{
-			StackName: aws.String(stackName),
-		}
-		log.Debug("  Waiting for stack to exist...")
-		cfnAPI.WaitUntilStackExists(waitParams)
-		log.Debug("  Stack exists.")
-
-	} else {
-		log.Debugf("  Updating stack named '%s'", stackName)
-		log.Debugf("  Prior state: %s", stack.Status)
-		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
-		log.Debugf("  Stack tags:\n\t%s", stackTags)
-		params := &cloudformation.UpdateStackInput{
-			StackName:    aws.String(stackName),
-			Parameters:   stackParameters,
-			TemplateBody: templateBody,
-			Tags:         stackTags,
-		}
-
-		if roleArn != "" {
-			params.RoleARN = aws.String(roleArn)
-		}
-
-		if tags["mu:type"] == string(common.StackTypeIam) {
-			params.Capabilities = []*string{
-				aws.String(cloudformation.CapabilityCapabilityNamedIam),
-			}
-		}
-
-		if cfnMgr.dryrunPath != "" {
-			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
-			log.Infof("  DRYRUN: Skipping update of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
-			return nil
-		}
-
-		_, err := cfnAPI.UpdateStack(params)
-		log.Debug("  Update stack complete err=%s", err)
-		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
-					pauseSpinner := cfnMgr.spinnerRefCnt > 0
-					if pauseSpinner {
-						cfnMgr.stopSpinner()
-					}
-					log.Infof("  No changes for stack '%s'", stackName)
-					if pauseSpinner {
-						cfnMgr.startSpinner()
-					}
-					return nil
-				}
-			}
-			return err
-		}
-
+		// Stack should be created
+		return createStack(stackName, stackParameters, parameters,
+			roleArn, stackTags, tags, templateBody, templateBodyBytes, cfnMgr)
 	}
-	return nil
+	// else, stack should be updated
+	return updateStack(stackName, stackParameters, parameters,
+		roleArn, stackTags, tags, stack, templateBody, templateBodyBytes, cfnMgr)
 }
 
 func (cfnMgr *cloudformationStackManager) startSpinner() {
