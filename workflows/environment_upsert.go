@@ -235,7 +235,9 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 	}
 }
 
-func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsStackParams map[string]string,
+	imageFinder common.ImageFinder, stackUpserter common.StackUpserter,
+	stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
 
