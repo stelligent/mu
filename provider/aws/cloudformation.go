@@ -548,9 +548,12 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 }
 
 func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string) error {
-	os.MkdirAll(cfnDirectory, 0700)
+	err := os.MkdirAll(cfnDirectory, 0700)
+	if err != nil {
+		return err
+	}
 	templateFile := fmt.Sprintf("%s/template-%s.yml", cfnDirectory, stackName)
-	err := ioutil.WriteFile(templateFile, templateBodyBytes.Bytes(), 0600)
+	err = ioutil.WriteFile(templateFile, templateBodyBytes.Bytes(), 0600)
 	if err != nil {
 		return err
 	}
