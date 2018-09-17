@@ -117,6 +117,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 		if e1 != nil {
 			log.Warningf("Unable to parse major number for existing stack: %s", stack.Tags["version"])
+		}
+
+		if e2 != nil {
 			log.Warningf("Unable to parse major number for mu: %s", common.GetVersion())
 		}
 
