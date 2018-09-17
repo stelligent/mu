@@ -22,6 +22,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
+		workflow.environmentNormalizer(),
 		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, ecsStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
@@ -35,15 +36,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	return func() error {
 		for _, e := range config.Environments {
 			if strings.EqualFold(e.Name, environmentName) {
-				if e.Provider == "" {
-					e.Provider = common.EnvProviderEcs
-				}
 				workflow.environment = &e
-
-				if e.Discovery.Provider == "consul" {
-					return fmt.Errorf("Consul is no longer supported as a service discovery provider.  Check out the mu-consul extension for an alternative: https://github.com/stelligent/mu-consul")
-				}
-
 				return nil
 			}
 		}
