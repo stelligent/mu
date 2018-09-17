@@ -97,11 +97,6 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 	return stackTags
 }
 
-type stackInput struct {
-	RoleARN      *string
-	Capabilities []*string
-}
-
 func cleanParams(paramsI interface{}, roleArn string, tags map[string]string) {
 	// Reflection to work with both CreateStackInput and UpdateStackInput
 	params := reflect.ValueOf(paramsI).Elem()
