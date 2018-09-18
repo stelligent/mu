@@ -1,0 +1,48 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU environment containing an EKS cluster and instances for running containers
+Parameters:
+  EksServiceRoleArn:
+    Type: String
+    Description: ARN of IAM role for EKS service to use
+  InstanceSubnetIds:
+    Type: String
+    Description: Name of the value to import for the instance subnet ids
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+Resources:
+  EksCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref AWS::StackName
+      RoleArn: !Ref EksServiceRoleArn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+        - !GetAtt ClusterControlPlaneSecurityGroup.GroupId
+        SubnetIds:
+          Fn::Split:
+          - ","
+          - Fn::ImportValue: !Sub ${InstanceSubnetIds}
+  ClusterControlPlaneSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Control Plane Security Group
+Outputs:
+  InstanceSubnetIds:
+    Value:
+      Fn::ImportValue: !Sub ${InstanceSubnetIds}
+    Description: Subnet Ids for the EKS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSubnetIds
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: Vpc Id for the environment
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  EksClusterName:
+    Value: !Ref EksCluster
+    Description: Name of the EKS cluster.

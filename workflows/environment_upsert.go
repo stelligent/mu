@@ -29,8 +29,9 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, envStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesUpserter(ctx.Config.Namespace, ctx.KubernetesManager), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesRBACUpserter(ctx.Config.Namespace, ctx.KubernetesManager), nil),
 	)
 }
 
@@ -274,7 +275,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 			imagePattern = eksImagePattern
 			imageOwner = eksImageOwner
 		} else if environment.Provider == common.EnvProviderEksFargate {
-			return fmt.Errorf("nvironment provider `eks-fargate` is not yet supported")
+			return fmt.Errorf("environment provider `eks-fargate` is not yet supported")
 		}
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
@@ -351,7 +352,48 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesUpserter(namespace string, kubernetesClientProvider common.KubernetesClientProvider) Executor {
+func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace string, envStackParams map[string]string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
+	return func() error {
+		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		envStack := stackWaiter.AwaitFinalStatus(envStackName)
+
+		if envStack == nil {
+			log.Debugf("Attempting to bootstrap stack '%s'", envStackName)
+
+			stackParams := make(map[string]string)
+			stackParams["VpcId"] = envStackParams["VpcId"]
+			stackParams["InstanceSubnetIds"] = envStackParams["InstanceSubnetIds"]
+			stackParams["EksServiceRoleArn"] = envStackParams["EksServiceRoleArn"]
+
+			tags := createTagMap(&EnvironmentTags{
+				Environment: workflow.environment.Name,
+				Type:        string(common.StackTypeEnv),
+				Provider:    string(workflow.environment.Provider),
+				Revision:    workflow.codeRevision,
+				Repo:        workflow.repoName,
+			})
+
+			err := stackUpserter.UpsertStack(envStackName, "env-eks-bootstrap.yml", workflow.environment, stackParams, tags, "")
+			if err != nil {
+				return err
+			}
+			log.Debugf("Waiting for stack '%s' to complete", envStackName)
+			stack := stackWaiter.AwaitFinalStatus(envStackName)
+
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", envStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+		} else {
+			log.Debugf("Stack '%s' has already been bootstrapped", envStackName)
+		}
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesRBACUpserter(namespace string, kubernetesClientProvider common.KubernetesClientProvider) Executor {
 	return func() error {
 		environment := workflow.environment
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)

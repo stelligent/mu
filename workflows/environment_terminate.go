@@ -80,7 +80,7 @@ func (workflow *environmentWorkflow) environmentDbTerminator(namespace string, e
 }
 func (workflow *environmentWorkflow) environmentEcsTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
-		log.Noticef("Terminating ECS environment '%s' ...", environmentName)
+		log.Noticef("Terminating environment '%s' ...", environmentName)
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		err := stackDeleter.DeleteStack(envStackName)
 		if err != nil {

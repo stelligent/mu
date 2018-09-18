@@ -497,6 +497,13 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
+          ### TODO: remove this once we can pass IAM role to CFN for creating an EKS cluster
+          - Action:
+            - eks:DescribeCluster
+            - eks:CreateCluster
+            Resource: 
+            - !Sub arn:aws:eks:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${AcptEnv}
+            Effect: Allow
           - Action:
             - ssm:GetParameters
             - ssm:PutParameter
@@ -575,6 +582,13 @@ Resources:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            Effect: Allow
+          ### TODO: remove this once we can pass IAM role to CFN for creating an EKS cluster
+          - Action:
+            - eks:DescribeCluster
+            - eks:CreateCluster
+            Resource: 
+            - !Sub arn:aws:eks:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${ProdEnv}
             Effect: Allow
           - Action:
             - ssm:GetParameters

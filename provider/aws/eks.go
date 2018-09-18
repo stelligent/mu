@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -29,8 +27,7 @@ type eksKubernetesManager struct {
 func newEksKubernetesManager(sess *session.Session) (common.KubernetesManager, error) {
 	log.Debug("Connecting to EKS service")
 	eksAPI := eks.New(sess)
-	creds := stscreds.NewCredentials(sess, "arn:aws:iam::884669789531:role/eks-cloudformation-common-us-west-2")
-	stsAPI := sts.New(sess, &aws.Config{Credentials: creds})
+	stsAPI := sts.New(sess)
 
 	return &eksKubernetesManager{
 		eksAPI: eksAPI,
