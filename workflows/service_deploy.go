@@ -109,13 +109,13 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 	}
 }
 
-func matchRequestedCpu(serviceCPU int, defaultCpu common.CPUMemory) common.CPUMemory {
+func matchRequestedCPU(serviceCPU int, defaultCPU common.CPUMemory) common.CPUMemory {
 	for _, cpu := range common.CPUMemorySupport {
 		if serviceCPU <= cpu.CPU {
 			return cpu
 		}
 	}
-	return defaultCpu
+	return defaultCPU
 }
 
 func matchRequestedMemory(serviceMemory int, cpu common.CPUMemory, defaultMemory int) int {
@@ -163,7 +163,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		cpu := common.CPUMemorySupport[0]
 		if service.CPU != 0 {
 			params["ServiceCpu"] = strconv.Itoa(service.CPU)
-			cpu = matchRequestedCpu(service.CPU, cpu)
+			cpu = matchRequestedCPU(service.CPU, cpu)
 		}
 
 		memory := cpu.Memory[0]
