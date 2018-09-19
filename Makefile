@@ -42,7 +42,6 @@ endif
 
 gen:
 	go generate $(SRC_FILES)
-	packr
 
 lint: fmt
 	@echo "=== linting ==="

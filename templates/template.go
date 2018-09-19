@@ -1,5 +1,7 @@
 package templates
 
+//go:generate packr
+
 import (
 	"bufio"
 	"bytes"
