@@ -8,24 +8,24 @@ import (
 
 // Context defines the context object passed around
 type Context struct {
-	Config               Config
-	StackManager         StackManager
-	ClusterManager       ClusterManager
-	InstanceManager      InstanceManager
-	ElbManager           ElbManager
-	RdsManager           RdsManager
-	ParamManager         ParamManager
-	LocalPipelineManager PipelineManager // instance that ignores region/profile/role
-	PipelineManager      PipelineManager
-	LogsManager          LogsManager
-	DockerManager        DockerManager
-	DockerOut            io.Writer
-	KubernetesManager    KubernetesManager
-	TaskManager          TaskManager
-	ArtifactManager      ArtifactManager
-	SubscriptionManager  SubscriptionManager
-	RolesetManager       RolesetManager
-	ExtensionsManager    ExtensionsManager
+	Config                            Config
+	StackManager                      StackManager
+	ClusterManager                    ClusterManager
+	InstanceManager                   InstanceManager
+	ElbManager                        ElbManager
+	RdsManager                        RdsManager
+	ParamManager                      ParamManager
+	LocalPipelineManager              PipelineManager // instance that ignores region/profile/role
+	PipelineManager                   PipelineManager
+	LogsManager                       LogsManager
+	DockerManager                     DockerManager
+	DockerOut                         io.Writer
+	KubernetesResourceManagerProvider KubernetesResourceManagerProvider
+	TaskManager                       TaskManager
+	ArtifactManager                   ArtifactManager
+	SubscriptionManager               SubscriptionManager
+	RolesetManager                    RolesetManager
+	ExtensionsManager                 ExtensionsManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -418,6 +418,12 @@ func StringValue(v *string) string {
 		return *v
 	}
 	return ""
+}
+
+// StringRef returns the string pointer to the string passed in or
+// "" if the pointer is nil.
+func StringRef(v string) *string {
+	return &v
 }
 
 // BoolValue returns the value of the bool pointer passed in or

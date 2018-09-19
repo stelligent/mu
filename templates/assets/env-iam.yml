@@ -138,11 +138,18 @@ Resources:
     Type: "AWS::CloudFormation::WaitConditionHandle"
 Outputs:
   EC2InstanceProfileArn:
-    Description: Instance profile for ECS container instances
+    Description: Instance profile for container instances
     Value:
       Fn::If:
       - HasEC2InstanceProfile
       - !GetAtt EC2InstanceProfile.Arn
+      - ''
+  EC2RoleArn:
+    Description: IAM Role for container instances
+    Value:
+      Fn::If:
+      - HasEC2InstanceProfile
+      - !GetAtt EC2Role.Arn
       - ''
   EksServiceRoleArn:
     Description: IAM role ARN for EKS clusters

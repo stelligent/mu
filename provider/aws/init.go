@@ -129,7 +129,7 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	ctx.LocalPipelineManager, _ = newPipelineManager(localSess)
 
 	// initialize KubernetesManager
-	ctx.KubernetesManager, err = newEksKubernetesManager(sess)
+	ctx.KubernetesResourceManagerProvider, err = newEksKubernetesResourceManagerProvider(sess)
 	if err != nil {
 		return err
 	}

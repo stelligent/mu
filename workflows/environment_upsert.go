@@ -1,10 +1,13 @@
 package workflows
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
+	corev1 "github.com/ericchiang/k8s/apis/core/v1"
+	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	"github.com/stelligent/mu/common"
 )
 
@@ -31,7 +34,8 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesRBACUpserter(ctx.Config.Namespace, ctx.KubernetesManager), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesRBACUpserter(), nil),
 	)
 }
 
@@ -179,6 +183,7 @@ func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter 
 		if workflow.environment.Provider == common.EnvProviderEks {
 			envStackParams["EksServiceRoleArn"] = environmentRoleset["EksServiceRoleArn"]
 		}
+		workflow.ec2RoleArn = environmentRoleset["EC2RoleArn"]
 
 		return nil
 	}
@@ -393,12 +398,19 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesRBACUpserter(namespace string, kubernetesClientProvider common.KubernetesClientProvider) Executor {
+func (workflow *environmentWorkflow) environmentKubernetesRBACUpserter() Executor {
 	return func() error {
-		environment := workflow.environment
-		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
-		kubernetesClientProvider.GetClient(clusterName)
-		log.Noticef("Upserting kubernetes environment '%s' ...", clusterName)
-		return nil
+
+		configMap := &corev1.ConfigMap{
+			Metadata: &metav1.ObjectMeta{
+				Namespace: common.StringRef("kube-system"),
+				Name:      common.StringRef("aws-auth"),
+			},
+		}
+		templateData := map[string]string{
+			"EC2RoleArn": workflow.ec2RoleArn,
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResource(context.TODO(), configMap, "eks-rbac.yml", templateData)
 	}
 }

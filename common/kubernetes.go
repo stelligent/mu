@@ -1,13 +1,28 @@
 package common
 
-import "github.com/ericchiang/k8s"
+import (
+	"context"
 
-// KubernetesClientProvider for providing kubernetes client
-type KubernetesClientProvider interface {
-	GetClient(name string) (*k8s.Client, error)
+	"github.com/ericchiang/k8s"
+)
+
+// KubernetesResourceManagerProvider for providing kubernetes client
+type KubernetesResourceManagerProvider interface {
+	GetResourceManager(name string) (KubernetesResourceManager, error)
 }
 
-// KubernetesManager for managing kubernetes
-type KubernetesManager interface {
-	KubernetesClientProvider
+// KubernetesResourceManager for managing kubernetes resources
+type KubernetesResourceManager interface {
+	KubernetesResourceUpserter
+	KubernetesResourceLister
+}
+
+// KubernetesResourceUpserter for upserting kubernetes resources
+type KubernetesResourceUpserter interface {
+	UpsertResource(ctx context.Context, resource k8s.Resource, templateName string, templateData interface{}) error
+}
+
+// KubernetesResourceLister for listing kubernetes resources
+type KubernetesResourceLister interface {
+	ListResources(ctx context.Context, namespace string, resource k8s.ResourceList) error
 }

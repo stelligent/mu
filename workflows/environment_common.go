@@ -8,10 +8,12 @@ import (
 )
 
 type environmentWorkflow struct {
-	environment           *common.Environment
-	codeRevision          string
-	repoName              string
-	cloudFormationRoleArn string
+	environment               *common.Environment
+	codeRevision              string
+	repoName                  string
+	cloudFormationRoleArn     string
+	ec2RoleArn                string
+	kubernetesResourceManager common.KubernetesResourceManager
 }
 
 func colorizeStackStatus(stackStatus string) string {
@@ -45,5 +47,14 @@ func (workflow *environmentWorkflow) isKubernetesProvider() Conditional {
 func (workflow *environmentWorkflow) isEc2Provider() Conditional {
 	return func() bool {
 		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderEc2))
+	}
+}
+
+func (workflow *environmentWorkflow) connectKubernetes(muNamespace string, provider common.KubernetesResourceManagerProvider) Executor {
+	return func() error {
+		clusterName := common.CreateStackName(muNamespace, common.StackTypeEnv, workflow.environment.Name)
+		kubernetesResourceManager, err := provider.GetResourceManager(clusterName)
+		workflow.kubernetesResourceManager = kubernetesResourceManager
+		return err
 	}
 }
