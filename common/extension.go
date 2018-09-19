@@ -219,8 +219,8 @@ const (
 	TemplateUpdateMerge                      = "merge"
 )
 
-func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
-	log.Debugf("Loading extension from '%s'", u)
+func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
+	log.Debugf("Loading extension from '%s'", extensionUrl)
 
 	userdir, err := homedir.Dir()
 	if err != nil {
@@ -228,16 +228,16 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 	}
 	extensionsDirectory := filepath.Join(userdir, ".mu", "extensions")
 
-	extID := urlToID(u)
+	extID := urlToID(extensionUrl)
 	ext := &templateArchiveExtension{
-		BaseExtensionImpl{u.String()},
+		BaseExtensionImpl{extensionUrl.String()},
 		filepath.Join(extensionsDirectory, extID),
 		TemplateUpdateMerge,
 	}
 
-	if fi, err := os.Stat(u.Path); u.Scheme == "file" && err == nil && fi.IsDir() {
-		ext.path = u.Path
-		log.Debugf("Loaded extension from '%s'", u.Path)
+	if fi, err := os.Stat(extensionUrl.Path); extensionUrl.Scheme == "file" && err == nil && fi.IsDir() {
+		ext.path = extensionUrl.Path
+		log.Debugf("Loaded extension from '%s'", extensionUrl.Path)
 	} else {
 		// check for existing etag
 		etag := ""
@@ -246,7 +246,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 			etag = string(etagBytes)
 		}
 
-		body, etag, err := artifactManager.GetArtifact(u.String(), etag)
+		body, etag, err := artifactManager.GetArtifact(extensionUrl.String(), etag)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +273,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 			originalExtPath := ext.path
 			if len(files) == 1 && files[0].IsDir() {
 				ext.path = filepath.Join(originalExtPath, files[0].Name())
-				log.Debugf("Using directory '%s' for extension '%s'", ext.path, u)
+				log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionUrl)
 			}
 
 			// write new etag
@@ -281,7 +281,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 			if err != nil {
 				return nil, err
 			}
-			log.Debugf("Loaded extension from '%s' [id=%s]", u, ext.id)
+			log.Debugf("Loaded extension from '%s' [id=%s]", extensionUrl, ext.id)
 		} else {
 			log.Debugf("Loaded extension from cache [id=%s]", ext.id)
 		}
@@ -312,7 +312,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 			log.Warningf("Loaded extension %s", name)
 		}
 	} else {
-		log.Warningf("Loaded extension %s", u)
+		log.Warningf("Loaded extension %s", extensionUrl)
 	}
 
 	return ext, nil
