@@ -262,51 +262,32 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
 
-		if environment.Cluster.SSHAllow != "" {
-			stackParams["SshAllow"] = environment.Cluster.SSHAllow
-		} else {
-			stackParams["SshAllow"] = "0.0.0.0/0"
-		}
-		if environment.Cluster.InstanceType != "" {
-			stackParams["InstanceType"] = environment.Cluster.InstanceType
-		}
-		if environment.Cluster.ExtraUserData != "" {
-			stackParams["ExtraUserData"] = environment.Cluster.ExtraUserData
-		}
-		if environment.Cluster.ImageID != "" {
-			stackParams["ImageId"] = environment.Cluster.ImageID
-		} else {
+		// Default SshAllow if none defined
+		stackParams["SshAllow"] = "0.0.0.0/0"
+		stackParams["SshAllow"] = common.NewStringIfNotEmpty(stackParams["SshAllow"], environment.Cluster.SSHAllow)
+		stackParams["InstanceType"] = common.NewStringIfNotEmpty(stackParams["InstanceType"], environment.Cluster.InstanceType)
+		stackParams["ExtraUserData"] = common.NewStringIfNotEmpty(stackParams["ExtraUserData"], environment.Cluster.ExtraUserData)
+		stackParams["ImageId"] = common.NewStringIfNotEmpty(stackParams["ImageId"], environment.Cluster.ImageID)
+
+		if environment.Cluster.ImageID == "" {
 			var err error
 			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
 			if err != nil {
 				return err
 			}
+		}
+		stackParams["ImageOsType"] = common.NewStringIfNotEmpty(stackParams["ImageOsType"], environment.Cluster.ImageOsType)
 
-		}
-		if environment.Cluster.ImageOsType != "" {
-			stackParams["ImageOsType"] = environment.Cluster.ImageOsType
-		}
-		if environment.Cluster.DesiredCapacity != 0 {
-			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
-		}
-		if environment.Cluster.MinSize != 0 {
-			stackParams["MinSize"] = strconv.Itoa(environment.Cluster.MinSize)
-		}
-		if environment.Cluster.MaxSize != 0 {
-			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
-		}
-		if environment.Cluster.KeyName != "" {
-			stackParams["KeyName"] = environment.Cluster.KeyName
-		}
-		if environment.Cluster.TargetCPUReservation != 0 {
-			stackParams["TargetCPUReservation"] = strconv.Itoa(environment.Cluster.TargetCPUReservation)
-		}
-		if environment.Cluster.TargetMemoryReservation != 0 {
-			stackParams["TargetMemoryReservation"] = strconv.Itoa(environment.Cluster.TargetMemoryReservation)
-		}
-		if environment.Cluster.HTTPProxy != "" {
-			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
-		}
+		stackParams["DesiredCapacity"] = common.NewStringIfNotZero(stackParams["DesiredCapacity"], environment.Cluster.DesiredCapacity)
+		stackParams["MinSize"] = common.NewStringIfNotZero(stackParams["MinSize"], environment.Cluster.MinSize)
+		stackParams["MaxSize"] = common.NewStringIfNotZero(stackParams["MaxSize"], environment.Cluster.MaxSize)
+
+		stackParams["KeyName"] = common.NewStringIfNotEmpty(stackParams["KeyName"], environment.Cluster.KeyName)
+
+		stackParams["TargetCPUReservation"] = common.NewStringIfNotZero(stackParams["TargetCPUReservation"], environment.Cluster.TargetCPUReservation)
+		stackParams["TargetMemoryReservation"] = common.NewStringIfNotZero(stackParams["TargetMemoryReservation"], environment.Cluster.TargetMemoryReservation)
+
+		stackParams["HttpProxy"] = common.NewStringIfNotEmpty(stackParams["HttpProxy"], environment.Cluster.HTTPProxy)
 
 		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
