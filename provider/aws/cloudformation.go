@@ -217,20 +217,7 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 	return nil
 }
 
-// UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
-	stack := cfnMgr.AwaitFinalStatus(stackName)
-
-	// delete stack if in rollback status
-	if stack != nil && stack.Status == cloudformation.StackStatusRollbackComplete {
-		log.Warningf("  Stack '%s' was in '%s' status, deleting...", stackName, stack.Status)
-		err := cfnMgr.DeleteStack(stackName)
-		if err != nil {
-			return err
-		}
-		stack = cfnMgr.AwaitFinalStatus(stackName)
-	}
-
+func checkVersion(cfnMgr *cloudformationStackManager, stack *common.Stack, stackName string) error {
 	// check if stack is incompatible
 	if !cfnMgr.skipVersionCheck && stack != nil {
 		oldMajorVersion, e1 := strconv.Atoi(strings.Split(strings.Split(stack.Tags["version"], "-")[0], ".")[0])
@@ -254,6 +241,23 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 				return fmt.Errorf("Unable to upsert stack '%s' with existing version '%s' to older version '%s' (can be overridden with -F)", stackName, stack.Tags["version"], common.GetVersion())
 			}
 		}
+	}
+	return nil
+}
+
+
+// UpsertStack will create/update the cloudformation stack
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
+	stack := cfnMgr.AwaitFinalStatus(stackName)
+
+	stack, err := cfnMgr.cleanStackIfInRollback(stack, stackName)
+	if err != nil {
+		return err
+	}
+
+	err = checkVersion(cfnMgr, stack, stackName)
+	if err != nil {
+		return err
 	}
 
 	// load the template
