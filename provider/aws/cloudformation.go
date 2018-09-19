@@ -285,7 +285,10 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 		return err
 	}
 	templateBodyBytes := new(bytes.Buffer)
-	templateBodyBytes.ReadFrom(templateBodyReader)
+	_, err = templateBodyBytes.ReadFrom(templateBodyReader)
+	if err != nil {
+		return err
+	}
 	templateBody := aws.String(templateBodyBytes.String())
 
 	// stack parameters
