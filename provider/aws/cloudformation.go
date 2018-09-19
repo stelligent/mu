@@ -245,6 +245,21 @@ func checkVersion(cfnMgr *cloudformationStackManager, stack *common.Stack, stack
 	return nil
 }
 
+// cleanStackIfInRollback will remove a given CloudFormation stack (by stackName)
+// if it is in ROLLBACK_COMPLETE state.
+func (cfnMgr *cloudformationStackManager) cleanStackIfInRollback(stack *common.Stack,
+	stackName string) (*common.Stack, error) {
+	// delete stack if in rollback status
+	if stack != nil && stack.Status == cloudformation.StackStatusRollbackComplete {
+		log.Warningf("  Stack '%s' was in '%s' status, deleting...", stackName, stack.Status)
+		err := cfnMgr.DeleteStack(stackName)
+		if err != nil {
+			return nil, err
+		}
+		*stack = *cfnMgr.AwaitFinalStatus(stackName)
+	}
+	return stack, nil
+}
 
 // UpsertStack will create/update the cloudformation stack
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
