@@ -221,7 +221,7 @@ const (
 
 func loadExtensionFromArchive(ext *templateArchiveExtension,
 	artifactManager ArtifactManager,
-	extensionUrl *url.URL) error {
+	extensionURL *url.URL) error {
 	// check for existing etag
 	etag := ""
 	etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
@@ -229,7 +229,7 @@ func loadExtensionFromArchive(ext *templateArchiveExtension,
 		etag = string(etagBytes)
 	}
 
-	body, etag, err := artifactManager.GetArtifact(extensionUrl.String(), etag)
+	body, etag, err := artifactManager.GetArtifact(extensionURL.String(), etag)
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func loadExtensionFromArchive(ext *templateArchiveExtension,
 		originalExtPath := ext.path
 		if len(files) == 1 && files[0].IsDir() {
 			ext.path = filepath.Join(originalExtPath, files[0].Name())
-			log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionUrl)
+			log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionURL)
 		}
 
 		// write new etag
@@ -264,15 +264,15 @@ func loadExtensionFromArchive(ext *templateArchiveExtension,
 		if err != nil {
 			return err
 		}
-		log.Debugf("Loaded extension from '%s' [id=%s]", extensionUrl, ext.id)
+		log.Debugf("Loaded extension from '%s' [id=%s]", extensionURL, ext.id)
 	} else {
 		log.Debugf("Loaded extension from cache [id=%s]", ext.id)
 	}
 	return nil
 }
 
-func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
-	log.Debugf("Loading extension from '%s'", extensionUrl)
+func newTemplateArchiveExtension(extensionURL *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
+	log.Debugf("Loading extension from '%s'", extensionURL)
 
 	userdir, err := homedir.Dir()
 	if err != nil {
@@ -280,20 +280,20 @@ func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager Artifact
 	}
 	extensionsDirectory := filepath.Join(userdir, ".mu", "extensions")
 
-	extID := urlToID(extensionUrl)
+	extID := urlToID(extensionURL)
 	ext := &templateArchiveExtension{
-		BaseExtensionImpl{extensionUrl.String()},
+		BaseExtensionImpl{extensionURL.String()},
 		filepath.Join(extensionsDirectory, extID),
 		TemplateUpdateMerge,
 	}
 
-	if fi, err := os.Stat(extensionUrl.Path); extensionUrl.Scheme == "file" && err == nil && fi.IsDir() {
-		ext.path = extensionUrl.Path
-		log.Debugf("Loaded extension from '%s'", extensionUrl.Path)
+	if fi, err := os.Stat(extensionURL.Path); extensionURL.Scheme == "file" && err == nil && fi.IsDir() {
+		ext.path = extensionURL.Path
+		log.Debugf("Loaded extension from '%s'", extensionURL.Path)
 	} else {
 		err := loadExtensionFromArchive(ext,
 			artifactManager,
-			extensionUrl)
+			extensionURL)
 		if err != nil {
 			return nil, err
 		}
@@ -323,7 +323,7 @@ func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager Artifact
 			log.Warningf("Loaded extension %s", name)
 		}
 	} else {
-		log.Warningf("Loaded extension %s", extensionUrl)
+		log.Warningf("Loaded extension %s", extensionURL)
 	}
 
 	return ext, nil
