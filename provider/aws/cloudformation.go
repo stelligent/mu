@@ -117,13 +117,16 @@ func cleanParams(paramsI interface{}, roleArn string, tags map[string]string) {
 }
 
 func dryrunWrite(cfnMgr *cloudformationStackManager, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string,
-	operation string) bool {
+	operation string) (bool, error) {
 	if cfnMgr.dryrunPath != "" {
-		writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+		err := writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+		if err != nil {
+			return true, err
+		}
 		log.Infof("  DRYRUN: Skipping %s of stack named '%s'.  Template and parameters written to '%s'", operation, stackName, cfnMgr.dryrunPath)
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
 func createStack(stackName string, stackParameters []*cloudformation.Parameter,
@@ -144,11 +147,15 @@ func createStack(stackName string, stackParameters []*cloudformation.Parameter,
 		TimeoutInMinutes: aws.Int64(60),
 	}
 	cleanParams(params, roleArn, tags)
-	if dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation) {
+	dryrun, err := dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation)
+	if err != nil {
+		return err
+	}
+	if dryrun {
 		return nil
 	}
 	log.Debugf("about to cfnAPI.CreateStack(params) with: %v", params)
-	_, err := cfnMgr.cfnAPI.CreateStack(params)
+	_, err = cfnMgr.cfnAPI.CreateStack(params)
 	log.Debug("  Create stack complete err=%s", err)
 	if err != nil {
 		return err
@@ -157,7 +164,10 @@ func createStack(stackName string, stackParameters []*cloudformation.Parameter,
 		StackName: aws.String(stackName),
 	}
 	log.Debug("  Waiting for stack to exist...")
-	cfnMgr.cfnAPI.WaitUntilStackExists(waitParams)
+	err = cfnMgr.cfnAPI.WaitUntilStackExists(waitParams)
+	if err != nil {
+		return err
+	}
 	log.Debug("  Stack exists.")
 	return nil
 }
@@ -179,10 +189,14 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 		Tags:         stackTags,
 	}
 	cleanParams(params, roleArn, tags)
-	if dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation) {
+	dryrun, err := dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation)
+	if err != nil {
+		return err
+	}
+	if dryrun {
 		return nil
 	}
-	_, err := cfnMgr.cfnAPI.UpdateStack(params)
+	_, err = cfnMgr.cfnAPI.UpdateStack(params)
 	log.Debug("  Update stack complete err=%s", err)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
