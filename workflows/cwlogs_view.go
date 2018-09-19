@@ -66,6 +66,7 @@ func (workflow *logsWorkflow) logsViewer(logsViewer common.LogsViewer, writer io
 
 	return func() error {
 		cb := func(logStream string, message string, timestamp int64) {
+			// TODO: unchecked return
 			fmt.Fprintf(writer, "[%s] %s\n", Bold(logStream), strings.TrimSpace(message))
 		}
 
