@@ -30,6 +30,9 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
       GroupDescription: Control Plane Security Group
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: '127.0.0.1/32'
 Outputs:
   InstanceSubnetIds:
     Value:

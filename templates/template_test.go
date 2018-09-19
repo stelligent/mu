@@ -52,7 +52,7 @@ func TestNewTemplate_assets(t *testing.T) {
 	templates := box.List()
 	assert.NotZero(len(templates))
 	for _, templateName := range templates {
-		if templateName == "buildspec.yml" {
+		if templateName == "buildspec.yml" || templateName == "eks-rbac.yml" {
 			continue
 		}
 
