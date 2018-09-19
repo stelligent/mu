@@ -26,15 +26,21 @@
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
     "aws/credentials/stscreds",
+    "aws/csm",
     "aws/defaults",
     "aws/ec2metadata",
     "aws/endpoints",
     "aws/request",
     "aws/session",
     "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/sdkuri",
     "internal/shareddefaults",
     "private/protocol",
     "private/protocol/ec2query",
+    "private/protocol/eventstream",
+    "private/protocol/eventstream/eventstreamapi",
     "private/protocol/json/jsonutil",
     "private/protocol/jsonrpc",
     "private/protocol/query",
@@ -68,8 +74,8 @@
     "service/ssm/ssmiface",
     "service/sts"
   ]
-  revision = "96358b8282b1a3aa66836d2f2fe66216cc419668"
-  version = "v1.8.44"
+  revision = "949f7800d745d1df9af349380e5deec8de206144"
+  version = "v1.15.38"
 
 [[projects]]
   name = "github.com/briandowns/spinner"
@@ -211,8 +217,7 @@
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
-  revision = "3433f3ea46d9f8019119e7dd41274e112a2359a9"
-  version = "0.2.2"
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/kevinburke/ssh_config"
@@ -496,6 +501,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1038be288cc8c05e56b3b8d429fd2716e4a36d694ebe954c478d4d13e80064ab"
+  inputs-digest = "cb45ab95cd842bf6ff936f3bc2cd261f52bd8d6fb6e86612f7c347b0fc15510b"
   solver-name = "gps-cdcl"
   solver-version = 1
