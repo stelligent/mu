@@ -219,6 +219,58 @@ const (
 	TemplateUpdateMerge                      = "merge"
 )
 
+func loadExtensionFromArchive(ext *templateArchiveExtension,
+	artifactManager ArtifactManager,
+	extensionUrl *url.URL) error {
+	// check for existing etag
+	etag := ""
+	etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
+	if err == nil {
+		etag = string(etagBytes)
+	}
+
+	body, etag, err := artifactManager.GetArtifact(extensionUrl.String(), etag)
+	if err != nil {
+		return err
+	}
+
+	if body != nil {
+		defer body.Close()
+
+		// empty dir
+		os.RemoveAll(ext.path)
+		os.MkdirAll(ext.path, 0700)
+
+		// write out archive to dir
+		err = extractArchive(ext.path, body)
+		if err != nil {
+			return err
+		}
+
+		// if single directory in extension, assume that's the path
+		files, err := ioutil.ReadDir(ext.path)
+		if err != nil {
+			return err
+		}
+
+		originalExtPath := ext.path
+		if len(files) == 1 && files[0].IsDir() {
+			ext.path = filepath.Join(originalExtPath, files[0].Name())
+			log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionUrl)
+		}
+
+		// write new etag
+		err = ioutil.WriteFile(filepath.Join(originalExtPath, ".etag"), []byte(etag), 0644)
+		if err != nil {
+			return err
+		}
+		log.Debugf("Loaded extension from '%s' [id=%s]", extensionUrl, ext.id)
+	} else {
+		log.Debugf("Loaded extension from cache [id=%s]", ext.id)
+	}
+	return nil
+}
+
 func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
 	log.Debugf("Loading extension from '%s'", extensionUrl)
 
@@ -239,53 +291,12 @@ func newTemplateArchiveExtension(extensionUrl *url.URL, artifactManager Artifact
 		ext.path = extensionUrl.Path
 		log.Debugf("Loaded extension from '%s'", extensionUrl.Path)
 	} else {
-		// check for existing etag
-		etag := ""
-		etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
-		if err == nil {
-			etag = string(etagBytes)
-		}
-
-		body, etag, err := artifactManager.GetArtifact(extensionUrl.String(), etag)
+		err := loadExtensionFromArchive(ext,
+			artifactManager,
+			extensionUrl)
 		if err != nil {
 			return nil, err
 		}
-
-		if body != nil {
-			defer body.Close()
-
-			// empty dir
-			os.RemoveAll(ext.path)
-			os.MkdirAll(ext.path, 0700)
-
-			// write out archive to dir
-			err = extractArchive(ext.path, body)
-			if err != nil {
-				return nil, err
-			}
-
-			// if single directory in extension, assume that's the path
-			files, err := ioutil.ReadDir(ext.path)
-			if err != nil {
-				return nil, err
-			}
-
-			originalExtPath := ext.path
-			if len(files) == 1 && files[0].IsDir() {
-				ext.path = filepath.Join(originalExtPath, files[0].Name())
-				log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionUrl)
-			}
-
-			// write new etag
-			err = ioutil.WriteFile(filepath.Join(originalExtPath, ".etag"), []byte(etag), 0644)
-			if err != nil {
-				return nil, err
-			}
-			log.Debugf("Loaded extension from '%s' [id=%s]", extensionUrl, ext.id)
-		} else {
-			log.Debugf("Loaded extension from cache [id=%s]", ext.id)
-		}
-
 	}
 
 	// try loading the extension manifest
