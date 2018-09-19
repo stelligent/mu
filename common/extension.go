@@ -5,9 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/mholt/archiver"
-	"github.com/mitchellh/go-homedir"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +12,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/mholt/archiver"
+	"github.com/mitchellh/go-homedir"
+	"gopkg.in/yaml.v2"
 )
 
 // ExtensionImpl provides API for an extension
