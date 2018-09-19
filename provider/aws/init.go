@@ -105,10 +105,8 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 
 	// initialize the RolesetManager
 	ctx.RolesetManager, err = newRolesetManager(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // InitializeContext loads manager objects
