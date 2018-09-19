@@ -22,7 +22,18 @@ TAG_VERSION = v$(VERSION)
 
 ARCH := $(shell go env GOARCH)
 OS := $(shell go env GOOS)
+<<<<<<< HEAD
 GEM := $(shell command -v gem 2> /dev/null)
+=======
+BUILD_DIR = .release
+BUILD_DIR = $(abspath $(if $(CIRCLE_WORKING_DIRECTORY),$(CIRCLE_WORKING_DIRECTORY)/artifacts,.release))
+BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
+UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
+GOLDFLAGS = "-X main.version=$(VERSION)"
+TAG_VERSION = v$(VERSION)
+LINT_FILES = $(SRC_FILES)
+# LINT_FILES = $(subst ./templates/...,,$(SRC_FILES))
+>>>>>>> Issue #273 - Changes to makefile for linting assets.go
 
 export PATH := $(GOPATH)/bin:$(PATH)
 
@@ -44,6 +55,7 @@ fmt:
 
 lint: fmt
 	@echo "=== linting ==="
+<<<<<<< HEAD
 	@go vet $(SRC_FILES)
 
 	@go get "github.com/golang/lint/golint"
@@ -53,6 +65,12 @@ gen:
 	@echo "=== generating ==="
 	@go get "github.com/gobuffalo/packr/..."
 	@go generate $(SRC_FILES)
+=======
+	go vet $(LINT_FILES)
+	echo $(LINT_FILES) | xargs -n1 golint -set_exit_status
+	#echo golint -set_exit_status ./templates/template.go
+	#echo golint -set_exit_status ./templates/template_test.go
+>>>>>>> Issue #273 - Changes to makefile for linting assets.go
 
 nag:
 	@echo "=== cfn_nag ==="
