@@ -103,7 +103,10 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 
 		//DatabaseMasterPassword:
-		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		if err != nil {
+			return err
+		}
 		if dbPass == "" {
 			dbPass = randomPassword(32)
 			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
@@ -123,7 +126,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err
