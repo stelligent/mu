@@ -330,6 +330,57 @@ func (cfnMgr *cloudformationStackManager) stopSpinner() {
 	}
 }
 
+func (cfnMgr *cloudformationStackManager) logEventStatus(status string, eventMesg string) {
+	if strings.HasSuffix(status, "_IN_PROGRESS") {
+		if cfnMgr.statusSpinner != nil {
+			cfnMgr.statusSpinner.Suffix = eventMesg
+			log.Debug(eventMesg)
+		} else {
+			log.Info(eventMesg)
+		}
+	} else if strings.HasSuffix(status, "_FAILED") {
+		log.Error(eventMesg)
+	} else {
+		log.Debug(eventMesg)
+	}
+}
+
+func (cfnMgr *cloudformationStackManager) logStackEvents(stackName string, priorEventTime *time.Time) {
+	cfnAPI := cfnMgr.cfnAPI
+	eventParams := &cloudformation.DescribeStackEventsInput{
+		StackName: aws.String(stackName),
+	}
+	eventResp, err := cfnAPI.DescribeStackEvents(eventParams)
+	numEvents := len(eventResp.StackEvents)
+	if err == nil && eventResp != nil && numEvents > 0 {
+		firstEventIndex := 0
+		for i := 0; i < numEvents; i++ {
+			e := eventResp.StackEvents[i]
+			firstEventIndex = i
+			if aws.StringValue(e.ResourceType) == "AWS::CloudFormation::Stack" && strings.HasSuffix(aws.StringValue(e.ResourceStatus), "_COMPLETE") {
+				break
+			}
+		}
+		for i := firstEventIndex; i >= 0; i-- {
+			e := eventResp.StackEvents[i]
+			if priorEventTime == nil || priorEventTime.Before(aws.TimeValue(e.Timestamp)) {
+				status := aws.StringValue(e.ResourceStatus)
+				eventMesg := fmt.Sprintf("  %s:  %s (%s) %s %s",
+					stackName,
+					aws.StringValue(e.LogicalResourceId),
+					aws.StringValue(e.ResourceType),
+					status,
+					aws.StringValue(e.ResourceStatusReason))
+				cfnMgr.logEventStatus(status, eventMesg)
+
+				priorEventTime = e.Timestamp
+			}
+
+		}
+
+	}
+}
+
 // AwaitFinalStatus waits for the stack to arrive in a final status
 //  returns: final status, or empty string if stack doesn't exist
 func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *common.Stack {
@@ -375,48 +426,7 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 			return buildStack(resp.Stacks[0])
 		}
 
-		eventParams := &cloudformation.DescribeStackEventsInput{
-			StackName: aws.String(stackName),
-		}
-		eventResp, err := cfnAPI.DescribeStackEvents(eventParams)
-		numEvents := len(eventResp.StackEvents)
-		if err == nil && eventResp != nil && numEvents > 0 {
-			firstEventIndex := 0
-			for i := 0; i < numEvents; i++ {
-				e := eventResp.StackEvents[i]
-				firstEventIndex = i
-				if aws.StringValue(e.ResourceType) == "AWS::CloudFormation::Stack" && strings.HasSuffix(aws.StringValue(e.ResourceStatus), "_COMPLETE") {
-					break
-				}
-			}
-			for i := firstEventIndex; i >= 0; i-- {
-				e := eventResp.StackEvents[i]
-				if priorEventTime == nil || priorEventTime.Before(aws.TimeValue(e.Timestamp)) {
-					status := aws.StringValue(e.ResourceStatus)
-					eventMesg := fmt.Sprintf("  %s:  %s (%s) %s %s",
-						stackName,
-						aws.StringValue(e.LogicalResourceId),
-						aws.StringValue(e.ResourceType),
-						status,
-						aws.StringValue(e.ResourceStatusReason))
-					if strings.HasSuffix(status, "_IN_PROGRESS") {
-						if cfnMgr.statusSpinner != nil {
-							cfnMgr.statusSpinner.Suffix = eventMesg
-							log.Debug(eventMesg)
-						} else {
-							log.Info(eventMesg)
-						}
-					} else if strings.HasSuffix(status, "_FAILED") {
-						log.Error(eventMesg)
-					} else {
-						log.Debug(eventMesg)
-					}
-					priorEventTime = e.Timestamp
-				}
-
-			}
-
-		}
+		cfnMgr.logStackEvents(stackName, priorEventTime)
 
 		log.Debugf("  Not in final status (%s)...sleeping for 5 seconds", *resp.Stacks[0].StackStatus)
 		cfnMgr.startSpinner()
