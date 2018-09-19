@@ -24,7 +24,7 @@ default: all
 deps:
 	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
 	go get "github.com/golang/dep/cmd/dep"
-	go get "github.com/jteeuwen/go-bindata/..."
+	go get "github.com/shuLhan/go-bindata/cmd/go-bindata"
 	go get "github.com/golang/lint/golint"
 	go get "github.com/jstemmer/go-junit-report"
 	go get "github.com/aktau/github-release"
