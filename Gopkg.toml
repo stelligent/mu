@@ -84,3 +84,7 @@
 [[constraint]]
   branch = "v2"
   name = "github.com/go-validator/validator"
+
+[[constraint]]
+  name = "github.com/gobuffalo/packr"
+  version = "1.13.5"

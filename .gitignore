@@ -5,4 +5,4 @@
 vendor/
 *~
 homebrew-tap/
-templates/assets.go
+*.packr.go
