@@ -1,17 +1,21 @@
 package templates
 
+//go:generate packr
+
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"text/template"
+
+	"github.com/gobuffalo/packr"
 )
 
 // NewTemplate will create a temp file with the template for a CFN stack
-//go:generate go-bindata -pkg $GOPACKAGE -o assets.go assets/
 func NewTemplate(assetName string, data interface{}) (io.Reader, error) {
-	asset, err := Asset(fmt.Sprintf("assets/%s", assetName))
+	box := packr.NewBox("./assets")
+
+	asset, err := box.MustString(assetName)
 	if err != nil {
 		return nil, err
 	}

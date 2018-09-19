@@ -2,12 +2,14 @@ package templates
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/gobuffalo/packr"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -46,7 +48,9 @@ func TestNewTemplate_assets(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-	templates, _ := AssetDir("assets")
+	box := packr.NewBox("./assets")
+	templates := box.List()
+	assert.NotZero(len(templates))
 	for _, templateName := range templates {
 		if templateName == "buildspec.yml" {
 			continue
