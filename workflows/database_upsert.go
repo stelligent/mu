@@ -117,8 +117,8 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-
-		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		policy := ""
+		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err

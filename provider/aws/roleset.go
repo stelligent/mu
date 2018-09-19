@@ -98,7 +98,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		"Namespace": rolesetMgr.context.Config.Namespace,
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "common-iam.yml", nil, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "common-iam.yml", nil, stackParams, stackTags, "", "")
 	if err != nil {
 		// ignore error if stack is in progress already
 		if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
@@ -154,7 +154,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		"Provider":        string(environment.Provider),
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "env-iam.yml", environment, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "env-iam.yml", environment, stackParams, stackTags, "", "")
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"CodeDeployBucket": codeDeployBucket,
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, "", "")
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, p
 	stackParams["AcptCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 	stackParams["ProdCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, "")
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, "", "")
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ package templates
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"text/template"
 
@@ -13,6 +14,15 @@ import (
 
 // NewTemplate will create a temp file with the template for a CFN stack
 func NewTemplate(assetName string, data interface{}) (io.Reader, error) {
+	return getAsset(fmt.Sprintf("assets/%s", assetName), data)
+}
+
+// NewPolicy creates a temp file with a stack policy
+func NewPolicy(assetName string) (io.Reader, error) {
+	return getAsset(fmt.Sprintf("assets/policies/%s", assetName), nil)
+}
+
+func getAsset(assetName string, data interface{}) (io.Reader, error) {
 	box := packr.NewBox("./assets")
 
 	asset, err := box.MustString(assetName)

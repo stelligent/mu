@@ -63,7 +63,7 @@ func (m *mockedStackManagerForUpsert) AwaitFinalStatus(stackName string) *common
 	}
 	return rtn.(*common.Stack)
 }
-func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateName string, templateData interface{}, stackParameters map[string]string, stackTags map[string]string, roleArn string) error {
+func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateName string, templateData interface{}, stackParameters map[string]string, stackTags map[string]string, policy string, roleArn string) error {
 	args := m.Called(stackName, stackParameters)
 	return args.Error(0)
 }

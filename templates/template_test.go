@@ -87,3 +87,19 @@ func TestNewTemplate_assets(t *testing.T) {
 		}
 	}
 }
+
+func TestNewPolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	templateBodyReader, err := NewPolicy("default.json")
+
+	assert.Nil(err)
+	assert.NotNil(templateBodyReader)
+
+	templateBodyBytes := new(bytes.Buffer)
+	templateBodyBytes.ReadFrom(templateBodyReader)
+	templateBody := aws.String(templateBodyBytes.String())
+
+	assert.NotNil(templateBody)
+	assert.NotEmpty(templateBody)
+}

@@ -97,9 +97,15 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 	return stackTags
 }
 
+<<<<<<< HEAD
 func cleanParams(paramsI interface{}, roleArn string, tags map[string]string) {
 	// Reflection to work with both CreateStackInput and UpdateStackInput
 	params := reflect.ValueOf(paramsI).Elem()
+=======
+// UpsertStack will create/update the cloudformation stack
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, policy string, roleArn string) error {
+	stack := cfnMgr.AwaitFinalStatus(stackName)
+>>>>>>> Issue #273 - Added default policy and changed upsert signature
 
 	roleArnField := params.FieldByName("RoleARN")
 	capabilitiesField := params.FieldByName("Capabilities")
@@ -291,6 +297,14 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 	templateBody := aws.String(templateBodyBytes.String())
 
+	policyBodyReader, err := templates.NewPolicy("default.json")
+	if err != nil {
+		return err
+	}
+	policyBodyBytes := new(bytes.Buffer)
+	policyBodyBytes.ReadFrom(policyBodyReader)
+	policyBody := aws.String(policyBodyBytes.String())
+
 	// stack parameters
 	parameters, err = cfnMgr.extensionsManager.DecorateStackParameters(stackName, parameters)
 	if err != nil {
@@ -306,9 +320,103 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	stackTags := buildStackTags(tags)
 
 	if stack == nil || stack.Status == "" {
+<<<<<<< HEAD
 		// Stack should be created
 		return createStack(stackName, stackParameters, parameters,
 			roleArn, stackTags, tags, templateBody, templateBodyBytes, cfnMgr)
+=======
+
+		log.Debugf("  Creating stack named '%s'", stackName)
+		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+		log.Debugf("  Assume role:\n\t%s", roleArn)
+		log.Debugf("  Stack tags:\n\t%s", stackTags)
+		params := &cloudformation.CreateStackInput{
+			StackName:        aws.String(stackName),
+			Parameters:       stackParameters,
+			TemplateBody:     templateBody,
+			Tags:             stackTags,
+			TimeoutInMinutes: aws.Int64(60),
+			StackPolicyBody:  policyBody,
+		}
+
+		if roleArn != "" {
+			params.RoleARN = aws.String(roleArn)
+		}
+
+		if tags["mu:type"] == string(common.StackTypeIam) {
+			params.Capabilities = []*string{
+				aws.String(cloudformation.CapabilityCapabilityNamedIam),
+			}
+		}
+
+		if cfnMgr.dryrunPath != "" {
+			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping create of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
+			return nil
+		}
+
+		log.Debugf("about to cfnAPI.CreateStack(params) with: %v", params)
+		_, err := cfnAPI.CreateStack(params)
+		log.Debug("  Create stack complete err=%s", err)
+		if err != nil {
+			return err
+		}
+
+		waitParams := &cloudformation.DescribeStacksInput{
+			StackName: aws.String(stackName),
+		}
+		log.Debug("  Waiting for stack to exist...")
+		cfnAPI.WaitUntilStackExists(waitParams)
+		log.Debug("  Stack exists.")
+
+	} else {
+		log.Debugf("  Updating stack named '%s'", stackName)
+		log.Debugf("  Prior state: %s", stack.Status)
+		log.Debugf("  Stack parameters:\n\t%s", stackParameters)
+		log.Debugf("  Stack tags:\n\t%s", stackTags)
+		params := &cloudformation.UpdateStackInput{
+			StackName:    aws.String(stackName),
+			Parameters:   stackParameters,
+			TemplateBody: templateBody,
+			Tags:         stackTags,
+		}
+
+		if roleArn != "" {
+			params.RoleARN = aws.String(roleArn)
+		}
+
+		if tags["mu:type"] == string(common.StackTypeIam) {
+			params.Capabilities = []*string{
+				aws.String(cloudformation.CapabilityCapabilityNamedIam),
+			}
+		}
+
+		if cfnMgr.dryrunPath != "" {
+			writeTemplateAndConfig(cfnMgr.dryrunPath, stackName, templateBodyBytes, parameters)
+			log.Infof("  DRYRUN: Skipping update of stack named '%s'.  Template and parameters written to '%s'", stackName, cfnMgr.dryrunPath)
+			return nil
+		}
+
+		_, err := cfnAPI.UpdateStack(params)
+		log.Debug("  Update stack complete err=%s", err)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
+					pauseSpinner := cfnMgr.spinnerRefCnt > 0
+					if pauseSpinner {
+						cfnMgr.stopSpinner()
+					}
+					log.Infof("  No changes for stack '%s'", stackName)
+					if pauseSpinner {
+						cfnMgr.startSpinner()
+					}
+					return nil
+				}
+			}
+			return err
+		}
+
+>>>>>>> Issue #273 - Added default policy and changed upsert signature
 	}
 	// else, stack should be updated
 	return updateStack(stackName, stackParameters, parameters,

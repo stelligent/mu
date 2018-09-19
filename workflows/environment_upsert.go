@@ -109,7 +109,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 				Repo:        workflow.repoName,
 			})
 
-			err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, workflow.cloudFormationRoleArn)
+			err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}
@@ -205,7 +205,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -291,7 +291,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, templateName, environment, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, templateName, environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}

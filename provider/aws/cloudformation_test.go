@@ -145,7 +145,7 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "")
+	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "", "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -177,7 +177,7 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "")
+	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "", "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
