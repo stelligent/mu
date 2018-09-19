@@ -62,67 +62,88 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 	return nil
 }
 
+func (s3Mgr *s3ArtifactManager) getArtifactS3(url *url.URL, etag string) (io.ReadCloser, string, error) {
+	region, err := s3manager.GetBucketRegionWithClient(aws.BackgroundContext(), s3Mgr.s3API, url.Host)
+	if err != nil {
+		return nil, "", err
+	}
+	s3api := s3Mgr.s3API
+	if aws.StringValue(s3Mgr.sess.Config.Region) != region {
+		s3api = s3.New(s3Mgr.sess, aws.NewConfig().WithRegion(region))
+	}
+	input := &s3.GetObjectInput{
+		Bucket:      aws.String(url.Host),
+		Key:         aws.String(url.Path),
+		IfNoneMatch: aws.String(etag),
+	}
+	resp, err := s3api.GetObject(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == "NotModified" {
+				return resp.Body, etag, nil
+			}
+		}
+		return nil, "", err
+	}
+
+	return resp.Body, aws.StringValue(resp.ETag), nil
+}
+
+func (s3Mgr *s3ArtifactManager) getArtifactHTTP(url *url.URL, etag string) (io.ReadCloser, string, error) {
+	req, err := http.NewRequest("GET", url.String(), nil)
+	if err != nil {
+		return nil, "", err
+	}
+
+	client := &http.Client{}
+	req.Header.Add("If-None-Match", etag)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if resp.StatusCode == 304 {
+		return nil, etag, nil
+	}
+
+	return resp.Body, resp.Header.Get(http.CanonicalHeaderKey("etag")), nil
+}
+
+func (s3Mgr *s3ArtifactManager) getArtifactFile(url *url.URL, etag string) (io.ReadCloser, string, error) {
+	newEtag, err := md5File(url.Path)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if etag == "" || etag != newEtag {
+		body, err := os.Open(url.Path)
+		return body, newEtag, err
+	}
+	return nil, newEtag, nil
+}
+
 // GetArtifact get the artifact conditionally by etag.
-func (s3Mgr *s3ArtifactManager) GetArtifact(uri string, etag string) (io.ReadCloser, string, error) {
+func (s3Mgr *s3ArtifactManager) GetArtifact(uri string, etag string) (body io.ReadCloser, etagRet string, err error) {
 	url, err := url.Parse(uri)
 	if err != nil {
 		return nil, "", err
 	}
 
-	if url.Scheme == "s3" {
-		region, err := s3manager.GetBucketRegionWithClient(aws.BackgroundContext(), s3Mgr.s3API, url.Host)
-		s3api := s3Mgr.s3API
-		if aws.StringValue(s3Mgr.sess.Config.Region) != region {
-			s3api = s3.New(s3Mgr.sess, aws.NewConfig().WithRegion(region))
-		}
-		input := &s3.GetObjectInput{
-			Bucket:      aws.String(url.Host),
-			Key:         aws.String(url.Path),
-			IfNoneMatch: aws.String(etag),
-		}
-		resp, err := s3api.GetObject(input)
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				if aerr.Code() == "NotModified" {
-					return resp.Body, etag, nil
-				}
-			}
-			return nil, "", err
-		}
-
-		return resp.Body, aws.StringValue(resp.ETag), nil
-	} else if url.Scheme == "https" || url.Scheme == "http" {
-		req, err := http.NewRequest("GET", url.String(), nil)
-		if err != nil {
-			return nil, "", err
-		}
-
-		client := &http.Client{}
-		req.Header.Add("If-None-Match", etag)
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, "", err
-		}
-
-		if resp.StatusCode == 304 {
-			return nil, etag, nil
-		}
-
-		return resp.Body, resp.Header.Get(http.CanonicalHeaderKey("etag")), nil
-	} else if url.Scheme == "file" {
-		newEtag, err := md5File(url.Path)
-		if err != nil {
-			return nil, "", err
-		}
-
-		if etag == "" || etag != newEtag {
-			body, err := os.Open(url.Path)
-			return body, newEtag, err
-		}
-		return nil, newEtag, nil
+	switch url.Scheme {
+	case "s3":
+		body, etagRet, err = s3Mgr.getArtifactS3(url, etag)
+	case "http":
+		fallthrough
+	case "https":
+		body, etagRet, err = s3Mgr.getArtifactHTTP(url, etag)
+	case "file":
+		body, etagRet, err = s3Mgr.getArtifactFile(url, etag)
+	default:
+		body = nil
+		etagRet = ""
+		err = fmt.Errorf("unknown scheme on URL '%s'", url)
 	}
-
-	return nil, "", fmt.Errorf("unknown scheme on URL '%s'", url)
+	return
 }
 
 func md5File(path string) (string, error) {
