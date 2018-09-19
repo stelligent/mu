@@ -5,4 +5,4 @@
 vendor/
 *~
 homebrew-tap/
-*.packr.go
+*-packr.go
