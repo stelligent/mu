@@ -77,8 +77,8 @@
     "service/ssm/ssmiface",
     "service/sts"
   ]
-  revision = "71a2a92b0063297b055b6f5a014d441c142da2ce"
-  version = "v1.15.32"
+  revision = "949f7800d745d1df9af349380e5deec8de206144"
+  version = "v1.15.38"
 
 [[projects]]
   name = "github.com/briandowns/spinner"
@@ -210,6 +210,12 @@
   revision = "135c24b11c19e52befcae2ec3fca5d9b78c4e98e"
 
 [[projects]]
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  revision = "6c8156ee36301dd007342e79d81c99e7a7834337"
+  version = "v1.13.5"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
@@ -284,7 +290,7 @@
   branch = "master"
   name = "github.com/olekukonko/tablewriter"
   packages = ["."]
-  revision = "d4647c9c7a84d847478d890b816b7d8b62b0b279"
+  revision = "be2c049b30ccd4d3fd795d6bf7dce74e42eeedaa"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -426,7 +432,7 @@
     "internal/socks",
     "proxy"
   ]
-  revision = "161cd47e91fd58ac17490ef4d742dc98bb4cf60e"
+  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
 
 [[projects]]
   branch = "master"
@@ -435,7 +441,7 @@
     "unix",
     "windows"
   ]
-  revision = "d0be0721c37eeb5299f245a996a483160fc36940"
+  revision = "1561086e645b2809fb9f8a1e2a38160bf8d53bf4"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -532,6 +538,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e25e8776012cca21d45996df40f310eb7ca17f462e9eeba40aefc0ca6e07e947"
+  inputs-digest = "4df6c393b1b87c947f16f47430533fe29f93b554242c9d519a747dacb8aa7f8a"
   solver-name = "gps-cdcl"
   solver-version = 1
