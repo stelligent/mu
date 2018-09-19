@@ -55,10 +55,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		var vpcStackName string
 		var vpcTemplateName string
 		if environment.VpcTarget.Environment != "" {
-			targetNamespace := environment.VpcTarget.Namespace
-			if targetNamespace == "" {
-				targetNamespace = namespace
-			}
+			targetNamespace := common.NewStringIfNotEmpty(namespace, environment.VpcTarget.Namespace)
+
 			log.Debugf("VpcTarget exists for different environment; targeting that VPC")
 			vpcStackName = common.CreateStackName(targetNamespace, common.StackTypeVpc, environment.VpcTarget.Environment)
 		} else if environment.VpcTarget.VpcID != "" {
@@ -75,14 +73,11 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
 			vpcTemplateName = "vpc.yml"
 
-			if environment.Cluster.InstanceTenancy != "" {
-				vpcStackParams["InstanceTenancy"] = string(environment.Cluster.InstanceTenancy)
-			}
-			if environment.Cluster.SSHAllow != "" {
-				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
-			} else {
-				vpcStackParams["SshAllow"] = "0.0.0.0/0"
-			}
+			vpcStackParams["InstanceTenancy"] = common.NewStringIfNotEmpty(vpcStackParams["InstanceTenancy"], string(environment.Cluster.InstanceTenancy))
+
+			vpcStackParams["SshAllow"] = "0.0.0.0/0"
+			vpcStackParams["SshAllow"] = common.NewStringIfNotEmpty(vpcStackParams["SshAllow"], environment.Cluster.SSHAllow)
+
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
 				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImagePattern)
