@@ -232,13 +232,6 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 	}
 }
 
-func newStringIfNotEmpty(original string, newString string) string {
-	if newString != "" {
-		return newString
-	}
-	return original
-}
-
 // PipelineParams creates a map of params to send to the CFN pipeline template
 func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[string]string) (map[string]string, error) {
 
@@ -250,7 +243,7 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
 	pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
 
-	pipelineParams["SourceBranch"] = newStringIfNotEmpty(pipelineParams["SourceBranch"], workflow.codeBranch)
+	pipelineParams["SourceBranch"] = common.NewStringIfNotEmpty(pipelineParams["SourceBranch"], workflow.codeBranch)
 
 	if workflow.pipelineConfig.Source.Provider == "S3" {
 		repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
@@ -258,18 +251,18 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 		pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
 	}
 
-	pipelineParams["BuildType"] = newStringIfNotEmpty(pipelineParams["BuildType"], string(workflow.pipelineConfig.Build.Type))
-	pipelineParams["BuildComputeType"] = newStringIfNotEmpty(pipelineParams["BuildComputeType"], string(workflow.pipelineConfig.Build.ComputeType))
-	pipelineParams["BuildImage"] = newStringIfNotEmpty(pipelineParams["BuildImage"], workflow.pipelineConfig.Build.Image)
-	pipelineParams["PipelineBuildTimeout"] = newStringIfNotEmpty(pipelineParams["PipelineBuildTimeout"], workflow.pipelineConfig.Build.BuildTimeout)
-	pipelineParams["TestType"] = newStringIfNotEmpty(pipelineParams["TestType"], string(workflow.pipelineConfig.Acceptance.Type))
-	pipelineParams["TestComputeType"] = newStringIfNotEmpty(pipelineParams["TestComputeType"], string(workflow.pipelineConfig.Acceptance.ComputeType))
-	pipelineParams["TestImage"] = newStringIfNotEmpty(pipelineParams["TestImage"], workflow.pipelineConfig.Acceptance.Image)
-	pipelineParams["AcptEnv"] = newStringIfNotEmpty(pipelineParams["AcptEnv"], workflow.pipelineConfig.Acceptance.Environment)
-	pipelineParams["PipelineBuildAcceptanceTimeout"] = newStringIfNotEmpty(pipelineParams["PipelineBuildAcceptanceTimeout"], workflow.pipelineConfig.Acceptance.BuildTimeout)
-	pipelineParams["ProdEnv"] = newStringIfNotEmpty(pipelineParams["ProdEnv"], workflow.pipelineConfig.Production.Environment)
-	pipelineParams["PipelineBuildProductionTimeout"] = newStringIfNotEmpty(pipelineParams["PipelineBuildProductionTimeout"], workflow.pipelineConfig.Production.BuildTimeout)
-	pipelineParams["MuDownloadBaseurl"] = newStringIfNotEmpty(pipelineParams["MuDownloadBaseurl"], workflow.pipelineConfig.MuBaseurl)
+	pipelineParams["BuildType"] = common.NewStringIfNotEmpty(pipelineParams["BuildType"], string(workflow.pipelineConfig.Build.Type))
+	pipelineParams["BuildComputeType"] = common.NewStringIfNotEmpty(pipelineParams["BuildComputeType"], string(workflow.pipelineConfig.Build.ComputeType))
+	pipelineParams["BuildImage"] = common.NewStringIfNotEmpty(pipelineParams["BuildImage"], workflow.pipelineConfig.Build.Image)
+	pipelineParams["PipelineBuildTimeout"] = common.NewStringIfNotEmpty(pipelineParams["PipelineBuildTimeout"], workflow.pipelineConfig.Build.BuildTimeout)
+	pipelineParams["TestType"] = common.NewStringIfNotEmpty(pipelineParams["TestType"], string(workflow.pipelineConfig.Acceptance.Type))
+	pipelineParams["TestComputeType"] = common.NewStringIfNotEmpty(pipelineParams["TestComputeType"], string(workflow.pipelineConfig.Acceptance.ComputeType))
+	pipelineParams["TestImage"] = common.NewStringIfNotEmpty(pipelineParams["TestImage"], workflow.pipelineConfig.Acceptance.Image)
+	pipelineParams["AcptEnv"] = common.NewStringIfNotEmpty(pipelineParams["AcptEnv"], workflow.pipelineConfig.Acceptance.Environment)
+	pipelineParams["PipelineBuildAcceptanceTimeout"] = common.NewStringIfNotEmpty(pipelineParams["PipelineBuildAcceptanceTimeout"], workflow.pipelineConfig.Acceptance.BuildTimeout)
+	pipelineParams["ProdEnv"] = common.NewStringIfNotEmpty(pipelineParams["ProdEnv"], workflow.pipelineConfig.Production.Environment)
+	pipelineParams["PipelineBuildProductionTimeout"] = common.NewStringIfNotEmpty(pipelineParams["PipelineBuildProductionTimeout"], workflow.pipelineConfig.Production.BuildTimeout)
+	pipelineParams["MuDownloadBaseurl"] = common.NewStringIfNotEmpty(pipelineParams["MuDownloadBaseurl"], workflow.pipelineConfig.MuBaseurl)
 
 	pipelineParams["EnableBuildStage"] = strconv.FormatBool(!workflow.pipelineConfig.Build.Disabled)
 	pipelineParams["EnableAcptStage"] = strconv.FormatBool(!workflow.pipelineConfig.Acceptance.Disabled)
