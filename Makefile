@@ -31,7 +31,8 @@ deps:
 	@go get "github.com/aktau/github-release"
 	@go get "github.com/fzipp/gocyclo"
 	@go get github.com/giantswarm/semver-bump
-	@[ -d vendor ] || (dep ensure -vendor-only -v && git apply -p1 go-git.v4.patch)
+	@dep ensure -vendor-only -v
+	@git apply -p1 go-git.v4.patch
 
 fmt:
 	@echo "=== formatting ==="
