@@ -3,8 +3,11 @@ package aws
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
+	"io"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/ericchiang/k8s"
-	logging "github.com/op/go-logging"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	yaml "gopkg.in/yaml.v2"
@@ -25,28 +27,36 @@ const (
 )
 
 type eksKubernetesResourceManagerProvider struct {
-	eksAPI eksiface.EKSAPI
-	stsAPI *sts.STS
+	eksAPI            eksiface.EKSAPI
+	stsAPI            *sts.STS
+	extensionsManager common.ExtensionsManager
+	dryrunPath        string
 }
 
 type eksKubernetesResourceManager struct {
+	name              string
 	client            *k8s.Client
 	extensionsManager common.ExtensionsManager
 	dryrunPath        string
 }
 
-func newEksKubernetesResourceManagerProvider(sess *session.Session) (common.KubernetesResourceManagerProvider, error) {
+func newEksKubernetesResourceManagerProvider(sess *session.Session, extensionsManager common.ExtensionsManager, dryrunPath string) (common.KubernetesResourceManagerProvider, error) {
+	if dryrunPath != "" {
+		log.Debugf("Running in DRYRUN mode with path '%s'", dryrunPath)
+	}
 	log.Debug("Connecting to EKS service")
 	eksAPI := eks.New(sess)
 	stsAPI := sts.New(sess)
 
 	return &eksKubernetesResourceManagerProvider{
-		eksAPI: eksAPI,
-		stsAPI: stsAPI,
+		eksAPI:            eksAPI,
+		stsAPI:            stsAPI,
+		dryrunPath:        dryrunPath,
+		extensionsManager: extensionsManager,
 	}, nil
 }
 
-// GetClient get a connection to eks cluster
+// GetResourceManager get a connection to eks cluster
 func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(name string) (common.KubernetesResourceManager, error) {
 	eksAPI := eksMgrProvider.eksAPI
 	stsAPI := eksMgrProvider.stsAPI
@@ -110,7 +120,10 @@ func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(n
 	}
 
 	return &eksKubernetesResourceManager{
-		client: client,
+		name:              name,
+		client:            client,
+		dryrunPath:        eksMgrProvider.dryrunPath,
+		extensionsManager: eksMgrProvider.extensionsManager,
 	}, nil
 }
 
@@ -122,6 +135,10 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 
 	resourceNamespace := resource.GetMetadata().GetNamespace()
 	resourceName := resource.GetMetadata().GetName()
+	resourceType := reflect.TypeOf(resource)
+	if resourceType.Kind() == reflect.Ptr {
+		resourceType = resourceType.Elem()
+	}
 
 	// load existing resource for eks
 	exists := true
@@ -134,8 +151,7 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 		}
 	}
 
-	// TODO: build a name for the resource
-	resourceURN := "foo-bar-baz"
+	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceType.Name(), resourceName)
 
 	// apply new values
 	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
@@ -146,24 +162,32 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	if err := yaml.NewDecoder(templateBodyReader).Decode(resource); err != nil {
+	var templateBody strings.Builder
+	_, err = io.Copy(&templateBody, templateBodyReader)
+	if err != nil {
 		return err
 	}
 
-	// TODO: support dry-run mode
-	if exists {
-		log.Noticef("Updating kubernetes '%s' resource '%s' in namespace '%s' ...", reflect.TypeOf(resource), resourceName, resourceNamespace)
-		if log.IsEnabledFor(logging.DEBUG) {
-			yaml.NewEncoder(os.Stdout).Encode(resource)
+	if err := yaml.NewDecoder(strings.NewReader(templateBody.String())).Decode(resource); err != nil {
+		return err
+	}
+
+	if eksMgr.dryrunPath != "" {
+		err := writeResource(eksMgr.dryrunPath, resourceURN, templateBody.String())
+		if err != nil {
+			return err
 		}
+		log.Infof("  DRYRUN: Skipping create of resource named '%s'.  File written to '%s'", resourceURN, eksMgr.dryrunPath)
+		return nil
+	}
+
+	if exists {
+		log.Noticef("Updating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType.Name(), resourceName, resourceNamespace)
 		if err := eksMgr.client.Update(ctx, resource); err != nil {
 			return err
 		}
 	} else {
-		log.Noticef("Creating kubernetes '%s' resource '%s' in namespace '%s' ...", reflect.TypeOf(resource), resourceName, resourceNamespace)
-		if log.IsEnabledFor(logging.DEBUG) {
-			yaml.NewEncoder(os.Stdout).Encode(resource)
-		}
+		log.Noticef("Creating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType.Name(), resourceName, resourceNamespace)
 		if err := eksMgr.client.Create(ctx, resource); err != nil {
 			return err
 		}
@@ -178,4 +202,17 @@ func (eksMgr *eksKubernetesResourceManager) ListResources(ctx context.Context,
 	resourceList k8s.ResourceList) error {
 
 	return eksMgr.client.List(ctx, namespace, resourceList)
+}
+
+func writeResource(directory string, resourceName string, resourceBody string) error {
+	os.MkdirAll(directory, 0700)
+	resourceFile := fmt.Sprintf("%s/resource-%s.yml", directory, resourceName)
+	fileWriter, err := os.Create(resourceFile)
+	if err != nil {
+		return err
+	}
+	defer fileWriter.Close()
+	l, err := fileWriter.WriteString(resourceBody)
+	log.Debugf("Wrote %d bytes to %s", l, resourceFile)
+	return err
 }

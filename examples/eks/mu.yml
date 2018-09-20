@@ -14,3 +14,13 @@ service:
   port: 80
   pathPatterns:
     - /*
+
+## The resources can be customized below
+templates:
+  mu-environment-acceptance-ConfigMap-aws-auth:   
+    data:
+      mapUsers: |
+        - userarn: arn:aws:iam::00000000000:user/casey.lee
+          username: casey-lee
+          groups:
+          - system:masters
