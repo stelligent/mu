@@ -31,7 +31,7 @@ deps:
 	go get "github.com/fzipp/gocyclo"
 	go get github.com/giantswarm/semver-bump
 	dep ensure
-	patch -p1 < go-git.v4.patch
+	git apply -p1 go-git.v4.patch
 
 ifeq ($(CIRCLECI),true)
 	gem install cfn-nag
