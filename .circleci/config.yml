@@ -25,6 +25,7 @@ jobs:
           paths:
             - /go/pkg
             - /go/src/github.com/stelligent/mu/vendor
+            - ~/.cache/go-build
 
       - run:
           name: Test
