@@ -96,7 +96,8 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		//DatabaseMasterPassword:
 		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		if err != nil {
-			return err
+			log.Warningf("Error with GetParam for DatabaseMasterPassword, assuming empty: %s", err)
+			dbPass = ""
 		}
 		if dbPass == "" {
 			dbPass = randomPassword(32)
