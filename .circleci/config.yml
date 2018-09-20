@@ -1,39 +1,39 @@
 version: 2
 
 jobs:
-  build:
-    environment:
-        AWS_REGION: us-west-2
-
+  nag:
     docker:
-    - image: circleci/golang:1.10
-
-    working_directory: /go/src/github.com/stelligent/mu
-
+    - image: circleci/ruby:2.4.2-jessie-node
     steps:
       - checkout
+      - run:
+          name: cfn-nag
+          command: make nag
 
+  test:
+    environment:
+        AWS_REGION: us-west-2
+    docker:
+    - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/stelligent/mu
+    steps:
+      - checkout
       - restore_cache:
           key: v1-go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
-
       - run:
           name: Dependencies
           command: make deps
-
       - run:
           name: Test
           command: make test
-
       - store_test_results:
           path: test-results
-
       - save_cache:
           key: v1-go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
             - /go/pkg
             - /go/src/github.com/stelligent/mu/vendor
             - ~/.cache/go-build
-
       - persist_to_workspace:
           root: .
           paths: .
@@ -75,15 +75,20 @@ jobs:
 
 workflows:
   version: 2
-  build-and-release:
+  test-and-release:
     jobs:
-      - build:
+      - test:
+          filters:
+            tags:
+              ignore: /^v[0-9]/
+      - nag:
           filters:
             tags:
               ignore: /^v[0-9]/
       - release:
           requires:
-            - build
+            - test
+            - nag
           filters:
             tags:
               ignore: /^v[0-9]/
