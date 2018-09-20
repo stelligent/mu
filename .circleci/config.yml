@@ -26,7 +26,6 @@ jobs:
             - /go/pkg
             - /go/src/github.com/stelligent/mu/vendor
 
-
       - run:
           name: Test
           command: make test

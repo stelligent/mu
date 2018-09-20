@@ -1,7 +1,7 @@
-diff --git a/vendor/gopkg.in/src-d/go-git.v4/remote.go b/vendor/gopkg.in/src-d/go-git.v4/remote.1.go
+diff --git a/vendor/gopkg.in/src-d/go-git.v4/remote.go b/vendor/gopkg.in/src-d/go-git.v4/remote.go
 index 0556b98..67c5181 100644
 --- a/vendor/gopkg.in/src-d/go-git.v4/remote.go
-+++ b/vendor/gopkg.in/src-d/go-git.v4/remote.1.go
++++ b/vendor/gopkg.in/src-d/go-git.v4/remote.go
 @@ -1004,7 +1004,7 @@ func pushHashes(
  	}
  	done := make(chan error)
