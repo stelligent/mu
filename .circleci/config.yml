@@ -20,12 +20,6 @@ jobs:
           name: Dependencies
           command: make deps
 
-      - save_cache:
-          key: go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
-          paths:
-            - /go/pkg
-            - /go/src/github.com/stelligent/mu/vendor
-            - ~/.cache/go-build
 
       - run:
           name: Test
@@ -33,6 +27,13 @@ jobs:
 
       - store_test_results:
           path: test-results
+
+      - save_cache:
+          key: go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+            - /go/pkg
+            - /go/src/github.com/stelligent/mu/vendor
+            - ~/.cache/go-build
 
       - persist_to_workspace:
           root: .
