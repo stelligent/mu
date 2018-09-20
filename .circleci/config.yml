@@ -65,8 +65,8 @@ jobs:
             git config --global user.email "cplee+mu@nektos.com"
             git config --global user.name "mu-ci"
 
-            make release
-            make formula
+            #make release
+            #make formula
 
       - store_artifacts:
           path: artifacts
