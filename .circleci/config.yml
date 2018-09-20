@@ -1,7 +1,7 @@
 version: 2
 
 jobs:
-  nag:
+  cfn-nag:
     docker:
     - image: circleci/ruby:2.4.2-jessie-node
     steps:
@@ -10,7 +10,7 @@ jobs:
           name: cfn-nag
           command: make nag
 
-  test:
+  unit-test:
     environment:
         AWS_REGION: us-west-2
     docker:
@@ -77,11 +77,11 @@ workflows:
   version: 2
   test-and-release:
     jobs:
-      - test:
+      - unit-test:
           filters:
             tags:
               ignore: /^v[0-9]/
-      - nag:
+      - cfn-nag:
           filters:
             tags:
               ignore: /^v[0-9]/
