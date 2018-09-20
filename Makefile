@@ -16,46 +16,45 @@ BUILD_FILES = $(foreach os, $(TARGET_OS), $(BUILD_DIR)/$(PACKAGE)-$(os)-$(ARCH))
 UPLOAD_FILES = $(foreach os, $(TARGET_OS), $(PACKAGE)-$(os)-$(ARCH))
 GOLDFLAGS = "-X main.version=$(VERSION)"
 TAG_VERSION = v$(VERSION)
+GEM := $(shell command -v gem 2> /dev/null)
 
 export PATH := $(GOPATH)/bin:$(PATH)
 
 default: all
 
 deps:
-	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
+	@echo "=== dependencies ==="
 	go get "github.com/golang/dep/cmd/dep"
-	go get "github.com/gobuffalo/packr/..."
-	go get "github.com/golang/lint/golint"
-	go get "github.com/jstemmer/go-junit-report"
-	go get "github.com/aktau/github-release"
-	go get "github.com/fzipp/gocyclo"
-	go get github.com/giantswarm/semver-bump
-	dep ensure
-	patch -p1 < go-git.v4.patch
+	@dep ensure -vendor-only -v
+	@git apply -p1 go-git.v4.patch
 
-ifeq ($(CIRCLECI),true)
-	gem install cfn-nag
-else
-	gem list | grep cfn-nag || sudo gem install cfn-nag
-	gem list | grep github_changelog_generator || sudo gem install github_changelog_generator
-endif
-
-gen:
-	go generate $(SRC_FILES)
+fmt:
+	@echo "=== formatting ==="
+	@go fmt $(SRC_FILES)
 
 lint: fmt
 	@echo "=== linting ==="
-	go vet $(SRC_FILES)
-	echo $(SRC_FILES) | xargs -n1 golint -set_exit_status
+	@go vet $(SRC_FILES)
+
+	@go get "github.com/golang/lint/golint"
+	@echo $(SRC_FILES) | xargs -n1 golint -set_exit_status
+
+gen:
+	@echo "=== generating ==="
+	@go get "github.com/gobuffalo/packr/..."
+	@go generate $(SRC_FILES)
 
 nag:
 	@echo "=== cfn_nag ==="
+	@gem list -i cfn-nag --silent || sudo gem install cfn-nag
+
 	@mkdir -p $(BUILD_DIR)/cfn_nag
 	@grep -l AWSTemplateFormatVersion: templates/assets/*.yml | while read -r line; do \
 		filename=`basename $$line` ;\
 		grep -v '{{' $$line > $(BUILD_DIR)/cfn_nag/$$filename ;\
 		output=`cfn_nag_scan --input-path $(BUILD_DIR)/cfn_nag/$$filename 2>&1` ;\
 		if [ $$? -ne 0 ]; then \
+			echo $$filename ;\
 			echo "$$output\n" ;\
 		fi ;\
 	done | grep ".*" ;\
@@ -65,27 +64,33 @@ nag:
 
 cyclo:
 	@echo "=== cyclomatic complexity ==="
+	@go get "github.com/fzipp/gocyclo"
 	@gocyclo -over 35 $(SRC_PACKAGES)
 	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
-	
-test: lint gen nag cyclo
+
+ifdef GEM
+test: nag	
+endif 
+
+test: lint gen cyclo
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
-	mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
-	bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
+	@mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
+	@go get "github.com/jstemmer/go-junit-report"
+	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
-	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
+	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 e2e: gen stage keypair
 	@echo "=== e2e testing ==="
-	MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
+	@MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
 
 build: gen $(BUILD_FILES)
 
 $(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
-	mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 install: gen $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
@@ -173,9 +178,6 @@ clean:
 
 all: clean deps test build
 
-fmt:
-	@echo "=== formatting ==="
-	go fmt $(SRC_FILES)
 
 check_github_token:
 ifndef GITHUB_TOKEN
@@ -183,11 +185,11 @@ ifndef GITHUB_TOKEN
 	@echo Create one at https://github.com/settings/tokens
 	@exit 1
 endif
-
-changelog: check_github_token
-	github_changelog_generator -u stelligent -p mu -t $(GITHUB_TOKEN) --exclude-tags-regex develop --future-release $(TAG_VERSION)
+	@go get "github.com/aktau/github-release"
 
 promote: check_github_token
+	gem list | grep github_changelog_generator || sudo gem install github_changelog_generator
+
 	@echo "=== merge $(BRANCH) -> master ==="
 	@git fetch origin master
 	@git checkout origin/master
@@ -210,6 +212,7 @@ promote: check_github_token
 	@git merge --no-edit origin/master
 
 	@echo "=== bump version ==="
+	@go get github.com/giantswarm/semver-bump
 	@semver-bump patch-release
 	@git add VERSION
 	@git commit -m "bump version"
