@@ -73,10 +73,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
 			vpcTemplateName = "vpc.yml"
 
-			vpcStackParams["InstanceTenancy"] = common.NewStringIfNotEmpty(vpcStackParams["InstanceTenancy"], string(environment.Cluster.InstanceTenancy))
+			common.NewMapElementIfNotEmpty(vpcStackParams, "InstanceTenancy", string(environment.Cluster.InstanceTenancy))
 
 			vpcStackParams["SshAllow"] = "0.0.0.0/0"
-			vpcStackParams["SshAllow"] = common.NewStringIfNotEmpty(vpcStackParams["SshAllow"], environment.Cluster.SSHAllow)
+			common.NewMapElementIfNotEmpty(vpcStackParams, "SshAllow", environment.Cluster.SSHAllow)
 
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
@@ -259,10 +259,10 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 
 		// Default SshAllow if none defined
 		stackParams["SshAllow"] = "0.0.0.0/0"
-		stackParams["SshAllow"] = common.NewStringIfNotEmpty(stackParams["SshAllow"], environment.Cluster.SSHAllow)
-		stackParams["InstanceType"] = common.NewStringIfNotEmpty(stackParams["InstanceType"], environment.Cluster.InstanceType)
-		stackParams["ExtraUserData"] = common.NewStringIfNotEmpty(stackParams["ExtraUserData"], environment.Cluster.ExtraUserData)
-		stackParams["ImageId"] = common.NewStringIfNotEmpty(stackParams["ImageId"], environment.Cluster.ImageID)
+		common.NewMapElementIfNotEmpty(stackParams, "SshAllow", environment.Cluster.SSHAllow)
+		common.NewMapElementIfNotEmpty(stackParams, "InstanceType", environment.Cluster.InstanceType)
+		common.NewMapElementIfNotEmpty(stackParams, "ExtraUserData", environment.Cluster.ExtraUserData)
+		common.NewMapElementIfNotEmpty(stackParams, "ImageId", environment.Cluster.ImageID)
 
 		if environment.Cluster.ImageID == "" {
 			var err error
@@ -271,18 +271,18 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 				return err
 			}
 		}
-		stackParams["ImageOsType"] = common.NewStringIfNotEmpty(stackParams["ImageOsType"], environment.Cluster.ImageOsType)
+		common.NewMapElementIfNotEmpty(stackParams, "ImageOsType", environment.Cluster.ImageOsType)
 
-		stackParams["DesiredCapacity"] = common.NewStringIfNotZero(stackParams["DesiredCapacity"], environment.Cluster.DesiredCapacity)
-		stackParams["MinSize"] = common.NewStringIfNotZero(stackParams["MinSize"], environment.Cluster.MinSize)
-		stackParams["MaxSize"] = common.NewStringIfNotZero(stackParams["MaxSize"], environment.Cluster.MaxSize)
+		common.NewMapElementIfNotZero(stackParams, "DesiredCapacity", environment.Cluster.DesiredCapacity)
+		common.NewMapElementIfNotZero(stackParams, "MinSize", environment.Cluster.MinSize)
+		common.NewMapElementIfNotZero(stackParams, "MaxSize", environment.Cluster.MaxSize)
 
-		stackParams["KeyName"] = common.NewStringIfNotEmpty(stackParams["KeyName"], environment.Cluster.KeyName)
+		common.NewMapElementIfNotEmpty(stackParams, "KeyName", environment.Cluster.KeyName)
 
-		stackParams["TargetCPUReservation"] = common.NewStringIfNotZero(stackParams["TargetCPUReservation"], environment.Cluster.TargetCPUReservation)
-		stackParams["TargetMemoryReservation"] = common.NewStringIfNotZero(stackParams["TargetMemoryReservation"], environment.Cluster.TargetMemoryReservation)
+		common.NewMapElementIfNotZero(stackParams, "TargetCPUReservation", environment.Cluster.TargetCPUReservation)
+		common.NewMapElementIfNotZero(stackParams, "TargetMemoryReservation", environment.Cluster.TargetMemoryReservation)
 
-		stackParams["HttpProxy"] = common.NewStringIfNotEmpty(stackParams["HttpProxy"], environment.Cluster.HTTPProxy)
+		common.NewMapElementIfNotEmpty(stackParams, "HttpProxy", environment.Cluster.HTTPProxy)
 
 		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,

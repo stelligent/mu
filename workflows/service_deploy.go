@@ -156,7 +156,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
 		params["ServiceDiscoveryId"] = fmt.Sprintf("%s-ServiceDiscoveryId", workflow.lbStack.Name)
 		params["ServiceDiscoveryName"] = fmt.Sprintf("%s-ServiceDiscoveryName", workflow.lbStack.Name)
-		params["ServiceDiscoveryTTL"] = common.NewStringIfNotEmpty(params["ServiceDiscoveryTTL"], service.DiscoveryTTL)
+		common.NewMapElementIfNotEmpty(params, "ServiceDiscoveryTTL", service.DiscoveryTTL)
 
 		params["ImageUrl"] = workflow.serviceImage
 
@@ -262,7 +262,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			}
 		}
 
-		params["TargetCPUUtilization"] = common.NewStringIfNotZero(params["TargetCPUUtilization"], service.TargetCPUUtilization)
+		common.NewMapElementIfNotZero(params, "TargetCPUUtilization", service.TargetCPUUtilization)
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
@@ -296,12 +296,12 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		}
 
 		params["ServiceName"] = workflow.serviceName
-		params["ServicePort"] = common.NewStringIfNotZero(params["ServicePort"], service.Port)
-		params["ServiceProtocol"] = common.NewStringIfNotEmpty(params["ServiceProtocol"], string(service.Protocol))
-		params["ServiceHealthEndpoint"] = common.NewStringIfNotEmpty(params["ServiceHealthEndpoint"], service.HealthEndpoint)
-		params["ServiceDesiredCount"] = common.NewStringIfNotZero(params["ServiceDesiredCount"], service.DesiredCount)
-		params["ServiceMinSize"] = common.NewStringIfNotZero(params["ServiceMinSize"], service.MinSize)
-		params["ServiceMaxSize"] = common.NewStringIfNotZero(params["ServiceMaxSize"], service.MaxSize)
+		common.NewMapElementIfNotZero(params, "ServicePort", service.Port)
+		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", string(service.Protocol))
+		common.NewMapElementIfNotEmpty(params, "ServiceHealthEndpoint", service.HealthEndpoint)
+		common.NewMapElementIfNotZero(params, "ServiceDesiredCount", service.DesiredCount)
+		common.NewMapElementIfNotZero(params, "ServiceMinSize", service.MinSize)
+		common.NewMapElementIfNotZero(params, "ServiceMaxSize", service.MaxSize)
 
 		if len(service.PathPatterns) > 0 {
 			params["PathPattern"] = strings.Join(service.PathPatterns, ",")
