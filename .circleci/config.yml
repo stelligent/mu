@@ -11,10 +11,6 @@ jobs:
 
     working_directory: /go/src/github.com/stelligent/mu
 
-    ## Don't build when new release tags are pushed
-    branches:
-      ignore:
-
     steps:
       - checkout
 
