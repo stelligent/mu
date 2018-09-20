@@ -34,17 +34,16 @@ jobs:
             - /go/pkg
             - /go/src/github.com/stelligent/mu/vendor
             - ~/.cache/go-build
-      - persist_to_workspace:
-          root: .
-          paths: .
 
   release:
     docker:
       - image: circleci/golang:1.10
     working_directory: /go/src/github.com/stelligent/mu
     steps:
-      - attach_workspace:
-          at: /go/src/github.com/stelligent/mu
+      - checkout
+
+      - restore_cache:
+          key: v1-go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
 
       # The second key is for the repo homebrew-tap
       - add_ssh_keys:
