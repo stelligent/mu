@@ -1,11 +1,13 @@
 package workflows
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"strings"
 
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewDatabaseUpserter create a new workflow for deploying a database in an environment
@@ -117,8 +119,15 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-		policy := ""
-		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
+		policyBodyReader, err := templates.NewPolicy("default.json")
+		if err != nil {
+			return err
+		}
+		policyBodyBytes := new(bytes.Buffer)
+		policyBodyBytes.ReadFrom(policyBodyReader)
+		policy := policyBodyBytes.String()
+
+		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err

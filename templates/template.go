@@ -14,12 +14,12 @@ import (
 
 // NewTemplate will create a temp file with the template for a CFN stack
 func NewTemplate(assetName string, data interface{}) (io.Reader, error) {
-	return getAsset(fmt.Sprintf("assets/%s", assetName), data)
+	return getAsset(assetName, data)
 }
 
 // NewPolicy creates a temp file with a stack policy
 func NewPolicy(assetName string) (io.Reader, error) {
-	return getAsset(fmt.Sprintf("assets/policies/%s", assetName), nil)
+	return getAsset(fmt.Sprintf("policies/%s", assetName), nil)
 }
 
 func getAsset(assetName string, data interface{}) (io.Reader, error) {

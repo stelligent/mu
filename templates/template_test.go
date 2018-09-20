@@ -2,6 +2,7 @@ package templates
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -52,7 +53,7 @@ func TestNewTemplate_assets(t *testing.T) {
 	templates := box.List()
 	assert.NotZero(len(templates))
 	for _, templateName := range templates {
-		if templateName == "buildspec.yml" {
+		if templateName == "buildspec.yml" || strings.HasPrefix(templateName, "policies/") {
 			continue
 		}
 

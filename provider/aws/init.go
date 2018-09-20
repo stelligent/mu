@@ -38,7 +38,7 @@ func setupSessOptions(region string,
 func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath string, skipVersionCheck bool) error {
 	var err error
 	// initialize StackManager
-	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck)
+	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck, allowDataLoss)
 	if err != nil {
 		return err
 	}

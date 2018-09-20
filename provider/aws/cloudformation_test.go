@@ -1,12 +1,14 @@
 package aws
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stelligent/mu/common"
@@ -359,4 +361,39 @@ func TestTagParameters(t *testing.T) {
 	assert.Contains(*parameters[0].Key, "mu:")
 	assert.Contains(*parameters[1].Key, "mu:")
 	assert.Contains(*parameters[2].Key, "mu:")
+}
+
+func TestNewStackManager(t *testing.T) {
+	assert := assert.New(t)
+
+	extMagr := new(mockedExtensionsManager)
+
+	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
+	sess, _ := session.NewSessionWithOptions(sessOptions)
+
+	stackMgr, _ := newStackManager(sess, extMagr, "test", true, true)
+	assert.NotNil(stackMgr)
+}
+
+func TestGetPolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	policy, err := getPolicy("", true)
+	var statements Statements
+	json.Unmarshal([]byte(policy), &statements)
+	assert.Nil(err)
+	assert.Len(statements.Statements, 1)
+	assert.Equal(statements.Statements[0].Effect, "Allow")
+	assert.Equal(statements.Statements[0].Action, "Update:*")
+	assert.Equal(statements.Statements[0].Resource, "*")
+}
+
+type Statement struct {
+	Effect    string
+	Action    string
+	Principal string
+	Resource  string
+}
+type Statements struct {
+	Statements []Statement `json:"Statement"`
 }
