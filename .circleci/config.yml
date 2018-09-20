@@ -5,9 +5,8 @@ jobs:
     environment:
         AWS_REGION: us-west-2
 
-    build:
-      docker:
-        - image: circleci/golang:1.10
+    docker:
+    - image: circleci/golang:1.10
 
     working_directory: /go/src/github.com/stelligent/mu
 
