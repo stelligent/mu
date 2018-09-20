@@ -101,7 +101,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 		if dbPass == "" {
 			dbPass = randomPassword(32)
-			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
+			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {
 				return err
 			}
