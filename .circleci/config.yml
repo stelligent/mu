@@ -14,12 +14,11 @@ jobs:
       - checkout
 
       - restore_cache:
-          key: go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          key: v1-go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
 
       - run:
           name: Dependencies
           command: make deps
-
 
       - run:
           name: Test
@@ -29,7 +28,7 @@ jobs:
           path: test-results
 
       - save_cache:
-          key: go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          key: v1-go-dep-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
           paths:
             - /go/pkg
             - /go/src/github.com/stelligent/mu/vendor
