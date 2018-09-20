@@ -87,8 +87,8 @@ workflows:
               ignore: /^v[0-9]/
       - release:
           requires:
-            - test
-            - nag
+            - unit-test
+            - cfn-nag
           filters:
             tags:
               ignore: /^v[0-9]/
