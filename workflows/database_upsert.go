@@ -90,7 +90,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", service.Database.InstanceClass)
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", service.Database.AllocatedStorage)
 
-			stackParams["DatabaseMasterUsername"] = "admin"
+		stackParams["DatabaseMasterUsername"] = "admin"
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", service.Database.MasterUsername)
 
 		//DatabaseMasterPassword:
