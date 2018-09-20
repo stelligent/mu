@@ -5,42 +5,50 @@ jobs:
     environment:
         AWS_REGION: us-west-2
 
-    machine: true
+    build:
+      docker:
+        - image: circleci/golang:1.10
+
+    working_directory: /go/src/github.com/stelligent/mu
 
     ## Don't build when new release tags are pushed
     branches:
       ignore:
-        - /^v[0-9]/
 
     steps:
       - checkout
 
-      - run:
-          name: Setup Source
-          command: |
-            IMPORT_PATH=/home/circleci/.go_workspace/src/github.com/$CIRCLE_PROJECT_USERNAME
-            APP_PATH=$IMPORT_PATH/$CIRCLE_PROJECT_REPONAME
-            mkdir -p $IMPORT_PATH
-            ln -sf "$(pwd)" $APP_PATH
-            echo "export APP_PATH=$APP_PATH" >> $BASH_ENV
+      - restore_cache:
+          keys:
+            - v1-mu-cache
 
       - run:
           name: Dependencies
-          command: cd $APP_PATH && make deps
-
-      - run:
-          name: Compile
-          command: cd $APP_PATH && make build
+          command: make deps
 
       - run:
           name: Test
-          command: cd $APP_PATH && make test
+          command: make test
 
       - store_test_results:
           path: test-results
 
-      - store_artifacts:
-          path: artifacts
+      - save_cache:
+          key: v1-mu-cache
+          paths:
+            - "/go/pkg"
+
+      - persist_to_workspace:
+          root: .
+          paths: .
+
+  release:
+    docker:
+      - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/stelligent/mu
+    steps:
+      - attach_workspace:
+          at: /go/src/github.com/stelligent/mu
 
       # The second key is for the repo homebrew-tap
       - add_ssh_keys:
@@ -59,15 +67,31 @@ jobs:
       - deploy:
           name: Deploy
           command: |
-            cd $APP_PATH
-
             git config --global user.email "cplee+mu@nektos.com"
             git config --global user.name "mu-ci"
 
-            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-              make dev-release
-              make formula
-            elif [ "${CIRCLE_BRANCH}" == "master" ]; then
-              make release
-              make formula
-            fi
+            make release
+            make formula
+
+      - store_artifacts:
+          path: artifacts
+
+
+workflows:
+  version: 2
+  build-and-release:
+    jobs:
+      - build:
+          filters:
+            tags:
+              ignore: /^v[0-9]/
+      - release:
+          requires:
+            - build
+          filters:
+            tags:
+              ignore: /^v[0-9]/
+            branches:
+              only: 
+                - develop
+                - master
