@@ -23,14 +23,8 @@ export PATH := $(GOPATH)/bin:$(PATH)
 default: all
 
 deps:
-	@echo "=== preparing $(VERSION) from $(BRANCH) ==="
-	@go get "github.com/golang/dep/cmd/dep"
-	@go get "github.com/gobuffalo/packr/..."
-	@go get "github.com/golang/lint/golint"
-	@go get "github.com/jstemmer/go-junit-report"
-	@go get "github.com/aktau/github-release"
-	@go get "github.com/fzipp/gocyclo"
-	@go get github.com/giantswarm/semver-bump
+	@echo "=== dependencies ==="
+	go get "github.com/golang/dep/cmd/dep"
 	@dep ensure -vendor-only -v
 	@git apply -p1 go-git.v4.patch
 
@@ -41,10 +35,13 @@ fmt:
 lint: fmt
 	@echo "=== linting ==="
 	@go vet $(SRC_FILES)
+
+	@go get "github.com/golang/lint/golint"
 	@echo $(SRC_FILES) | xargs -n1 golint -set_exit_status
 
 gen:
 	@echo "=== generating ==="
+	@go get "github.com/gobuffalo/packr/..."
 	@go generate $(SRC_FILES)
 
 nag:
@@ -67,6 +64,7 @@ nag:
 
 cyclo:
 	@echo "=== cyclomatic complexity ==="
+	@go get "github.com/fzipp/gocyclo"
 	@gocyclo -over 35 $(SRC_PACKAGES)
 	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 
@@ -78,20 +76,21 @@ test: lint gen cyclo
 	@echo "=== testing ==="
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	@mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
-	bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
+	@go get "github.com/jstemmer/go-junit-report"
+	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
 	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 e2e: gen stage keypair
 	@echo "=== e2e testing ==="
-	MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
+	@MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
 
 build: gen $(BUILD_FILES)
 
 $(BUILD_FILES):
 	@echo "=== building $(VERSION) - $@ ==="
-	mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)
 	GOOS=$(word 2,$(subst -, ,$(notdir $@))) GOARCH=$(word 3,$(subst -, ,$(notdir $@))) go build -ldflags=$(GOLDFLAGS) -o '$@'
 
 install: gen $(BUILD_DIR)/$(PACKAGE)-$(OS)-$(ARCH)
@@ -186,6 +185,7 @@ ifndef GITHUB_TOKEN
 	@echo Create one at https://github.com/settings/tokens
 	@exit 1
 endif
+	@go get "github.com/aktau/github-release"
 
 promote: check_github_token
 	gem list | grep github_changelog_generator || sudo gem install github_changelog_generator
@@ -212,6 +212,7 @@ promote: check_github_token
 	@git merge --no-edit origin/master
 
 	@echo "=== bump version ==="
+	@go get github.com/giantswarm/semver-bump
 	@semver-bump patch-release
 	@git add VERSION
 	@git commit -m "bump version"
