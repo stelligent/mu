@@ -1,9 +1,19 @@
-version: 2
+version: 2.1
+
+executors:
+  golang-executor:
+    docker:
+    - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/stelligent/mu
+    environment:
+        AWS_REGION: us-west-2
+  ruby-executor:
+    docker:
+    - image: circleci/ruby:2.4.2-jessie-node
 
 jobs:
   cfn-nag:
-    docker:
-    - image: circleci/ruby:2.4.2-jessie-node
+    executor: ruby-executor
     steps:
       - checkout
       - run:
@@ -11,11 +21,7 @@ jobs:
           command: make nag
 
   unit-test:
-    environment:
-        AWS_REGION: us-west-2
-    docker:
-    - image: circleci/golang:1.10
-    working_directory: /go/src/github.com/stelligent/mu
+    executor: golang-executor
     steps:
       - checkout
       - restore_cache:
@@ -36,9 +42,7 @@ jobs:
             - ~/.cache/go-build
 
   release:
-    docker:
-      - image: circleci/golang:1.10
-    working_directory: /go/src/github.com/stelligent/mu
+    executor: golang-executor
     steps:
       - checkout
 
@@ -65,33 +69,41 @@ jobs:
             git config --global user.email "cplee+mu@nektos.com"
             git config --global user.name "mu-ci"
 
-            #make release
-            #make formula
+            make release
 
       - store_artifacts:
-          path: artifacts
+          path: dist
 
 
 workflows:
   version: 2
+  test-and-snapshot:
+    jobs:
+      - unit-test:
+      - cfn-nag:
+      - release:
+          requires:
+            - unit-test
+            - cfn-nag
+          filters:
+            branches:
+              only: 
+                - develop
+                - master
   test-and-release:
     jobs:
       - unit-test:
           filters:
             tags:
-              ignore: /^v[0-9]/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
       - cfn-nag:
           filters:
             tags:
-              ignore: /^v[0-9]/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
       - release:
           requires:
             - unit-test
             - cfn-nag
           filters:
             tags:
-              ignore: /^v[0-9]/
-            branches:
-              only: 
-                - develop
-                - master
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
