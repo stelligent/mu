@@ -183,7 +183,7 @@ endif
 	git -C homebrew-tap commit -m "auto updated the mu-cli formula for version $(TAG_VERSION) branch $(BRANCH)"
 	git -C homebrew-tap push
 
-release: info github_release #formula
+release: info github_release formula
 
 clean:
 	@echo "=== cleaning ==="
