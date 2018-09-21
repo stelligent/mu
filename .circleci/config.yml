@@ -76,7 +76,6 @@ jobs:
 
 
 workflows:
-  version: 2
   test-and-snapshot:
     jobs:
       - unit-test
