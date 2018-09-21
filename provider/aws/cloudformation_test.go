@@ -65,8 +65,8 @@ func (m *mockedCloudFormation) CreateStack(input *cloudformation.CreateStackInpu
 	args := m.Called(input)
 	return args.Get(0).(*cloudformation.CreateStackOutput), args.Error(1)
 }
-func (m *mockedCloudFormation) UpdateStack(*cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
-	args := m.Called()
+func (m *mockedCloudFormation) UpdateStack(input *cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
+	args := m.Called(input)
 	return args.Get(0).(*cloudformation.UpdateStackOutput), args.Error(1)
 }
 
@@ -174,7 +174,9 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 				},
 			},
 		}, nil)
-	cfn.On("UpdateStack").Return(&cloudformation.UpdateStackOutput{}, nil)
+	cfn.On("UpdateStack", mock.MatchedBy(func(params *cloudformation.UpdateStackInput) bool {
+		return true
+	})).Return(&cloudformation.UpdateStackOutput{}, nil)
 
 	extMgr := new(mockedExtensionsManager)
 	extMgr.On("DecorateStackTemplate").Return()
@@ -407,7 +409,7 @@ type Statements struct {
 func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	assert := assert.New(t)
 
-	cfn := mockBasicCfnAPI()
+	cfn := mockBasicCfnAPI(true)
 	extMgr := mockNilExtensionManager()
 
 	templateName := "bucket.yml"
@@ -419,7 +421,7 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 			return *params.StackPolicyBody == "any string policy"
 		},
 	)).Return(&cloudformation.CreateStackOutput{
-		StackId: aws.String("sdfksdkdslkdf"),
+		StackId: aws.String("1"),
 	}, nil)
 
 	stackManager := cloudformationStackManager{
@@ -433,10 +435,118 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
 }
 
-func mockBasicCfnAPI() *mockedCloudFormation {
+func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := mockBasicCfnAPI(true)
+	extMgr := mockNilExtensionManager()
+
+	templateName := "bucket.yml"
+	var templateData interface{}
+	stackName := "foo"
+
+	cfn.On("CreateStack", mock.MatchedBy(
+		func(params *cloudformation.CreateStackInput) bool {
+			return *params.StackPolicyBody == "any string policy"
+		},
+	)).Return(&cloudformation.CreateStackOutput{
+		StackId: aws.String("1"),
+	}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
+		allowDataLoss:     true,
+	}
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+
+	assert.Nil(err)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
+}
+
+func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := mockBasicCfnAPI(false)
+	extMgr := mockNilExtensionManager()
+
+	templateName := "bucket.yml"
+	var templateData interface{}
+	stackName := "foo"
+
+	cfn.On("UpdateStack", mock.MatchedBy(
+		func(params *cloudformation.UpdateStackInput) bool {
+			return *params.StackPolicyDuringUpdateBody == "any string policy"
+		},
+	)).Return(&cloudformation.UpdateStackOutput{}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
+	}
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+
+	assert.Nil(err)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+	cfn.AssertNumberOfCalls(t, "CreateStack", 0)
+	cfn.AssertNumberOfCalls(t, "UpdateStack", 1)
+	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 0)
+
+}
+func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := mockBasicCfnAPI(false)
+	extMgr := mockNilExtensionManager()
+
+	templateName := "bucket.yml"
+	var templateData interface{}
+	stackName := "foo"
+
+	allowDataLossPolicyReader, _ := templates.NewPolicy("allow-all.json")
+	policyBodyBytes := new(bytes.Buffer)
+	policyBodyBytes.ReadFrom(allowDataLossPolicyReader)
+	allowDataLossPolicy := policyBodyBytes.String()
+
+	cfn.On("UpdateStack", mock.MatchedBy(
+		func(params *cloudformation.UpdateStackInput) bool {
+			return *params.StackPolicyDuringUpdateBody == allowDataLossPolicy
+		},
+	)).Return(&cloudformation.UpdateStackOutput{}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
+		allowDataLoss:     true,
+	}
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+
+	assert.Nil(err)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+	cfn.AssertNumberOfCalls(t, "CreateStack", 0)
+	cfn.AssertNumberOfCalls(t, "UpdateStack", 1)
+	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 0)
+
+}
+
+func mockBasicCfnAPI(create bool) *mockedCloudFormation {
 	cfn := new(mockedCloudFormation)
-	cfn.On("DescribeStacks").Return(&cloudformation.DescribeStacksOutput{}, errors.New("stack not found"))
-	cfn.On("WaitUntilStackExists").Return(nil)
+	if create {
+		cfn.On("DescribeStacks").Return(&cloudformation.DescribeStacksOutput{}, errors.New("stack not found"))
+		cfn.On("WaitUntilStackExists").Return(nil)
+	} else {
+		cfn.On("DescribeStacks").Return(
+			&cloudformation.DescribeStacksOutput{
+				Stacks: []*cloudformation.Stack{
+					{
+						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
+					},
+				},
+			}, nil)
+	}
 	return cfn
 }
 
