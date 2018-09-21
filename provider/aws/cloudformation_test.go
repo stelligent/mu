@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -59,8 +61,8 @@ func (m *mockedCloudFormation) WaitUntilStackExists(*cloudformation.DescribeStac
 	m.Called()
 	return nil
 }
-func (m *mockedCloudFormation) CreateStack(*cloudformation.CreateStackInput) (*cloudformation.CreateStackOutput, error) {
-	args := m.Called()
+func (m *mockedCloudFormation) CreateStack(input *cloudformation.CreateStackInput) (*cloudformation.CreateStackOutput, error) {
+	args := m.Called(input)
 	return args.Get(0).(*cloudformation.CreateStackOutput), args.Error(1)
 }
 func (m *mockedCloudFormation) UpdateStack(*cloudformation.UpdateStackInput) (*cloudformation.UpdateStackOutput, error) {
@@ -135,7 +137,11 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 
 	cfn := new(mockedCloudFormation)
 	cfn.On("DescribeStacks").Return(&cloudformation.DescribeStacksOutput{}, errors.New("stack not found"))
-	cfn.On("CreateStack").Return(&cloudformation.CreateStackOutput{}, nil)
+	cfn.On("CreateStack", mock.MatchedBy(
+		func(params *cloudformation.CreateStackInput) bool {
+			return true
+		},
+	)).Return(&cloudformation.CreateStackOutput{}, nil)
 	cfn.On("WaitUntilStackExists").Return(nil)
 
 	extMgr := new(mockedExtensionsManager)
@@ -396,4 +402,59 @@ type Statement struct {
 }
 type Statements struct {
 	Statements []Statement `json:"Statement"`
+}
+
+func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	cfn := mockBasicCfnAPI()
+	extMgr := mockNilExtensionManager()
+
+	templateName := "bucket.yml"
+	var templateData interface{}
+	stackName := "foo"
+
+	cfn.On("CreateStack", mock.MatchedBy(
+		func(params *cloudformation.CreateStackInput) bool {
+			return *params.StackPolicyBody == "any string policy"
+		},
+	)).Return(&cloudformation.CreateStackOutput{
+		StackId: aws.String("sdfksdkdslkdf"),
+	}, nil)
+
+	stackManager := cloudformationStackManager{
+		cfnAPI:            cfn,
+		extensionsManager: extMgr,
+	}
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+
+	assert.Nil(err)
+	cfn.AssertExpectations(t)
+	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
+}
+
+func mockBasicCfnAPI() *mockedCloudFormation {
+	cfn := new(mockedCloudFormation)
+	cfn.On("DescribeStacks").Return(&cloudformation.DescribeStacksOutput{}, errors.New("stack not found"))
+	cfn.On("WaitUntilStackExists").Return(nil)
+	return cfn
+}
+
+func mockNilExtensionManager() *mockedExtensionsManager {
+	extMgr := new(mockedExtensionsManager)
+	extMgr.On("DecorateStackTemplate").Return()
+	extMgr.On("DecorateStackParameters").Return()
+	extMgr.On("DecorateStackTags").Return()
+	return extMgr
+}
+
+func mockTemplateBody(extMgr *mockedExtensionsManager, stackName string, templateName string, templateData interface{}) *string {
+	templateBodyReader, _ := templates.NewTemplate(templateName, templateData)
+	templateBodyReader, _ = extMgr.DecorateStackTemplate(templateName, stackName, templateBodyReader)
+
+	templateBodyBytes := new(bytes.Buffer)
+	templateBodyBytes.ReadFrom(templateBodyReader)
+	templateBody := aws.String(templateBodyBytes.String())
+
+	return templateBody
 }

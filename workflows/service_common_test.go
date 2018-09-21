@@ -172,17 +172,3 @@ func TestCodeDeploy_BucketUpserter(t *testing.T) {
 
 	assert.Equal("foo-bucket", workflow.appRevisionBucket)
 }
-
-func TestPolicyBody(t *testing.T) {
-	assert := assert.New(t)
-
-	stackManager := new(mockedStackManagerForService)
-
-	// sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-	// sess, _ := session.NewSessionWithOptions(sessOptions)
-
-	// err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
-
-	// stackMgr, _ := newStackManager(sess, extMagr, "test", true, true)
-	// assert.NotNil(stackMgr)
-}
