@@ -52,7 +52,7 @@ jobs:
       # The second key is for the repo homebrew-tap
       - add_ssh_keys:
           fingerprints:
-            - "53:1f:d0:6f:24:2a:bf:cb:92:0f:bc:1e:14:6e:1d:72"
+            #- "53:1f:d0:6f:24:2a:bf:cb:92:0f:bc:1e:14:6e:1d:72"
             - "35:fc:cc:f6:12:88:e2:56:24:17:09:36:3e:53:e6:68"
 
       ## In order for deploy to work, you need an environment variable set in CircleCI named "GITHUB_TOKEN" that contains
