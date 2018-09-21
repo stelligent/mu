@@ -75,8 +75,8 @@ nag:
 cyclo:
 	@echo "=== cyclomatic complexity ==="
 	@go get "github.com/fzipp/gocyclo"
-	@gocyclo -over 35 $(SRC_PACKAGES)
-	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
+	@gocyclo -over 15 $(SRC_PACKAGES)
+	@gocyclo -over 12 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 
 ifdef GEM
 test: nag	
