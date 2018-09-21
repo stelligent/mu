@@ -147,7 +147,7 @@ changelog: check_github_token
 github_release: check_github_token tag_release changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
 	@go get github.com/goreleaser/goreleaser
-	@goreleaser --skip-publish --skip-validate --rm-dist --release-notes CHANGELOG.md
+	@goreleaser --rm-dist --release-notes CHANGELOG.md
 
 formula:
 	rm -rf homebrew-tap
@@ -201,4 +201,4 @@ endif
 	@git tag -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
 	@git push --follow-tags origin
 
-.PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release
+.PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token
