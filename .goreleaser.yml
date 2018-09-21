@@ -1,0 +1,16 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - darwin
+  - linux
+  - windows
+archive:
+  format: binary
+  name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Env.SNAPSHOT_VERSION }}"
