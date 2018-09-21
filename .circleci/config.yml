@@ -79,8 +79,8 @@ workflows:
   version: 2
   test-and-snapshot:
     jobs:
-      - unit-test:
-      - cfn-nag:
+      - unit-test
+      - cfn-nag
       - release:
           requires:
             - unit-test
