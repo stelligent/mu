@@ -98,6 +98,40 @@ func TestEnvironmentEcsUpserter(t *testing.T) {
 	stackManager.AssertExpectations(t)
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	stackParams := stackManager.Calls[1].Arguments.Get(1).(map[string]string)
+	assert.Equal("EC2", stackParams["LaunchType"])
+	assert.Equal("ami-00000", stackParams["ImageId"])
+	assert.NotContains(stackParams, "KeyName")
+}
+
+func TestEnvironmentEc2Upserter(t *testing.T) {
+	assert := assert.New(t)
+
+	workflow := new(environmentWorkflow)
+	workflow.environment = &common.Environment{
+		Name:     "foo",
+		Provider: common.EnvProviderEc2,
+	}
+
+	vpcInputParams := make(map[string]string)
+
+	stackManager := new(mockedStackManagerForUpsert)
+	stackManager.On("AwaitFinalStatus", "mu-environment-foo").Return(&common.Stack{Status: common.StackStatusCreateComplete})
+	stackManager.On("UpsertStack", "mu-environment-foo", mock.AnythingOfType("map[string]string")).Return(nil)
+	stackManager.On("FindLatestImageID").Return("ami-00000", nil)
+
+	err := workflow.environmentUpserter("mu", vpcInputParams, stackManager, stackManager, stackManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	stackParams := stackManager.Calls[1].Arguments.Get(1).(map[string]string)
+	assert.NotContains(stackParams, "LaunchType")
+	assert.Equal("ami-00000", stackParams["ImageId"])
+	assert.NotContains(stackParams, "KeyName")
 }
 
 func TestEnvironmentProviderConditionals(t *testing.T) {

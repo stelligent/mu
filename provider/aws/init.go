@@ -11,11 +11,11 @@ import (
 	"github.com/stelligent/mu/common"
 )
 
-// InitializeContext loads manager objects
-func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrunPath string, skipVersionCheck bool, proxy string) error {
-
+// return a session.Options mutated with extra configuration values
+func setupSessOptions(region string,
+	proxy string,
+	profile string) session.Options {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-
 	if region != common.Empty {
 		sessOptions.Config.Region = aws.String(region)
 	}
@@ -32,23 +32,11 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 	if profile != common.Empty {
 		sessOptions.Profile = profile
 	}
+	return sessOptions
+}
 
-	log.Debugf("Creating AWS session profile:%s region:%s proxy:%s", profile, region, proxy)
-	sess, err := session.NewSessionWithOptions(sessOptions)
-	if err != nil {
-		return err
-	}
-
-	if assumeRole != common.Empty {
-		// Create the credentials from AssumeRoleProvider to assume the role
-		// referenced by the "myRoleARN" ARN.
-		creds := stscreds.NewCredentials(sess, assumeRole)
-		sess, err = session.NewSession(&aws.Config{Region: sess.Config.Region, HTTPClient: sess.Config.HTTPClient, Credentials: creds})
-		if err != nil {
-			return err
-		}
-	}
-
+func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath string, skipVersionCheck bool) error {
+	var err error
 	// initialize StackManager
 	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck)
 	if err != nil {
@@ -117,6 +105,31 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 
 	// initialize the RolesetManager
 	ctx.RolesetManager, err = newRolesetManager(ctx)
+
+	return err
+}
+
+// InitializeContext loads manager objects
+func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrunPath string, skipVersionCheck bool, proxy string) error {
+
+	sessOptions := setupSessOptions(region, proxy, profile)
+
+	log.Debugf("Creating AWS session profile:%s region:%s proxy:%s", profile, region, proxy)
+	sess, err := session.NewSessionWithOptions(sessOptions)
+	if err != nil {
+		return err
+	}
+
+	if assumeRole != common.Empty {
+		// Create the credentials from AssumeRoleProvider to assume the role
+		// referenced by the "myRoleARN" ARN.
+		creds := stscreds.NewCredentials(sess, assumeRole)
+		sess, err = session.NewSession(&aws.Config{Region: sess.Config.Region, HTTPClient: sess.Config.HTTPClient, Credentials: creds})
+		if err != nil {
+			return err
+		}
+	}
+	err = initializeManagers(sess, ctx, dryrunPath, skipVersionCheck)
 	if err != nil {
 		return err
 	}

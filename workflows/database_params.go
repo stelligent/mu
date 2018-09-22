@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"fmt"
+
 	"github.com/stelligent/mu/common"
 )
 
@@ -38,7 +39,10 @@ func (workflow *databaseWorkflow) databaseGetPassword(ctx *common.Context, envir
 	return func() error {
 		dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		log.Debugf("Getting password for dbStackName:%s", dbStackName)
-		dbPass, _ := ctx.ParamManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		dbPass, err := ctx.ParamManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		if err != nil {
+			return err
+		}
 		log.Noticef("%s", dbPass)
 		return nil
 	}

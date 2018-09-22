@@ -86,27 +86,22 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 
 		stackParams["DatabaseName"] = service.Database.Name
 
-		if service.Database.Engine != "" {
-			stackParams["DatabaseEngine"] = service.Database.Engine
-		}
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngine", service.Database.Engine)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", service.Database.InstanceClass)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", service.Database.AllocatedStorage)
 
-		if service.Database.InstanceClass != "" {
-			stackParams["DatabaseInstanceClass"] = service.Database.InstanceClass
-		}
-		if service.Database.AllocatedStorage != "" {
-			stackParams["DatabaseStorage"] = service.Database.AllocatedStorage
-		}
-		if service.Database.MasterUsername != "" {
-			stackParams["DatabaseMasterUsername"] = service.Database.MasterUsername
-		} else {
-			stackParams["DatabaseMasterUsername"] = "admin"
-		}
+		stackParams["DatabaseMasterUsername"] = "admin"
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", service.Database.MasterUsername)
 
 		//DatabaseMasterPassword:
-		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		if err != nil {
+			log.Warningf("Error with GetParam for DatabaseMasterPassword, assuming empty: %s", err)
+			dbPass = ""
+		}
 		if dbPass == "" {
 			dbPass = randomPassword(32)
-			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
+			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {
 				return err
 			}
@@ -123,7 +118,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err

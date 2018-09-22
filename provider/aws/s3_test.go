@@ -1,11 +1,13 @@
 package aws
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 type mockedS3 struct {
@@ -28,7 +30,7 @@ func TestS3ArtifactManager_CreateArtifact(t *testing.T) {
 		s3API: s3Mock,
 	}
 
-	err := artifactManager.CreateArtifact(nil, "s3://bucket/key", "key")
+	err := artifactManager.CreateArtifact(strings.NewReader("foo"), "s3://bucket/key", "key")
 	assertion.Nil(err)
 
 	s3Mock.AssertExpectations(t)

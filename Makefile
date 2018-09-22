@@ -75,8 +75,8 @@ nag:
 cyclo:
 	@echo "=== cyclomatic complexity ==="
 	@go get "github.com/fzipp/gocyclo"
-	@gocyclo -over 35 $(SRC_PACKAGES)
-	@gocyclo -over 15 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
+	@gocyclo -over 15 $(SRC_PACKAGES)
+	@gocyclo -over 12 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 
 ifdef GEM
 test: nag	
@@ -109,7 +109,7 @@ stage: fmt build
 	@export BUCKET_NAME=mu-staging-$$(aws sts get-caller-identity --output text --query 'Account') ;\
 	aws s3 mb s3://$$BUCKET_NAME || echo "bucket exists" ;\
 	aws s3 website --index-document index.html s3://$$BUCKET_NAME ;\
-	aws s3 cp dest/linux_amd64/mu s3://$$BUCKET_NAME/$(TAG_VERSION)/$(PACKAGE)-linux-amd64 --acl public-read ;\
+	aws s3 cp dist/linux_amd64/mu s3://$$BUCKET_NAME/$(TAG_VERSION)/$(PACKAGE)-linux-amd64 --acl public-read ;\
 	echo https://$$BUCKET_NAME.s3.amazonaws.com
 
 keypair:
@@ -198,7 +198,7 @@ ifeq (false,$(IS_SNAPSHOT))
 	@echo "Unable to promote a non-snapshot"
 	@exit 1
 endif
-	@git tag -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
+	@git tag -a -m "releasing $(firstword -,$(TAG_VERSION))" $(firstword -,$(TAG_VERSION))
 	@git push --follow-tags origin
 
 .PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token

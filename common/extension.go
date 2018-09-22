@@ -5,9 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/mholt/archiver"
-	"github.com/mitchellh/go-homedir"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +12,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/mholt/archiver"
+	"github.com/mitchellh/go-homedir"
+	"gopkg.in/yaml.v2"
 )
 
 // ExtensionImpl provides API for an extension
@@ -218,8 +219,60 @@ const (
 	TemplateUpdateMerge                      = "merge"
 )
 
-func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
-	log.Debugf("Loading extension from '%s'", u)
+func loadExtensionFromArchive(ext *templateArchiveExtension,
+	artifactManager ArtifactManager,
+	extensionURL *url.URL) error {
+	// check for existing etag
+	etag := ""
+	etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
+	if err == nil {
+		etag = string(etagBytes)
+	}
+
+	body, etag, err := artifactManager.GetArtifact(extensionURL.String(), etag)
+	if err != nil {
+		return err
+	}
+
+	if body != nil {
+		defer body.Close()
+
+		// empty dir
+		os.RemoveAll(ext.path)
+		os.MkdirAll(ext.path, 0700)
+
+		// write out archive to dir
+		err = extractArchive(ext.path, body)
+		if err != nil {
+			return err
+		}
+
+		// if single directory in extension, assume that's the path
+		files, err := ioutil.ReadDir(ext.path)
+		if err != nil {
+			return err
+		}
+
+		originalExtPath := ext.path
+		if len(files) == 1 && files[0].IsDir() {
+			ext.path = filepath.Join(originalExtPath, files[0].Name())
+			log.Debugf("Using directory '%s' for extension '%s'", ext.path, extensionURL)
+		}
+
+		// write new etag
+		err = ioutil.WriteFile(filepath.Join(originalExtPath, ".etag"), []byte(etag), 0644)
+		if err != nil {
+			return err
+		}
+		log.Debugf("Loaded extension from '%s' [id=%s]", extensionURL, ext.id)
+	} else {
+		log.Debugf("Loaded extension from cache [id=%s]", ext.id)
+	}
+	return nil
+}
+
+func newTemplateArchiveExtension(extensionURL *url.URL, artifactManager ArtifactManager) (ExtensionImpl, error) {
+	log.Debugf("Loading extension from '%s'", extensionURL)
 
 	userdir, err := homedir.Dir()
 	if err != nil {
@@ -227,64 +280,23 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 	}
 	extensionsDirectory := filepath.Join(userdir, ".mu", "extensions")
 
-	extID := urlToID(u)
+	extID := urlToID(extensionURL)
 	ext := &templateArchiveExtension{
-		BaseExtensionImpl{u.String()},
+		BaseExtensionImpl{extensionURL.String()},
 		filepath.Join(extensionsDirectory, extID),
 		TemplateUpdateMerge,
 	}
 
-	if fi, err := os.Stat(u.Path); u.Scheme == "file" && err == nil && fi.IsDir() {
-		ext.path = u.Path
-		log.Debugf("Loaded extension from '%s'", u.Path)
+	if fi, err := os.Stat(extensionURL.Path); extensionURL.Scheme == "file" && err == nil && fi.IsDir() {
+		ext.path = extensionURL.Path
+		log.Debugf("Loaded extension from '%s'", extensionURL.Path)
 	} else {
-		// check for existing etag
-		etag := ""
-		etagBytes, err := ioutil.ReadFile(filepath.Join(ext.path, ".etag"))
-		if err == nil {
-			etag = string(etagBytes)
-		}
-
-		body, etag, err := artifactManager.GetArtifact(u.String(), etag)
+		err := loadExtensionFromArchive(ext,
+			artifactManager,
+			extensionURL)
 		if err != nil {
 			return nil, err
 		}
-
-		if body != nil {
-			defer body.Close()
-
-			// empty dir
-			os.RemoveAll(ext.path)
-			os.MkdirAll(ext.path, 0700)
-
-			// write out archive to dir
-			err = extractArchive(ext.path, body)
-			if err != nil {
-				return nil, err
-			}
-
-			// if single directory in extension, assume that's the path
-			files, err := ioutil.ReadDir(ext.path)
-			if err != nil {
-				return nil, err
-			}
-
-			originalExtPath := ext.path
-			if len(files) == 1 && files[0].IsDir() {
-				ext.path = filepath.Join(originalExtPath, files[0].Name())
-				log.Debugf("Using directory '%s' for extension '%s'", ext.path, u)
-			}
-
-			// write new etag
-			err = ioutil.WriteFile(filepath.Join(originalExtPath, ".etag"), []byte(etag), 0644)
-			if err != nil {
-				return nil, err
-			}
-			log.Debugf("Loaded extension from '%s' [id=%s]", u, ext.id)
-		} else {
-			log.Debugf("Loaded extension from cache [id=%s]", ext.id)
-		}
-
 	}
 
 	// try loading the extension manifest
@@ -311,7 +323,7 @@ func newTemplateArchiveExtension(u *url.URL, artifactManager ArtifactManager) (E
 			log.Warningf("Loaded extension %s", name)
 		}
 	} else {
-		log.Warningf("Loaded extension %s", u)
+		log.Warningf("Loaded extension %s", extensionURL)
 	}
 
 	return ext, nil
