@@ -76,7 +76,7 @@ func zipDir(basedir string) (*os.File, error) {
 	archive := zip.NewWriter(zipfile)
 	defer archive.Close()
 
-	log.Debugf("Creating zipfile '%s' from basedir '%s'", zipfile, basedir)
+	log.Debugf("Creating zipfile '%s' from basedir '%s'", zipfile.Name(), basedir)
 
 	filepath.Walk(basedir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

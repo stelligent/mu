@@ -44,6 +44,9 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 		return fmt.Errorf("destURL must have scheme of 's3', received '%s'", s3URL.Scheme)
 	}
 
+	// start from the begining
+	body.Seek(0, 0)
+
 	params := &s3.PutObjectInput{
 		Bucket:               aws.String(s3URL.Host),
 		Key:                  aws.String(s3URL.Path),
