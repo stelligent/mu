@@ -249,11 +249,10 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 				"launchType":   "FARGATE"},
 			common.EnvProviderEc2: map[string]string{
 				"templateName": "env-ec2.yml",
-				"imagePattern": ec2ImagePattern,
-				"launchType":   ""}}
+				"imagePattern": ec2ImagePattern}}
 		templateName = envMapping[environment.Provider]["templateName"]
 		imagePattern = envMapping[environment.Provider]["imagePattern"]
-		stackParams["LaunchType"] = envMapping[environment.Provider]["launchType"]
+		common.NewMapElementIfNotEmpty(stackParams, "LaunchType", envMapping[environment.Provider]["launchType"])
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
 
