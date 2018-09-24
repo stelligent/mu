@@ -416,9 +416,14 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
+	policyReader, _ := templates.NewPolicy("default.json")
+	policyBytes := new(bytes.Buffer)
+	policyBytes.ReadFrom(policyReader)
+	policy := policyBytes.String()
+
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
-			return *params.StackPolicyBody == "any string policy"
+			return *params.StackPolicyBody == policy
 		},
 	)).Return(&cloudformation.CreateStackOutput{
 		StackId: aws.String("1"),
@@ -428,7 +433,7 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -445,9 +450,14 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
+	policyReader, _ := templates.NewPolicy("default.json")
+	policyBytes := new(bytes.Buffer)
+	policyBytes.ReadFrom(policyReader)
+	policy := policyBytes.String()
+
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
-			return *params.StackPolicyBody == "any string policy"
+			return *params.StackPolicyBody == policy
 		},
 	)).Return(&cloudformation.CreateStackOutput{
 		StackId: aws.String("1"),
@@ -458,7 +468,7 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 		extensionsManager: extMgr,
 		allowDataLoss:     true,
 	}
-	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -475,9 +485,14 @@ func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
+	policyReader, _ := templates.NewPolicy("default.json")
+	policyBytes := new(bytes.Buffer)
+	policyBytes.ReadFrom(policyReader)
+	policy := policyBytes.String()
+
 	cfn.On("UpdateStack", mock.MatchedBy(
 		func(params *cloudformation.UpdateStackInput) bool {
-			return *params.StackPolicyDuringUpdateBody == "any string policy"
+			return *params.StackPolicyDuringUpdateBody == policy
 		},
 	)).Return(&cloudformation.UpdateStackOutput{}, nil)
 
@@ -485,7 +500,7 @@ func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -521,7 +536,13 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 		extensionsManager: extMgr,
 		allowDataLoss:     true,
 	}
-	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, "any string policy", "")
+
+	policyReader, _ := templates.NewPolicy("default.json")
+	policyBytes := new(bytes.Buffer)
+	policyBytes.ReadFrom(policyReader)
+	policy := policyBytes.String()
+
+	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)

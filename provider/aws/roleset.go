@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 type iamRolesetManager struct {
@@ -215,7 +216,16 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"CodeDeployBucket": codeDeployBucket,
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, "", "")
+	policyBodyReader, err := templates.NewPolicy("default.json")
+	if err != nil {
+		return err
+	}
+	policy, err := templates.TemplateToString(policyBodyReader)
+	if err != nil {
+		return err
+	}
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, policy, "")
 	if err != nil {
 		return err
 	}
@@ -281,7 +291,16 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, p
 	stackParams["AcptCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 	stackParams["ProdCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, "", "")
+	policyBodyReader, err := templates.NewPolicy("default.json")
+	if err != nil {
+		return err
+	}
+	policy, err := templates.TemplateToString(policyBodyReader)
+	if err != nil {
+		return err
+	}
+
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, policy, "")
 	if err != nil {
 		return err
 	}
