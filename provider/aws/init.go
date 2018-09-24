@@ -35,7 +35,7 @@ func setupSessOptions(region string,
 	return sessOptions
 }
 
-func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath string, skipVersionCheck bool) error {
+func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath string, skipVersionCheck bool, allowDataLoss bool) error {
 	var err error
 	// initialize StackManager
 	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck, allowDataLoss)
@@ -110,7 +110,7 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 }
 
 // InitializeContext loads manager objects
-func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrunPath string, skipVersionCheck bool, proxy string) error {
+func InitializeContext(ctx *common.Context, profile string, assumeRole string, region string, dryrunPath string, skipVersionCheck bool, proxy string, allowDataLoss bool) error {
 
 	sessOptions := setupSessOptions(region, proxy, profile)
 
@@ -129,7 +129,7 @@ func InitializeContext(ctx *common.Context, profile string, assumeRole string, r
 			return err
 		}
 	}
-	err = initializeManagers(sess, ctx, dryrunPath, skipVersionCheck)
+	err = initializeManagers(sess, ctx, dryrunPath, skipVersionCheck, allowDataLoss)
 	if err != nil {
 		return err
 	}
