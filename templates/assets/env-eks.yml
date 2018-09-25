@@ -269,6 +269,33 @@ Resources:
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
 
+  InventoryAssociation:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: 'Inventory-Association'
+      Name: 'AWS-GatherSoftwareInventory'
+      ScheduleExpression: 'rate(1 day)'
+      Parameters:
+        applications: 
+        - Enabled
+        awsComponents:
+        - Enabled
+        customInventory:
+        - Enabled
+        instanceDetailedInformation:
+        - Enabled
+        networkConfig:
+        - Enabled
+        services:
+        - Enabled
+        windowsRoles:
+        - Enabled
+        windowsUpdates:
+        - Enabled
+      Targets:
+      - Key: tag:aws:autoscaling:groupName	
+        Values: [!Ref EksAutoScalingGroup]
 
   WorkerInstances:
     Condition: HasLaunchTypeEC2
@@ -384,10 +411,6 @@ Resources:
                #!/bin/bash
                set -o xtrace
                /etc/eks/bootstrap.sh ${EksCluster} ${BootstrapArguments}
-               /opt/aws/bin/cfn-signal --exit-code $? \
-                  --stack  ${AWS::StackName} \
-                  --resource EksAutoScalingGroup  \
-                  --region ${AWS::Region}
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
