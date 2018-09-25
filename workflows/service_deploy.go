@@ -330,7 +330,7 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-		err := stackUpserter.UpsertStack(svcStackName, "service-ec2.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, "service-ec2.yml", service, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -364,7 +364,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(svcStackName, "service-ecs.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, "service-ecs.yml", service, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -410,7 +410,7 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 				Type:        common.StackTypeSchedule,
 			})
 
-			err = stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, workflow.cloudFormationRoleArn)
+			err = stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}

@@ -1,0 +1,27 @@
+{
+  "Statement" : [
+    {
+      "Effect" : "Deny",
+      "Action" : [
+        "Update:Replace",
+        "Update:Delete"
+      ],
+      "Principal": "*",
+      "Resource": "*",
+      "Condition" : {
+        "StringEquals" : {
+          "ResourceType" : [
+            "AWS::RDS::DBInstance",
+            "AWS::KMS::Key"
+          ]
+        }
+      }
+    },
+    {
+      "Effect" : "Allow",
+      "Action" : "Update:*",
+      "Principal": "*",
+      "Resource" : "*"
+    }
+  ]
+}
