@@ -78,7 +78,7 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 
 		// write buildspec
 		buildspec, err := templates.GetAsset(common.TemplateBuildspec,
-			templates.AddData(nil))
+			templates.ExecuteTemplate(nil))
 		if err != nil {
 			return err
 		}

@@ -287,7 +287,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 
 	// load the template
-	templateBody, err := templates.GetAsset(templateName, templates.AddData(templateData),
+	templateBody, err := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
 		templates.DecorateTemplate(cfnMgr.extensionsManager, stackName))
 	templateBodyBytes := bytes.NewBufferString(templateBody)
 

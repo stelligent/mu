@@ -565,7 +565,7 @@ func mockNilExtensionManager() *mockedExtensionsManager {
 
 func mockTemplateBody(extMgr *mockedExtensionsManager, stackName string, templateName string, templateData interface{}) *string {
 
-	templateBody, _ := templates.GetAsset(templateName, templates.AddData(templateData),
+	templateBody, _ := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
 		templates.DecorateTemplate(extMgr, stackName))
 
 	return aws.String(templateBody)

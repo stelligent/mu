@@ -269,7 +269,7 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 
 	// get default buildspec
 	buildspec, err := templates.GetAsset(common.TemplateBuildspec,
-		templates.AddData(nil))
+		templates.ExecuteTemplate(nil))
 	if err != nil {
 		return nil, err
 	}

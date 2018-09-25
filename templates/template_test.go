@@ -58,7 +58,7 @@ func TestNewTemplate_assets(t *testing.T) {
 			continue
 		}
 
-		templateBody, err := GetAsset(templateName, AddData(nil))
+		templateBody, err := GetAsset(templateName, ExecuteTemplate(nil))
 
 		assert.Nil(err, templateName)
 		assert.NotNil(templateBody, templateName)
@@ -81,12 +81,11 @@ func TestNewTemplate_assets(t *testing.T) {
 				}
 				assert.Fail(err.Error(), templateName)
 			}
-
 		}
 	}
 }
 
-func TestAddData(t *testing.T) {
+func TestExecuteTemplate(t *testing.T) {
 	assert := assert.New(t)
 
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
@@ -95,7 +94,7 @@ func TestAddData(t *testing.T) {
 
 	svc := cloudformation.New(sess)
 
-	templateBody, err := GetAsset(common.TemplateServiceEC2, AddData(nil))
+	templateBody, err := GetAsset(common.TemplateServiceEC2, ExecuteTemplate(nil))
 
 	assert.NotNil(templateBody)
 	assert.NotEmpty(templateBody)

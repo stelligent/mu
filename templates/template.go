@@ -8,36 +8,34 @@ import (
 	"io"
 	"text/template"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/gobuffalo/packr"
 )
 
 // GetAsset reads an asset from "disk" into a string
-func GetAsset(assetName string, options ...func(string, *string) error) (string, error) {
+func GetAsset(assetName string, options ...AssetOption) (string, error) {
 	box := packr.NewBox("./assets")
 
 	asset, err := box.MustString(assetName)
 	if err != nil {
 		return "", err
 	}
-	assetRef := aws.String(asset)
 
 	for _, option := range options {
-		if err := option(assetName, assetRef); err != nil {
+		if asset, err = option(assetName, asset); err != nil {
 			return "", err
 		}
 	}
 
-	return *assetRef, nil
+	return asset, nil
 }
 
-// AddData adds the data parameter to a text/template
-func AddData(data interface{}) func(string, *string) error {
-	return func(assetName string, asset *string) error {
+// ExecuteTemplate executes the data parameter on a text/template
+func ExecuteTemplate(data interface{}) AssetOption {
+	return func(assetName string, asset string) (string, error) {
 
-		tmpl, err := template.New(assetName).Parse(*asset)
+		tmpl, err := template.New(assetName).Parse(asset)
 		if err != nil {
-			return err
+			return asset, err
 		}
 
 		buf := new(bytes.Buffer)
@@ -45,7 +43,7 @@ func AddData(data interface{}) func(string, *string) error {
 
 		err = tmpl.Execute(bufWriter, data)
 		if err != nil {
-			return err
+			return asset, err
 		}
 
 		bufWriter.Flush()
@@ -53,32 +51,33 @@ func AddData(data interface{}) func(string, *string) error {
 		templateBodyBytes := new(bytes.Buffer)
 		_, err = templateBodyBytes.ReadFrom(buf)
 		if err != nil {
-			return err
+			return asset, err
 		}
-		*asset = templateBodyBytes.String()
 
-		return nil
+		return templateBodyBytes.String(), nil
 	}
 }
 
 // DecorateTemplate uses an ExtensionImpl to inject data into an extension
-func DecorateTemplate(extMgr decoratorImpl,
-	stackName string) func(string, *string) error {
-	return func(assetName string, asset *string) error {
-		assetBuf := bytes.NewBufferString(*asset)
+func DecorateTemplate(extMgr StackTemplateDecorator,
+	stackName string) AssetOption {
+	return func(assetName string, asset string) (string, error) {
+		assetBuf := bytes.NewBufferString(asset)
 		if _, err := extMgr.DecorateStackTemplate(assetName, stackName, assetBuf); err != nil {
-			return err
+			return "", err
 		}
 		templateBodyBytes := new(bytes.Buffer)
 		if _, err := templateBodyBytes.ReadFrom(assetBuf); err != nil {
-			return err
+			return "", err
 		}
-		*asset = templateBodyBytes.String()
-		return nil
+		return templateBodyBytes.String(), nil
 	}
 }
 
-// stub for decorate template struct to avoid circular dependencies
-type decoratorImpl interface {
+// AssetOption describes the method signature for manipulating loaded assets
+type AssetOption func(string, string) (string, error)
+
+// StackTemplateDecorator is a stub for decorate template struct to avoid circular dependencies
+type StackTemplateDecorator interface {
 	DecorateStackTemplate(assetName string, stackName string, templateBody io.Reader) (io.Reader, error)
 }
