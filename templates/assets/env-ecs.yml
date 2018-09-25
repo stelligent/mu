@@ -238,6 +238,11 @@ Resources:
                 cwlogs = cwlogs
                 [default]
                 region = ${AWS::Region}
+          commands:
+            01_configure_ssm_agent:
+              command: !Sub |
+                #!/bin/bash
+                sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           services:
             sysvinit:
               awslogs:
@@ -318,6 +323,13 @@ Resources:
                 log_group_name = ${AWS::StackName}
                 log_stream_name = instance/cfn-init/{instance_id}
                 datetime_format = %Y-%m-%d %H:%M:%S
+
+                [ssm]
+                file = /var/log/amazon/ssm/*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/ssm/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+
           commands:
             01_add_instance_to_cluster:
               command: !Sub |
