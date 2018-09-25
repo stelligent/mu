@@ -188,6 +188,11 @@ Resources:
             - autoscaling:DescribeTags
             - autoscaling:DeleteTags
             - autoscaling:TerminateInstanceInAutoScalingGroup
+            - ssm:CreateAssociation
+            - ssm:DescribeAssociation
+            - ssm:DeleteAssociation
+            - ssm:ListAssociations
+            - ssm:UpdateAssociationStatus
             #
             # the cloudwatch:PutRule & cloudwatch:PutTargets
             # are documented under http://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_PutRule.html
