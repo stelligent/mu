@@ -332,7 +332,7 @@ func (cfnMgr *cloudformationStackManager) stopSpinner() {
 
 func getPolicy(policy string, allowDataLoss bool) (string, error) {
 	if allowDataLoss {
-		return templates.GetAsset(common.PolicyAllowAll)
+		return templates.GetAsset(common.TemplatePolicyAllowAll)
 	}
 	return policy, nil
 }

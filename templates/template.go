@@ -36,8 +36,6 @@ func AddData(data interface{}) func(string, *string) error {
 	return func(assetName string, asset *string) error {
 
 		tmpl, err := template.New(assetName).Parse(*asset)
-		// assetValue := *asset
-		// tmpl, err := template.New(assetName).Parse(string(assetValue[:]))
 		if err != nil {
 			return err
 		}

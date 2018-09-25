@@ -268,7 +268,8 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
 
 	// get default buildspec
-	buildspec, err := templates.GetAsset("buildspec.yml")
+	buildspec, err := templates.GetAsset(common.TemplateBuildspec,
+		templates.AddData(nil))
 	if err != nil {
 		return nil, err
 	}

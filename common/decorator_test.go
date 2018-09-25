@@ -29,7 +29,7 @@ Resources:
 	err := yaml.Unmarshal([]byte(overridesYaml), overrides)
 	assert.Nil(err)
 
-	templateBody, err := templates.GetAsset("bucket.yml")
+	templateBody, err := templates.GetAsset(TemplateBucket, templates.AddData(nil))
 	assert.Nil(err)
 	assert.NotNil(templateBody)
 

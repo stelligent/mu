@@ -118,7 +118,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-		policy, err := templates.GetAsset(common.PolicyDefault)
+		policy, err := templates.GetAsset(common.TemplatePolicyDefault)
 		if err != nil {
 			return err
 		}

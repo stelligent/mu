@@ -16,7 +16,14 @@ import (
 func TestNewTemplate(t *testing.T) {
 	assert := assert.New(t)
 
-	templates := []string{"elb.yml", "vpc.yml"}
+	templates := []string{common.TemplatePolicyDefault, common.TemplatePolicyAllowAll,
+		common.TemplateApp, common.TemplateBucket, common.TemplateBuildspec,
+		common.TemplateCommonIAM, common.TemplateDatabase, common.TemplateELB,
+		common.TemplateEnvEC2, common.TemplateEnvECS, common.TemplatePipelineIAM,
+		common.TemplatePipeline, common.TemplateRepo, common.TemplateSchedule,
+		common.TemplateServiceEC2, common.TemplateServiceECS, common.TemplateServiceIAM,
+		common.TemplateVCPTarget, common.TemplateVPC}
+
 	for _, templateName := range templates {
 		templateBody, err := GetAsset(templateName)
 
@@ -51,22 +58,18 @@ func TestNewTemplate_assets(t *testing.T) {
 			continue
 		}
 
-		templateBody, err := GetAsset(templateName)
+		templateBody, err := GetAsset(templateName, AddData(nil))
 
 		assert.Nil(err, templateName)
 		assert.NotNil(templateBody, templateName)
 
 		if templateBody != "" {
 
-			assert.NotNil(templateBody, templateName)
 			assert.NotEmpty(templateBody, templateName)
 
 			params := &cloudformation.ValidateTemplateInput{
 				TemplateBody: aws.String(templateBody),
 			}
-
-			t.Logf("-------- messed up %s", templateBody)
-			t.Log("-------- ")
 
 			_, err := svc.ValidateTemplate(params)
 			if err != nil {
@@ -83,12 +86,33 @@ func TestNewTemplate_assets(t *testing.T) {
 	}
 }
 
-func TestNewPolicy(t *testing.T) {
+func TestAddData(t *testing.T) {
 	assert := assert.New(t)
 
-	templateBody, err := GetAsset(common.PolicyDefault)
-
+	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
+	sess, err := session.NewSessionWithOptions(sessOptions)
 	assert.Nil(err)
+
+	svc := cloudformation.New(sess)
+
+	templateBody, err := GetAsset(common.TemplateServiceEC2, AddData(nil))
+
 	assert.NotNil(templateBody)
 	assert.NotEmpty(templateBody)
+
+	params := &cloudformation.ValidateTemplateInput{
+		TemplateBody: aws.String(templateBody),
+	}
+
+	_, err = svc.ValidateTemplate(params)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "RequestError" && awsErr.Message() == "send request failed" {
+				return
+			}
+			assert.Fail(awsErr.Code(), awsErr.Message())
+		}
+		assert.Fail(err.Error())
+	}
+
 }

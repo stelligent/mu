@@ -152,7 +152,7 @@ func NewApp() *cli.App {
 			Name:  "proxy, P",
 			Usage: "Proxy to route AWS requests through",
 		},
-		cli.StringFlag{
+		cli.BoolFlag{
 			Name:  "allow-data-loss",
 			Usage: "temporarily allow delete or replace on RDS or KMS resources",
 		},

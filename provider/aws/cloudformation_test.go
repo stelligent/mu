@@ -415,7 +415,7 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policy, _ := templates.GetAsset(common.PolicyDefault)
+	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
@@ -446,7 +446,7 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policy, _ := templates.GetAsset(common.PolicyDefault)
+	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
@@ -478,7 +478,7 @@ func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policy, _ := templates.GetAsset(common.PolicyDefault)
+	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
 	cfn.On("UpdateStack", mock.MatchedBy(
 		func(params *cloudformation.UpdateStackInput) bool {
@@ -510,7 +510,7 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	allowDataLossPolicy, _ := templates.GetAsset(common.PolicyAllowAll)
+	allowDataLossPolicy, _ := templates.GetAsset(common.TemplatePolicyAllowAll)
 
 	cfn.On("UpdateStack", mock.MatchedBy(
 		func(params *cloudformation.UpdateStackInput) bool {
@@ -524,7 +524,7 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 		allowDataLoss:     true,
 	}
 
-	policy, _ := templates.GetAsset(common.PolicyDefault)
+	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
 	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
