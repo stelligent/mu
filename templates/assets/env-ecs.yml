@@ -214,6 +214,33 @@ Resources:
           Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetMemoryReservation
+  InventoryAssociation:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: 'Inventory-Association'
+      Name: 'AWS-GatherSoftwareInventory'
+      ScheduleExpression: 'rate(1 day)'
+      Parameters:
+        applications: 
+        - Enabled
+        awsComponents:
+        - Enabled
+        customInventory:
+        - Enabled
+        instanceDetailedInformation:
+        - Enabled
+        networkConfig:
+        - Enabled
+        services:
+        - Enabled
+        windowsRoles:
+        - Enabled
+        windowsUpdates:
+        - Enabled
+      Targets:
+      - Key: tag:aws:autoscaling:groupName	
+        Values: [!Ref EcsAutoScalingGroup]
   ContainerInstances:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::LaunchConfiguration
@@ -238,6 +265,11 @@ Resources:
                 cwlogs = cwlogs
                 [default]
                 region = ${AWS::Region}
+          commands:
+            01_configure_ssm_agent:
+              command: !Sub |
+                #!/bin/bash
+                sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           services:
             sysvinit:
               awslogs:
@@ -318,6 +350,13 @@ Resources:
                 log_group_name = ${AWS::StackName}
                 log_stream_name = instance/cfn-init/{instance_id}
                 datetime_format = %Y-%m-%d %H:%M:%S
+
+                [ssm]
+                file = /var/log/amazon/ssm/*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/ssm/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+
           commands:
             01_add_instance_to_cluster:
               command: !Sub |

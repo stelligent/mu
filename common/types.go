@@ -147,13 +147,50 @@ type Service struct {
 
 // Database definition
 type Database struct {
-	Name              string            `yaml:"name,omitempty" validate:"validateLeadingAlphaNumericDash"`
-	InstanceClass     string            `yaml:"instanceClass,omitempty" validate:"validateInstanceType"`
-	Engine            string            `yaml:"engine,omitempty" validate:"validateAlphaNumericDash"`
-	IamAuthentication bool              `yaml:"iamAuthentication,omitempty"`
-	MasterUsername    string            `yaml:"masterUsername,omitempty"`
-	AllocatedStorage  string            `yaml:"allocatedStorage,omitempty"`
-	KmsKey            map[string]string `yaml:"kmsKey,omitempty"`
+	DatabaseConfig    `yaml:",inline"`
+	EnvironmentConfig map[string]DatabaseConfig `yaml:"environmentConfig"`
+}
+
+// DatabaseConfig definition
+type DatabaseConfig struct {
+	Name                  string `yaml:"name,omitempty" validate:"validateLeadingAlphaNumericDash"`
+	InstanceClass         string `yaml:"instanceClass,omitempty" validate:"validateInstanceType"`
+	Engine                string `yaml:"engine,omitempty" validate:"validateAlphaNumericDash"`
+	EngineMode            string `yaml:"engineMode,omitempty" validate:"validateAlphaNumericDash"`
+	IamAuthentication     string `yaml:"iamAuthentication,omitempty"`
+	MasterUsername        string `yaml:"masterUsername,omitempty"`
+	AllocatedStorage      string `yaml:"allocatedStorage,omitempty"`
+	KmsKey                string `yaml:"kmsKey,omitempty"`
+	MinSize               string `yaml:"minSize,omitempty"`
+	MaxSize               string `yaml:"maxSize,omitempty"`
+	SecondsUntilAutoPause string `yaml:"secondsUntilAutoPause,omitempty"`
+}
+
+// GetDatabaseConfig definition
+func (database *Database) GetDatabaseConfig(environmentName string) *DatabaseConfig {
+	first := func(options ...string) string {
+		for _, s := range options {
+			if s != "" {
+				return s
+			}
+		}
+		return ""
+	}
+	envConfig := database.EnvironmentConfig[environmentName]
+	dbConfig := &DatabaseConfig{
+		Name:                  first(envConfig.Name, database.Name),
+		InstanceClass:         first(envConfig.InstanceClass, database.InstanceClass),
+		Engine:                first(envConfig.Engine, database.Engine),
+		EngineMode:            first(envConfig.EngineMode, database.EngineMode),
+		IamAuthentication:     first(envConfig.IamAuthentication, database.IamAuthentication),
+		MasterUsername:        first(envConfig.MasterUsername, database.MasterUsername),
+		AllocatedStorage:      first(envConfig.AllocatedStorage, database.AllocatedStorage),
+		KmsKey:                first(envConfig.KmsKey, database.KmsKey),
+		MinSize:               first(envConfig.MinSize, database.MinSize),
+		MaxSize:               first(envConfig.MaxSize, database.MaxSize),
+		SecondsUntilAutoPause: first(envConfig.SecondsUntilAutoPause, database.SecondsUntilAutoPause),
+	}
+	return dbConfig
 }
 
 // Schedule definition

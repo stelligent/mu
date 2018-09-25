@@ -3,6 +3,7 @@ package workflows
 import (
 	"crypto/rand"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/stelligent/mu/common"
@@ -85,14 +86,21 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 
-		stackParams["DatabaseName"] = service.Database.Name
+		dbConfig := service.Database.GetDatabaseConfig(environmentName)
 
-		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngine", service.Database.Engine)
-		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", service.Database.InstanceClass)
-		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", service.Database.AllocatedStorage)
+		stackParams["DatabaseName"] = dbConfig.Name
+
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngine", dbConfig.Engine)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngineMode", dbConfig.EngineMode)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", dbConfig.InstanceClass)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", dbConfig.AllocatedStorage)
+
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMinSize", dbConfig.MinSize)
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMaxSize", dbConfig.MaxSize)
+		common.NewMapElementIfNotEmpty(stackParams, "SecondsUntilAutoPause", dbConfig.SecondsUntilAutoPause)
 
 		stackParams["DatabaseMasterUsername"] = "admin"
-		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", service.Database.MasterUsername)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", dbConfig.MasterUsername)
 
 		//DatabaseMasterPassword:
 		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
@@ -138,8 +146,9 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 
 		// update IAM Authentication
-		if stack.Outputs["DatabaseIdentifier"] != "" {
-			return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
+		if stack.Outputs["DatabaseIdentifier"] != "" && dbConfig.EngineMode != "serverless" {
+			enableIamAuthentication, _ := strconv.ParseBool(dbConfig.IamAuthentication)
+			return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], enableIamAuthentication, dbConfig.Engine)
 		}
 
 		return nil

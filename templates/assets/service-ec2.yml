@@ -248,6 +248,32 @@ Resources:
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref TargetCPUUtilization
+  InventoryAssociation:
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: 'Inventory-Association'
+      Name: 'AWS-GatherSoftwareInventory'
+      ScheduleExpression: 'rate(1 day)'
+      Parameters:
+        applications: 
+        - Enabled
+        awsComponents:
+        - Enabled
+        customInventory:
+        - Enabled
+        instanceDetailedInformation:
+        - Enabled
+        networkConfig:
+        - Enabled
+        services:
+        - Enabled
+        windowsRoles:
+        - Enabled
+        windowsUpdates:
+        - Enabled
+      Targets:
+      - Key: tag:aws:autoscaling:groupName	
+        Values: [!Ref ServiceAutoScalingGroup]
   ServiceInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -271,6 +297,11 @@ Resources:
                 cwlogs = cwlogs
                 [default]
                 region = ${AWS::Region}
+          commands:
+            01_configure_ssm_agent:
+              command: !Sub |
+                #!/bin/bash
+                sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           services:
             sysvinit:
               codedeploy-agent:
@@ -399,6 +430,12 @@ Resources:
                 file = /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log
                 log_stream_name = instance/codedeploy-deployments/{instance_id}
                 log_group_name = ${AWS::StackName}
+
+                [ssm]
+                file = /var/log/amazon/ssm/*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/ssm/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
           commands:
             codedeploy-install:
               command:

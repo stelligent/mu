@@ -1,0 +1,11 @@
+---
+
+service:
+  name: sample-service
+  database:
+    name: sample
+    engine: aurora
+    environmentConfig:
+      acceptance:
+        engineMode: serverless
+        secondsUntilAutoPause: 300

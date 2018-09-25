@@ -11,7 +11,8 @@ service:
     - /*
   database:
     name: e2efgate
-    engine: mysql
+    engine: aurora
+    engineMode: serverless
   environment:
     DB_HOST: ${DatabaseEndpointAddress}
     DB_PORT: ${DatabaseEndpointPort}
