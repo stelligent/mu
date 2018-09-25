@@ -256,7 +256,7 @@ func (cfnMgr *cloudformationStackManager) cleanStackIfInRollback(stack *common.S
 		if err != nil {
 			return nil, err
 		}
-		*stack = *cfnMgr.AwaitFinalStatus(stackName)
+		stack = cfnMgr.AwaitFinalStatus(stackName)
 	}
 	return stack, nil
 }

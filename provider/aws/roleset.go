@@ -59,7 +59,7 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, serviceName string) (common.Roleset, error) {
 	roleset := rolesetMgr.getRolesetFromStack("service", serviceName, environmentName)
 
-	overrideRole(roleset, "DatabaseKeyArn", rolesetMgr.context.Config.Service.Database.KmsKey[environmentName])
+	overrideRole(roleset, "DatabaseKeyArn", rolesetMgr.context.Config.Service.Database.GetDatabaseConfig(environmentName).KmsKey)
 	overrideRole(roleset, "EC2InstanceProfileArn", rolesetMgr.context.Config.Service.Roles.Ec2Instance)
 	overrideRole(roleset, "CodeDeployRoleArn", rolesetMgr.context.Config.Service.Roles.CodeDeploy)
 	overrideRole(roleset, "EcsEventsRoleArn", rolesetMgr.context.Config.Service.Roles.EcsEvents)

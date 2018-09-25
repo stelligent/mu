@@ -6,6 +6,22 @@ Parameters:
     Type: String
     Description: Engine for database
     Default: aurora
+  DatabaseEngineMode:
+    Type: String
+    Description: Engine mode for database
+    Default: provisioned
+  SecondsUntilAutoPause:
+    Type: Number
+    Description: Seconds before auto pause
+    Default: 300
+  ScalingMaxCapacity:
+    Type: Number
+    Description: Max number of database units
+    Default: 256
+  ScalingMinCapacity:
+    Type: Number
+    Description: Min number of database units
+    Default: 2
   DatabaseInstanceClass:
     Type: String
     Description: Instance class for database
@@ -38,6 +54,10 @@ Parameters:
     Type: String
     Description: KMS key for Database
 Conditions:
+  IsServerless:
+    "Fn::Equals":
+      - !Ref DatabaseEngineMode
+      - 'serverless'
   IsClustered:
     "Fn::Or":
       - "Fn::Equals":
@@ -46,9 +66,23 @@ Conditions:
       - "Fn::Equals":
           - !Ref DatabaseEngine
           - 'aurora'
+      - "Fn::Equals":
+          - !Ref DatabaseEngine
+          - 'aurora-mysql'
   IsStandalone:
     "Fn::Not":
       - !Condition IsClustered
+  IsClusterProvisioned:
+    "Fn::And":
+    - !Condition IsClustered
+    - "Fn::Equals":
+        - !Ref DatabaseEngineMode
+        - 'provisioned'
+  IsServerlessAutoPause:
+    "Fn::Not":
+    - "Fn::Equals":
+        - !Ref SecondsUntilAutoPause
+        - '0'
 Resources:
   DBSubnetsGroup:
     Type: "AWS::RDS::DBSubnetGroup"
@@ -95,8 +129,21 @@ Resources:
       DatabaseName: !Ref DatabaseName
       DBSubnetGroupName: !Ref DBSubnetsGroup
       Engine: !Ref DatabaseEngine
+      EngineMode: !Ref DatabaseEngineMode
       KmsKeyId: !Ref DatabaseKeyArn
       StorageEncrypted: true
+      ScalingConfiguration: 
+        Fn::If:
+        - IsServerless
+        - MaxCapacity: !Ref ScalingMaxCapacity
+          MinCapacity: !Ref ScalingMinCapacity
+          SecondsUntilAutoPause: !Ref SecondsUntilAutoPause
+          AutoPause: 
+            Fn::If: 
+            - IsServerlessAutoPause
+            - 'true'
+            - 'false'
+        - AWS::NoValue
       MasterUsername: !Ref DatabaseMasterUsername
       MasterUserPassword: !Ref DatabaseMasterPassword
       Tags:
@@ -107,7 +154,7 @@ Resources:
     DeletionPolicy: Snapshot
   DBInstanceClustered:
     Type: AWS::RDS::DBInstance
-    Condition: IsClustered
+    Condition: IsClusterProvisioned
     Properties:
       PubliclyAccessible: false
       DBClusterIdentifier: !Ref DBCluster
