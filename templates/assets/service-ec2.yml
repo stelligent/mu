@@ -248,6 +248,32 @@ Resources:
         PredefinedMetricSpecification:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref TargetCPUUtilization
+  InventoryAssociation:
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: 'Inventory-Association'
+      Name: 'AWS-GatherSoftwareInventory'
+      ScheduleExpression: 'rate(1 day)'
+      Parameters:
+        applications: 
+        - Enabled
+        awsComponents:
+        - Enabled
+        customInventory:
+        - Enabled
+        instanceDetailedInformation:
+        - Enabled
+        networkConfig:
+        - Enabled
+        services:
+        - Enabled
+        windowsRoles:
+        - Enabled
+        windowsUpdates:
+        - Enabled
+      Targets:
+      - Key: tag:aws:autoscaling:groupName	
+        Values: [!Ref ServiceAutoScalingGroup]
   ServiceInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
