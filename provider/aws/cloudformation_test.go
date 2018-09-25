@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -416,10 +415,7 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policyReader, _ := templates.NewPolicy("default.json")
-	policyBytes := new(bytes.Buffer)
-	policyBytes.ReadFrom(policyReader)
-	policy := policyBytes.String()
+	policy, _ := templates.GetAsset(common.PolicyDefault)
 
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
@@ -450,10 +446,7 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policyReader, _ := templates.NewPolicy("default.json")
-	policyBytes := new(bytes.Buffer)
-	policyBytes.ReadFrom(policyReader)
-	policy := policyBytes.String()
+	policy, _ := templates.GetAsset(common.PolicyDefault)
 
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
@@ -485,10 +478,7 @@ func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	policyReader, _ := templates.NewPolicy("default.json")
-	policyBytes := new(bytes.Buffer)
-	policyBytes.ReadFrom(policyReader)
-	policy := policyBytes.String()
+	policy, _ := templates.GetAsset(common.PolicyDefault)
 
 	cfn.On("UpdateStack", mock.MatchedBy(
 		func(params *cloudformation.UpdateStackInput) bool {
@@ -520,10 +510,7 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 	var templateData interface{}
 	stackName := "foo"
 
-	allowDataLossPolicyReader, _ := templates.NewPolicy("allow-all.json")
-	policyBodyBytes := new(bytes.Buffer)
-	policyBodyBytes.ReadFrom(allowDataLossPolicyReader)
-	allowDataLossPolicy := policyBodyBytes.String()
+	allowDataLossPolicy, _ := templates.GetAsset(common.PolicyAllowAll)
 
 	cfn.On("UpdateStack", mock.MatchedBy(
 		func(params *cloudformation.UpdateStackInput) bool {
@@ -537,10 +524,7 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 		allowDataLoss:     true,
 	}
 
-	policyReader, _ := templates.NewPolicy("default.json")
-	policyBytes := new(bytes.Buffer)
-	policyBytes.ReadFrom(policyReader)
-	policy := policyBytes.String()
+	policy, _ := templates.GetAsset(common.PolicyDefault)
 
 	err := stackManager.UpsertStack(stackName, templateName, templateData, nil, nil, policy, "")
 
@@ -580,12 +564,9 @@ func mockNilExtensionManager() *mockedExtensionsManager {
 }
 
 func mockTemplateBody(extMgr *mockedExtensionsManager, stackName string, templateName string, templateData interface{}) *string {
-	templateBodyReader, _ := templates.NewTemplate(templateName, templateData)
-	templateBodyReader, _ = extMgr.DecorateStackTemplate(templateName, stackName, templateBodyReader)
 
-	templateBodyBytes := new(bytes.Buffer)
-	templateBodyBytes.ReadFrom(templateBodyReader)
-	templateBody := aws.String(templateBodyBytes.String())
+	templateBody, _ := templates.GetAsset(templateName, templates.AddData(templateData),
+		templates.DecorateTemplate(extMgr, stackName))
 
-	return templateBody
+	return aws.String(templateBody)
 }

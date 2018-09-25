@@ -1,7 +1,6 @@
 package templates
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/gobuffalo/packr"
+	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,15 +18,9 @@ func TestNewTemplate(t *testing.T) {
 
 	templates := []string{"elb.yml", "vpc.yml"}
 	for _, templateName := range templates {
-		templateBodyReader, err := NewTemplate(templateName, nil)
+		templateBody, err := GetAsset(templateName)
 
 		assert.Nil(err)
-		assert.NotNil(templateBodyReader)
-
-		templateBodyBytes := new(bytes.Buffer)
-		templateBodyBytes.ReadFrom(templateBodyReader)
-		templateBody := aws.String(templateBodyBytes.String())
-
 		assert.NotNil(templateBody)
 		assert.NotEmpty(templateBody)
 	}
@@ -35,8 +29,8 @@ func TestNewTemplate(t *testing.T) {
 func TestNewTemplate_invalid(t *testing.T) {
 	assert := assert.New(t)
 
-	templateBodyReader, err := NewTemplate("invalid-template-name.yml", nil)
-	assert.Nil(templateBodyReader)
+	templateBodyReader, err := GetAsset("invalid-template-name.yml")
+	assert.Empty(templateBodyReader)
 	assert.NotNil(err)
 }
 
@@ -57,22 +51,22 @@ func TestNewTemplate_assets(t *testing.T) {
 			continue
 		}
 
-		templateBodyReader, err := NewTemplate(templateName, nil)
+		templateBody, err := GetAsset(templateName)
 
 		assert.Nil(err, templateName)
-		assert.NotNil(templateBodyReader, templateName)
+		assert.NotNil(templateBody, templateName)
 
-		if templateBodyReader != nil {
-			templateBodyBytes := new(bytes.Buffer)
-			templateBodyBytes.ReadFrom(templateBodyReader)
-			templateBody := aws.String(templateBodyBytes.String())
+		if templateBody != "" {
 
 			assert.NotNil(templateBody, templateName)
 			assert.NotEmpty(templateBody, templateName)
 
 			params := &cloudformation.ValidateTemplateInput{
-				TemplateBody: templateBody,
+				TemplateBody: aws.String(templateBody),
 			}
+
+			t.Logf("-------- messed up %s", templateBody)
+			t.Log("-------- ")
 
 			_, err := svc.ValidateTemplate(params)
 			if err != nil {
@@ -92,15 +86,9 @@ func TestNewTemplate_assets(t *testing.T) {
 func TestNewPolicy(t *testing.T) {
 	assert := assert.New(t)
 
-	templateBodyReader, err := NewPolicy("default.json")
+	templateBody, err := GetAsset(common.PolicyDefault)
 
 	assert.Nil(err)
-	assert.NotNil(templateBodyReader)
-
-	templateBodyBytes := new(bytes.Buffer)
-	templateBodyBytes.ReadFrom(templateBodyReader)
-	templateBody := aws.String(templateBodyBytes.String())
-
 	assert.NotNil(templateBody)
 	assert.NotEmpty(templateBody)
 }

@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -269,14 +268,12 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
 
 	// get default buildspec
-	buildspec, err := templates.NewTemplate("buildspec.yml", nil)
+	buildspec, err := templates.GetAsset("buildspec.yml")
 	if err != nil {
 		return nil, err
 	}
-	buildspecBytes := new(bytes.Buffer)
-	buildspecBytes.ReadFrom(buildspec)
 	newlineRegexp := regexp.MustCompile(`\r?\n`)
-	buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
+	buildspecString := newlineRegexp.ReplaceAllString(buildspec, "\\n")
 
 	params["DefaultBuildspec"] = buildspecString
 

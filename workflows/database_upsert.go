@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"bytes"
 	"crypto/rand"
 	"fmt"
 	"strings"
@@ -119,13 +118,10 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-		policyBodyReader, err := templates.NewPolicy("default.json")
+		policy, err := templates.GetAsset(common.PolicyDefault)
 		if err != nil {
 			return err
 		}
-		policyBodyBytes := new(bytes.Buffer)
-		policyBodyBytes.ReadFrom(policyBodyReader)
-		policy := policyBodyBytes.String()
 
 		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
 

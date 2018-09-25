@@ -287,20 +287,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 
 	// load the template
-	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
-	if err != nil {
-		return err
-	}
-	templateBodyReader, err = cfnMgr.extensionsManager.DecorateStackTemplate(templateName, stackName, templateBodyReader)
-	if err != nil {
-		return err
-	}
-	templateBodyBytes := new(bytes.Buffer)
-	_, err = templateBodyBytes.ReadFrom(templateBodyReader)
-	if err != nil {
-		return err
-	}
-	templateBody := aws.String(templateBodyBytes.String())
+	templateBody, err := templates.GetAsset(templateName, templates.AddData(templateData),
+		templates.DecorateTemplate(cfnMgr.extensionsManager, stackName))
+	templateBodyBytes := bytes.NewBufferString(templateBody)
 
 	// stack parameters
 	parameters, err = cfnMgr.extensionsManager.DecorateStackParameters(stackName, parameters)
@@ -319,11 +308,11 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	if stack == nil || stack.Status == "" {
 		// Stack should be created
 		return createStack(stackName, stackParameters, parameters,
-			roleArn, stackTags, tags, templateBody, templateBodyBytes, policy, cfnMgr)
+			roleArn, stackTags, tags, aws.String(templateBody), templateBodyBytes, policy, cfnMgr)
 	}
 	// else, stack should be updated
 	return updateStack(stackName, stackParameters, parameters,
-		roleArn, stackTags, tags, stack, templateBody, templateBodyBytes, policy, cfnMgr)
+		roleArn, stackTags, tags, stack, aws.String(templateBody), templateBodyBytes, policy, cfnMgr)
 }
 
 func (cfnMgr *cloudformationStackManager) startSpinner() {
@@ -343,13 +332,7 @@ func (cfnMgr *cloudformationStackManager) stopSpinner() {
 
 func getPolicy(policy string, allowDataLoss bool) (string, error) {
 	if allowDataLoss {
-		policyBodyReader, err := templates.NewPolicy("allow-all.json")
-		if err != nil {
-			return "", err
-		}
-		policyBodyBytes := new(bytes.Buffer)
-		policyBodyBytes.ReadFrom(policyBodyReader)
-		return policyBodyBytes.String(), nil
+		return templates.GetAsset(common.PolicyAllowAll)
 	}
 	return policy, nil
 }

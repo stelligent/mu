@@ -29,11 +29,11 @@ Resources:
 	err := yaml.Unmarshal([]byte(overridesYaml), overrides)
 	assert.Nil(err)
 
-	templateBodyReader, err := templates.NewTemplate("bucket.yml", nil)
+	templateBody, err := templates.GetAsset("bucket.yml")
 	assert.Nil(err)
-	assert.NotNil(templateBodyReader)
+	assert.NotNil(templateBody)
 
-	templateBodyReader, err = decorateTemplate(templateBodyReader, overrides)
+	templateBodyReader, err := decorateTemplate(bytes.NewBufferString(templateBody), overrides)
 	assert.Nil(err)
 	assert.NotNil(templateBodyReader)
 
@@ -44,7 +44,7 @@ Resources:
 
 	templateBodyBytes := new(bytes.Buffer)
 	templateBodyBytes.ReadFrom(templateBodyReader)
-	templateBody := templateBodyBytes.String()
+	templateBody = templateBodyBytes.String()
 
 	assert.NotNil(templateBody)
 	assert.NotEmpty(templateBody)

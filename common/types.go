@@ -294,6 +294,12 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
+// List of valid Policy files
+const (
+	PolicyDefault  string = "polices/default.json"
+	PolicyAllowAll        = "polices/allow-all.json"
+)
+
 // DeploymentStrategy describes supported deployment strategies
 type DeploymentStrategy string
 

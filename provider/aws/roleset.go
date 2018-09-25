@@ -216,11 +216,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"CodeDeployBucket": codeDeployBucket,
 	}
 
-	policyBodyReader, err := templates.NewPolicy("default.json")
-	if err != nil {
-		return err
-	}
-	policy, err := templates.TemplateToString(policyBodyReader)
+	policy, err := templates.GetAsset(common.PolicyDefault)
 	if err != nil {
 		return err
 	}
@@ -291,11 +287,7 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, p
 	stackParams["AcptCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 	stackParams["ProdCloudFormationRoleArn"] = commonRoleset["CloudFormationRoleArn"]
 
-	policyBodyReader, err := templates.NewPolicy("default.json")
-	if err != nil {
-		return err
-	}
-	policy, err := templates.TemplateToString(policyBodyReader)
+	policy, err := templates.GetAsset(common.PolicyDefault)
 	if err != nil {
 		return err
 	}

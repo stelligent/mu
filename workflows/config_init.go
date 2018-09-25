@@ -1,13 +1,13 @@
 package workflows
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
 )
 
 // NewConfigInitializer create a new mu.yml file
@@ -77,16 +77,15 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		}
 
 		// write buildspec
-		buildspec, err := templates.NewTemplate("buildspec.yml", nil)
+		buildspec, err := templates.GetAsset("buildspec.yml")
 		if err != nil {
 			return err
 		}
-		buildspecBytes := new(bytes.Buffer)
-		buildspecBytes.ReadFrom(buildspec)
+		buildspecBytes := []byte(buildspec)
 
 		log.Noticef("Writing buildspec to '%s/buildspec.yml'", basedir)
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes.Bytes(), 0600)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes, 0600)
 		if err != nil {
 			return err
 		}
