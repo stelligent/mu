@@ -109,6 +109,43 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 	}
 }
 
+func matchRequestedCPU(serviceCPU int, defaultCPU common.CPUMemory) common.CPUMemory {
+	for _, cpu := range common.CPUMemorySupport {
+		if serviceCPU <= cpu.CPU {
+			return cpu
+		}
+	}
+	return defaultCPU
+}
+
+func matchRequestedMemory(serviceMemory int, cpu common.CPUMemory, defaultMemory int) int {
+	for _, memory := range cpu.Memory {
+		if serviceMemory <= memory {
+			return memory
+		}
+	}
+	return defaultMemory
+}
+
+func getMinMaxPercentForStrategy(deploymentStrategy common.DeploymentStrategy) (string, string) {
+	var minHealthyPercent, maxPercent string
+	switch deploymentStrategy {
+	case common.BlueGreenDeploymentStrategy:
+		minHealthyPercent = "100"
+		maxPercent = "200"
+	case common.ReplaceDeploymentStrategy:
+		minHealthyPercent = "0"
+		maxPercent = "100"
+	case common.RollingDeploymentStrategy:
+		minHealthyPercent = "50"
+		maxPercent = "100"
+	default:
+		minHealthyPercent = "100"
+		maxPercent = "200"
+	}
+	return minHealthyPercent, maxPercent
+}
+
 func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
@@ -119,29 +156,20 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ElbSecurityGroup"] = fmt.Sprintf("%s-InstanceSecurityGroup", workflow.lbStack.Name)
 		params["ServiceDiscoveryId"] = fmt.Sprintf("%s-ServiceDiscoveryId", workflow.lbStack.Name)
 		params["ServiceDiscoveryName"] = fmt.Sprintf("%s-ServiceDiscoveryName", workflow.lbStack.Name)
-		if service.DiscoveryTTL != "" {
-			params["ServiceDiscoveryTTL"] = service.DiscoveryTTL
-		}
+		common.NewMapElementIfNotEmpty(params, "ServiceDiscoveryTTL", service.DiscoveryTTL)
+
 		params["ImageUrl"] = workflow.serviceImage
 
 		cpu := common.CPUMemorySupport[0]
 		if service.CPU != 0 {
 			params["ServiceCpu"] = strconv.Itoa(service.CPU)
-			for _, cpu = range common.CPUMemorySupport {
-				if service.CPU <= cpu.CPU {
-					break
-				}
-			}
+			cpu = matchRequestedCPU(service.CPU, cpu)
 		}
 
 		memory := cpu.Memory[0]
 		if service.Memory != 0 {
 			params["ServiceMemory"] = strconv.Itoa(service.Memory)
-			for _, memory = range cpu.Memory {
-				if service.Memory <= memory {
-					break
-				}
-			}
+			memory = matchRequestedMemory(service.Memory, cpu, memory)
 		}
 
 		if workflow.isFargateProvider()() {
@@ -170,20 +198,7 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 		params["ApplicationAutoScalingRoleArn"] = serviceRoleset["ApplicationAutoScalingRoleArn"]
 		params["ServiceName"] = workflow.serviceName
 
-		switch service.DeploymentStrategy {
-		case common.BlueGreenDeploymentStrategy:
-			params["MinimumHealthyPercent"] = "100"
-			params["MaximumPercent"] = "200"
-		case common.ReplaceDeploymentStrategy:
-			params["MinimumHealthyPercent"] = "0"
-			params["MaximumPercent"] = "100"
-		case common.RollingDeploymentStrategy:
-			params["MinimumHealthyPercent"] = "50"
-			params["MaximumPercent"] = "100"
-		default:
-			params["MinimumHealthyPercent"] = "100"
-			params["MaximumPercent"] = "200"
-		}
+		params["MinimumHealthyPercent"], params["MaximumPercent"] = getMinMaxPercentForStrategy(service.DeploymentStrategy)
 
 		return nil
 	}
@@ -229,7 +244,9 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 	}
 }
 
-func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, service *common.Service, params map[string]string, environmentName string, stackWaiter common.StackWaiter, elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
+func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, service *common.Service,
+	params map[string]string, environmentName string, stackWaiter common.StackWaiter,
+	elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
 	return func() error {
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
@@ -245,9 +262,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			}
 		}
 
-		if service.TargetCPUUtilization != 0 {
-			params["TargetCPUUtilization"] = strconv.Itoa(service.TargetCPUUtilization)
-		}
+		common.NewMapElementIfNotZero(params, "TargetCPUUtilization", service.TargetCPUUtilization)
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
@@ -281,24 +296,13 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		}
 
 		params["ServiceName"] = workflow.serviceName
-		if service.Port != 0 {
-			params["ServicePort"] = strconv.Itoa(service.Port)
-		}
-		if service.Protocol != "" {
-			params["ServiceProtocol"] = string(service.Protocol)
-		}
-		if service.HealthEndpoint != "" {
-			params["ServiceHealthEndpoint"] = service.HealthEndpoint
-		}
-		if service.DesiredCount != 0 {
-			params["ServiceDesiredCount"] = strconv.Itoa(service.DesiredCount)
-		}
-		if service.MinSize != 0 {
-			params["ServiceMinSize"] = strconv.Itoa(service.MinSize)
-		}
-		if service.MaxSize != 0 {
-			params["ServiceMaxSize"] = strconv.Itoa(service.MaxSize)
-		}
+		common.NewMapElementIfNotZero(params, "ServicePort", service.Port)
+		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", string(service.Protocol))
+		common.NewMapElementIfNotEmpty(params, "ServiceHealthEndpoint", service.HealthEndpoint)
+		common.NewMapElementIfNotZero(params, "ServiceDesiredCount", service.DesiredCount)
+		common.NewMapElementIfNotZero(params, "ServiceMinSize", service.MinSize)
+		common.NewMapElementIfNotZero(params, "ServiceMaxSize", service.MaxSize)
+
 		if len(service.PathPatterns) > 0 {
 			params["PathPattern"] = strings.Join(service.PathPatterns, ",")
 		}

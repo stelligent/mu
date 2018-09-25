@@ -29,6 +29,7 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
+		workflow.environmentNormalizer(),
 		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, envStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
@@ -45,15 +46,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	return func() error {
 		for _, e := range config.Environments {
 			if strings.EqualFold(e.Name, environmentName) {
-				if e.Provider == "" {
-					e.Provider = common.EnvProviderEcs
-				}
 				workflow.environment = &e
-
-				if e.Discovery.Provider == "consul" {
-					return fmt.Errorf("Consul is no longer supported as a service discovery provider.  Check out the mu-consul extension for an alternative: https://github.com/stelligent/mu-consul")
-				}
-
 				return nil
 			}
 		}
@@ -61,7 +54,9 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
+func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
+	envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder,
+	stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
 	return func() error {
 		environment := workflow.environment
 		vpcStackParams := make(map[string]string)
@@ -70,10 +65,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, en
 		var vpcStackName string
 		var vpcTemplateName string
 		if environment.VpcTarget.Environment != "" {
-			targetNamespace := environment.VpcTarget.Namespace
-			if targetNamespace == "" {
-				targetNamespace = namespace
-			}
+			targetNamespace := common.NewStringIfNotEmpty(namespace, environment.VpcTarget.Namespace)
+
 			log.Debugf("VpcTarget exists for different environment; targeting that VPC")
 			vpcStackName = common.CreateStackName(targetNamespace, common.StackTypeVpc, environment.VpcTarget.Environment)
 		} else if environment.VpcTarget.VpcID != "" {
@@ -90,14 +83,11 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string, en
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
 			vpcTemplateName = "vpc.yml"
 
-			if environment.Cluster.InstanceTenancy != "" {
-				vpcStackParams["InstanceTenancy"] = string(environment.Cluster.InstanceTenancy)
-			}
-			if environment.Cluster.SSHAllow != "" {
-				vpcStackParams["SshAllow"] = environment.Cluster.SSHAllow
-			} else {
-				vpcStackParams["SshAllow"] = "0.0.0.0/0"
-			}
+			common.NewMapElementIfNotEmpty(vpcStackParams, "InstanceTenancy", string(environment.Cluster.InstanceTenancy))
+
+			vpcStackParams["SshAllow"] = "0.0.0.0/0"
+			common.NewMapElementIfNotEmpty(vpcStackParams, "SshAllow", environment.Cluster.SSHAllow)
+
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
 				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImageOwner, ec2ImagePattern)
@@ -249,7 +239,9 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentUpserter(namespace string, envStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentUpserter(namespace string, envStackParams map[string]string,
+	imageFinder common.ImageFinder, stackUpserter common.StackUpserter,
+	stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		log.Debugf("Using provider '%s' for environment", workflow.environment.Provider)
 
@@ -261,75 +253,66 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 		var templateName string
 		var imagePattern string
 		var imageOwner string
-		if environment.Provider == common.EnvProviderEcs {
-			templateName = "env-ecs.yml"
-			imagePattern = ecsImagePattern
-			imageOwner = ecsImageOwner
-			stackParams["LaunchType"] = "EC2"
-		} else if environment.Provider == common.EnvProviderEcsFargate {
-			templateName = "env-ecs.yml"
-			imagePattern = ecsImagePattern
-			imageOwner = ecsImageOwner
-			stackParams["LaunchType"] = "FARGATE"
-		} else if environment.Provider == common.EnvProviderEc2 {
-			templateName = "env-ec2.yml"
-			imagePattern = ec2ImagePattern
-			imageOwner = ec2ImageOwner
-		} else if environment.Provider == common.EnvProviderEks {
-			templateName = "env-eks.yml"
-			imagePattern = eksImagePattern
-			imageOwner = eksImageOwner
-		} else if environment.Provider == common.EnvProviderEksFargate {
-			return fmt.Errorf("environment provider `eks-fargate` is not yet supported")
-		}
+		envMapping := map[common.EnvProvider]map[string]string{
+			common.EnvProviderEcs: map[string]string{
+				"templateName": "env-ecs.yml",
+				"imagePattern": ecsImagePattern,
+				"imageOwner":   ecsImageOwner,
+				"launchType":   "EC2"},
+			common.EnvProviderEcsFargate: map[string]string{
+				"templateName": "env-ecs.yml",
+				"imagePattern": ecsImagePattern,
+				"imageOwner":   ecsImageOwner,
+				"launchType":   "FARGATE"},
+			common.EnvProviderEks: map[string]string{
+				"templateName": "env-eks.yml",
+				"imagePattern": eksImagePattern,
+				"imageOwner":   eksImageOwner,
+				"launchType":   "EC2"},
+			/*
+				common.EnvProviderEksFargate: map[string]string{
+					"templateName": "env-eks.yml",
+					"imagePattern": eksImagePattern,
+					"imageOwner": eksImageOwner,
+					"launchType":   "FARGATE"},
+			*/
+			common.EnvProviderEc2: map[string]string{
+				"templateName": "env-ec2.yml",
+				"imagePattern": ec2ImagePattern,
+				"imageOwner":   ec2ImageOwner}}
+		templateName = envMapping[environment.Provider]["templateName"]
+		imagePattern = envMapping[environment.Provider]["imagePattern"]
+		imageOwner = envMapping[environment.Provider]["imageOwner"]
+		common.NewMapElementIfNotEmpty(stackParams, "LaunchType", envMapping[environment.Provider]["launchType"])
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
 
-		if environment.Cluster.SSHAllow != "" {
-			stackParams["SshAllow"] = environment.Cluster.SSHAllow
-		} else {
-			stackParams["SshAllow"] = "0.0.0.0/0"
-		}
-		if environment.Cluster.InstanceType != "" {
-			stackParams["InstanceType"] = environment.Cluster.InstanceType
-		}
-		if environment.Cluster.ExtraUserData != "" {
-			stackParams["ExtraUserData"] = environment.Cluster.ExtraUserData
-		}
-		if environment.Cluster.ImageID != "" {
-			stackParams["ImageId"] = environment.Cluster.ImageID
-		} else {
+		// Default SshAllow if none defined
+		stackParams["SshAllow"] = "0.0.0.0/0"
+		common.NewMapElementIfNotEmpty(stackParams, "SshAllow", environment.Cluster.SSHAllow)
+		common.NewMapElementIfNotEmpty(stackParams, "InstanceType", environment.Cluster.InstanceType)
+		common.NewMapElementIfNotEmpty(stackParams, "ExtraUserData", environment.Cluster.ExtraUserData)
+		common.NewMapElementIfNotEmpty(stackParams, "ImageId", environment.Cluster.ImageID)
+
+		if environment.Cluster.ImageID == "" {
 			var err error
 			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imageOwner, imagePattern)
 			if err != nil {
 				return err
 			}
+		}
+		common.NewMapElementIfNotEmpty(stackParams, "ImageOsType", environment.Cluster.ImageOsType)
 
-		}
-		if environment.Cluster.ImageOsType != "" {
-			stackParams["ImageOsType"] = environment.Cluster.ImageOsType
-		}
-		if environment.Cluster.DesiredCapacity != 0 {
-			stackParams["DesiredCapacity"] = strconv.Itoa(environment.Cluster.DesiredCapacity)
-		}
-		if environment.Cluster.MinSize != 0 {
-			stackParams["MinSize"] = strconv.Itoa(environment.Cluster.MinSize)
-		}
-		if environment.Cluster.MaxSize != 0 {
-			stackParams["MaxSize"] = strconv.Itoa(environment.Cluster.MaxSize)
-		}
-		if environment.Cluster.KeyName != "" {
-			stackParams["KeyName"] = environment.Cluster.KeyName
-		}
-		if environment.Cluster.TargetCPUReservation != 0 {
-			stackParams["TargetCPUReservation"] = strconv.Itoa(environment.Cluster.TargetCPUReservation)
-		}
-		if environment.Cluster.TargetMemoryReservation != 0 {
-			stackParams["TargetMemoryReservation"] = strconv.Itoa(environment.Cluster.TargetMemoryReservation)
-		}
-		if environment.Cluster.HTTPProxy != "" {
-			stackParams["HttpProxy"] = environment.Cluster.HTTPProxy
-		}
+		common.NewMapElementIfNotZero(stackParams, "DesiredCapacity", environment.Cluster.DesiredCapacity)
+		common.NewMapElementIfNotZero(stackParams, "MinSize", environment.Cluster.MinSize)
+		common.NewMapElementIfNotZero(stackParams, "MaxSize", environment.Cluster.MaxSize)
+
+		common.NewMapElementIfNotEmpty(stackParams, "KeyName", environment.Cluster.KeyName)
+
+		common.NewMapElementIfNotZero(stackParams, "TargetCPUReservation", environment.Cluster.TargetCPUReservation)
+		common.NewMapElementIfNotZero(stackParams, "TargetMemoryReservation", environment.Cluster.TargetMemoryReservation)
+
+		common.NewMapElementIfNotEmpty(stackParams, "HttpProxy", environment.Cluster.HTTPProxy)
 
 		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,

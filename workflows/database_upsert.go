@@ -3,6 +3,7 @@ package workflows
 import (
 	"crypto/rand"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/stelligent/mu/common"
@@ -84,29 +85,31 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 
-		stackParams["DatabaseName"] = service.Database.Name
+		dbConfig := service.Database.GetDatabaseConfig(environmentName)
 
-		if service.Database.Engine != "" {
-			stackParams["DatabaseEngine"] = service.Database.Engine
-		}
+		stackParams["DatabaseName"] = dbConfig.Name
 
-		if service.Database.InstanceClass != "" {
-			stackParams["DatabaseInstanceClass"] = service.Database.InstanceClass
-		}
-		if service.Database.AllocatedStorage != "" {
-			stackParams["DatabaseStorage"] = service.Database.AllocatedStorage
-		}
-		if service.Database.MasterUsername != "" {
-			stackParams["DatabaseMasterUsername"] = service.Database.MasterUsername
-		} else {
-			stackParams["DatabaseMasterUsername"] = "admin"
-		}
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngine", dbConfig.Engine)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngineMode", dbConfig.EngineMode)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", dbConfig.InstanceClass)
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", dbConfig.AllocatedStorage)
+
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMinSize", dbConfig.MinSize)
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMaxSize", dbConfig.MaxSize)
+		common.NewMapElementIfNotEmpty(stackParams, "SecondsUntilAutoPause", dbConfig.SecondsUntilAutoPause)
+
+		stackParams["DatabaseMasterUsername"] = "admin"
+		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", dbConfig.MasterUsername)
 
 		//DatabaseMasterPassword:
-		dbPass, _ := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		if err != nil {
+			log.Warningf("Error with GetParam for DatabaseMasterPassword, assuming empty: %s", err)
+			dbPass = ""
+		}
 		if dbPass == "" {
 			dbPass = randomPassword(32)
-			err := paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
+			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {
 				return err
 			}
@@ -123,7 +126,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err
@@ -138,8 +141,9 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		}
 
 		// update IAM Authentication
-		if stack.Outputs["DatabaseIdentifier"] != "" {
-			return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], service.Database.IamAuthentication, service.Database.Engine)
+		if stack.Outputs["DatabaseIdentifier"] != "" && dbConfig.EngineMode != "serverless" {
+			enableIamAuthentication, _ := strconv.ParseBool(dbConfig.IamAuthentication)
+			return rdsSetter.SetIamAuthentication(stack.Outputs["DatabaseIdentifier"], enableIamAuthentication, dbConfig.Engine)
 		}
 
 		return nil

@@ -1,8 +1,10 @@
 *.iml
 .idea
 .vscode
-.release/
+.cfn_nag
+dist/
 vendor/
 *~
 homebrew-tap/
 *-packr.go
+CHANGELOG.md

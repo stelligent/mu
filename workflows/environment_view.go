@@ -134,9 +134,8 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 			workflow.connectKubernetes(namespace, kubernetesResourceManagerProvider)()
 
 			var nodes corev1.NodeList
-			if err = workflow.kubernetesResourceManager.ListResources(context.TODO(), "", &nodes); err != nil {
-				return err
-			}
+			err = workflow.kubernetesResourceManager.ListResources(context.TODO(), "", &nodes)
+			fmt.Printf("%v", err)
 			for _, node := range nodes.Items {
 				fmt.Printf("name=%q schedulable=%t\n", *node.Metadata.Name, !*node.Spec.Unschedulable)
 			}

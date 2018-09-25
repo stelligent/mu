@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stelligent/mu/common"
@@ -110,7 +111,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
 	paramManager := new(mockedParamManager)
-	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("", nil)
+	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("", fmt.Errorf("no password"))
 	paramManager.On("SetParam", "mu-database-foo-dev-DatabaseMasterPassword", mock.Anything).Return(nil)
 
 	config := new(common.Config)
@@ -134,6 +135,43 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	paramManager.AssertExpectations(t)
 	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 1)
+
+}
+
+func TestDatabaseUpserter_ExistingPass(t *testing.T) {
+	assert := assert.New(t)
+
+	stackManager := new(mockedStackManagerForService)
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
+	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
+
+	rdsManager := new(mockedRdsManager)
+	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
+
+	paramManager := new(mockedParamManager)
+	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("foobarbaz", nil)
+
+	config := new(common.Config)
+	config.Service.Name = "foo"
+	config.Service.Database.Name = "foo"
+
+	params := make(map[string]string)
+
+	workflow := new(databaseWorkflow)
+	workflow.serviceName = "foo"
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	rdsManager.AssertExpectations(t)
+	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
+
+	paramManager.AssertExpectations(t)
+	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
+	paramManager.AssertNumberOfCalls(t, "SetParam", 0)
 
 }
 
