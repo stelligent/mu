@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -53,7 +52,7 @@ func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *co
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", "")
 			if err != nil {
 				return err
 			}
@@ -91,7 +90,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, params map[st
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "")
+			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", "")
 			if err != nil {
 				// ignore error if stack is in progress already
 				if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
@@ -212,7 +211,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 			Repo:     workflow.repoName,
 		})
 
-		err = stackUpserter.UpsertStack(pipelineStackName, "pipeline.yml", nil, pipelineParams, tags, "")
+		err = stackUpserter.UpsertStack(pipelineStackName, "pipeline.yml", nil, pipelineParams, tags, "", "")
 		if err != nil {
 			return err
 		}
@@ -269,14 +268,13 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 	pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
 
 	// get default buildspec
-	buildspec, err := templates.NewTemplate("buildspec.yml", nil)
+	buildspec, err := templates.GetAsset(common.TemplateBuildspec,
+		templates.ExecuteTemplate(nil))
 	if err != nil {
 		return nil, err
 	}
-	buildspecBytes := new(bytes.Buffer)
-	buildspecBytes.ReadFrom(buildspec)
 	newlineRegexp := regexp.MustCompile(`\r?\n`)
-	buildspecString := newlineRegexp.ReplaceAllString(buildspecBytes.String(), "\\n")
+	buildspecString := newlineRegexp.ReplaceAllString(buildspec, "\\n")
 
 	params["DefaultBuildspec"] = buildspecString
 

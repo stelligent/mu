@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -154,26 +153,15 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceType.Name(), resourceName)
 
 	// apply new values
-	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
-	if err != nil {
-		return err
-	}
-	templateBodyReader, err = eksMgr.extensionsManager.DecorateStackTemplate(templateName, resourceURN, templateBodyReader)
-	if err != nil {
-		return err
-	}
-	var templateBody strings.Builder
-	_, err = io.Copy(&templateBody, templateBodyReader)
-	if err != nil {
-		return err
-	}
+	templateBody, err := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
+		templates.DecorateTemplate(eksMgr.extensionsManager, resourceURN))
 
-	if err := yaml.NewDecoder(strings.NewReader(templateBody.String())).Decode(resource); err != nil {
+	if err := yaml.NewDecoder(strings.NewReader(templateBody)).Decode(resource); err != nil {
 		return err
 	}
 
 	if eksMgr.dryrunPath != "" {
-		err := writeResource(eksMgr.dryrunPath, resourceURN, templateBody.String())
+		err := writeResource(eksMgr.dryrunPath, resourceURN, templateBody)
 		if err != nil {
 			return err
 		}

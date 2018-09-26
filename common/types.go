@@ -333,6 +333,29 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
+// List of valid Policy files
+const (
+	TemplatePolicyDefault  string = "policies/default.json"
+	TemplatePolicyAllowAll        = "policies/allow-all.json"
+	TemplateApp                   = "app.yml"
+	TemplateBucket                = "bucket.yml"
+	TemplateBuildspec             = "buildspec.yml"
+	TemplateCommonIAM             = "common-iam.yml"
+	TemplateDatabase              = "database.yml"
+	TemplateELB                   = "elb.yml"
+	TemplateEnvEC2                = "env-ec2.yml"
+	TemplateEnvECS                = "env-ecs.yml"
+	TemplatePipelineIAM           = "pipeline-iam.yml"
+	TemplatePipeline              = "pipeline.yml"
+	TemplateRepo                  = "repo.yml"
+	TemplateSchedule              = "schedule.yml"
+	TemplateServiceEC2            = "service-ec2.yml"
+	TemplateServiceECS            = "service-ecs.yml"
+	TemplateServiceIAM            = "service-iam.yml"
+	TemplateVCPTarget             = "vpc-target.yml"
+	TemplateVPC                   = "vpc.yml"
+)
+
 // DeploymentStrategy describes supported deployment strategies
 type DeploymentStrategy string
 

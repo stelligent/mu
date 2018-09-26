@@ -52,7 +52,7 @@ func NewApp() *cli.App {
 		if c.Bool("dryrun") {
 			dryrunPath = c.String("dryrun-output")
 		}
-		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), dryrunPath, c.Bool("skip-version-check"), c.String("proxy"))
+		err = aws.InitializeContext(context, c.String("profile"), c.String("assume-role"), c.String("region"), dryrunPath, c.Bool("skip-version-check"), c.String("proxy"), c.Bool("allow-data-loss"))
 		if err != nil {
 			return err
 		}
@@ -151,6 +151,10 @@ func NewApp() *cli.App {
 		cli.StringFlag{
 			Name:  "proxy, P",
 			Usage: "Proxy to route AWS requests through",
+		},
+		cli.BoolFlag{
+			Name:  "allow-data-loss",
+			Usage: "temporarily allow delete or replace on RDS or KMS resources",
 		},
 	}
 

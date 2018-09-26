@@ -17,7 +17,7 @@ type StackWaiter interface {
 
 // StackUpserter for applying changes to a stack
 type StackUpserter interface {
-	UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error
+	UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, policy string, roleArn string) error
 }
 
 // StackLister for listing stacks

@@ -33,10 +33,11 @@ type cloudformationStackManager struct {
 	extensionsManager common.ExtensionsManager
 	statusSpinner     *spinner.Spinner
 	spinnerRefCnt     int
+	allowDataLoss     bool
 }
 
 // NewStackManager creates a new StackManager backed by cloudformation
-func newStackManager(sess *session.Session, extensionsManager common.ExtensionsManager, dryrunPath string, skipVersionCheck bool) (common.StackManager, error) {
+func newStackManager(sess *session.Session, extensionsManager common.ExtensionsManager, dryrunPath string, skipVersionCheck bool, allowDataLoss bool) (common.StackManager, error) {
 	if dryrunPath != "" {
 		log.Debugf("Running in DRYRUN mode with path '%s'", dryrunPath)
 	}
@@ -59,6 +60,7 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 		ec2API:            ec2API,
 		extensionsManager: extensionsManager,
 		statusSpinner:     statusSpinner,
+		allowDataLoss:     allowDataLoss,
 	}, nil
 
 }
@@ -100,7 +102,6 @@ func buildStackTags(tags map[string]string) []*cloudformation.Tag {
 func cleanParams(paramsI interface{}, roleArn string, tags map[string]string) {
 	// Reflection to work with both CreateStackInput and UpdateStackInput
 	params := reflect.ValueOf(paramsI).Elem()
-
 	roleArnField := params.FieldByName("RoleARN")
 	capabilitiesField := params.FieldByName("Capabilities")
 	capabilitiesValue := []*string{
@@ -132,7 +133,7 @@ func dryrunWrite(cfnMgr *cloudformationStackManager, stackName string, templateB
 func createStack(stackName string, stackParameters []*cloudformation.Parameter,
 	parameters map[string]string,
 	roleArn string, stackTags []*cloudformation.Tag, tags map[string]string,
-	templateBody *string, templateBodyBytes *bytes.Buffer,
+	templateBody *string, templateBodyBytes *bytes.Buffer, policy string,
 	cfnMgr *cloudformationStackManager) error {
 	operation := "create"
 	log.Debugf("  Creating stack named '%s'", stackName)
@@ -146,7 +147,11 @@ func createStack(stackName string, stackParameters []*cloudformation.Parameter,
 		Tags:             stackTags,
 		TimeoutInMinutes: aws.Int64(60),
 	}
+	if policy != "" {
+		params.StackPolicyBody = aws.String(policy)
+	}
 	cleanParams(params, roleArn, tags)
+
 	dryrun, err := dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation)
 	if err != nil {
 		return err
@@ -176,7 +181,7 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 	parameters map[string]string,
 	roleArn string, stackTags []*cloudformation.Tag, tags map[string]string,
 	stack *common.Stack, templateBody *string, templateBodyBytes *bytes.Buffer,
-	cfnMgr *cloudformationStackManager) error {
+	policy string, cfnMgr *cloudformationStackManager) error {
 	operation := "update"
 	log.Debugf("  Updating stack named '%s'", stackName)
 	log.Debugf("  Prior state: %s", stack.Status)
@@ -187,6 +192,12 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 		Parameters:   stackParameters,
 		TemplateBody: templateBody,
 		Tags:         stackTags,
+	}
+	if policy, err := getPolicy(policy, cfnMgr.allowDataLoss); err != nil || policy != "" {
+		if err != nil {
+			return err
+		}
+		params.StackPolicyDuringUpdateBody = aws.String(policy)
 	}
 	cleanParams(params, roleArn, tags)
 	dryrun, err := dryrunWrite(cfnMgr, stackName, templateBodyBytes, parameters, operation)
@@ -262,7 +273,7 @@ func (cfnMgr *cloudformationStackManager) cleanStackIfInRollback(stack *common.S
 }
 
 // UpsertStack will create/update the cloudformation stack
-func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, roleArn string) error {
+func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, policy string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 
 	stack, err := cfnMgr.cleanStackIfInRollback(stack, stackName)
@@ -276,20 +287,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	}
 
 	// load the template
-	templateBodyReader, err := templates.NewTemplate(templateName, templateData)
-	if err != nil {
-		return err
-	}
-	templateBodyReader, err = cfnMgr.extensionsManager.DecorateStackTemplate(templateName, stackName, templateBodyReader)
-	if err != nil {
-		return err
-	}
-	templateBodyBytes := new(bytes.Buffer)
-	_, err = templateBodyBytes.ReadFrom(templateBodyReader)
-	if err != nil {
-		return err
-	}
-	templateBody := aws.String(templateBodyBytes.String())
+	templateBody, err := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
+		templates.DecorateTemplate(cfnMgr.extensionsManager, stackName))
+	templateBodyBytes := bytes.NewBufferString(templateBody)
 
 	// stack parameters
 	parameters, err = cfnMgr.extensionsManager.DecorateStackParameters(stackName, parameters)
@@ -308,11 +308,11 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	if stack == nil || stack.Status == "" {
 		// Stack should be created
 		return createStack(stackName, stackParameters, parameters,
-			roleArn, stackTags, tags, templateBody, templateBodyBytes, cfnMgr)
+			roleArn, stackTags, tags, aws.String(templateBody), templateBodyBytes, policy, cfnMgr)
 	}
 	// else, stack should be updated
 	return updateStack(stackName, stackParameters, parameters,
-		roleArn, stackTags, tags, stack, templateBody, templateBodyBytes, cfnMgr)
+		roleArn, stackTags, tags, stack, aws.String(templateBody), templateBodyBytes, policy, cfnMgr)
 }
 
 func (cfnMgr *cloudformationStackManager) startSpinner() {
@@ -328,6 +328,13 @@ func (cfnMgr *cloudformationStackManager) stopSpinner() {
 		cfnMgr.statusSpinner.Stop()
 		//}
 	}
+}
+
+func getPolicy(policy string, allowDataLoss bool) (string, error) {
+	if allowDataLoss {
+		return templates.GetAsset(common.TemplatePolicyAllowAll)
+	}
+	return policy, nil
 }
 
 func (cfnMgr *cloudformationStackManager) logEventStatus(status string, eventMesg string) {

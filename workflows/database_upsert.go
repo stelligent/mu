@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/templates"
 )
 
 // NewDatabaseUpserter create a new workflow for deploying a database in an environment
@@ -125,8 +126,12 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
+		policy, err := templates.GetAsset(common.TemplatePolicyDefault)
+		if err != nil {
+			return err
+		}
 
-		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err

@@ -119,7 +119,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 				Repo:        workflow.repoName,
 			})
 
-			err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, workflow.cloudFormationRoleArn)
+			err = stackUpserter.UpsertStack(vpcStackName, vpcTemplateName, environment, vpcStackParams, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}
@@ -219,7 +219,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -322,7 +322,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, templateName, environment, stackParams, tags, workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, templateName, environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -361,7 +361,7 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 				Repo:        workflow.repoName,
 			})
 
-			err := stackUpserter.UpsertStack(envStackName, "env-eks-bootstrap.yml", workflow.environment, stackParams, tags, "")
+			err := stackUpserter.UpsertStack(envStackName, "env-eks-bootstrap.yml", workflow.environment, stackParams, tags, "", "")
 			if err != nil {
 				return err
 			}
