@@ -193,6 +193,11 @@ clean:
 
 all: clean deps test build
 
+depromote: info check_github_token
+	@echo "Depromoting $(LATEST_VERSION)"
+	@github-release delete -u stelligent -r mu -t v$(LATEST_VERSION)
+	@git push -d origin v$(LATEST_VERSION)
+
 promote: info
 ifeq (false,$(IS_SNAPSHOT))
 	@echo "Unable to promote a non-snapshot"

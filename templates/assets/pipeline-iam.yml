@@ -353,6 +353,7 @@ Resources:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
             - cloudformation:DescribeStackEvents
+            - cloudformation:SetStackPolicy
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
@@ -475,6 +476,7 @@ Resources:
             - cloudformation:UpdateStack
             - cloudformation:DeleteStack
             - cloudformation:DescribeStackEvents
+            - cloudformation:SetStackPolicy
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${AcptEnv}/*
@@ -492,6 +494,7 @@ Resources:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
             - cloudformation:DescribeStackEvents
+            - cloudformation:SetStackPolicy
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
@@ -554,6 +557,7 @@ Resources:
             - cloudformation:UpdateStack
             - cloudformation:DeleteStack
             - cloudformation:DescribeStackEvents
+            - cloudformation:SetStackPolicy
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${ProdEnv}/*
@@ -571,6 +575,7 @@ Resources:
             - cloudformation:CreateStack
             - cloudformation:UpdateStack
             - cloudformation:DescribeStackEvents
+            - cloudformation:SetStackPolicy
             Resource:
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
             - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
