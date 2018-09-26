@@ -1,12 +1,13 @@
 package aws
 
 import (
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 type mockedSSM struct {
@@ -21,6 +22,10 @@ func (m *mockedSSM) PutParameter(input *ssm.PutParameterInput) (*ssm.PutParamete
 func (m *mockedSSM) GetParameters(input *ssm.GetParametersInput) (*ssm.GetParametersOutput, error) {
 	args := m.Called()
 	return args.Get(0).(*ssm.GetParametersOutput), args.Error(1)
+}
+func (m *mockedSSM) DescribeParameters(input *ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error) {
+	args := m.Called()
+	return args.Get(0).(*ssm.DescribeParametersOutput), args.Error(1)
 }
 
 func TestParamManager_GetParam(t *testing.T) {
@@ -56,4 +61,49 @@ func TestParamManager_SetParam(t *testing.T) {
 
 	m.AssertExpectations(t)
 	m.AssertNumberOfCalls(t, "PutParameter", 1)
+}
+
+func TestParamManager_ParamExists(t *testing.T) {
+	assert := assert.New(t)
+
+	m := new(mockedSSM)
+	m.On("DescribeParameters").Return(
+		&ssm.DescribeParametersOutput{
+			Parameters: []*ssm.ParameterMetadata{
+				{Name: aws.String("foo")},
+			},
+			NextToken: aws.String("bar"),
+		}, nil)
+
+	paramMgr := paramManager{
+		ssmAPI: m,
+	}
+
+	val, err := paramMgr.ParamExists("foo")
+	assert.Nil(err)
+	assert.Equal(true, val)
+
+	m.AssertExpectations(t)
+	m.AssertNumberOfCalls(t, "DescribeParameters", 1)
+}
+func TestParamManager_ParamExistsFalse(t *testing.T) {
+	assert := assert.New(t)
+
+	m := new(mockedSSM)
+	m.On("DescribeParameters").Return(
+		&ssm.DescribeParametersOutput{
+			Parameters: []*ssm.ParameterMetadata{},
+			NextToken:  aws.String("foo"),
+		}, nil)
+
+	paramMgr := paramManager{
+		ssmAPI: m,
+	}
+
+	val, err := paramMgr.ParamExists("foo")
+	assert.Nil(err)
+	assert.Equal(false, val)
+
+	m.AssertExpectations(t)
+	m.AssertNumberOfCalls(t, "DescribeParameters", 1)
 }

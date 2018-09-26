@@ -103,19 +103,19 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", dbConfig.MasterUsername)
 
 		//DatabaseMasterPassword:
-		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		dbPassExists, err := paramManager.ParamExists(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		if err != nil {
-			log.Warningf("Error with GetParam for DatabaseMasterPassword, assuming empty: %s", err)
-			dbPass = ""
+			// TODO: Should we prompt to allow overriding the password?
+			log.Warningf("Error with ParamExists for DatabaseMasterPassword, assuming empty: %s", err)
 		}
-		if dbPass == "" {
-			dbPass = randomPassword(32)
+		if !dbPassExists {
+			dbPass := randomPassword(32)
 			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {
 				return err
 			}
 		}
-		stackParams["DatabaseMasterPassword"] = dbPass
+		// stackParams["DatabaseMasterPassword"] = dbPass
 
 		stackParams["DatabaseKeyArn"] = workflow.databaseKeyArn
 
