@@ -142,7 +142,7 @@ changelog: check_github_token
 	@echo "=== generating changelog ==="
 	@rm -f CHANGELOG.md
 	@go get github.com/Songmu/ghch/cmd/ghch
-	@ghch --format=markdown -w
+	@ghch --format=markdown --latest -w
 
 github_release: check_github_token tag_release changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
