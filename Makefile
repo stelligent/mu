@@ -204,6 +204,6 @@ ifneq ($(shell git status -s),)
 endif
 	$(eval NEW_VERSION := $(word 1,$(subst -, , $(TAG_VERSION))))
 	@git tag -a -m "releasing $(NEW_VERSION)" $(NEW_VERSION)
-	@git push --follow-tags origin
+	@git push origin $(NEW_VERSION)
 
 .PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token
