@@ -278,9 +278,13 @@ Resources:
           - !Ref AWS::NoValue
       TaskDefinition: !Ref MicroserviceTaskDefinition
       ServiceRegistries:
-      - RegistryArn: !Sub ${EcsServiceName.Arn}
-        ContainerName: !Ref ServiceName
-        ContainerPort: !Ref ServicePort
+      - Fn::If:
+        - HasAwsVpcNetworkMode
+        - RegistryArn: !Sub ${EcsServiceName.Arn}
+          Port: !Ref ServicePort
+        - RegistryArn: !Sub ${EcsServiceName.Arn}
+          ContainerName: !Ref ServiceName
+          ContainerPort: !Ref ServicePort
   ServiceLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Delete
