@@ -3,6 +3,7 @@ package workflows
 import (
 	"crypto/rand"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -108,6 +109,14 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
 			if err != nil {
 				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
+				answer, err := common.Prompt("Error retrieving DatabaseMasterPassword. Set a new DatabaseMasterPassword", false)
+				if err != nil {
+					log.Errorf("Error with command input: %s", err)
+					os.Exit(1)
+				}
+				if !answer {
+					os.Exit(126)
+				}
 			}
 			if dbPassVersion == 0 {
 				dbPass := randomPassword(32)
