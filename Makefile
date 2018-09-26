@@ -198,7 +198,12 @@ ifeq (false,$(IS_SNAPSHOT))
 	@echo "Unable to promote a non-snapshot"
 	@exit 1
 endif
-	@git tag -a -m "releasing $(firstword -,$(TAG_VERSION))" $(firstword -,$(TAG_VERSION))
+ifneq ($(shell git status -s),)
+	@echo "Unable to promote a dirty workspace"
+	@exit 1
+endif
+	$(eval NEW_VERSION := $(word 1,$(subst -, , $(TAG_VERSION))))
+	@git tag -a -m "releasing $(NEW_VERSION)" $(NEW_VERSION)
 	@git push --follow-tags origin
 
 .PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token
