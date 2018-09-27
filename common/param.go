@@ -14,5 +14,5 @@ type ParamGetter interface {
 type ParamManager interface {
 	ParamGetter
 	ParamSetter
-	ParamExists(name string) (int64, error)
+	ParamVersion(name string) (int64, error)
 }

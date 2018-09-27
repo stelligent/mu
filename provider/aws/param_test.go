@@ -63,7 +63,7 @@ func TestParamManager_SetParam(t *testing.T) {
 	m.AssertNumberOfCalls(t, "PutParameter", 1)
 }
 
-func TestParamManager_ParamExists(t *testing.T) {
+func TestParamManager_ParamVersion(t *testing.T) {
 	assert := assert.New(t)
 
 	m := new(mockedSSM)
@@ -82,7 +82,7 @@ func TestParamManager_ParamExists(t *testing.T) {
 		ssmAPI: m,
 	}
 
-	val, err := paramMgr.ParamExists("foo")
+	val, err := paramMgr.ParamVersion("foo")
 	assert.Nil(err)
 	assert.Equal(int64(2), val)
 
@@ -90,7 +90,7 @@ func TestParamManager_ParamExists(t *testing.T) {
 	m.AssertNumberOfCalls(t, "DescribeParameters", 1)
 }
 
-func TestParamManager_ParamExistsFalse(t *testing.T) {
+func TestParamManager_ParamVersionFalse(t *testing.T) {
 	assert := assert.New(t)
 
 	m := new(mockedSSM)
@@ -104,7 +104,7 @@ func TestParamManager_ParamExistsFalse(t *testing.T) {
 		ssmAPI: m,
 	}
 
-	val, err := paramMgr.ParamExists("foo")
+	val, err := paramMgr.ParamVersion("foo")
 	assert.Nil(err)
 	assert.Equal(int64(0), val)
 

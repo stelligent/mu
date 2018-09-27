@@ -30,13 +30,13 @@ Parameters:
     Type: String
     NoEcho: true
     Description: Username of database
+  DatabaseMasterPasswordSSMKey:
+    Type: AWS::SSM::Parameter::Name
+    NoEcho: true
+    Description: SSM parameter key to decrypt the Master Password
   DatabaseName:
     Type: String
     Description: Name of database
-  DatabaseMasterPassword:
-    Type: String
-    NoEcho: true
-    Description: Password of database
   DatabaseStorage:
     Type: Number
     Description: Allocated storage for DB
@@ -145,7 +145,7 @@ Resources:
             - 'false'
         - AWS::NoValue
       MasterUsername: !Ref DatabaseMasterUsername
-      MasterUserPassword: !Ref DatabaseMasterPassword
+      MasterUserPassword: '{{.Database.MasterPasswordSSMParam}}'
       Tags:
       - Key: Name
         Value: !Ref DatabaseName
@@ -180,7 +180,7 @@ Resources:
       - Ref: DBSecurityGroup
       Engine: !Ref DatabaseEngine
       MasterUsername: !Ref DatabaseMasterUsername
-      MasterUserPassword: !Ref DatabaseMasterPassword
+      MasterUserPassword: '{{.Database.MasterPasswordSSMParam}}'
       Tags:
       - Key: Name
         Value: !Ref DatabaseName
