@@ -70,7 +70,10 @@ func TestParamManager_ParamExists(t *testing.T) {
 	m.On("DescribeParameters").Return(
 		&ssm.DescribeParametersOutput{
 			Parameters: []*ssm.ParameterMetadata{
-				{Name: aws.String("foo")},
+				{
+					Name:    aws.String("foo"),
+					Version: aws.Int64(2),
+				},
 			},
 			NextToken: aws.String("bar"),
 		}, nil)
@@ -81,11 +84,12 @@ func TestParamManager_ParamExists(t *testing.T) {
 
 	val, err := paramMgr.ParamExists("foo")
 	assert.Nil(err)
-	assert.Equal(true, val)
+	assert.Equal(int64(2), val)
 
 	m.AssertExpectations(t)
 	m.AssertNumberOfCalls(t, "DescribeParameters", 1)
 }
+
 func TestParamManager_ParamExistsFalse(t *testing.T) {
 	assert := assert.New(t)
 
@@ -102,7 +106,7 @@ func TestParamManager_ParamExistsFalse(t *testing.T) {
 
 	val, err := paramMgr.ParamExists("foo")
 	assert.Nil(err)
-	assert.Equal(false, val)
+	assert.Equal(int64(0), val)
 
 	m.AssertExpectations(t)
 	m.AssertNumberOfCalls(t, "DescribeParameters", 1)

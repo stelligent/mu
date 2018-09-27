@@ -105,10 +105,9 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		//DatabaseMasterPassword:
 		dbPassExists, err := paramManager.ParamExists(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
 		if err != nil {
-			// TODO: Should we prompt to allow overriding the password?
 			log.Warningf("Error with ParamExists for DatabaseMasterPassword, assuming empty: %s", err)
 		}
-		if !dbPassExists {
+		if dbPassExists == 0 {
 			dbPass := randomPassword(32)
 			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
 			if err != nil {

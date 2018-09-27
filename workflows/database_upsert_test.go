@@ -37,6 +37,10 @@ func (m *mockedParamManager) SetParam(name string, value string, kmsKey string) 
 	args := m.Called(name)
 	return args.Error(0)
 }
+func (m *mockedParamManager) ParamExists(name string) (int64, error) {
+	args := m.Called(name)
+	return args.Get(0).(int64), args.Error(1)
+}
 
 func TestDatabaseUpserter_NoName(t *testing.T) {
 	assert := assert.New(t)
@@ -75,7 +79,7 @@ func TestDatabaseUpserter(t *testing.T) {
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
 	paramManager := new(mockedParamManager)
-	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("dbpass", nil)
+	paramManager.On("ParamExists", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(1), nil)
 
 	config := new(common.Config)
 	config.Service.Name = "foo"
@@ -96,7 +100,7 @@ func TestDatabaseUpserter(t *testing.T) {
 	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
 
 	paramManager.AssertExpectations(t)
-	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
+	paramManager.AssertNumberOfCalls(t, "ParamExists", 1)
 
 }
 
@@ -111,7 +115,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
 	paramManager := new(mockedParamManager)
-	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("", fmt.Errorf("no password"))
+	paramManager.On("ParamExists", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(0), fmt.Errorf("no password"))
 	paramManager.On("SetParam", "mu-database-foo-dev-DatabaseMasterPassword", mock.Anything).Return(nil)
 
 	config := new(common.Config)
@@ -133,7 +137,7 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
 
 	paramManager.AssertExpectations(t)
-	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
+	paramManager.AssertNumberOfCalls(t, "ParamExists", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 1)
 
 }
@@ -149,7 +153,7 @@ func TestDatabaseUpserter_ExistingPass(t *testing.T) {
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
 	paramManager := new(mockedParamManager)
-	paramManager.On("GetParam", "mu-database-foo-dev-DatabaseMasterPassword").Return("foobarbaz", nil)
+	paramManager.On("ParamExists", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(1), nil)
 
 	config := new(common.Config)
 	config.Service.Name = "foo"
@@ -170,7 +174,7 @@ func TestDatabaseUpserter_ExistingPass(t *testing.T) {
 	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
 
 	paramManager.AssertExpectations(t)
-	paramManager.AssertNumberOfCalls(t, "GetParam", 1)
+	paramManager.AssertNumberOfCalls(t, "ParamExists", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 0)
 
 }
