@@ -118,8 +118,9 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 				dbPassVersion = 1
 			}
 			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", dbPassSSMParam, dbPassVersion)
+		} else {
+			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s}}", service.Database.MasterPasswordSSMParam)
 		}
-		stackParams["DatabaseMasterPasswordSSMKey"] = workflow.databaseKeyArn
 		stackParams["DatabaseKeyArn"] = workflow.databaseKeyArn
 
 		tags := createTagMap(&DatabaseTags{

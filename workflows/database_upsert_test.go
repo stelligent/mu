@@ -200,3 +200,36 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 	rolesetManager.AssertNumberOfCalls(t, "GetCommonRoleset", 1)
 
 }
+
+func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {
+	assert := assert.New(t)
+
+	stackManager := new(mockedStackManagerForService)
+	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
+	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
+
+	rdsManager := new(mockedRdsManager)
+	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
+
+	paramManager := new(mockedParamManager)
+
+	config := new(common.Config)
+	config.Service.Name = "foo"
+	config.Service.Database.Name = "foo"
+	config.Service.Database.MasterPasswordSSMParam = "testDbPass:1"
+
+	params := make(map[string]string)
+
+	workflow := new(databaseWorkflow)
+	workflow.serviceName = "foo"
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	assert.Nil(err)
+
+	stackManager.AssertExpectations(t)
+	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
+	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
+
+	rdsManager.AssertExpectations(t)
+	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
+	assert.Equal(config.Service.Database.MasterPasswordSSMParam, "{{resolve:ssm-secure:testDbPass:1}}")
+}

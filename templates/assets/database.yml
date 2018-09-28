@@ -30,10 +30,6 @@ Parameters:
     Type: String
     NoEcho: true
     Description: Username of database
-  DatabaseMasterPasswordSSMKey:
-    Type: AWS::SSM::Parameter::Name
-    NoEcho: true
-    Description: SSM parameter key to decrypt the Master Password
   DatabaseName:
     Type: String
     Description: Name of database
