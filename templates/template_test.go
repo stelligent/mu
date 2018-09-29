@@ -54,7 +54,7 @@ func TestNewTemplate_assets(t *testing.T) {
 	templates := box.List()
 	assert.NotZero(len(templates))
 	for _, templateName := range templates {
-		if templateName == "buildspec.yml" || templateName == "eks-rbac.yml" || strings.HasPrefix(templateName, "policies/") {
+		if templateName == "buildspec.yml" || templateName == "eks-rbac.yml" || templateName == "eks-deployment.yml" || strings.HasPrefix(templateName, "policies/") {
 			continue
 		}
 

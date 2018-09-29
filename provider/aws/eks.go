@@ -126,6 +126,14 @@ func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(n
 	}, nil
 }
 
+// UpsertResources for create/update of resources in k8s cluster
+func (eksMgr *eksKubernetesResourceManager) UpsertResources(ctx context.Context,
+	templateName string,
+	templateData interface{}) error {
+
+	return nil
+}
+
 // UpsertResource for create/update of resources in k8s cluster
 func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 	resource k8s.Resource,

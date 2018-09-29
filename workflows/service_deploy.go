@@ -29,7 +29,8 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, environmentName, ctx.StackManager, ctx.StackManager),
-			),
+			), nil),
+		newConditionalExecutor(workflow.isEc2Provider(),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
@@ -37,8 +38,15 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 				// TODO - placeholder for doing serviceCreateSchedules for EC2, leaving out-of-scope per @cplee
-			),
-		),
+			), nil),
+		newConditionalExecutor(workflow.isEksProvider(),
+			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
+				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.connectKubernetes(ctx.KubernetesResourceManagerProvider),
+				workflow.serviceEksDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
+				// TODO - placeholder for doing serviceCreateSchedules for EKS, leaving out-of-scope
+			), nil),
 	)
 }
 
@@ -377,6 +385,21 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 		workflow.microserviceTaskDefinitionArn = stack.Outputs["MicroserviceTaskDefinitionArn"]
+
+		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
+	return func() error {
+		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
+
+		//svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
+
+		resolveServiceEnvironment(service, environmentName)
+
+		//ctx := context.TODO
+		//workflow.kubernetesResourceManager.UpsertResource(ctx)
 
 		return nil
 	}

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello-go
+
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: hello-go
+  namespace: hello-go
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-go
+  template:
+    metadata:
+      labels:
+        app: hello-go
+    spec:
+      containers:
+      - name: hello-go
+        image: 884669789531.dkr.ecr.us-west-2.amazonaws.com/mu-hello-go:d7f535b
+        ports:
+        - containerPort: 8080
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: hello-go
+  name: hello-go
+  labels:
+    app: hello-go
+spec:
+  selector:
+    app: hello-go
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  name: hello-go
+  namespace: hello-go
+spec:
+  rules:
+  - host: "*.elb.amazonaws.com"
+    http:
+      paths:
+      - backend:
+          serviceName: hello-go
+          servicePort: 8080
+        path: /

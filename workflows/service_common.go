@@ -27,6 +27,7 @@ type serviceWorkflow struct {
 	cloudFormationRoleArn         string
 	microserviceTaskDefinitionArn string
 	ecsEventsRoleArn              string
+	kubernetesResourceManager     common.KubernetesResourceManager
 }
 
 // Find a service in config, by name and set the reference
@@ -92,6 +93,12 @@ func (workflow *serviceWorkflow) isEcsProvider() Conditional {
 	return func() bool {
 		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcs)) ||
 			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
+	}
+}
+func (workflow *serviceWorkflow) isEksProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEks)) ||
+			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEksFargate))
 	}
 }
 func (workflow *serviceWorkflow) isFargateProvider() Conditional {
@@ -251,5 +258,14 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 
 		workflow.registryAuth = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("{\"username\":\"%s\", \"password\":\"%s\"}", authParts[0], authParts[1])))
 		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) connectKubernetes(provider common.KubernetesResourceManagerProvider) Executor {
+	return func() error {
+		clusterName := workflow.envStack.Name
+		kubernetesResourceManager, err := provider.GetResourceManager(clusterName)
+		workflow.kubernetesResourceManager = kubernetesResourceManager
+		return err
 	}
 }
