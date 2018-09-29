@@ -93,14 +93,14 @@ else
 endif
 
 
-build: info gen 
+build: info gen
 	@go get github.com/goreleaser/goreleaser
 	$(eval export SNAPSHOT_VERSION=$(VERSION))
 	@goreleaser --snapshot --rm-dist 
 
 install: build
 	@echo "=== installing $(PACKAGE)-$(OS)-$(ARCH) ==="
-	@echo cp dist/$(OS)_$(ARCH)/$(PACKAGE) /usr/local/bin/mu
+	@cp dist/$(OS)_$(ARCH)/$(PACKAGE) /usr/local/bin/mu
 	@chmod 755 /usr/local/bin/mu
 	@mu -v
 
@@ -144,7 +144,7 @@ changelog: check_github_token
 	@go get github.com/Songmu/ghch/cmd/ghch
 	@ghch --format=markdown --latest -w
 
-github_release: check_github_token tag_release changelog
+github_release: check_github_token gen tag_release changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
 	@go get github.com/goreleaser/goreleaser
 	@goreleaser --rm-dist --release-notes CHANGELOG.md
