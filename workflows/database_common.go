@@ -13,6 +13,7 @@ type databaseWorkflow struct {
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
+	cliExtension          common.CliExtension
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {

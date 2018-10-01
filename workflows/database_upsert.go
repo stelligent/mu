@@ -15,6 +15,7 @@ import (
 func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(databaseWorkflow)
+	workflow.cliExtension = new(common.CliAdditions)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
@@ -109,7 +110,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
 			if err != nil {
 				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
-				answer, err := common.Prompt("Error retrieving DatabaseMasterPassword. Set a new DatabaseMasterPassword", false)
+				answer, err := workflow.cliExtension.Prompt("Error retrieving DatabaseMasterPassword. Set a new DatabaseMasterPassword", false)
 				if err != nil {
 					log.Errorf("Error with command input: %s", err)
 					os.Exit(1)

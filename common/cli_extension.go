@@ -8,27 +8,21 @@ import (
 	"github.com/bobappleyard/readline"
 )
 
-// CliPrompt is an object for mocking cli input when testing
-type CliPrompt struct{}
-
-// NewCliPrompt returns the pointer to a new CliPrompt struct
-func NewCliPrompt() *CliPrompt {
-	return new(CliPrompt)
+// CliExtension is an interface for defining extended cli actions
+type CliExtension interface {
+	Prompt(message string, def bool) (bool, error)
 }
 
-// Prompt is the preferred way to prompt the user to answer a yes/no question
-func Prompt(message string, def bool) (bool, error) {
-	p := NewCliPrompt()
-	return p.Prompt(message, def)
-}
+// CliAdditions exposes methods to prompt the user for cli input
+type CliAdditions struct{}
 
 // String writes a string to the terminal and returns the input
-func (cli *CliPrompt) String(prompt string) (string, error) {
+func (cli *CliAdditions) String(prompt string) (string, error) {
 	return readline.String(prompt)
 }
 
 // Prompt prompts the user to answer a yes/no question
-func (cli *CliPrompt) Prompt(message string, def bool) (bool, error) {
+func (cli *CliAdditions) Prompt(message string, def bool) (bool, error) {
 	for {
 		defPrompt := "y/N"
 		if def {
