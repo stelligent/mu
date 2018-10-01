@@ -14,4 +14,5 @@ type ParamGetter interface {
 type ParamManager interface {
 	ParamGetter
 	ParamSetter
+	ParamVersion(name string) (int64, error)
 }

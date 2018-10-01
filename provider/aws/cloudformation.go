@@ -193,6 +193,7 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 		TemplateBody: templateBody,
 		Tags:         stackTags,
 	}
+
 	if policy, err := getPolicy(policy, cfnMgr.allowDataLoss); err != nil || policy != "" {
 		if err != nil {
 			return err

@@ -327,7 +327,6 @@ Resources:
           files:
             "/etc/environment":
               content: !Sub |
-                # created via mu
               {{with .Environment}}
               {{range $key, $val := .}}
                 {{$key}}={{$val}}

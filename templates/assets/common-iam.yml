@@ -306,6 +306,7 @@ Resources:
             - ec2:RevokeSecurityGroupIngress
             - ec2:AuthorizeSecurityGroupEgress
             - ec2:RevokeSecurityGroupEgress
+            - ssm:GetParameters
             Resource: '*'
             Effect: Allow
           - Action:

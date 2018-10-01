@@ -103,20 +103,25 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", dbConfig.MasterUsername)
 
 		//DatabaseMasterPassword:
-		dbPass, err := paramManager.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
-		if err != nil {
-			log.Warningf("Error with GetParam for DatabaseMasterPassword, assuming empty: %s", err)
-			dbPass = ""
-		}
-		if dbPass == "" {
-			dbPass = randomPassword(32)
-			err = paramManager.SetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"), dbPass, workflow.databaseKeyArn)
+		if service.Database.MasterPasswordSSMParam == "" {
+			dbPassSSMParam := fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
+			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
 			if err != nil {
-				return err
+				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
 			}
+			if dbPassVersion == 0 {
+				dbPass := randomPassword(32)
+				err = paramManager.SetParam(dbPassSSMParam, dbPass, workflow.databaseKeyArn)
+				if err != nil {
+					return err
+				}
+				dbPassVersion = 1
+			}
+			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", dbPassSSMParam, dbPassVersion)
+		} else {
+			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s}}", service.Database.MasterPasswordSSMParam)
 		}
-		stackParams["DatabaseMasterPassword"] = dbPass
-
+		stackParams["DatabaseMasterPassword"] = service.Database.MasterPasswordSSMParam
 		stackParams["DatabaseKeyArn"] = workflow.databaseKeyArn
 
 		tags := createTagMap(&DatabaseTags{
