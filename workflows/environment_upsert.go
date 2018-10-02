@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	corev1 "github.com/ericchiang/k8s/apis/core/v1"
-	metav1 "github.com/ericchiang/k8s/apis/meta/v1"
 	"github.com/stelligent/mu/common"
 )
 
@@ -36,7 +34,8 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider), nil),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesRBACUpserter(), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesClusterUpserter(), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesIngressUpserter(), nil),
 	)
 }
 
@@ -381,19 +380,24 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesRBACUpserter() Executor {
+func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter() Executor {
 	return func() error {
 
-		configMap := &corev1.ConfigMap{
-			Metadata: &metav1.ObjectMeta{
-				Namespace: common.StringRef("kube-system"),
-				Name:      common.StringRef("aws-auth"),
-			},
-		}
 		templateData := map[string]string{
 			"EC2RoleArn": workflow.ec2RoleArn,
 		}
 
-		return workflow.kubernetesResourceManager.UpsertResource(context.TODO(), configMap, common.TemplateK8sEnv, templateData)
+		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sCluster, templateData)
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter() Executor {
+	return func() error {
+
+		templateData := map[string]string{
+			"EC2RoleArn": workflow.ec2RoleArn,
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sIngress, templateData)
 	}
 }

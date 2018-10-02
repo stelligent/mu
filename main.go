@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/stelligent/mu/cli"
 	"github.com/stelligent/mu/common"
-	"os"
 )
 
 var version string

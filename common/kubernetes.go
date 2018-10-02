@@ -19,7 +19,7 @@ type KubernetesResourceManager interface {
 
 // KubernetesResourceUpserter for upserting kubernetes resources
 type KubernetesResourceUpserter interface {
-	UpsertResource(ctx context.Context, resource k8s.Resource, templateName string, templateData interface{}) error
+	UpsertResources(ctx context.Context, templateName string, templateData interface{}) error
 }
 
 // KubernetesResourceLister for listing kubernetes resources

@@ -359,8 +359,9 @@ const (
 	TemplateServiceIAM             = "cloudformation/service-iam.yml"
 	TemplateVPCTarget              = "cloudformation/vpc-target.yml"
 	TemplateVPC                    = "cloudformation/vpc.yml"
-	TemplateK8sEnv                 = "kubernetes/cluster.yml"
-	TemplateK8sService             = "kubernetes/deployment.yml"
+	TemplateK8sCluster             = "kubernetes/cluster.yml"
+	TemplateK8sDeployment          = "kubernetes/deployment.yml"
+	TemplateK8sIngress             = "kubernetes/ingress.yml"
 )
 
 // DeploymentStrategy describes supported deployment strategies

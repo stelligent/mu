@@ -29,6 +29,11 @@ func NewApp() *cli.App {
 		*newValidateCommand(context),
 	}
 
+	app.After = func(c *cli.Context) error {
+		fmt.Println("!!!!!1")
+		return fmt.Errorf("foobarbaz")
+	}
+
 	app.Before = func(c *cli.Context) error {
 		// setup logging
 		if c.Bool("verbose") {

@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/ericchiang/k8s"
+	"github.com/golang/protobuf/proto"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/templates"
 	yaml "gopkg.in/yaml.v2"
@@ -131,25 +133,99 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResources(ctx context.Context,
 	templateName string,
 	templateData interface{}) error {
 
+	// apply new values
+	templateBody, err := templates.GetAsset(templateName,
+		templates.ExecuteTemplate(templateData),
+		templates.DecorateTemplate(eksMgr.extensionsManager, ""))
+
+	if err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(templateBody))
+	var b strings.Builder
+	for scanner.Scan() {
+		if scanner.Text() == "---" {
+			// flush current resource
+			if b.Len() > 0 {
+				err = eksMgr.upsertResource(ctx, b.String())
+				if err != nil {
+					return err
+				}
+				b.Reset()
+			}
+		} else {
+			// append to current resource
+			_, err = fmt.Fprintln(&b, scanner.Text())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if b.Len() > 0 {
+		err = eksMgr.upsertResource(ctx, b.String())
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-// UpsertResource for create/update of resources in k8s cluster
-func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
-	resource k8s.Resource,
-	templateName string,
-	templateData interface{}) error {
-
-	resourceNamespace := resource.GetMetadata().GetNamespace()
-	resourceName := resource.GetMetadata().GetName()
-	resourceType := reflect.TypeOf(resource)
-	if resourceType.Kind() == reflect.Ptr {
-		resourceType = resourceType.Elem()
+func newResourceStub(resourceBody string) (*resourceStub, error) {
+	stub := &resourceStub{}
+	err := yaml.Unmarshal([]byte(resourceBody), stub)
+	if err != nil {
+		return nil, err
 	}
+	return stub, nil
+}
+
+type resourceStub struct {
+	APIVersion string `yaml:"apiVersion,omitempty"`
+	Kind       string
+	Metadata   struct {
+		Name      string
+		Namespace string
+	}
+}
+
+func (stub *resourceStub) newResource() (k8s.Resource, error) {
+	versionParts := strings.Split(stub.APIVersion, "/")
+	var kind string
+	if len(versionParts) == 1 {
+		kind = fmt.Sprintf("k8s.io.api.core.%s.%s", stub.APIVersion, stub.Kind)
+	} else {
+		kind = fmt.Sprintf("k8s.io.api.%s.%s", strings.Join(versionParts, "."), stub.Kind)
+	}
+	resourceType := proto.MessageType(kind)
+	if resourceType == nil {
+		return nil, fmt.Errorf("Unable to determine type for %v", kind)
+	}
+	resourceType = resourceType.Elem()
+	log.Debugf("kind: %v -> %v", kind, resourceType)
+	r := reflect.New(resourceType)
+	return r.Interface().(k8s.Resource), nil
+}
+
+func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, resourceBody string) error {
+	stub, err := newResourceStub(resourceBody)
+	if err != nil {
+		return err
+	}
+
+	resource, err := stub.newResource()
+	if err != nil {
+		return err
+	}
+
+	resourceType := stub.Kind
+	resourceNamespace := stub.Metadata.Namespace
+	resourceName := stub.Metadata.Name
 
 	// load existing resource for eks
 	exists := true
-	err := eksMgr.client.Get(ctx, resourceNamespace, resourceName, resource)
+	err = eksMgr.client.Get(ctx, resourceNamespace, resourceName, resource)
 	if apiErr, ok := err.(*k8s.APIError); ok {
 		if apiErr.Code == 404 {
 			exists = false
@@ -158,18 +234,18 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 		}
 	}
 
-	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceType.Name(), resourceName)
+	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceType, resourceName)
+	resourceBody, err = templates.DecorateTemplate(eksMgr.extensionsManager, resourceURN)("", resourceBody)
+	if err != nil {
+		return err
+	}
 
-	// apply new values
-	templateBody, err := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
-		templates.DecorateTemplate(eksMgr.extensionsManager, resourceURN))
-
-	if err := yaml.NewDecoder(strings.NewReader(templateBody)).Decode(resource); err != nil {
+	if err := yaml.NewDecoder(strings.NewReader(resourceBody)).Decode(resource); err != nil {
 		return err
 	}
 
 	if eksMgr.dryrunPath != "" {
-		err := writeResource(eksMgr.dryrunPath, resourceURN, templateBody)
+		err := writeResource(eksMgr.dryrunPath, resourceURN, resourceBody)
 		if err != nil {
 			return err
 		}
@@ -178,12 +254,12 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResource(ctx context.Context,
 	}
 
 	if exists {
-		log.Noticef("Updating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType.Name(), resourceName, resourceNamespace)
+		log.Noticef("Updating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType, resourceName, resourceNamespace)
 		if err := eksMgr.client.Update(ctx, resource); err != nil {
 			return err
 		}
 	} else {
-		log.Noticef("Creating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType.Name(), resourceName, resourceNamespace)
+		log.Noticef("Creating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType, resourceName, resourceNamespace)
 		if err := eksMgr.client.Create(ctx, resource); err != nil {
 			return err
 		}

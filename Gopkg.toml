@@ -24,7 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
   version = "~1.15.18"
@@ -73,10 +72,6 @@
   name = "gopkg.in/src-d/go-git.v4"
   version = "4.7.0"
 
-[prune]
-  go-tests = true
-  unused-packages = true
-
 [[constraint]]
   branch = "master"
   name = "github.com/howeyc/gopass"
@@ -92,3 +87,7 @@
 [[constraint]]
   name = "github.com/gobuffalo/packr"
   version = "1.13.5"
+
+[prune]
+  go-tests = true
+  unused-packages = true

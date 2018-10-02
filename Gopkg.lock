@@ -10,8 +10,8 @@
 [[projects]]
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
-  revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
-  version = "v1.0.6"
+  revision = "a67f783a3814b8729bd2dac5780b5f78f8dbd64d"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/aws/aws-sdk-go"
@@ -77,14 +77,14 @@
     "service/ssm/ssmiface",
     "service/sts"
   ]
-  revision = "949f7800d745d1df9af349380e5deec8de206144"
-  version = "v1.15.38"
+  revision = "53e36ebb6b2c26d228ba9563d06caf306227f110"
+  version = "v1.15.46"
 
 [[projects]]
   name = "github.com/briandowns/spinner"
   packages = ["."]
-  revision = "9f016caa1359c8ecdc1d95243e92c0d28b524368"
-  version = "1.2"
+  revision = "bbeb66ec3653684a0afb3031087f790a5b7d7bdf"
+  version = "1.3"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -172,17 +172,49 @@
     "trees/binaryheap",
     "utils"
   ]
-  revision = "f6c17b524822278a87e3b3bd809fec33b51f5b46"
-  version = "v1.9.0"
+  revision = "1615341f118ae12f353cc8a983f35b584342c9b3"
+  version = "v1.12.0"
 
 [[projects]]
   name = "github.com/ericchiang/k8s"
   packages = [
     ".",
+    "apis/admission/v1beta1",
+    "apis/admissionregistration/v1alpha1",
+    "apis/admissionregistration/v1beta1",
     "apis/apiextensions/v1beta1",
+    "apis/apiregistration/v1",
+    "apis/apiregistration/v1beta1",
+    "apis/apps/v1",
+    "apis/apps/v1beta1",
+    "apis/apps/v1beta2",
+    "apis/authentication/v1",
+    "apis/authentication/v1beta1",
+    "apis/authorization/v1",
+    "apis/authorization/v1beta1",
+    "apis/autoscaling/v1",
+    "apis/autoscaling/v2beta1",
+    "apis/batch/v1",
+    "apis/batch/v1beta1",
+    "apis/batch/v2alpha1",
+    "apis/certificates/v1beta1",
     "apis/core/v1",
+    "apis/events/v1beta1",
+    "apis/extensions/v1beta1",
+    "apis/imagepolicy/v1alpha1",
     "apis/meta/v1",
+    "apis/meta/v1beta1",
+    "apis/networking/v1",
+    "apis/policy/v1beta1",
+    "apis/rbac/v1",
+    "apis/rbac/v1alpha1",
+    "apis/rbac/v1beta1",
     "apis/resource",
+    "apis/scheduling/v1alpha1",
+    "apis/settings/v1alpha1",
+    "apis/storage/v1",
+    "apis/storage/v1alpha1",
+    "apis/storage/v1beta1",
     "runtime",
     "runtime/schema",
     "util/intstr",
@@ -200,8 +232,8 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "5cf292cae48347c2490ac1a58fe36735fb78df7e"
-  version = "v1.38.2"
+  revision = "7b294651033cd7d9e7f0d9ffa1b75ed1e198e737"
+  version = "v1.38.3"
 
 [[projects]]
   branch = "v2"
@@ -212,8 +244,8 @@
 [[projects]]
   name = "github.com/gobuffalo/packr"
   packages = ["."]
-  revision = "6c8156ee36301dd007342e79d81c99e7a7834337"
-  version = "v1.13.5"
+  revision = "5a2cbb54c4e7d482e3f518c56f1f86f133d5204f"
+  version = "v1.13.7"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -249,6 +281,12 @@
   packages = ["."]
   revision = "81db2a75821ed34e682567d48be488a1c3121088"
   version = "0.5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  revision = "b729f2633dfe35f4d1d8a32385f6685610ce1cb5"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -417,7 +455,7 @@
     "ssh/knownhosts",
     "ssh/terminal"
   ]
-  revision = "0e37d006457bf46f9e6692014ba72ef82c33022c"
+  revision = "e3636079e1a4c1f337f212cc5cd2aca108f6c900"
 
 [[projects]]
   branch = "master"
@@ -432,7 +470,7 @@
     "internal/socks",
     "proxy"
   ]
-  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
+  revision = "4dfa2610cdf3b287375bbba5b8f2a14d3b01d8de"
 
 [[projects]]
   branch = "master"
@@ -441,7 +479,7 @@
     "unix",
     "windows"
   ]
-  revision = "1561086e645b2809fb9f8a1e2a38160bf8d53bf4"
+  revision = "e4b3c5e9061176387e7cea65e4dc5853801f3fb7"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -473,8 +511,8 @@
     "osfs",
     "util"
   ]
-  revision = "59952543636f55de3f860b477b615093d5c2c3e4"
-  version = "v4.2.1"
+  revision = "982626487c60a5252e7d0b695ca23fb0fa2fd670"
+  version = "v4.3.0"
 
 [[projects]]
   name = "gopkg.in/src-d/go-git.v4"
@@ -538,6 +576,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4df6c393b1b87c947f16f47430533fe29f93b554242c9d519a747dacb8aa7f8a"
+  inputs-digest = "868a6e76139525c0cd90dee1c0f57f96ab60b0c58c7db936ccb134e9e1838083"
   solver-name = "gps-cdcl"
   solver-version = 1
