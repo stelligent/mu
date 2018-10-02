@@ -152,7 +152,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(ecrStackName, "repo.yml", nil, stackParams, tags, "", "")
+		err := stackUpserter.UpsertStack(ecrStackName, common.TemplateRepo, nil, stackParams, tags, "", "")
 		if err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(appStackName, "app.yml", nil, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(appStackName, common.TemplateApp, nil, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", workflow.cloudFormationRoleArn)
+			err := stackUpserter.UpsertStack(bucketStackName, common.TemplateBucket, nil, bucketParams, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}

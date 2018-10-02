@@ -22,7 +22,7 @@ func TestNewTemplate(t *testing.T) {
 		common.TemplateEnvEC2, common.TemplateEnvECS, common.TemplatePipelineIAM,
 		common.TemplatePipeline, common.TemplateRepo, common.TemplateSchedule,
 		common.TemplateServiceEC2, common.TemplateServiceECS, common.TemplateServiceIAM,
-		common.TemplateVCPTarget, common.TemplateVPC}
+		common.TemplateVPCTarget, common.TemplateVPC}
 
 	for _, templateName := range templates {
 		templateBody, err := GetAsset(templateName)

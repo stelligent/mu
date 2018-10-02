@@ -72,7 +72,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		} else if environment.VpcTarget.VpcID != "" {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeTarget, environment.Name)
-			vpcTemplateName = "vpc-target.yml"
+			vpcTemplateName = common.TemplateVPCTarget
 
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
@@ -81,7 +81,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		} else {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
-			vpcTemplateName = "vpc.yml"
+			vpcTemplateName = common.TemplateVPC
 
 			common.NewMapElementIfNotEmpty(vpcStackParams, "InstanceTenancy", string(environment.Cluster.InstanceTenancy))
 
@@ -219,7 +219,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, common.TemplateELB, environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -255,29 +255,29 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 		var imageOwner string
 		envMapping := map[common.EnvProvider]map[string]string{
 			common.EnvProviderEcs: map[string]string{
-				"templateName": "env-ecs.yml",
+				"templateName": common.TemplateEnvECS,
 				"imagePattern": ecsImagePattern,
 				"imageOwner":   ecsImageOwner,
 				"launchType":   "EC2"},
 			common.EnvProviderEcsFargate: map[string]string{
-				"templateName": "env-ecs.yml",
+				"templateName": common.TemplateEnvECS,
 				"imagePattern": ecsImagePattern,
 				"imageOwner":   ecsImageOwner,
 				"launchType":   "FARGATE"},
 			common.EnvProviderEks: map[string]string{
-				"templateName": "env-eks.yml",
+				"templateName": common.TemplateEnvEKS,
 				"imagePattern": eksImagePattern,
 				"imageOwner":   eksImageOwner,
 				"launchType":   "EC2"},
 			/*
 				common.EnvProviderEksFargate: map[string]string{
-					"templateName": "env-eks.yml",
+				    "templateName": common.TemplateEnvEKS,
 					"imagePattern": eksImagePattern,
 					"imageOwner": eksImageOwner,
 					"launchType":   "FARGATE"},
 			*/
 			common.EnvProviderEc2: map[string]string{
-				"templateName": "env-ec2.yml",
+				"templateName": common.TemplateEnvEC2,
 				"imagePattern": ec2ImagePattern,
 				"imageOwner":   ec2ImageOwner}}
 		templateName = envMapping[environment.Provider]["templateName"]
@@ -361,7 +361,7 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 				Repo:        workflow.repoName,
 			})
 
-			err := stackUpserter.UpsertStack(envStackName, "env-eks-bootstrap.yml", workflow.environment, stackParams, tags, "", "")
+			err := stackUpserter.UpsertStack(envStackName, common.TemplateEnvEKSBootstrap, workflow.environment, stackParams, tags, "", "")
 			if err != nil {
 				return err
 			}

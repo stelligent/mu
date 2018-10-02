@@ -334,6 +334,12 @@ func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, sta
 	outTemplate := inTemplate
 	assetPath := filepath.Join(ext.path, assetName)
 
+	if _, err := os.Stat(assetPath); os.IsNotExist(err) {
+		log.Debugf("Path missing, trying without directory: %s", assetPath)
+		_, assetName = filepath.Split(assetPath)
+		assetPath = filepath.Join(ext.path, assetName)
+	}
+
 	if ext.mode == TemplateUpdateReplace {
 		f, err := os.Open(assetPath)
 		if err != nil {

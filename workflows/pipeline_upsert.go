@@ -52,7 +52,7 @@ func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *co
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", "")
+			err := stackUpserter.UpsertStack(bucketStackName, common.TemplateBucket, nil, bucketParams, tags, "", "")
 			if err != nil {
 				return err
 			}
@@ -90,7 +90,7 @@ func (workflow *pipelineWorkflow) pipelineBucket(namespace string, params map[st
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", "")
+			err := stackUpserter.UpsertStack(bucketStackName, common.TemplateBucket, nil, bucketParams, tags, "", "")
 			if err != nil {
 				// ignore error if stack is in progress already
 				if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
@@ -211,7 +211,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 			Repo:     workflow.repoName,
 		})
 
-		err = stackUpserter.UpsertStack(pipelineStackName, "pipeline.yml", nil, pipelineParams, tags, "", "")
+		err = stackUpserter.UpsertStack(pipelineStackName, common.TemplatePipeline, nil, pipelineParams, tags, "", "")
 		if err != nil {
 			return err
 		}
