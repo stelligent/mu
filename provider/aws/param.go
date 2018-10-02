@@ -67,3 +67,31 @@ func (paramMgr *paramManager) GetParam(name string) (string, error) {
 
 	return aws.StringValue(output.Parameters[0].Value), nil
 }
+
+// ParamVersion checks if the parameter is set in SSM Parameter Store and return version
+func (paramMgr *paramManager) ParamVersion(name string) (int64, error) {
+	ssmAPI := paramMgr.ssmAPI
+
+	log.Debug("checking param exists '%s'", name)
+
+	input := &ssm.DescribeParametersInput{
+		Filters: []*ssm.ParametersFilter{
+			{
+				Key:    aws.String("Name"),
+				Values: []*string{aws.String(name)},
+			},
+		},
+	}
+
+	output, err := ssmAPI.DescribeParameters(input)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if len(output.Parameters) != 1 {
+		return 0, nil
+	}
+
+	return *output.Parameters[0].Version, nil
+}
