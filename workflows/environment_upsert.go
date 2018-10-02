@@ -394,6 +394,6 @@ func (workflow *environmentWorkflow) environmentKubernetesRBACUpserter() Executo
 			"EC2RoleArn": workflow.ec2RoleArn,
 		}
 
-		return workflow.kubernetesResourceManager.UpsertResource(context.TODO(), configMap, "eks-rbac.yml", templateData)
+		return workflow.kubernetesResourceManager.UpsertResource(context.TODO(), configMap, common.TemplateK8sEnv, templateData)
 	}
 }

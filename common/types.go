@@ -335,27 +335,29 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
-// List of valid Policy files
+// List of valid template files
 const (
 	TemplatePolicyDefault  string = "policies/default.json"
 	TemplatePolicyAllowAll        = "policies/allow-all.json"
-	TemplateApp                   = "app.yml"
-	TemplateBucket                = "bucket.yml"
-	TemplateBuildspec             = "buildspec.yml"
-	TemplateCommonIAM             = "common-iam.yml"
-	TemplateDatabase              = "database.yml"
-	TemplateELB                   = "elb.yml"
-	TemplateEnvEC2                = "env-ec2.yml"
-	TemplateEnvECS                = "env-ecs.yml"
-	TemplatePipelineIAM           = "pipeline-iam.yml"
-	TemplatePipeline              = "pipeline.yml"
-	TemplateRepo                  = "repo.yml"
-	TemplateSchedule              = "schedule.yml"
-	TemplateServiceEC2            = "service-ec2.yml"
-	TemplateServiceECS            = "service-ecs.yml"
-	TemplateServiceIAM            = "service-iam.yml"
-	TemplateVCPTarget             = "vpc-target.yml"
-	TemplateVPC                   = "vpc.yml"
+	TemplateBuildspec             = "codebuild/buildspec.yml"
+	TemplateApp                   = "cloudformation/app.yml"
+	TemplateBucket                = "cloudformation/bucket.yml"
+	TemplateCommonIAM             = "cloudformation/common-iam.yml"
+	TemplateDatabase              = "cloudformation/database.yml"
+	TemplateELB                   = "cloudformation/elb.yml"
+	TemplateEnvEC2                = "cloudformation/env-ec2.yml"
+	TemplateEnvECS                = "cloudformation/env-ecs.yml"
+	TemplatePipelineIAM           = "cloudformation/pipeline-iam.yml"
+	TemplatePipeline              = "cloudformation/pipeline.yml"
+	TemplateRepo                  = "cloudformation/repo.yml"
+	TemplateSchedule              = "cloudformation/schedule.yml"
+	TemplateServiceEC2            = "cloudformation/service-ec2.yml"
+	TemplateServiceECS            = "cloudformation/service-ecs.yml"
+	TemplateServiceIAM            = "cloudformation/service-iam.yml"
+	TemplateVCPTarget             = "cloudformation/vpc-target.yml"
+	TemplateVPC                   = "cloudformation/vpc.yml"
+	TemplateK8sEnv                = "kubernetes/env.yml"
+	TemplateK8sService            = "kubernetes/service.yml"
 )
 
 // DeploymentStrategy describes supported deployment strategies
