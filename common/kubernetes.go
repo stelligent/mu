@@ -2,8 +2,6 @@ package common
 
 import (
 	"context"
-
-	"github.com/ericchiang/k8s"
 )
 
 // KubernetesResourceManagerProvider for providing kubernetes client
@@ -24,5 +22,5 @@ type KubernetesResourceUpserter interface {
 
 // KubernetesResourceLister for listing kubernetes resources
 type KubernetesResourceLister interface {
-	ListResources(ctx context.Context, namespace string, resource k8s.ResourceList) error
+	ListResources(ctx context.Context, namespace string, kind string) error
 }

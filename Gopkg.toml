@@ -76,9 +76,17 @@
   branch = "master"
   name = "github.com/howeyc/gopass"
 
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.11.2"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.2"
+
 [[constraint]]
-  name = "github.com/ericchiang/k8s"
-  version = "1.2.0"
+  name = "k8s.io/client-go"
+  version = "8.0.0"
 
 [[constraint]]
   branch = "v2"

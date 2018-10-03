@@ -1,12 +1,10 @@
 package workflows
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 
-	corev1 "github.com/ericchiang/k8s/apis/core/v1"
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 )
@@ -133,12 +131,14 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 			}
 			workflow.connectKubernetes(namespace, kubernetesResourceManagerProvider)()
 
-			var nodes corev1.NodeList
-			err = workflow.kubernetesResourceManager.ListResources(context.TODO(), "", &nodes)
-			fmt.Printf("%v", err)
-			for _, node := range nodes.Items {
-				fmt.Printf("name=%q schedulable=%t\n", *node.Metadata.Name, !*node.Spec.Unschedulable)
-			}
+			/*
+				var nodes corev1.NodeList
+				err = workflow.kubernetesResourceManager.ListResources(context.TODO(), "", &nodes)
+				fmt.Printf("%v", err)
+				for _, node := range nodes.Items {
+					fmt.Printf("name=%q schedulable=%t\n", *node.Metadata.Name, !*node.Spec.Unschedulable)
+				}
+			*/
 		}
 
 		fmt.Fprint(writer, NewLine)

@@ -34,8 +34,8 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager), nil),
 		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider), nil),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesClusterUpserter(), nil),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesIngressUpserter(), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace), nil),
 	)
 }
 
@@ -380,23 +380,29 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter() Executor {
+func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namespace string) Executor {
 	return func() error {
 
 		templateData := map[string]string{
 			"EC2RoleArn": workflow.ec2RoleArn,
 		}
+
+		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		log.Noticef("Upserting kubernetes cluster '%s' ...", clusterName)
 
 		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sCluster, templateData)
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter() Executor {
+func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namespace string) Executor {
 	return func() error {
 
 		templateData := map[string]string{
 			"EC2RoleArn": workflow.ec2RoleArn,
 		}
+
+		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		log.Noticef("Upserting kubernetes ingress in cluster '%s' ...", clusterName)
 
 		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sIngress, templateData)
 	}
