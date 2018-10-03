@@ -74,7 +74,7 @@ func TestNewTemplate_assets(t *testing.T) {
 			_, err := svc.ValidateTemplate(params)
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
-					if awsErr.Code() == "RequestError" && awsErr.Message() == "send request failed" {
+					if awsErr.Code() == "InvalidClientTokenId" && awsErr.Message() == "The security token included in the request is invalid." {
 						return
 					}
 					assert.Fail(awsErr.Code(), awsErr.Message(), templateName)
@@ -83,35 +83,4 @@ func TestNewTemplate_assets(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestExecuteTemplate(t *testing.T) {
-	assert := assert.New(t)
-
-	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
-	sess, err := session.NewSessionWithOptions(sessOptions)
-	assert.Nil(err)
-
-	svc := cloudformation.New(sess)
-
-	templateBody, err := GetAsset(common.TemplateServiceEC2, ExecuteTemplate(nil))
-
-	assert.NotNil(templateBody)
-	assert.NotEmpty(templateBody)
-
-	params := &cloudformation.ValidateTemplateInput{
-		TemplateBody: aws.String(templateBody),
-	}
-
-	_, err = svc.ValidateTemplate(params)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "RequestError" && awsErr.Message() == "send request failed" {
-				return
-			}
-			assert.Fail(awsErr.Code(), awsErr.Message())
-		}
-		assert.Fail(err.Error())
-	}
-
 }
