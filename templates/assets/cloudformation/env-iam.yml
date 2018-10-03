@@ -60,8 +60,8 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
-      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKSServicePolicy
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKSClusterPolicy
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Condition: HasEC2InstanceProfile
@@ -86,10 +86,10 @@ Resources:
       ManagedPolicyArns:
         Fn::If:
         - IsEksService
-        - - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-          - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-          - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-        - - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy
+        - - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
       - Fn::If:
         - IsEcsService
@@ -102,7 +102,7 @@ Resources:
               - ecs:DeregisterContainerInstance
               - ecs:SubmitContainerStateChange
               - ecs:SubmitTaskStateChange
-              Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+              Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
             - Effect: Allow
               Action:
               - ecs:StartTelemetrySession
@@ -110,14 +110,14 @@ Resources:
               Resource: "*"
               Condition:
                 ArnEquals:
-                  "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                  "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
             - Effect: Allow
               Action:
               - ecs:StartTask
               Resource: "*"
               Condition:
                 ArnEquals:
-                  "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                  "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
             - Effect: Allow
               Action:
               - ecs:DiscoverPollEndpoint

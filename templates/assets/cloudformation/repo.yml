@@ -19,7 +19,7 @@ Resources:
             AWS: "*"
           Condition:
             ArnLike:
-              aws:SourceArn: !Sub arn:aws:iam:${AWS::AccountId}:user/*
+              aws:SourceArn: !Sub arn:${AWS::Partition}:iam:${AWS::AccountId}:user/*
           Action:
           - ecr:GetDownloadUrlForLayer
           - ecr:BatchGetImage
