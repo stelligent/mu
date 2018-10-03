@@ -310,6 +310,11 @@ Resources:
       ContainerDefinitions:
       - Name: !Ref ServiceName
         Cpu: !Ref ServiceCpu
+        DockerLabels:
+          mu.service.discovery: !Join [ "-", [ !Sub ${ServiceDiscoveryName}, !Sub ${ServiceDiscoveryId} ] ]
+          mu.service.name: !Ref ServiceName
+          mu.service.port: !Ref ServicePort
+          mu.container.imageUrl: !Ref ImageURL
         Essential: 'true'
         Image: !Ref ImageUrl
         Memory: !Ref ServiceMemory
