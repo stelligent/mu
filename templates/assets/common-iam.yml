@@ -359,7 +359,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:${AWS::Partition}:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*
             Condition:
               StringLike:
                 iam:AWSServiceName: ecs.amazonaws.com
@@ -367,7 +367,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:${AWS::Partition}:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing*
             Condition:
               StringLike:
                 iam:AWSServiceName: elasticloadbalancing.amazonaws.com
@@ -375,7 +375,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:${AWS::Partition}:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*
             Condition:
               StringLike:
                 iam:AWSServiceName: rds.amazonaws.com

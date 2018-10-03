@@ -48,7 +48,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
       - PolicyName: ecs-service
         PolicyDocument:

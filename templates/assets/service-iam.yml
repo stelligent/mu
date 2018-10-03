@@ -131,7 +131,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -155,7 +155,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      - !Sub  arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess
       Policies:
       - PolicyName: service-access
         PolicyDocument:
@@ -300,7 +300,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
 
   EcsTaskRole:
     Type: AWS::IAM::Role
