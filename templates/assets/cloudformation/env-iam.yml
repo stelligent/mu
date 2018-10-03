@@ -86,10 +86,10 @@ Resources:
       ManagedPolicyArns:
         Fn::If:
         - IsEksService
-        - - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-          - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy
-          - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy
-        - - Fn:Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy
+        - - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
       - Fn::If:
         - IsEcsService
