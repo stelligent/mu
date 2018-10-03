@@ -212,7 +212,7 @@ Resources:
           - Action:
             - iam:PassRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance-${AWS::Region}
             Effect: Allow
       - PolicyName: deploy-service
         PolicyDocument:
@@ -288,12 +288,12 @@ Resources:
           - Action:
             - iam:PassRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-task-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-events-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-service-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy-${AWS::Region}
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-service-*-autoscaling-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-task-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-events-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-service-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-instance-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-codedeploy-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-autoscaling-${AWS::Region}
             Effect: Allow
       - PolicyName: deploy-database
         PolicyDocument:
@@ -359,7 +359,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*
             Condition:
               StringLike:
                 iam:AWSServiceName: ecs.amazonaws.com
@@ -367,7 +367,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing*
             Condition:
               StringLike:
                 iam:AWSServiceName: elasticloadbalancing.amazonaws.com
@@ -375,7 +375,7 @@ Resources:
           - Action:
             - iam:CreateServiceLinkedRole
             - iam:PutRolePolicy
-            Resource: arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*
+            Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*
             Condition:
               StringLike:
                 iam:AWSServiceName: rds.amazonaws.com

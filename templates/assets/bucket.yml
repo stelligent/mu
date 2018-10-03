@@ -26,7 +26,7 @@ Resources:
           Effect: Deny
           Principal: '*'
           Action: s3:PutObject
-          Resource: !Sub arn:aws:s3:::${Bucket}/*
+          Resource: !Sub arn:${AWS::Partition}:s3:::${Bucket}/*
           Condition:
             StringNotEquals:
               s3:x-amz-server-side-encryption: aws:kms
@@ -34,7 +34,7 @@ Resources:
           Effect: Deny
           Principal: '*'
           Action: s3:*
-          Resource: !Sub arn:aws:s3:::${Bucket}/*
+          Resource: !Sub arn:${AWS::Partition}:s3:::${Bucket}/*
           Condition:
             Bool:
               aws:SecureTransport": false
