@@ -121,7 +121,7 @@ Resources:
           - Effect: "Allow"
             Principal:
               AWS:
-              - !Sub arn:aws:iam::${AWS::AccountId}:root
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
             Action:
               - 'kms:*'
             Resource: '*'
@@ -213,7 +213,7 @@ Resources:
             - codebuild:BatchGetBuilds
             Effect: Allow
             Resource:
-            - !Sub arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*
+            - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${Namespace}-pipeline-${ServiceName}-*
           - Fn::If:
             - IsCodeCommit
             - Action:
@@ -222,7 +222,7 @@ Resources:
               - codecommit:UploadArchive
               - codecommit:GetUploadArchiveStatus
               - codecommit:CancelUploadArchive
-              Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
+              Resource: !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${SourceRepo}
               Effect: Allow
             - !Ref AWS::NoValue
           - Fn::If:
@@ -232,7 +232,7 @@ Resources:
               - s3:GetObjectVersion
               Effect: Allow
               Resource:
-              - Fn::Sub: arn:aws:s3:::${SourceRepo}
+              - Fn::Sub: arn:${AWS::Partition}:s3:::${SourceRepo}
             - !Ref AWS::NoValue
           - Fn::If:
             - IsS3
@@ -241,7 +241,7 @@ Resources:
               - s3:GetObjectVersion
               Effect: Allow
               Resource:
-              - Fn::Sub: arn:aws:s3:::${SourceBucket}/${SourceObjectKey}
+              - Fn::Sub: arn:${AWS::Partition}:s3:::${SourceBucket}/${SourceObjectKey}
             - !Ref AWS::NoValue
           - Fn::If:
             - IsS3
@@ -249,25 +249,25 @@ Resources:
               - s3:GetBucketVersioning
               Effect: Allow
               Resource:
-              - Fn::Sub: arn:aws:s3:::${SourceBucket}
+              - Fn::Sub: arn:${AWS::Partition}:s3:::${SourceBucket}
             - !Ref AWS::NoValue
           - Action:
             - s3:GetObject
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
+            - Fn::Sub: arn:${AWS::Partition}:s3:::${PipelineBucket}/*
             Effect: Allow
           - Action:
             - s3:GetBucketVersioning
             Resource:
-            - Fn::Sub: arn:aws:s3:::${PipelineBucket}
+            - Fn::Sub: arn:${AWS::Partition}:s3:::${PipelineBucket}
             Effect: Allow
           - Action:
             - sns:Publish
             Effect: Allow
             Resource:
-            - Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${Namespace}-pipeline-${ServiceName}-*
+            - Fn::Sub: arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${Namespace}-pipeline-${ServiceName}-*
           - Action:
             - iam:PassRole
             Resource:
@@ -303,7 +303,7 @@ Resources:
           - codepipeline:GetPipelineState
           - codepipeline:GetPipeline
           Effect: Allow
-          Resource: !Sub arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
+          Resource: !Sub arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Namespace}-${ServiceName}
         - Action:
           - codepipeline:GetJobDetails
           - codepipeline:PollForJobs
@@ -323,12 +323,12 @@ Resources:
           - s3:GetObjectVersion
           - s3:PutObject
           Resource:
-          - Fn::Sub: arn:aws:s3:::${PipelineBucket}/*
+          - Fn::Sub: arn:${AWS::Partition}:s3:::${PipelineBucket}/*
           Effect: Allow
         - Action:
           - s3:GetBucketVersioning
           Resource:
-          - Fn::Sub: arn:aws:s3:::${PipelineBucket}
+          - Fn::Sub: arn:${AWS::Partition}:s3:::${PipelineBucket}
           Effect: Allow
 
   CodeBuildCIRole:
@@ -355,9 +355,9 @@ Resources:
             - cloudformation:DescribeStackEvents
             - cloudformation:SetStackPolicy
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
             - cloudformation:DescribeStacks
@@ -365,7 +365,7 @@ Resources:
             Effect: Allow
           - Action:
             - s3:CreateBucket
-            Resource: !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
+            Resource: !Sub arn:${AWS::Partition}:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}
             Effect: Allow
           - Action:
             - ecr:SetRepositoryPolicy
@@ -381,7 +381,7 @@ Resources:
             - ecr:CompleteLayerUpload
             - ecr:PutImage
             Effect: Allow
-            Resource: !Sub arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Namespace}-${ServiceName}
+            Resource: !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${Namespace}-${ServiceName}
           - Action:
             - ecr:CreateRepository
             Effect: Allow
@@ -393,13 +393,13 @@ Resources:
           - Action:
             - codedeploy:CreateApplication
             Effect: Allow
-            Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${Namespace}-app-${ServiceName}
+            Resource: !Sub arn:${AWS::Partition}:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${Namespace}-app-${ServiceName}
           - Action:
             - s3:GetObject
             - s3:GetObjectVersion
             - s3:PutObject
             Resource:
-            - !Sub arn:aws:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
+            - !Sub arn:${AWS::Partition}:s3:::${Namespace}-codedeploy-${AWS::Region}-${AWS::AccountId}/*
             Effect: Allow
 
 
@@ -425,7 +425,7 @@ Resources:
           - Action:
             - sts:AssumeRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-acpt-${AWS::Region}
             Effect: Allow
 
   CodeBuildCDProdRole:
@@ -450,7 +450,7 @@ Resources:
           - Action:
             - sts:AssumeRole
             Resource:
-            - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-pipeline-${ServiceName}-mu-prod-${AWS::Region}
             Effect: Allow
 
   MuAcptRole:
@@ -478,13 +478,13 @@ Resources:
             - cloudformation:DescribeStackEvents
             - cloudformation:SetStackPolicy
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-schedule-${ServiceName}-*-${AcptEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-schedule-${ServiceName}-*-${AcptEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${AcptEnv}/*
             Effect: Allow
           - Action:
             - cloudformation:DescribeStacks
@@ -496,20 +496,20 @@ Resources:
             - cloudformation:DescribeStackEvents
             - cloudformation:SetStackPolicy
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
             - ssm:GetParameters
             - ssm:PutParameter
             Resource:
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${AcptEnv}-DatabaseMasterPassword
+            - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${AcptEnv}-DatabaseMasterPassword
             Effect: Allow
           - Action:
             - rds:ModifyDBInstance
             Resource:
-            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*
+            - !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*
             Effect: Allow
             Condition:
               StringEquals:
@@ -517,7 +517,7 @@ Resources:
           - Action:
             - rds:ModifyDBCluster
             Resource:
-            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
+            - !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
             Effect: Allow
             Condition:
               StringEquals:
@@ -559,13 +559,13 @@ Resources:
             - cloudformation:DescribeStackEvents
             - cloudformation:SetStackPolicy
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-schedule-${ServiceName}-*-${ProdEnv}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-vpc-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-target-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-environment-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-loadbalancer-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-schedule-${ServiceName}-*-${ProdEnv}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-database-${ServiceName}-${ProdEnv}/*
             Effect: Allow
           - Action:
             - cloudformation:DescribeStacks
@@ -577,20 +577,20 @@ Resources:
             - cloudformation:DescribeStackEvents
             - cloudformation:SetStackPolicy
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-repo-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-app-${ServiceName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-bucket-codedeploy/*
             Effect: Allow
           - Action:
             - ssm:GetParameters
             - ssm:PutParameter
             Resource:
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${ProdEnv}-DatabaseMasterPassword
+            - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${ProdEnv}-DatabaseMasterPassword
             Effect: Allow
           - Action:
             - rds:ModifyDBInstance
             Resource:
-            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:*
+            - !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:*
             Effect: Allow
             Condition:
               StringEquals:
@@ -598,7 +598,7 @@ Resources:
           - Action:
             - rds:ModifyDBCluster
             Resource:
-            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
+            - !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:*
             Effect: Allow
             Condition:
               StringEquals:

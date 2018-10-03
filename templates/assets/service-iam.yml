@@ -48,14 +48,14 @@ Resources:
           - Effect: "Allow"
             Principal:
               AWS:
-              - !Sub arn:aws:iam::${AWS::AccountId}:root
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
             Action:
               - 'kms:*'
             Resource: '*'
           - Effect: "Allow"
             Principal:
               AWS:
-                - !Sub arn:aws:iam::${AWS::AccountId}:role/${Namespace}-cloudformation-common-${AWS::Region}
+                - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-cloudformation-common-${AWS::Region}
             Action:
               - kms:CreateGrant
               - kms:ListGrants
@@ -131,7 +131,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      - arn:${AWS::Partition}:iam::aws:policy/service-role/AWSCodeDeployRole
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -155,7 +155,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+      - arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess
       Policies:
       - PolicyName: service-access
         PolicyDocument:
@@ -179,8 +179,8 @@ Resources:
             - s3:ListBucketVersions
             - s3:ListMultipartUploadParts
             Resource:
-            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}
-            - Fn::Sub: arn:aws:s3:::${CodeDeployBucket}/*
+            - Fn::Sub: arn:${AWS::Partition}:s3:::${CodeDeployBucket}
+            - Fn::Sub: arn:${AWS::Partition}:s3:::${CodeDeployBucket}/*
           - Effect: Allow
             Action:
             - cloudformation:DescribeStackEvents
@@ -188,8 +188,8 @@ Resources:
             - cloudformation:DescribeStackResources
             - cloudformation:GetTemplate
             Resource:
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}
-            - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}/*
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}
+            - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${Namespace}-service-${ServiceName}-${EnvironmentName}/*
           - Action:
             - cloudformation:DescribeStacks
             Resource: '*'
@@ -283,7 +283,7 @@ Resources:
             Resource: "*"
             Condition:
               ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
 
   EcsServiceRole:
     Type: AWS::IAM::Role
@@ -300,7 +300,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
+      - arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
 
   EcsTaskRole:
     Type: AWS::IAM::Role
@@ -326,7 +326,7 @@ Resources:
             Resource: "*"
             Condition:
               ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
       - PolicyName: task-execution
         PolicyDocument:
           Statement:

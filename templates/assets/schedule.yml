@@ -30,7 +30,7 @@ Resources:
       - Id: ScheduleRuleId
         Arn:
           Fn::Sub:
-            - "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsClusterName}"
+            - "arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsClusterName}"
             - EcsClusterName:
                 Fn::ImportValue: !Ref EcsCluster
         RoleArn: !Ref EcsEventsRoleArn

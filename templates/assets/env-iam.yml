@@ -48,7 +48,7 @@ Resources:
           - sts:AssumeRole
       Path: "/"
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
       - PolicyName: ecs-service
         PolicyDocument:
@@ -59,7 +59,7 @@ Resources:
             - ecs:DeregisterContainerInstance
             - ecs:SubmitContainerStateChange
             - ecs:SubmitTaskStateChange
-            Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
           - Effect: Allow
             Action:
             - ecs:StartTelemetrySession
@@ -67,14 +67,14 @@ Resources:
             Resource: "*"
             Condition:
               ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
           - Effect: Allow
             Action:
             - ecs:StartTask
             Resource: "*"
             Condition:
               ArnEquals:
-                "ecs:cluster": !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+                "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
           - Effect: Allow
             Action:
             - ecs:DiscoverPollEndpoint
