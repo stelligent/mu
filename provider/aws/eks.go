@@ -233,7 +233,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, 
 	}
 
 	if exists {
-		log.Infof("  Patching kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType, resourceName, resourceNamespace)
+		log.Infof("  Patching namespace:%s type:%s name:%s", resourceNamespace, resourceType, resourceName)
 		s, err := json.Marshal(resource.UnstructuredContent())
 		if err != nil {
 			return err
@@ -242,7 +242,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, 
 			return err
 		}
 	} else {
-		log.Infof("  Creating kubernetes '%s' resource '%s' in namespace '%s' ...", resourceType, resourceName, resourceNamespace)
+		log.Infof("  Creating namespace:%s type:%s name:%s", resourceNamespace, resourceType, resourceName)
 		if _, err := resourceClient.Namespace(resourceNamespace).Create(resource); err != nil {
 			return err
 		}

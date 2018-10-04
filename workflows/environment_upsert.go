@@ -397,8 +397,17 @@ func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namesp
 func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namespace string) Executor {
 	return func() error {
 
-		templateData := map[string]string{
-			"EC2RoleArn": workflow.ec2RoleArn,
+		var elbCertArn string
+		if workflow.environment.Loadbalancer.Certificate != "" {
+			// TODO: load these vals
+			partition := ""
+			region := ""
+			accountID := ""
+			elbCertArn = fmt.Sprintf("arn:%s:acm:%s:%s:certificate/%s", partition, region, accountID, workflow.environment.Loadbalancer.Certificate)
+		}
+		templateData := map[string]interface{}{
+			"Namespace":  "mu-ingress",
+			"ElbCertArn": elbCertArn,
 		}
 
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ingress-nginx
+  name: {{ .Namespace }}
 
 ---
 
@@ -11,19 +11,19 @@ metadata:
   name: default-http-backend
   labels:
     app.kubernetes.io/name: default-http-backend
-    app.kubernetes.io/part-of: ingress-nginx
-  namespace: ingress-nginx
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
+  namespace: {{ .Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: default-http-backend
-      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/part-of: {{ .Namespace }}-nginx
   template:
     metadata:
       labels:
         app.kubernetes.io/name: default-http-backend
-        app.kubernetes.io/part-of: ingress-nginx
+        app.kubernetes.io/part-of: {{ .Namespace }}-nginx
     spec:
       terminationGracePeriodSeconds: 60
       containers:
@@ -54,27 +54,27 @@ apiVersion: v1
 kind: Service
 metadata:
   name: default-http-backend
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
     app.kubernetes.io/name: default-http-backend
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 spec:
   ports:
     - port: 80
       targetPort: 8080
   selector:
     app.kubernetes.io/name: default-http-backend
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
   name: nginx-configuration
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-configuration
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 data:
   use-proxy-protocol: "false"
   #disable-ipv6: "true"
@@ -85,10 +85,10 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: tcp-services
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: tcp-services
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 
 ---
 
@@ -96,10 +96,10 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: udp-services
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: udp-services
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 
 ---
 
@@ -107,10 +107,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nginx-ingress-serviceaccount
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-serviceaccount
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -118,8 +118,8 @@ kind: ClusterRole
 metadata:
   name: nginx-ingress-clusterrole
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-clusterrole
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 rules:
   - apiGroups:
       - ""
@@ -173,10 +173,10 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
   name: nginx-ingress-role
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-role
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 rules:
   - apiGroups:
       - ""
@@ -218,10 +218,10 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
   name: nginx-ingress-role-nisa-binding
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-role-nisa-binding
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -229,7 +229,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: nginx-ingress-serviceaccount
-    namespace: ingress-nginx
+    namespace: {{ .Namespace }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -237,8 +237,8 @@ kind: ClusterRoleBinding
 metadata:
   name: nginx-ingress-clusterrole-nisa-binding
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-clusterrole-nisa-binding
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -246,7 +246,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: nginx-ingress-serviceaccount
-    namespace: ingress-nginx
+    namespace: {{ .Namespace }}
 
 ---
 
@@ -254,21 +254,21 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: nginx-ingress-controller
-  namespace: ingress-nginx
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-controller
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: ingress-nginx
-      app.kubernetes.io/part-of: ingress-nginx
+      app.kubernetes.io/name: nginx-ingress-controller
+      app.kubernetes.io/part-of: {{ .Namespace }}-nginx
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: ingress-nginx
-        app.kubernetes.io/part-of: ingress-nginx
+        app.kubernetes.io/name: nginx-ingress-controller
+        app.kubernetes.io/part-of: {{ .Namespace }}-nginx
       annotations:
         prometheus.io/port: "10254"
         prometheus.io/scrape: "true"
@@ -283,7 +283,7 @@ spec:
             - --configmap=$(POD_NAMESPACE)/nginx-configuration
             - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
             - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
-            - --publish-service=$(POD_NAMESPACE)/ingress-nginx
+            - --publish-service=$(POD_NAMESPACE)/nginx-ingress-service
             - --annotations-prefix=nginx.ingress.kubernetes.io
           securityContext:
             capabilities:
@@ -331,14 +331,15 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: ingress-nginx
-  namespace: ingress-nginx
+  name: nginx-ingress-service
+  namespace: {{ .Namespace }}
   labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-service
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
   annotations:
-    # replace with the correct value of the generated certificate in the AWS console
-    #service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-west-2:XXXXXXXX:certificate/XXXXXX-XXXXXXX-XXXXXXX-XXXXXXXX"
+    {{if .ElbCertArn}}
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {{ .ElbCertArn }}
+    {{end}}
     # the backend instances are HTTP
     service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
     # Map port 443
@@ -350,12 +351,14 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/name: nginx-ingress-controller
+    app.kubernetes.io/part-of: {{ .Namespace }}-nginx
   ports:
     - name: http
       port: 80
       targetPort: http
-    #- name: https
-    #  port: 443
-    #  targetPort: http
+    {{if .ElbCertArn}}
+    - name: https
+      port: 443
+      targetPort: http
+    {{end}}
