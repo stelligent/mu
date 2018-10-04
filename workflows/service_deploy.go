@@ -394,14 +394,34 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 	return func() error {
 		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
 
-		//svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
-
 		resolveServiceEnvironment(service, environmentName)
 
-		//ctx := context.TODO
-		//workflow.kubernetesResourceManager.UpsertResource(ctx)
+		servicePort := 8080
+		if service.Port != 0 {
+			servicePort = service.Port
+		}
 
-		return nil
+		serviceProto := "http"
+		if service.Protocol != "" {
+			serviceProto = strings.ToLower(string(service.Protocol))
+		}
+
+		pathPatterns := service.PathPatterns
+		for idx, pattern := range pathPatterns {
+			pathPatterns[idx] = strings.TrimRight(pattern, "*")
+		}
+
+		templateData := map[string]interface{}{
+			"Namespace":    fmt.Sprintf("mu-service-%s", workflow.serviceName),
+			"ServiceName":  workflow.serviceName,
+			"ServicePort":  servicePort,
+			"ServiceProto": serviceProto,
+			"PathPatterns": pathPatterns,
+			"HostPatterns": service.HostPatterns,
+			"ImageUrl":     workflow.serviceImage,
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)
 	}
 }
 

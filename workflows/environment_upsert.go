@@ -1,7 +1,6 @@
 package workflows
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,12 +29,19 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 		workflow.environmentNormalizer(),
 		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, envStackParams),
 		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager), nil),
-		workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider), nil),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace), nil),
-		newConditionalExecutor(workflow.isKubernetesProvider(), workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace), nil),
+		newConditionalExecutor(workflow.isKubernetesProvider(),
+			newPipelineExecutor(
+				workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager),
+				workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+				workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider),
+				workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace),
+				workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace),
+			),
+			newPipelineExecutor(
+				workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+				workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+			),
+		),
 	)
 }
 
@@ -96,6 +102,10 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 			}
 
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
+
+			if environment.Provider == common.EnvProviderEks || environment.Provider == common.EnvProviderEksFargate {
+				vpcStackParams["EKSClusterName"] = common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+			}
 		}
 
 		azCount, err := azCounter.CountAZs()
@@ -390,7 +400,7 @@ func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namesp
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
 		log.Noticef("Upserting kubernetes cluster '%s' ...", clusterName)
 
-		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sCluster, templateData)
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sCluster, templateData)
 	}
 }
 
@@ -413,6 +423,6 @@ func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namesp
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
 		log.Noticef("Upserting kubernetes ingress in cluster '%s' ...", clusterName)
 
-		return workflow.kubernetesResourceManager.UpsertResources(context.TODO(), common.TemplateK8sIngress, templateData)
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sIngress, templateData)
 	}
 }

@@ -59,9 +59,6 @@ Parameters:
     Type: String
     Description: Proxy to use from EKS cluster instances (host:port)
     Default: ''
-  ElbSecurityGroup:
-    Type: String
-    Description: The security group to add to the EKS instance for ELB access
   LaunchType:
     Type: String
     Description: Launch type for services
@@ -415,7 +412,6 @@ Resources:
       ImageId: !Ref ImageId
       SecurityGroups:
       - !Ref NodeSecurityGroup
-      - !Ref ElbSecurityGroup
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:

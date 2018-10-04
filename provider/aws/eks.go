@@ -2,7 +2,6 @@ package aws
 
 import (
 	"bufio"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -115,8 +114,7 @@ func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(n
 }
 
 // UpsertResources for create/update of resources in k8s cluster
-func (eksMgr *eksKubernetesResourceManager) UpsertResources(ctx context.Context,
-	templateName string,
+func (eksMgr *eksKubernetesResourceManager) UpsertResources(templateName string,
 	templateData interface{}) error {
 
 	// apply new values
@@ -134,7 +132,7 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResources(ctx context.Context,
 		if scanner.Text() == "---" {
 			// flush current resource
 			if b.Len() > 0 {
-				err = eksMgr.upsertResource(ctx, b.String())
+				err = eksMgr.upsertResource(b.String())
 				if err != nil {
 					return err
 				}
@@ -150,7 +148,7 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResources(ctx context.Context,
 	}
 
 	if b.Len() > 0 {
-		err = eksMgr.upsertResource(ctx, b.String())
+		err = eksMgr.upsertResource(b.String())
 		if err != nil {
 			return err
 		}
@@ -176,7 +174,7 @@ type resourceStub struct {
 	}
 }
 
-func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, resourceBody string) error {
+func (eksMgr *eksKubernetesResourceManager) upsertResource(resourceBody string) error {
 	stub, err := newResourceStub(resourceBody)
 	if err != nil {
 		return err
@@ -186,13 +184,10 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, 
 	resourceNamespace := stub.Metadata.Namespace
 	resourceName := stub.Metadata.Name
 
-	groupVersion, err := schema.ParseGroupVersion(stub.APIVersion)
+	resourceClient, err := eksMgr.getResourceInterface(stub.APIVersion, stub.Kind)
 	if err != nil {
-		return err
+		return nil
 	}
-	groupVersionKind := groupVersion.WithKind(stub.Kind)
-	resourceGroupVersion, _ := meta.UnsafeGuessKindToResource(groupVersionKind)
-	resourceClient := eksMgr.client.Resource(resourceGroupVersion)
 
 	// load existing resource for eks
 	exists := true
@@ -251,13 +246,32 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(ctx context.Context, 
 	return nil
 }
 
-// List resources in k8s cluster
-func (eksMgr *eksKubernetesResourceManager) ListResources(ctx context.Context,
-	namespace string,
-	kind string) error {
+// DeleteResource for deletion of resources in k8s cluster
+func (eksMgr *eksKubernetesResourceManager) DeleteResource(apiVersion string, kind string, namespace string, name string) error {
+	resourceClient, err := eksMgr.getResourceInterface(apiVersion, kind)
+	if err != nil {
+		return nil
+	}
+	return resourceClient.Namespace(namespace).Delete(name, nil)
+}
 
-	//return eksMgr.client.List(ctx, namespace, resourceList)
-	return fmt.Errorf("Not yet implemented")
+// List resources in k8s cluster
+func (eksMgr *eksKubernetesResourceManager) ListResources(apiVersion string, kind string, namespace string) (*unstructured.UnstructuredList, error) {
+	resourceClient, err := eksMgr.getResourceInterface(apiVersion, kind)
+	if err != nil {
+		return nil, nil
+	}
+	return resourceClient.Namespace(namespace).List(metav1.ListOptions{})
+}
+
+func (eksMgr *eksKubernetesResourceManager) getResourceInterface(apiVersion string, kind string) (dynamic.NamespaceableResourceInterface, error) {
+	groupVersion, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		return nil, err
+	}
+	groupVersionKind := groupVersion.WithKind(kind)
+	resourceGroupVersion, _ := meta.UnsafeGuessKindToResource(groupVersionKind)
+	return eksMgr.client.Resource(resourceGroupVersion), nil
 }
 
 func writeResource(directory string, resourceName string, resourceBody string) error {
