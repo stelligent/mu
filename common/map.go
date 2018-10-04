@@ -163,3 +163,74 @@ func ConvertMapI2MapS(v interface{}) interface{} {
 
 	return v
 }
+
+// MapGet returns a value denoted by the path.
+//
+// If path is empty or nil, v is returned.
+func MapGet(v interface{}, path ...interface{}) interface{} {
+	for _, el := range path {
+		switch node := v.(type) {
+		case map[string]interface{}:
+			key, ok := el.(string)
+			if !ok {
+				return nil
+			}
+			v, ok = node[key]
+			if !ok {
+				return nil
+			}
+
+		case map[interface{}]interface{}:
+			var ok bool
+			v, ok = node[el]
+			if !ok {
+				return nil
+			}
+
+		case []interface{}:
+			idx, ok := el.(int)
+			if !ok {
+				return nil
+			}
+			if idx < 0 || idx >= len(node) {
+				return nil
+			}
+			v = node[idx]
+
+		default:
+			return nil
+		}
+	}
+
+	return v
+}
+
+// MapGetSlice returns a value denoted by the path.
+//
+// If path is empty or nil, v is returned.
+func MapGetSlice(v interface{}, path ...interface{}) []interface{} {
+	v = MapGet(v, path...)
+	if v == nil {
+		return nil
+	}
+	s, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	return s
+}
+
+// MapGetString returns a string value denoted by the path.
+//
+// If path is empty or nil, v is returned as a string.
+func MapGetString(v interface{}, path ...interface{}) string {
+	v = MapGet(v, path...)
+	if v == nil {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return s
+}

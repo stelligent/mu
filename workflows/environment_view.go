@@ -7,6 +7,7 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // NewEnvironmentViewer create a new workflow for showing an environment
@@ -122,8 +123,8 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 				return err
 			}
 
-			table := buildInstanceTable(writer, containerInstances, instances)
-			table.Render()
+			instanceViews := buildInstanceViewForECS(containerInstances, instances)
+			printInstanceTable(writer, instanceViews)
 		} else if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEks) {
 
 			workflow.environment = &common.Environment{
@@ -131,14 +132,12 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 			}
 			workflow.connectKubernetes(namespace, kubernetesResourceManagerProvider)()
 
-			/*
-				var nodes corev1.NodeList
-				err = workflow.kubernetesResourceManager.ListResources(context.TODO(), "", &nodes)
-				fmt.Printf("%v", err)
-				for _, node := range nodes.Items {
-					fmt.Printf("name=%q schedulable=%t\n", *node.Metadata.Name, !*node.Spec.Unschedulable)
-				}
-			*/
+			nodes, err := workflow.kubernetesResourceManager.ListResources("v1", "Node", "")
+			if err != nil {
+				return err
+			}
+			instanceViews := buildInstanceViewForEKS(nodes)
+			printInstanceTable(writer, instanceViews)
 		}
 
 		fmt.Fprint(writer, NewLine)
@@ -188,15 +187,15 @@ func buildServiceTable(stacks []*common.Stack, environmentName string, writer io
 	return table
 }
 
-func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerInstance, instances []common.Instance) *tablewriter.Table {
-	table := CreateTableSection(writer, EnvironmentAMITableHeader)
-
+func buildInstanceViewForECS(containerInstances []common.ContainerInstance, instances []common.Instance) []*InstanceView {
 	instanceIps := make(map[string]string)
 	for _, instance := range instances {
 		instanceIps[common.StringValue(instance.InstanceId)] = common.StringValue(instance.PrivateIpAddress)
 	}
 
-	for _, instance := range containerInstances {
+	instanceViews := make([]*InstanceView, len(containerInstances))
+
+	for i, instance := range containerInstances {
 		instanceType := UnknownValue
 		availZone := UnknownValue
 		amiID := UnknownValue
@@ -220,19 +219,80 @@ func buildInstanceTable(writer io.Writer, containerInstances []common.ContainerI
 				memAvail = common.Int64Value(resource.IntegerValue)
 			}
 		}
-		table.Append([]string{
+		instanceViews[i] = &InstanceView{
 			common.StringValue(instance.Ec2InstanceId),
 			instanceType,
 			amiID,
 			instanceIps[common.StringValue(instance.Ec2InstanceId)],
 			availZone,
-			fmt.Sprintf(BoolStringFormat, common.BoolValue(instance.AgentConnected)),
+			common.BoolValue(instance.AgentConnected),
 			common.StringValue(instance.Status),
-			fmt.Sprintf(IntStringFormat, common.Int64Value(instance.RunningTasksCount)),
-			fmt.Sprintf(IntStringFormat, cpuAvail),
-			fmt.Sprintf(IntStringFormat, memAvail),
+			common.Int64Value(instance.RunningTasksCount),
+			cpuAvail,
+			memAvail,
+		}
+	}
+
+	return instanceViews
+}
+
+func buildInstanceViewForEKS(nodes *unstructured.UnstructuredList) []*InstanceView {
+	instanceViews := make([]*InstanceView, len(nodes.Items))
+	for i, node := range nodes.Items {
+		var ip string
+		addresses := common.MapGetSlice(node.Object, "status", "addresses")
+		for _, address := range addresses {
+			if common.MapGetString(address, "type") == "InternalIP" {
+				ip = common.MapGetString(address, "address")
+			}
+		}
+		instanceViews[i] = &InstanceView{
+			common.MapGetString(node.Object, "spec", "externalID"),
+			"",
+			common.MapGetString(node.Object, "status", "nodeInfo", "kernelVersion"),
+			ip,
+			common.MapGetString(node.Object, "metadata", "labels", "failure-domain.beta.kubernetes.io/zone"),
+			true,
+			"",
+			0,
+			0,
+			0,
+		}
+	}
+
+	return instanceViews
+}
+
+func printInstanceTable(writer io.Writer, instances []*InstanceView) {
+	table := CreateTableSection(writer, EnvironmentAMITableHeader)
+
+	for _, instance := range instances {
+		table.Append([]string{
+			instance.instanceID,
+			instance.instanceType,
+			instance.amiID,
+			instance.instanceIP,
+			instance.availZone,
+			fmt.Sprintf(BoolStringFormat, instance.ready),
+			instance.status,
+			fmt.Sprintf(IntStringFormat, instance.taskCount),
+			fmt.Sprintf(IntStringFormat, instance.cpuAvail),
+			fmt.Sprintf(IntStringFormat, instance.memAvail),
 		})
 	}
 
-	return table
+	table.Render()
+}
+
+type InstanceView struct {
+	instanceID   string
+	instanceType string
+	amiID        string
+	instanceIP   string
+	availZone    string
+	ready        bool
+	status       string
+	taskCount    int64
+	cpuAvail     int64
+	memAvail     int64
 }
