@@ -284,6 +284,7 @@ func printInstanceTable(writer io.Writer, instances []*InstanceView) {
 	table.Render()
 }
 
+// InstanceView representation of view
 type InstanceView struct {
 	instanceID   string
 	instanceType string
