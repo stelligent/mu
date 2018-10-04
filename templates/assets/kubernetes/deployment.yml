@@ -26,6 +26,24 @@ spec:
         image: {{ .ImageUrl }}
         ports:
         - containerPort: {{ .ServicePort }}
+        readinessProbe:
+          httpGet:
+            port: {{ .ServicePort }}
+            path: {{ .ServiceHealthEndpoint }}
+            scheme: {{ .ServiceHealthProto }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            port: {{ .ServicePort }}
+            path: {{ .ServiceHealthEndpoint }}
+            scheme: {{ .ServiceHealthProto }}
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 3
+          successThreadhold: 2
+          failureThreshold: 5
 ---
 
 kind: Service

@@ -259,14 +259,16 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
 		nextAvailablePriority := 0
-		if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
-			params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
-			nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
-		}
-		if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
-			params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
-			if nextAvailablePriority == 0 {
-				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
+		if workflow.lbStack != nil {
+			if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
+				params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
+				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+			}
+			if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
+				params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
+				if nextAvailablePriority == 0 {
+					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
+				}
 			}
 		}
 
@@ -401,9 +403,14 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			servicePort = service.Port
 		}
 
-		serviceProto := "http"
+		serviceProto := common.ServiceProtocolHTTP
 		if service.Protocol != "" {
-			serviceProto = strings.ToLower(string(service.Protocol))
+			serviceProto = string(service.Protocol)
+		}
+
+		serviceHealthEndpoint := "/health"
+		if service.HealthEndpoint != "" {
+			serviceHealthEndpoint = service.HealthEndpoint
 		}
 
 		pathPatterns := service.PathPatterns
@@ -412,13 +419,15 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 		}
 
 		templateData := map[string]interface{}{
-			"Namespace":    fmt.Sprintf("mu-service-%s", workflow.serviceName),
-			"ServiceName":  workflow.serviceName,
-			"ServicePort":  servicePort,
-			"ServiceProto": serviceProto,
-			"PathPatterns": pathPatterns,
-			"HostPatterns": service.HostPatterns,
-			"ImageUrl":     workflow.serviceImage,
+			"Namespace":             fmt.Sprintf("mu-service-%s", workflow.serviceName),
+			"ServiceName":           workflow.serviceName,
+			"ServicePort":           servicePort,
+			"ServiceProto":          strings.ToLower(serviceProto),
+			"PathPatterns":          pathPatterns,
+			"HostPatterns":          service.HostPatterns,
+			"ImageUrl":              workflow.serviceImage,
+			"ServiceHealthEndpoint": serviceHealthEndpoint,
+			"ServiceHealthProto":    strings.ToUpper(serviceProto),
 		}
 
 		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)
