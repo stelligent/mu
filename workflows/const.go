@@ -1,12 +1,13 @@
 package workflows
 
 import (
-	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
-	"github.com/op/go-logging"
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("workflows")
@@ -18,7 +19,7 @@ var Bold = color.New(color.Bold).SprintFunc()
 var SvcPipelineTableHeader = []string{SvcStageHeader, SvcActionHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcEnvironmentTableHeader is the header array for the environment table
-var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcStackHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
+var SvcEnvironmentTableHeader = []string{EnvironmentHeader, SvcRevisionHeader, SvcStatusHeader, SvcLastUpdateHeader}
 
 // SvcTaskContainerHeader is the header for container task detail
 var SvcTaskContainerHeader = []string{"Environment", "Container", "Task", "Instance"}

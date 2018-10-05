@@ -155,14 +155,14 @@ func (workflow *environmentWorkflow) environmentEksNodeLoader(instances *[]*inst
 			*instances = append(*instances, &instanceView{
 				common.MapGetString(node.Object, "spec", "externalID"),
 				"",
-				common.MapGetString(node.Object, "status", "nodeInfo", "kernelVersion"),
+				"",
 				ip,
 				common.MapGetString(node.Object, "metadata", "labels", "failure-domain.beta.kubernetes.io/zone"),
 				true,
 				"",
-				0,
-				0,
-				0,
+				-1,
+				-1,
+				-1,
 			})
 		}
 
