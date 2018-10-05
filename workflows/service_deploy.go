@@ -428,6 +428,8 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			"ImageUrl":              workflow.serviceImage,
 			"ServiceHealthEndpoint": serviceHealthEndpoint,
 			"ServiceHealthProto":    strings.ToUpper(serviceProto),
+			"Revision":              workflow.codeRevision,
+			"MuVersion":             common.GetVersion(),
 		}
 
 		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)

@@ -2,6 +2,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Namespace }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
 
 ---
 apiVersion: apps/v1beta2
@@ -9,6 +14,11 @@ kind: Deployment
 metadata:
   name: {{ .ServiceName }}-deployment
   namespace: {{ .Namespace }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
 spec:
   replicas: 3
   selector:
@@ -20,6 +30,11 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .ServiceName }}-deployment
         app.kubernetes.io/part-of: {{ .ServiceName }}
+    annotations:
+      mu/type: service
+      mu/service: {{ .ServiceName }}
+      mu/revision: {{ .Revision }}
+      mu/version: {{ .MuVersion }}
     spec:
       containers:
       - name: {{ .ServiceName }}
@@ -54,6 +69,11 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ .ServiceName }}-service
     app.kubernetes.io/part-of: {{ .ServiceName }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
 spec:
   selector:
     app.kubernetes.io/name: {{ .ServiceName }}-deployment
@@ -71,6 +91,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
   name: {{ .ServiceName }}-ingress
   namespace: {{ .Namespace }}
 spec:
