@@ -14,6 +14,18 @@ service:
   port: 80
   pathPatterns:
     - /*
+  database:
+    name: sample
+    engine: aurora
+    engineMode: serverless
+
+  ## Map environment variables from one's provided as secrets
+  environment:
+    DB_HOST: $(DatabaseEndpointAddress)
+    DB_PORT: $(DatabaseEndpointPort)
+    DB_USERNAME: $(DatabaseMasterUsername)
+    DB_PASSWORD: $(DatabaseMasterPassword)
+
 
 ## The resources can be customized below
 templates:

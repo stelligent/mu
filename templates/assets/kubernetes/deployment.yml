@@ -39,6 +39,33 @@ spec:
       containers:
       - name: {{ .ServiceName }}
         image: {{ .ImageUrl }}
+        env:
+        {{if .DatabaseSecretName}}
+        - name: DatabaseEndpointAddress
+          valueFrom:
+            secretKeyRef:
+              name: {{.DatabaseSecretName}}
+              key: address
+        - name: DatabaseEndpointPort
+          valueFrom:
+            secretKeyRef:
+              name: {{.DatabaseSecretName}}
+              key: port
+        - name: DatabaseMasterUsername
+          valueFrom:
+            secretKeyRef:
+              name: {{.DatabaseSecretName}}
+              key: username
+        - name: DatabaseMasterPassword
+          valueFrom:
+            secretKeyRef:
+              name: {{.DatabaseSecretName}}
+              key: password
+        {{end}}
+        {{range $name, $value := .EnvVariables}}
+        - name: {{$name}}
+          value: {{$value}}
+        {{end}}
         ports:
         - containerPort: {{ .ServicePort }}
         readinessProbe:

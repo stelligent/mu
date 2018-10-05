@@ -361,6 +361,7 @@ const (
 	TemplateVPC                    = "cloudformation/vpc.yml"
 	TemplateK8sCluster             = "kubernetes/cluster.yml"
 	TemplateK8sDeployment          = "kubernetes/deployment.yml"
+	TemplateK8sDatabase            = "kubernetes/database.yml"
 	TemplateK8sIngress             = "kubernetes/ingress.yml"
 )
 

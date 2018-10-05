@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -44,6 +45,7 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.connectKubernetes(ctx.KubernetesResourceManagerProvider),
+				workflow.serviceEksDBSecret(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
 				workflow.serviceEksDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
 				// TODO - placeholder for doing serviceCreateSchedules for EKS, leaving out-of-scope
 			), nil),
@@ -392,6 +394,28 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 	}
 }
 
+func (workflow *serviceWorkflow) serviceEksDBSecret(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
+	return func() error {
+		if stackParams["DatabaseName"] == "" {
+			return nil
+		}
+		log.Noticef("Deploying database secrets for '%s' in '%s'", workflow.serviceName, environmentName)
+
+		params := make(map[string]string)
+		params["ServiceName"] = service.Name
+		params["Namespace"] = fmt.Sprintf("mu-service-%s", workflow.serviceName)
+		params["Revision"] = workflow.codeRevision
+		params["MuVersion"] = common.GetVersion()
+
+		paramKeysToCopy := []string{"DatabaseName", "DatabaseEndpointAddress", "DatabaseEndpointPort", "DatabaseMasterUsername", "DatabaseMasterPassword"}
+		for _, key := range paramKeysToCopy {
+			params[key] = base64.StdEncoding.EncodeToString([]byte(stackParams[key]))
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDatabase, params)
+	}
+}
+
 func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
 	return func() error {
 		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
@@ -418,6 +442,7 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			pathPatterns[idx] = strings.TrimRight(pattern, "*")
 		}
 
+		resolveServiceEnvironment(service, environmentName)
 		templateData := map[string]interface{}{
 			"Namespace":             fmt.Sprintf("mu-service-%s", workflow.serviceName),
 			"ServiceName":           workflow.serviceName,
@@ -430,6 +455,11 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			"ServiceHealthProto":    strings.ToUpper(serviceProto),
 			"Revision":              workflow.codeRevision,
 			"MuVersion":             common.GetVersion(),
+			"EnvVariables":          service.Environment,
+		}
+
+		if stackParams["DatabaseName"] != "" {
+			templateData["DatabaseSecretName"] = fmt.Sprintf("%s-database", workflow.serviceName)
 		}
 
 		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)
