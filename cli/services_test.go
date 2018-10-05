@@ -3,11 +3,12 @@ package cli
 import (
 	"errors"
 	"flag"
+	"io/ioutil"
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"testing"
 )
 
 func TestNewServicesCommand(t *testing.T) {
@@ -34,7 +35,7 @@ func TestNewServicesShowCommand(t *testing.T) {
 
 	assertion.NotNil(command)
 	assertion.Equal(ShowCmd, command.Name, NameMessage)
-	assertion.Equal(2, len(command.Flags), FlagLenMessage)
+	assertion.Equal(1, len(command.Flags), FlagLenMessage)
 	assertion.Equal(SvcShowUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 }

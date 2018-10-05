@@ -75,10 +75,6 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				Value: FormatFlagDefault,
 			},
 			cli.BoolFlag{
-				Name:  "tasks, t",
-				Usage: "show task detail",
-			},
-			cli.BoolFlag{
 				Name:  "watch, w",
 				Usage: "watch results",
 			},
@@ -91,9 +87,8 @@ func newEnvironmentsShowCommand(ctx *common.Context) *cli.Command {
 				return errors.New(NoEnvValidation)
 			}
 
-			viewTasks := c.Bool("tasks")
 			watch := c.Bool("watch")
-			workflow := workflows.NewEnvironmentViewer(ctx, c.String(Format), environmentName, viewTasks, os.Stdout)
+			workflow := workflows.NewEnvironmentViewer(ctx, c.String(Format), environmentName, os.Stdout)
 			for true {
 				if watch {
 					print("\033[H\033[2J")

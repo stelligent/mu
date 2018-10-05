@@ -5,70 +5,162 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/stelligent/mu/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// InstanceView representation of instance
+type instanceView struct {
+	instanceID   string
+	instanceType string
+	amiID        string
+	instanceIP   string
+	availZone    string
+	ready        bool
+	status       string
+	taskCount    int64
+	cpuAvail     int64
+	memAvail     int64
+}
+
+// ServiceView representation of service
+type serviceView struct {
+	name         string
+	revision     string
+	status       string
+	statusReason string
+	lastUpdate   string
+}
+
+// EnvironmentView representation of environment
+type environmentView struct {
+	name          string
+	provider      common.EnvProvider
+	clusterName   string
+	clusterStatus string
+	vpcName       string
+	vpcStatus     string
+	bastionHost   string
+	baseURL       string
+	instances     []*instanceView
+	services      []*serviceView
+}
+
 // NewEnvironmentViewer create a new workflow for showing an environment
-func NewEnvironmentViewer(ctx *common.Context, format string, environmentName string, viewTasks bool, writer io.Writer) Executor {
+func NewEnvironmentViewer(ctx *common.Context, format string, environmentName string, writer io.Writer) Executor {
 
 	workflow := new(environmentWorkflow)
+	view := new(environmentView)
 
 	var environmentViewer func() error
 	if format == JSON {
-		environmentViewer = workflow.environmentViewerJSON(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+		environmentViewer = workflow.environmentViewerJSON(view, writer)
 	} else if format == SHELL {
-		environmentViewer = workflow.environmentViewerSHELL(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, writer)
+		environmentViewer = workflow.environmentViewerSHELL(view, writer)
 	} else {
-		environmentViewer = workflow.environmentViewerCli(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, ctx.KubernetesResourceManagerProvider, viewTasks, writer)
+		environmentViewer = workflow.environmentViewerCLI(view, writer)
 	}
 
 	return newPipelineExecutor(
+		workflow.environmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.ClusterManager, ctx.InstanceManager, ctx.TaskManager, ctx.KubernetesResourceManagerProvider, view),
 		environmentViewer,
 	)
 }
 
-func (workflow *environmentWorkflow) environmentViewerJSON(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentLoader(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, k8sProvider common.KubernetesResourceManagerProvider, view *environmentView) Executor {
 	return func() error {
 		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		lbStack, _ := stackGetter.GetStack(lbStackName)
 
 		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
-		clusterStack, _ := stackGetter.GetStack(clusterStackName)
-
-		output := common.JSONOutput{}
-		if lbStack != nil {
-			output.Values[FirstValueIndex].Key = BaseURLKey
-			output.Values[FirstValueIndex].Value = lbStack.Outputs[BaseURLValueKey]
-		} else if clusterStack != nil {
-			output.Values[FirstValueIndex].Key = BaseURLKey
-			output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
+		clusterStack, err := stackGetter.GetStack(clusterStackName)
+		if err != nil {
+			return err
 		}
 
-		enc := json.NewEncoder(writer)
-		enc.Encode(&output)
+		vpcStackName := common.CreateStackName(namespace, common.StackTypeVpc, environmentName)
+		vpcStack, _ := stackGetter.GetStack(vpcStackName)
+
+		workflow.environment = &common.Environment{
+			Name:     environmentName,
+			Provider: common.EnvProvider(clusterStack.Tags["provider"]),
+		}
+		kubernetesResourceManager, err := k8sProvider.GetResourceManager(clusterStackName)
+		workflow.kubernetesResourceManager = kubernetesResourceManager
+
+		view.name = environmentName
+		view.provider = common.EnvProvider(clusterStack.Tags["provider"])
+		view.clusterName = clusterStackName
+		view.clusterStatus = clusterStack.Status
+		view.vpcName = vpcStackName
+		view.vpcStatus = vpcStack.Status
+		view.bastionHost = vpcStack.Outputs[BastionHostKey]
+
+		if clusterStack.Tags["provider"] == string(common.EnvProviderEks) {
+			ingressList, err := workflow.kubernetesResourceManager.ListResources("v1", "Service", "mu-ingress")
+			for _, ingress := range ingressList.Items {
+				if common.MapGetString(ingress.Object, "metadata", "name") == "nginx-ingress-service" {
+					host := common.MapGetString(ingress.Object, "status", "loadBalancer", "ingress", 0, "hostname")
+					proto := common.MapGetString(ingress.Object, "spec", "ports", 0, "name")
+					view.baseURL = fmt.Sprintf("%s://%s", proto, host)
+				}
+			}
+
+			nodes, err := workflow.kubernetesResourceManager.ListResources("v1", "Node", "")
+			if err != nil {
+				return err
+			}
+			view.instances = buildInstanceViewForEKS(nodes)
+		} else {
+			if lbStack != nil {
+				view.baseURL = lbStack.Outputs[BaseURLValueKey]
+			} else {
+				view.baseURL = clusterStack.Outputs[BaseURLValueKey]
+			}
+			if clusterStack.Tags["provider"] == string(common.EnvProviderEcs) {
+				containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
+				if err != nil {
+					return err
+				}
+
+				instanceIds := make([]string, len(containerInstances))
+				for i, containerInstance := range containerInstances {
+					instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
+				}
+				instances, err := instanceLister.ListInstances(instanceIds...)
+				if err != nil {
+					return err
+				}
+
+				view.instances = buildInstanceViewForECS(containerInstances, instances)
+			}
+
+			view.services, err = buildServiceViewForECS(namespace, "", environmentName, stackLister)
+			if err != nil {
+				return err
+			}
+		}
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerSHELL(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, instanceLister common.ClusterInstanceLister, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerJSON(view *environmentView, writer io.Writer) Executor {
 	return func() error {
-		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
-		lbStack, _ := stackGetter.GetStack(lbStackName)
-
-		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
-		clusterStack, _ := stackGetter.GetStack(clusterStackName)
-
 		output := common.JSONOutput{}
-		if lbStack != nil {
-			output.Values[FirstValueIndex].Key = BaseURLKey
-			output.Values[FirstValueIndex].Value = lbStack.Outputs[BaseURLValueKey]
-		} else if clusterStack != nil {
-			output.Values[FirstValueIndex].Key = BaseURLKey
-			output.Values[FirstValueIndex].Value = clusterStack.Outputs[BaseURLValueKey]
-		}
+		output.Values[0].Key = BaseURLKey
+		output.Values[0].Value = view.baseURL
+
+		enc := json.NewEncoder(writer)
+		return enc.Encode(&output)
+	}
+}
+
+func (workflow *environmentWorkflow) environmentViewerSHELL(view *environmentView, writer io.Writer) Executor {
+	return func() error {
+		output := common.JSONOutput{}
+		output.Values[0].Key = BaseURLKey
+		output.Values[0].Value = view.baseURL
 
 		for _, val := range output.Values {
 			fmt.Fprintf(writer, "%s=%s\n", val.Key, val.Value)
@@ -78,80 +170,30 @@ func (workflow *environmentWorkflow) environmentViewerSHELL(namespace string, en
 	}
 }
 
-func (workflow *environmentWorkflow) environmentViewerCli(namespace string, environmentName string, stackGetter common.StackGetter, stackLister common.StackLister, clusterInstanceLister common.ClusterInstanceLister, instanceLister common.InstanceLister, taskManager common.TaskManager, kubernetesResourceManagerProvider common.KubernetesResourceManagerProvider, viewTasks bool, writer io.Writer) Executor {
+func (workflow *environmentWorkflow) environmentViewerCLI(view *environmentView, writer io.Writer) Executor {
 	return func() error {
-		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
-		lbStack, err := stackGetter.GetStack(lbStackName)
 
-		clusterStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
-		clusterStack, err := stackGetter.GetStack(clusterStackName)
-
-		vpcStackName := common.CreateStackName(namespace, common.StackTypeVpc, environmentName)
-		vpcStack, _ := stackGetter.GetStack(vpcStackName)
-
-		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), environmentName)
-		if clusterStack != nil {
-			fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), clusterStack.Name, colorizeStackStatus(clusterStack.Status))
+		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), view.name)
+		if view.clusterName != "" {
+			fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), view.clusterName, colorizeStackStatus(view.clusterStatus))
 		}
 
-		if vpcStack == nil {
+		if view.vpcStatus == "" {
 			fmt.Fprintf(writer, UnmanagedStackFormat, Bold(VPCStack))
 		} else {
-			fmt.Fprintf(writer, StackFormat, Bold(VPCStack), vpcStack.Name, colorizeStackStatus(vpcStack.Status))
-			fmt.Fprintf(writer, HeaderValueFormat, Bold(BastionHost), vpcStack.Outputs[BastionHostKey])
+			fmt.Fprintf(writer, StackFormat, Bold(VPCStack), view.vpcName, colorizeStackStatus(view.vpcStatus))
+			fmt.Fprintf(writer, HeaderValueFormat, Bold(BastionHost), view.bastionHost)
 		}
+		fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), view.baseURL)
 
-		if lbStack != nil {
-			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), lbStack.Outputs[BaseURLValueKey])
-		} else if clusterStack != nil {
-			fmt.Fprintf(writer, HeaderValueFormat, Bold(BaseURLHeader), clusterStack.Outputs[BaseURLValueKey])
-		}
-
-		if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEcs) {
+		if len(view.instances) > 0 {
 			fmt.Fprintf(writer, HeadNewlineHeader, Bold(ContainerInstances))
-			containerInstances, err := clusterInstanceLister.ListInstances(clusterStack.Outputs[ECSClusterKey])
-			if err != nil {
-				return err
-			}
-
-			instanceIds := make([]string, len(containerInstances))
-			for i, containerInstance := range containerInstances {
-				instanceIds[i] = common.StringValue(containerInstance.Ec2InstanceId)
-			}
-			instances, err := instanceLister.ListInstances(instanceIds...)
-			if err != nil {
-				return err
-			}
-
-			instanceViews := buildInstanceViewForECS(containerInstances, instances)
-			printInstanceTable(writer, instanceViews)
-		} else if clusterStack != nil && clusterStack.Tags["provider"] == string(common.EnvProviderEks) {
-
-			workflow.environment = &common.Environment{
-				Name: environmentName,
-			}
-			workflow.connectKubernetes(namespace, kubernetesResourceManagerProvider)()
-
-			nodes, err := workflow.kubernetesResourceManager.ListResources("v1", "Node", "")
-			if err != nil {
-				return err
-			}
-			instanceViews := buildInstanceViewForEKS(nodes)
-			printInstanceTable(writer, instanceViews)
+			printInstanceTable(view.instances, writer)
 		}
 
 		fmt.Fprint(writer, NewLine)
 		fmt.Fprintf(writer, HeadNewlineHeader, Bold(ServicesHeader))
-		stacks, err := stackLister.ListStacks(common.StackTypeService, namespace)
-		if err != nil {
-			return err
-		}
-		table := buildServiceTable(stacks, environmentName, writer)
-		table.Render()
-
-		if viewTasks {
-			buildContainerTable(namespace, taskManager, stacks, environmentName, writer)
-		}
+		printServiceTable(view.services, writer)
 
 		fmt.Fprint(writer, NewLine)
 
@@ -159,41 +201,28 @@ func (workflow *environmentWorkflow) environmentViewerCli(namespace string, envi
 	}
 }
 
-func buildContainerTable(namespace string, taskManager common.TaskManager, stacks []*common.Stack, environmentName string, writer io.Writer) {
-	for _, stackValues := range stacks {
-		if stackValues.Tags[EnvTagKey] != environmentName {
-			continue
-		}
-		doViewTasks(namespace, taskManager, writer, stacks, stackValues.Tags[SvcTagKey])
-	}
-}
-
-func buildServiceTable(stacks []*common.Stack, environmentName string, writer io.Writer) *tablewriter.Table {
+func printServiceTable(services []*serviceView, writer io.Writer) {
 	table := CreateTableSection(writer, ServiceTableHeader)
 
-	for _, stackValues := range stacks {
-		if stackValues.Tags[EnvTagKey] != environmentName {
-			continue
-		}
-
+	for _, service := range services {
 		table.Append([]string{
-			Bold(stackValues.Tags[SvcTagKey]),
-			stackValues.Tags["revision"],
-			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(stackValues.Status), stackValues.StatusReason),
-			stackValues.LastUpdateTime.Local().Format(LastUpdateTime),
+			Bold(service.name),
+			service.revision,
+			fmt.Sprintf(KeyValueFormat, colorizeStackStatus(service.status), service.statusReason),
+			service.lastUpdate,
 		})
 	}
 
-	return table
+	table.Render()
 }
 
-func buildInstanceViewForECS(containerInstances []common.ContainerInstance, instances []common.Instance) []*InstanceView {
+func buildInstanceViewForECS(containerInstances []common.ContainerInstance, instances []common.Instance) []*instanceView {
 	instanceIps := make(map[string]string)
 	for _, instance := range instances {
 		instanceIps[common.StringValue(instance.InstanceId)] = common.StringValue(instance.PrivateIpAddress)
 	}
 
-	instanceViews := make([]*InstanceView, len(containerInstances))
+	instanceViews := make([]*instanceView, len(containerInstances))
 
 	for i, instance := range containerInstances {
 		instanceType := UnknownValue
@@ -219,7 +248,7 @@ func buildInstanceViewForECS(containerInstances []common.ContainerInstance, inst
 				memAvail = common.Int64Value(resource.IntegerValue)
 			}
 		}
-		instanceViews[i] = &InstanceView{
+		instanceViews[i] = &instanceView{
 			common.StringValue(instance.Ec2InstanceId),
 			instanceType,
 			amiID,
@@ -236,8 +265,35 @@ func buildInstanceViewForECS(containerInstances []common.ContainerInstance, inst
 	return instanceViews
 }
 
-func buildInstanceViewForEKS(nodes *unstructured.UnstructuredList) []*InstanceView {
-	instanceViews := make([]*InstanceView, len(nodes.Items))
+func buildServiceViewForECS(namespace string, serviceName string, environmentName string, stackLister common.StackLister) ([]*serviceView, error) {
+	stacks, err := stackLister.ListStacks(common.StackTypeService, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	services := make([]*serviceView, 0)
+	for _, stackValues := range stacks {
+		if environmentName != "" && stackValues.Tags[EnvTagKey] != environmentName {
+			continue
+		}
+		if serviceName != "" && stackValues.Tags[SvcTagKey] != serviceName {
+			continue
+		}
+
+		services = append(services, &serviceView{
+			stackValues.Tags[SvcTagKey],
+			stackValues.Tags["revision"],
+			stackValues.Status,
+			stackValues.StatusReason,
+			stackValues.LastUpdateTime.Local().Format(LastUpdateTime),
+		})
+	}
+
+	return services, nil
+}
+
+func buildInstanceViewForEKS(nodes *unstructured.UnstructuredList) []*instanceView {
+	instanceViews := make([]*instanceView, len(nodes.Items))
 	for i, node := range nodes.Items {
 		var ip string
 		addresses := common.MapGetSlice(node.Object, "status", "addresses")
@@ -246,7 +302,7 @@ func buildInstanceViewForEKS(nodes *unstructured.UnstructuredList) []*InstanceVi
 				ip = common.MapGetString(address, "address")
 			}
 		}
-		instanceViews[i] = &InstanceView{
+		instanceViews[i] = &instanceView{
 			common.MapGetString(node.Object, "spec", "externalID"),
 			"",
 			common.MapGetString(node.Object, "status", "nodeInfo", "kernelVersion"),
@@ -263,7 +319,7 @@ func buildInstanceViewForEKS(nodes *unstructured.UnstructuredList) []*InstanceVi
 	return instanceViews
 }
 
-func printInstanceTable(writer io.Writer, instances []*InstanceView) {
+func printInstanceTable(instances []*instanceView, writer io.Writer) {
 	table := CreateTableSection(writer, EnvironmentAMITableHeader)
 
 	for _, instance := range instances {
@@ -282,18 +338,4 @@ func printInstanceTable(writer io.Writer, instances []*InstanceView) {
 	}
 
 	table.Render()
-}
-
-// InstanceView representation of view
-type InstanceView struct {
-	instanceID   string
-	instanceType string
-	amiID        string
-	instanceIP   string
-	availZone    string
-	ready        bool
-	status       string
-	taskCount    int64
-	cpuAvail     int64
-	memAvail     int64
 }

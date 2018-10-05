@@ -74,7 +74,7 @@ func TestNewEnvironmentsShowCommand(t *testing.T) {
 	assertion.NotNil(command)
 	assertion.Equal(ShowCmd, command.Name, NameMessage)
 	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
-	assertion.Equal(3, len(command.Flags), FlagLenMessage)
+	assertion.Equal(2, len(command.Flags), FlagLenMessage)
 	assertion.Equal(FormatFlag, command.Flags[SvcShowFormatFlagIndex].GetName(), FlagMessage)
 	assertion.NotNil(command.Action)
 }

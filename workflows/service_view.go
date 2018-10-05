@@ -9,17 +9,17 @@ import (
 )
 
 // NewServiceViewer create a new workflow for showing an environment
-func NewServiceViewer(ctx *common.Context, serviceName string, viewTasks bool, writer io.Writer) Executor {
+func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer) Executor {
 
 	workflow := new(serviceWorkflow)
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceViewer(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, viewTasks, writer),
+		workflow.serviceViewer(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, ctx.PipelineManager, ctx.TaskManager, ctx.Config, writer),
 	)
 }
 
-func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, viewTasks bool, writer io.Writer) Executor {
+func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister common.StackLister, stackGetter common.StackGetter, pipelineStateLister common.PipelineStateLister, taskManager common.TaskManager, config common.Config, writer io.Writer) Executor {
 
 	return func() error {
 		stacks, err := stackLister.ListStacks(common.StackTypeService, namespace)
@@ -51,10 +51,6 @@ func (workflow *serviceWorkflow) serviceViewer(namespace string, stackLister com
 
 		table := buildEnvTable(writer, stacks, workflow.serviceName)
 		table.Render()
-
-		if viewTasks {
-			doViewTasks(namespace, taskManager, writer, stacks, workflow.serviceName)
-		}
 
 		return nil
 	}
@@ -109,37 +105,4 @@ func buildEnvTable(writer io.Writer, stacks []*common.Stack, serviceName string)
 		})
 	}
 	return table
-}
-
-func doViewTasks(namespace string, taskManager common.TaskManager, writer io.Writer, stacks []*common.Stack, serviceName string) error {
-	containersTable := CreateTableSection(writer, SvcTaskContainerHeader)
-	for _, stack := range stacks {
-		if stack.Tags[SvcTagKey] != serviceName && len(serviceName) != Zero {
-			continue
-		}
-		if len(serviceName) == Zero {
-			serviceName = stack.Tags[SvcTagKey]
-		}
-		tasks, err := taskManager.ListTasks(namespace, stack.Tags[EnvTagKey], serviceName)
-		if err != nil {
-			return err
-		}
-
-		for _, task := range tasks {
-			for _, container := range task.Containers {
-				containersTable.Append([]string{
-					stack.Tags[EnvTagKey],
-					container.Name,
-					Bold(task.Name),
-					container.Instance,
-				})
-			}
-		}
-
-	}
-
-	fmt.Fprintf(writer, SvcContainersFormat, Bold(SvcContainersLabel), Bold(serviceName))
-	containersTable.Render()
-
-	return nil
 }

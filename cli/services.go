@@ -2,12 +2,13 @@ package cli
 
 import (
 	"errors"
-	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/workflows"
-	"github.com/urfave/cli"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stelligent/mu/workflows"
+	"github.com/urfave/cli"
 )
 
 func newServicesCommand(ctx *common.Context) *cli.Command {
@@ -36,19 +37,14 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 		ArgsUsage: SvcShowUsage,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
-				Name:  "tasks, t",
-				Usage: "show task detail",
-			},
-			cli.BoolFlag{
 				Name:  "watch, w",
 				Usage: "watch results",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
-			viewTasks := c.Bool("tasks")
 			watch := c.Bool("watch")
-			workflow := workflows.NewServiceViewer(ctx, service, viewTasks, ctx.DockerOut)
+			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
 			for true {
 				if watch {
 					print("\033[H\033[2J")
