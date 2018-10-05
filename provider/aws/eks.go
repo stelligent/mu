@@ -119,8 +119,8 @@ func (eksMgr *eksKubernetesResourceManager) UpsertResources(templateName string,
 
 	// apply new values
 	templateBody, err := templates.GetAsset(templateName,
-		templates.ExecuteTemplate(templateData),
-		templates.DecorateTemplate(eksMgr.extensionsManager, ""))
+		templates.DecorateTemplate(eksMgr.extensionsManager, ""),
+		templates.ExecuteTemplate(templateData))
 
 	if err != nil {
 		return err
@@ -180,7 +180,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(resourceBody string) 
 		return err
 	}
 
-	resourceType := stub.Kind
+	resourceKind := stub.Kind
 	resourceNamespace := stub.Metadata.Namespace
 	resourceName := stub.Metadata.Name
 
@@ -202,7 +202,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(resourceBody string) 
 		}
 	}
 
-	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceType, resourceName)
+	resourceURN := fmt.Sprintf("%s-%s-%s", eksMgr.name, resourceKind, resourceName)
 	resourceBody, err = templates.DecorateTemplate(eksMgr.extensionsManager, resourceURN)("", resourceBody)
 	if err != nil {
 		return err
@@ -228,7 +228,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(resourceBody string) 
 	}
 
 	if exists {
-		log.Infof("  Patching namespace:%s type:%s name:%s", resourceNamespace, resourceType, resourceName)
+		log.Infof("  Patching namespace:%s type:%s name:%s", resourceNamespace, resourceKind, resourceName)
 		s, err := json.Marshal(resource.UnstructuredContent())
 		if err != nil {
 			return err
@@ -237,7 +237,7 @@ func (eksMgr *eksKubernetesResourceManager) upsertResource(resourceBody string) 
 			return err
 		}
 	} else {
-		log.Infof("  Creating namespace:%s type:%s name:%s", resourceNamespace, resourceType, resourceName)
+		log.Infof("  Creating namespace:%s type:%s name:%s", resourceNamespace, resourceKind, resourceName)
 		if _, err := resourceClient.Namespace(resourceNamespace).Create(resource); err != nil {
 			return err
 		}

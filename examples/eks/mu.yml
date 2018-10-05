@@ -24,3 +24,7 @@ templates:
           username: casey-lee
           groups:
           - system:masters
+
+## entire spec files can be replaced with extentions
+extensions:
+  - url: custom-ingress

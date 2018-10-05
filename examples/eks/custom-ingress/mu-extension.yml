@@ -1,0 +1,5 @@
+name: k8s
+version: '1.0'
+
+## use 'templateUpdateMode: replace' to completely replace a template
+templateUpdateMode: replace
