@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 )
 
@@ -354,7 +355,7 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
 		envStack := stackWaiter.AwaitFinalStatus(envStackName)
 
-		if envStack == nil {
+		if envStack == nil || envStack.Status == cloudformation.StackStatusRollbackComplete {
 			log.Debugf("Attempting to bootstrap stack '%s'", envStackName)
 
 			stackParams := make(map[string]string)

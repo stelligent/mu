@@ -94,7 +94,7 @@ Parameters:
   BastionInstanceType:
     Description: Bastion Instance Type to launch
     Type: String
-    Default: 't2.micro'
+    Default: 't3.nano'
   BastionKeyName:
     Description: SSH Key to add to bastion
     Type: String

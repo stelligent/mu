@@ -1,4 +1,15 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Namespace }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
+
+---
+apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:

@@ -8,7 +8,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: Instance type to use.
-    Default: t2.micro
+    Default: t3.micro
   DesiredCapacity:
     Type: Number
     Default: '1'

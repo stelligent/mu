@@ -402,7 +402,7 @@ func (workflow *serviceWorkflow) serviceEksDBSecret(namespace string, service *c
 		log.Noticef("Deploying database secrets for '%s' in '%s'", workflow.serviceName, environmentName)
 
 		params := make(map[string]string)
-		params["ServiceName"] = service.Name
+		params["ServiceName"] = workflow.serviceName
 		params["Namespace"] = fmt.Sprintf("mu-service-%s", workflow.serviceName)
 		params["Revision"] = workflow.codeRevision
 		params["MuVersion"] = common.GetVersion()

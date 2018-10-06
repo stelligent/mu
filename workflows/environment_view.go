@@ -196,7 +196,7 @@ func (workflow *environmentWorkflow) environmentEcsInstanceLoader(namespace stri
 	return func() error {
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		containerInstances, err := clusterInstanceLister.ListInstances(clusterName)
-		if err != nil {
+		if err == nil {
 			return err
 		}
 

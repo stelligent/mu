@@ -508,10 +508,24 @@ Resources:
             - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${AcptEnv}
             Effect: Allow
           - Action:
+            - ec2:CreateSecurityGroup
+            - ec2:DescribeSecurityGroups
+            - ec2:AuthorizeSecurityGroupEgress
+            - ec2:RevokeSecurityGroupEgress
+            - ec2:CreateTags
+            - ec2:DescribeTags
+            Resource: '*'
+            Effect: Allow
+          - Action:
             - ssm:GetParameters
             - ssm:PutParameter
             Resource:
             - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${AcptEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
+            - ssm:DescribeParameters
+            Resource:
+            - '*'
             Effect: Allow
           - Action:
             - rds:ModifyDBInstance
@@ -533,12 +547,17 @@ Resources:
           - Action:
             - ec2:DescribeImages
             - ec2:DescribeAvailabilityZones
+            - ec2:DescribeInstances
+            - ecs:DescribeContainerInstances
+            - ecs:ListContainerInstances
             - elasticloadbalancing:DescribeRules
             Resource: '*'
             Effect: Allow
           - Action:
             - iam:PassRole
-            Resource: !Ref AcptCloudFormationRoleArn
+            Resource: 
+            - !Ref AcptCloudFormationRoleArn
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-environment-${AcptEnv}-eks-service-${AWS::Region}
             Effect: Allow
 
   MuProdRole:
@@ -596,10 +615,24 @@ Resources:
             - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${ProdEnv}
             Effect: Allow
           - Action:
+            - ec2:CreateSecurityGroup
+            - ec2:AuthorizeSecurityGroupEgress
+            - ec2:DescribeSecurityGroups
+            - ec2:RevokeSecurityGroupEgress
+            - ec2:CreateTags
+            - ec2:DescribeTags
+            Resource: '*'
+            Effect: Allow
+          - Action:
             - ssm:GetParameters
             - ssm:PutParameter
             Resource:
             - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Namespace}-database-${ServiceName}-${ProdEnv}-DatabaseMasterPassword
+            Effect: Allow
+          - Action:
+            - ssm:DescribeParameters
+            Resource:
+            - '*'
             Effect: Allow
           - Action:
             - rds:ModifyDBInstance
@@ -621,12 +654,17 @@ Resources:
           - Action:
             - ec2:DescribeImages
             - ec2:DescribeAvailabilityZones
+            - ec2:DescribeInstances
+            - ecs:DescribeContainerInstances
+            - ecs:ListContainerInstances
             - elasticloadbalancing:DescribeRules
             Resource: '*'
             Effect: Allow
           - Action:
             - iam:PassRole
-            Resource: !Ref ProdCloudFormationRoleArn
+            Resource: 
+            - !Ref ProdCloudFormationRoleArn
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-environment-${ProdEnv}-eks-service-${AWS::Region}
             Effect: Allow
 Outputs:
   CodePipelineKeyArn:
