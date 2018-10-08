@@ -143,7 +143,7 @@ func newTemplateOverrideExtension(stackNamePattern string, template interface{})
 
 // DecorateStackTemplate from overrides in mu.yml
 func (ext *templateOverrideExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
-	if ext.stackNameMatcher.MatchString(stackName) {
+	if stackName != "" && ext.stackNameMatcher.MatchString(stackName) {
 		return decorateTemplate(inTemplate, ext.decoration)
 	}
 	return inTemplate, nil
@@ -331,16 +331,25 @@ func newTemplateArchiveExtension(extensionURL *url.URL, artifactManager Artifact
 
 // DecorateStackTemplate from template files in archive
 func (ext *templateArchiveExtension) DecorateStackTemplate(assetName string, stackName string, inTemplate io.Reader) (io.Reader, error) {
+	if assetName == "" {
+		return inTemplate, nil
+	}
 	outTemplate := inTemplate
 	assetPath := filepath.Join(ext.path, assetName)
+
+	if _, err := os.Stat(assetPath); os.IsNotExist(err) {
+		log.Debugf("Path missing, trying without directory: %s", assetPath)
+		_, assetName = filepath.Split(assetPath)
+		assetPath = filepath.Join(ext.path, assetName)
+	}
 
 	if ext.mode == TemplateUpdateReplace {
 		f, err := os.Open(assetPath)
 		if err != nil {
-			log.Debugf("Error trying to replace template: %v", err)
+			log.Debugf("Error trying to replace template '%s': %v", assetName, err)
 			return inTemplate, nil
 		}
-		log.Debugf("Replacing input template")
+		log.Debugf("Replacing input template '%s'", assetName)
 		return f, nil
 	}
 

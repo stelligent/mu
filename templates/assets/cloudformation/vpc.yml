@@ -94,7 +94,7 @@ Parameters:
   BastionInstanceType:
     Description: Bastion Instance Type to launch
     Type: String
-    Default: 't2.micro'
+    Default: 't3.nano'
   BastionKeyName:
     Description: SSH Key to add to bastion
     Type: String
@@ -103,6 +103,10 @@ Parameters:
     Description: Number of availability zones to use
     Type: String
     Default: '3'
+  EKSClusterName:
+    Description: Name to use for EKS cluster (leave blank unless provider type is eks)
+    Type: String
+    Default: ''
 Conditions:
   HasElbSubnetAZ1:
     "Fn::Not":
@@ -149,6 +153,11 @@ Conditions:
       - "Fn::Equals":
         - !Ref ElbInternal
         - 'true'
+  IsEKS:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref EKSClusterName
+        - ''
   HasBastion:
     "Fn::And":
       - "Fn::Not":
@@ -510,6 +519,16 @@ Resources:
         Value: !If [ IsPublicElb, "Public", "Private" ]
       - Key: Name
         Value: !Sub ${AWS::StackName}-elb-1
+      - Fn::If:
+        - IsEKS
+        - Key: kubernetes.io/role/elb
+          Value: 1
+        - !Ref AWS::NoValue
+      - Fn::If:
+        - IsEKS
+        - Key: !Sub kubernetes.io/cluster/${EKSClusterName}
+          Value: shared
+        - !Ref AWS::NoValue
   ElbSubnetAZ2:
     Type: AWS::EC2::Subnet
     Condition: HasElbSubnetAZ2
@@ -526,6 +545,16 @@ Resources:
         Value: !If [ IsPublicElb, "Public", "Private" ]
       - Key: Name
         Value: !Sub ${AWS::StackName}-elb-2
+      - Fn::If:
+        - IsEKS
+        - Key: kubernetes.io/role/elb
+          Value: 1
+        - !Ref AWS::NoValue
+      - Fn::If:
+        - IsEKS
+        - Key: !Sub kubernetes.io/cluster/${EKSClusterName}
+          Value: shared
+        - !Ref AWS::NoValue
   ElbSubnetAZ3:
     Type: AWS::EC2::Subnet
     Condition: HasElbSubnetAZ3
@@ -542,6 +571,16 @@ Resources:
         Value: !If [ IsPublicElb, "Public", "Private" ]
       - Key: Name
         Value: !Sub ${AWS::StackName}-elb-3
+      - Fn::If:
+        - IsEKS
+        - Key: kubernetes.io/role/elb
+          Value: 1
+        - !Ref AWS::NoValue
+      - Fn::If:
+        - IsEKS
+        - Key: !Sub kubernetes.io/cluster/${EKSClusterName}
+          Value: shared
+        - !Ref AWS::NoValue
   ElbRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:

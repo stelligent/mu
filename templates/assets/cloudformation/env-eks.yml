@@ -1,26 +1,33 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: MU environment containing an ECS cluster and instances for running containers
+Description: MU environment containing an EKS cluster and instances for running containers
 Parameters:
+  EksServiceRoleArn:
+    Type: String
+    Description: ARN of IAM role for EKS service to use
   EC2InstanceProfileArn:
     Type: String
     Description: ARN of instance profile for EC2 instance to assume
   InstanceType:
     Type: String
     Description: Instance type to use.
-    Default: t2.micro
+    Default: t2.medium
+  BootstrapArguments:
+    Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
+    Default: ""
+    Type: String
   MinSize:
     Type: Number
     Default: '1'
-    Description: Minimum number of instances that can be launched in your ECS cluster
+    Description: Minimum number of instances that can be launched in your EKS cluster
   DesiredCapacity:
     Type: Number
     Default: '1'
-    Description: Number of instances to launch in your ECS cluster
+    Description: Number of instances to launch in your EKS cluster
   MaxSize:
     Type: Number
     Default: '2'
-    Description: Maximum number of instances that can be launched in your ECS cluster
+    Description: Maximum number of instances that can be launched in your EKS cluster
   KeyName:
     Type: String
     Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
@@ -32,39 +39,26 @@ Parameters:
     MaxLength: '18'
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
-  TargetCPUReservation:
-    Description: Target CPU reservation % for autoscaling
-    Type: Number
-    Default: '75'
-  TargetMemoryReservation:
-    Description: Target Memory reservation % for autoscaling
-    Type: Number
-    Default: '75'
   ImageId:
-    Description: ECS AMI to launch
+    Description: EKS AMI to launch
     Type: String
     Default: ''
   ImageOsType:
-    Description: OS Type for ECS AMI
+    Description: OS Type for EKS AMI
     Type: String
     Default: 'amazon'
     AllowedValues:
     - 'amazon'
-    - 'centos7'
-    - 'windows'
   InstanceSubnetIds:
     Type: String
-    Description: Name of the value to import for the ecs subnet ids
+    Description: Name of the value to import for the instance subnet ids
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId
   HttpProxy:
     Type: String
-    Description: Proxy to use from ECS cluster instances (host:port)
+    Description: Proxy to use from EKS cluster instances (host:port)
     Default: ''
-  ElbSecurityGroup:
-    Type: String
-    Description: The security group to add to the ECS instance for ELB access
   LaunchType:
     Type: String
     Description: Launch type for services
@@ -98,9 +92,9 @@ Metadata:
       SshAllow:
         default: "CIDR block to grant SSH access?"
       DesiredCapacity:
-        default: "Desired ECS cluster instance count?"
+        default: "Desired EKS cluster instance count?"
       MaxSize:
-        default: "Maximum ECS cluster instance count?"
+        default: "Maximum EKS cluster instance count?"
 Conditions:
   HasKeyName:
     "Fn::Not":
@@ -111,59 +105,147 @@ Conditions:
     "Fn::Equals":
       - !Ref LaunchType
       - 'EC2'
-
 Resources:
-  EcsCluster:
-    Type: AWS::ECS::Cluster
+  EksCluster:
+    Type: AWS::EKS::Cluster
     Properties:
-      ClusterName: !Ref AWS::StackName
-  InstanceSecurityGroup:
+      Name: !Ref AWS::StackName
+      RoleArn: !Ref EksServiceRoleArn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+        - !GetAtt ClusterControlPlaneSecurityGroup.GroupId
+        SubnetIds:
+          Fn::Split:
+          - ","
+          - Fn::ImportValue: !Sub ${InstanceSubnetIds}
+
+  ClusterControlPlaneSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
-      GroupDescription: Microservice Host Security Group
+      GroupDescription: Control Plane Security Group
+
+  NodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for all nodes in the cluster
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: '22'
         ToPort: '22'
         CidrIp: !Ref SshAllow
-  Host2HostRuleIngress:
+      Tags:
+      - Key: !Sub "kubernetes.io/cluster/${AWS::StackName}"
+        Value: 'owned'
+
+  NodeSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow node to communicate with each other
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: '-1'
+      FromPort: 0
+      ToPort: 65535
+
+  NodeSecurityGroupFromControlPlaneIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow worker Kubelets and pods to receive communication from the cluster control plane
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  ControlPlaneEgressToNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow the cluster control plane to communicate with worker Kubelet and pods
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1025
+      ToPort: 65535
+
+  ClusterControlPlaneSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow pods to communicate with the cluster API Server
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      ToPort: 443
+      FromPort: 443
+
+  Node2NodeSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: tcp
       FromPort: '0'
       ToPort: '65535'
-      SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
-      GroupId: !GetAtt InstanceSecurityGroup.GroupId
-  Host2InternetEgress:
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      GroupId: !Ref NodeSecurityGroup
+
+  Node2InternetEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       IpProtocol: 'tcp'
       FromPort: '0'
       ToPort: '65535'
       CidrIp: '0.0.0.0/0'
-      GroupId: !GetAtt InstanceSecurityGroup.GroupId
-  Host2HostRuleEgress:
+      GroupId: !Ref NodeSecurityGroup
+
+  Node2NodeRuleEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       IpProtocol: tcp
       FromPort: '0'
       ToPort: '65535'
-      DestinationSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
-      GroupId: !GetAtt InstanceSecurityGroup.GroupId
-  EcsAutoScalingGroup:
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      GroupId: !Ref NodeSecurityGroup
+
+  NodeSecurityGroupFromControlPlaneOn443Ingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow pods running extension API servers on port 443 to receive communication from cluster control plane
+      GroupId: !Ref NodeSecurityGroup
+      SourceSecurityGroupId: !Ref ClusterControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  ControlPlaneEgressToNodeSecurityGroupOn443:
+    Type: AWS::EC2::SecurityGroupEgress
+    DependsOn: NodeSecurityGroup
+    Properties:
+      Description: Allow the cluster control plane to communicate with pods running extension API servers on port 443
+      GroupId: !Ref ClusterControlPlaneSecurityGroup
+      DestinationSecurityGroupId: !Ref NodeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+
+  EksAutoScalingGroup:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
     - ClusterLogGroup
-    - Host2InternetEgress
+    - Node2InternetEgress
     Properties:
       VPCZoneIdentifier:
         Fn::Split:
         - ","
         - Fn::ImportValue: !Sub ${InstanceSubnetIds}
-      LaunchConfigurationName: !Ref ContainerInstances
+      LaunchConfigurationName: !Ref WorkerInstances
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
@@ -171,6 +253,9 @@ Resources:
       - Key: Name
         Value: !Ref AWS::StackName
         PropagateAtLaunch: true
+      - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}'
+        Value: 'owned'
+        PropagateAtLaunch: 'true'
     CreationPolicy:
       ResourceSignal:
         Timeout: PT15M
@@ -180,40 +265,7 @@ Resources:
         MaxBatchSize: '1'
         PauseTime: PT15M
         WaitOnResourceSignals: 'true'
-  CPUReservationPolicy:
-    Condition: HasLaunchTypeEC2
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref EcsAutoScalingGroup
-      Cooldown: 300
-      PolicyType: TargetTrackingScaling
-      TargetTrackingConfiguration:
-        CustomizedMetricSpecification:
-          Dimensions: 
-            - Name: ClusterName
-              Value: !Ref EcsCluster
-          MetricName: CPUReservation
-          Namespace: AWS/ECS
-          Statistic: Average
-        TargetValue: !Ref TargetCPUReservation
-  MemoryReservationPolicy:
-    Condition: HasLaunchTypeEC2
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: !Ref EcsAutoScalingGroup
-      Cooldown: 300
-      PolicyType: TargetTrackingScaling
-      TargetTrackingConfiguration:
-        CustomizedMetricSpecification:
-          Dimensions: 
-            - Name: ClusterName
-              Value: !Ref EcsCluster
-          MetricName: MemoryReservation
-          Namespace: AWS/ECS
-          Statistic: Average
-        TargetValue: !Ref TargetMemoryReservation
+
   InventoryAssociation:
     Condition: HasLaunchTypeEC2
     Type: AWS::SSM::Association
@@ -240,8 +292,9 @@ Resources:
         - Enabled
       Targets:
       - Key: tag:aws:autoscaling:groupName	
-        Values: [!Ref EcsAutoScalingGroup]
-  ContainerInstances:
+        Values: [!Ref EksAutoScalingGroup]
+
+  WorkerInstances:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -250,14 +303,10 @@ Resources:
           amazon:
             - commonLinux
             - amazonLinux
-          centos7:
-            - commonLinux
         amazonLinux:
           packages:
             yum:
               awslogs: []
-              jq: []
-              aws-cli: []
           files:
             "/etc/awslogs/awscli.conf":
               content: !Sub |
@@ -272,7 +321,7 @@ Resources:
                 sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           services:
             sysvinit:
-              awslogs:
+              awslogsd:
                 enabled: 'true'
                 ensureRunning: 'true'
                 files:
@@ -298,8 +347,8 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
-                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region}
+                path=Resources.WorkerInstances.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WorkerInstances --configsets ${ImageOsType} --region ${AWS::Region}
                 runas=root
             "/etc/awslogs/etc/proxy.conf":
               content: !Sub |
@@ -333,12 +382,6 @@ Resources:
                 log_stream_name = instance/docker/{instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%S.%f
 
-                [ecs]
-                file = /var/log/ecs/*
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/ecs/{instance_id}
-                datetime_format = %Y-%m-%dT%H:%M:%SZ
-
                 [cloud-init]
                 file = /var/log/cloud-init*
                 log_group_name = ${AWS::StackName}
@@ -357,16 +400,18 @@ Resources:
                 log_stream_name = instance/ssm/{instance_id}
                 datetime_format = %Y-%m-%d %H:%M:%S
 
+            "/etc/kubernetes/pki/ca.enc":
+              content: !GetAtt EksCluster.CertificateAuthorityData
           commands:
-            01_add_instance_to_cluster:
+            01_kube_config:
               command: !Sub |
-                #!/bin/bash
-                echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
+               #!/bin/bash
+               set -o xtrace
+               /etc/eks/bootstrap.sh ${EksCluster} ${BootstrapArguments}
     Properties:
       ImageId: !Ref ImageId
       SecurityGroups:
-      - !Ref InstanceSecurityGroup
-      - !Ref ElbSecurityGroup
+      - !Ref NodeSecurityGroup
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfileArn
       KeyName:
@@ -403,23 +448,16 @@ Resources:
               service docker restart
             fi
 
-            # Set ECS agent HTTP proxy
-            if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
-              echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
-              echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
-              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
-            fi
-
             CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
           fi
 
           ${ExtraUserData}
 
-          yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource WorkerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EksAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
 
           --==BOUNDARY==
+              
   ClusterLogGroup:
     Condition: HasLaunchTypeEC2
     Type: AWS::Logs::LogGroup
@@ -430,7 +468,7 @@ Outputs:
   InstanceSubnetIds:
     Value:
       Fn::ImportValue: !Sub ${InstanceSubnetIds}
-    Description: Subnet Ids for the ECS cluster
+    Description: Subnet Ids for the EKS cluster
     Export:
       Name: !Sub ${AWS::StackName}-InstanceSubnetIds
   VpcId:
@@ -439,13 +477,11 @@ Outputs:
     Description: Vpc Id for the environment
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
-  EcsCluster:
-    Value: !Ref EcsCluster
-    Description: Name of the ECS cluster.
-    Export:
-      Name: !Sub ${AWS::StackName}-EcsCluster
+  EksClusterName:
+    Value: !Ref EksCluster
+    Description: Name of the EKS cluster.
   InstanceSecurityGroup:
-    Value: !Ref InstanceSecurityGroup
+    Value: !Ref NodeSecurityGroup
     Description: Security Group ID for the microservice instances
     Export:
       Name: !Sub ${AWS::StackName}-InstanceSecurityGroup

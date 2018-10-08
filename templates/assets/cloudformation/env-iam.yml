@@ -1,0 +1,190 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU IAM roles for an environment
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
+  Provider:
+    Type: String
+    Description: Provider type for services
+    Default: "ecs"
+    AllowedValues:
+      - "ecs"
+      - "ecs-fargate"
+      - "eks"
+      - "eks-fargate"
+      - "ec2"
+Conditions:
+  IsEcsService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs'
+  IsEcsFargateService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'ecs-fargate'
+  IsEksService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'eks'
+  IsEksFargateService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'eks-fargate'
+  HasEksServiceRole:
+    "Fn::Or":
+      - !Condition IsEksService
+      - !Condition IsEksFargateService
+  HasEC2InstanceProfile:
+    "Fn::Or":
+      - !Condition IsEksService
+      - !Condition IsEcsService
+
+Resources:
+  EksServiceRole:
+    Type: AWS::IAM::Role
+    Condition: HasEksServiceRole
+    Properties:
+      RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-eks-service-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKSServicePolicy
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEKSClusterPolicy
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: HasEC2InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref EC2Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Condition: HasEC2InstanceProfile
+    Properties:
+      RoleName: !Sub ${Namespace}-environment-${EnvironmentName}-instance-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        Fn::If:
+        - IsEksService
+        - - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy
+        - - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Policies:
+      - Fn::If:
+        - IsEcsService
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+              - ecs:RegisterContainerInstance
+              - ecs:DeregisterContainerInstance
+              - ecs:SubmitContainerStateChange
+              - ecs:SubmitTaskStateChange
+              Resource: !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:StartTelemetrySession
+              - ecs:Poll
+              Resource: "*"
+              Condition:
+                ArnEquals:
+                  "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:StartTask
+              Resource: "*"
+              Condition:
+                ArnEquals:
+                  "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+            - Effect: Allow
+              Action:
+              - ecs:DiscoverPollEndpoint
+              Resource: "*"
+        - !Ref AWS::NoValue
+      - PolicyName: env-common
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - ssm:DescribeAssociation
+            - ssm:GetDocument
+            - ssm:GetManifest
+            - ssm:ListAssociations
+            - ssm:ListInstanceAssociations
+            - ssm:PutInventory
+            - ssm:PutComplianceItems
+            - ssm:PutConfigurePackageResult
+            - ssm:UpdateAssociationStatus
+            - ssm:UpdateInstanceAssociationStatus
+            - ssm:UpdateInstanceInformation
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - ssmmessages:CreateControlChannel
+            - ssmmessages:CreateDataChannel
+            - ssmmessages:OpenControlChannel
+            - ssmmessages:OpenDataChannel
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - ec2messages:AcknowledgeMessage
+            - ec2messages:DeleteMessage
+            - ec2messages:FailMessage
+            - ec2messages:GetEndpoint
+            - ec2messages:GetMessages
+            - ec2messages:SendReply
+            Resource: "*"
+  WaitHandle:
+    Type: "AWS::CloudFormation::WaitConditionHandle"
+Outputs:
+  EC2InstanceProfileArn:
+    Description: Instance profile for container instances
+    Value:
+      Fn::If:
+      - HasEC2InstanceProfile
+      - !GetAtt EC2InstanceProfile.Arn
+      - ''
+  EC2RoleArn:
+    Description: IAM Role for container instances
+    Value:
+      Fn::If:
+      - HasEC2InstanceProfile
+      - !GetAtt EC2Role.Arn
+      - ''
+  EksServiceRoleArn:
+    Description: IAM role ARN for EKS clusters
+    Value:
+      Fn::If:
+      - HasEksServiceRole
+      - !GetAtt EksServiceRole.Arn
+      - ''

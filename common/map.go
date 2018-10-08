@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -108,4 +109,128 @@ func valueOfInterface(v reflect.Value) reflect.Value {
 		return v
 	}
 	return reflect.ValueOf(v.Interface())
+}
+
+// ConvertMapI2MapS walks the given dynamic object recursively, and
+// converts maps with interface{} key type to maps with string key type.
+// This function comes handy if you want to marshal a dynamic object into
+// JSON where maps with interface{} key type are not allowed.
+//
+// Recursion is implemented into values of the following types:
+//   -map[interface{}]interface{}
+//   -map[string]interface{}
+//   -[]interface{}
+//
+// When converting map[interface{}]interface{} to map[string]interface{},
+// fmt.Sprint() with default formatting is used to convert the key to a string key.
+func ConvertMapI2MapS(v interface{}) interface{} {
+	switch x := v.(type) {
+	case map[interface{}]interface{}:
+		m := map[string]interface{}{}
+		for k, v2 := range x {
+			switch k2 := k.(type) {
+			case string: // Fast check if it's already a string
+				m[k2] = ConvertMapI2MapS(v2)
+			default:
+				m[fmt.Sprint(k)] = ConvertMapI2MapS(v2)
+			}
+		}
+		v = m
+
+	case []interface{}:
+		for i, v2 := range x {
+			x[i] = ConvertMapI2MapS(v2)
+		}
+
+	case map[string]interface{}:
+		for k, v2 := range x {
+			x[k] = ConvertMapI2MapS(v2)
+		}
+
+	case int:
+		return int64(v.(int))
+	case uint:
+		return int64(v.(uint))
+	case uint8:
+		return int64(v.(uint8))
+	case uint16:
+		return int64(v.(uint16))
+	case uint32:
+		return int64(v.(uint32))
+	case uint64:
+		return int64(v.(uint64))
+	}
+
+	return v
+}
+
+// MapGet returns a value denoted by the path.
+//
+// If path is empty or nil, v is returned.
+func MapGet(v interface{}, path ...interface{}) interface{} {
+	for _, el := range path {
+		switch node := v.(type) {
+		case map[string]interface{}:
+			key, ok := el.(string)
+			if !ok {
+				return nil
+			}
+			v, ok = node[key]
+			if !ok {
+				return nil
+			}
+
+		case map[interface{}]interface{}:
+			var ok bool
+			v, ok = node[el]
+			if !ok {
+				return nil
+			}
+
+		case []interface{}:
+			idx, ok := el.(int)
+			if !ok {
+				return nil
+			}
+			if idx < 0 || idx >= len(node) {
+				return nil
+			}
+			v = node[idx]
+
+		default:
+			return nil
+		}
+	}
+
+	return v
+}
+
+// MapGetSlice returns a value denoted by the path.
+//
+// If path is empty or nil, v is returned.
+func MapGetSlice(v interface{}, path ...interface{}) []interface{} {
+	v = MapGet(v, path...)
+	if v == nil {
+		return nil
+	}
+	s, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	return s
+}
+
+// MapGetString returns a string value denoted by the path.
+//
+// If path is empty or nil, v is returned as a string.
+func MapGetString(v interface{}, path ...interface{}) string {
+	v = MapGet(v, path...)
+	if v == nil {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return s
 }

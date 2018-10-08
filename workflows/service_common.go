@@ -27,6 +27,7 @@ type serviceWorkflow struct {
 	cloudFormationRoleArn         string
 	microserviceTaskDefinitionArn string
 	ecsEventsRoleArn              string
+	kubernetesResourceManager     common.KubernetesResourceManager
 }
 
 // Find a service in config, by name and set the reference
@@ -94,6 +95,12 @@ func (workflow *serviceWorkflow) isEcsProvider() Conditional {
 			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
 	}
 }
+func (workflow *serviceWorkflow) isEksProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEks)) ||
+			strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEksFargate))
+	}
+}
 func (workflow *serviceWorkflow) isFargateProvider() Conditional {
 	return func() bool {
 		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate))
@@ -145,7 +152,7 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(ecrStackName, "repo.yml", nil, stackParams, tags, "", "")
+		err := stackUpserter.UpsertStack(ecrStackName, common.TemplateRepo, nil, stackParams, tags, "", "")
 		if err != nil {
 			return err
 		}
@@ -178,7 +185,7 @@ func (workflow *serviceWorkflow) serviceAppUpserter(namespace string, service *c
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(appStackName, "app.yml", nil, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(appStackName, common.TemplateApp, nil, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -212,7 +219,7 @@ func (workflow *serviceWorkflow) serviceBucketUpserter(namespace string, service
 				Type: common.StackTypeBucket,
 			})
 
-			err := stackUpserter.UpsertStack(bucketStackName, "bucket.yml", nil, bucketParams, tags, "", workflow.cloudFormationRoleArn)
+			err := stackUpserter.UpsertStack(bucketStackName, common.TemplateBucket, nil, bucketParams, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}
@@ -251,5 +258,14 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 
 		workflow.registryAuth = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("{\"username\":\"%s\", \"password\":\"%s\"}", authParts[0], authParts[1])))
 		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) connectKubernetes(provider common.KubernetesResourceManagerProvider) Executor {
+	return func() error {
+		clusterName := workflow.envStack.Name
+		kubernetesResourceManager, err := provider.GetResourceManager(clusterName)
+		workflow.kubernetesResourceManager = kubernetesResourceManager
+		return err
 	}
 }

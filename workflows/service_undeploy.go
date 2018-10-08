@@ -2,8 +2,9 @@ package workflows
 
 import (
 	"fmt"
-	"github.com/stelligent/mu/common"
 	"strings"
+
+	"github.com/stelligent/mu/common"
 )
 
 // NewServiceUndeployer create a new workflow for undeploying a service in an environment
@@ -13,7 +14,14 @@ func NewServiceUndeployer(ctx *common.Context, serviceName string, environmentNa
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),
-		workflow.serviceUndeployer(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
+		newConditionalExecutor(workflow.isEksProvider(),
+			newPipelineExecutor(
+				workflow.connectKubernetes(ctx.KubernetesResourceManagerProvider),
+				workflow.serviceEksUndeployer(environmentName),
+			),
+			workflow.serviceUndeployer(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		),
 	)
 }
 
@@ -36,6 +44,14 @@ func (workflow *serviceWorkflow) serviceUndeployer(namespace string, environment
 		}
 
 		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceEksUndeployer(environmentName string) Executor {
+	return func() error {
+		log.Noticef("Undeploying service '%s' from '%s'", workflow.serviceName, environmentName)
+
+		return workflow.kubernetesResourceManager.DeleteResource("v1", "Namespace", "", fmt.Sprintf("mu-service-%s", workflow.serviceName))
 	}
 }
 

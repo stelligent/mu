@@ -41,8 +41,8 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 				return fmt.Errorf("Config file already exists - '%s/mu.yml'.  Use --force to overwrite", basedir)
 			}
 
-			log.Debugf("Checking for existing buildspec file at %s/%s", basedir, common.TemplateBuildspec)
-			if _, err := os.Stat(fmt.Sprintf("%s/%s", basedir, common.TemplateBuildspec)); err == nil {
+			log.Debugf("Checking for existing buildspec file at %s/buildspec.yml", basedir)
+			if _, err := os.Stat(fmt.Sprintf("%s/buildspec.yml", basedir)); err == nil {
 				return fmt.Errorf("buildspec file already exists - '%s/buildspec.yml'.  Use --force to overwrite", basedir)
 			}
 		}
@@ -84,9 +84,9 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		}
 		buildspecBytes := []byte(buildspec)
 
-		log.Noticef("Writing buildspec to '%s/%s'", basedir, common.TemplateBuildspec)
+		log.Noticef("Writing buildspec to '%s/buildspec.yml'", basedir)
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/%s", basedir, common.TemplateBuildspec), buildspecBytes, 0600)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes, 0600)
 		if err != nil {
 			return err
 		}

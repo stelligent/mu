@@ -168,6 +168,9 @@ Resources:
             - ecs:DescribeClusters
             - ecs:CreateCluster
             - ecs:DeleteCluster
+            - eks:DescribeCluster
+            - eks:CreateCluster
+            - eks:DeleteCluster
             - autoscaling:CreateLaunchConfiguration
             - autoscaling:DescribeLaunchConfigurations
             - autoscaling:DeleteLaunchConfiguration
@@ -213,6 +216,7 @@ Resources:
             - iam:PassRole
             Resource:
             - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-environment-*-instance-${AWS::Region}
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-environment-*-eks-service-${AWS::Region}
             Effect: Allow
       - PolicyName: deploy-service
         PolicyDocument:

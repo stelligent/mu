@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -29,7 +30,8 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceApplyEcsParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
 				workflow.serviceEcsDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 				workflow.serviceCreateSchedules(ctx.Config.Namespace, &ctx.Config.Service, environmentName, ctx.StackManager, ctx.StackManager),
-			),
+			), nil),
+		newConditionalExecutor(workflow.isEc2Provider(),
 			newPipelineExecutor(
 				workflow.serviceBucketUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
 				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
@@ -37,8 +39,16 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceApplyEc2Params(stackParams, ctx.RolesetManager),
 				workflow.serviceEc2Deployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
 				// TODO - placeholder for doing serviceCreateSchedules for EC2, leaving out-of-scope per @cplee
-			),
-		),
+			), nil),
+		newConditionalExecutor(workflow.isEksProvider(),
+			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
+				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.connectKubernetes(ctx.KubernetesResourceManagerProvider),
+				workflow.serviceEksDBSecret(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
+				workflow.serviceEksDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
+				// TODO - placeholder for doing serviceCreateSchedules for EKS, leaving out-of-scope
+			), nil),
 	)
 }
 
@@ -251,14 +261,16 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
 		nextAvailablePriority := 0
-		if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
-			params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
-			nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
-		}
-		if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
-			params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
-			if nextAvailablePriority == 0 {
-				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
+		if workflow.lbStack != nil {
+			if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
+				params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
+				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+			}
+			if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
+				params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
+				if nextAvailablePriority == 0 {
+					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
+				}
 			}
 		}
 
@@ -330,7 +342,7 @@ func (workflow *serviceWorkflow) serviceEc2Deployer(namespace string, service *c
 			Revision:    workflow.codeRevision,
 			Repo:        workflow.repoName,
 		})
-		err := stackUpserter.UpsertStack(svcStackName, "service-ec2.yml", service, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, common.TemplateServiceEC2, service, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -364,7 +376,7 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(svcStackName, "service-ecs.yml", service, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(svcStackName, common.TemplateServiceECS, service, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -379,6 +391,78 @@ func (workflow *serviceWorkflow) serviceEcsDeployer(namespace string, service *c
 		workflow.microserviceTaskDefinitionArn = stack.Outputs["MicroserviceTaskDefinitionArn"]
 
 		return nil
+	}
+}
+
+func (workflow *serviceWorkflow) serviceEksDBSecret(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
+	return func() error {
+		if stackParams["DatabaseName"] == "" {
+			return nil
+		}
+		log.Noticef("Deploying database secrets for '%s' in '%s'", workflow.serviceName, environmentName)
+
+		params := make(map[string]string)
+		params["ServiceName"] = workflow.serviceName
+		params["Namespace"] = fmt.Sprintf("mu-service-%s", workflow.serviceName)
+		params["Revision"] = workflow.codeRevision
+		params["MuVersion"] = common.GetVersion()
+
+		paramKeysToCopy := []string{"DatabaseName", "DatabaseEndpointAddress", "DatabaseEndpointPort", "DatabaseMasterUsername", "DatabaseMasterPassword"}
+		for _, key := range paramKeysToCopy {
+			params[key] = base64.StdEncoding.EncodeToString([]byte(stackParams[key]))
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDatabase, params)
+	}
+}
+
+func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
+	return func() error {
+		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
+
+		resolveServiceEnvironment(service, environmentName)
+
+		servicePort := 8080
+		if service.Port != 0 {
+			servicePort = service.Port
+		}
+
+		serviceProto := common.ServiceProtocolHTTP
+		if service.Protocol != "" {
+			serviceProto = string(service.Protocol)
+		}
+
+		serviceHealthEndpoint := "/health"
+		if service.HealthEndpoint != "" {
+			serviceHealthEndpoint = service.HealthEndpoint
+		}
+
+		pathPatterns := service.PathPatterns
+		for idx, pattern := range pathPatterns {
+			pathPatterns[idx] = strings.TrimRight(pattern, "*")
+		}
+
+		resolveServiceEnvironment(service, environmentName)
+		templateData := map[string]interface{}{
+			"Namespace":             fmt.Sprintf("mu-service-%s", workflow.serviceName),
+			"ServiceName":           workflow.serviceName,
+			"ServicePort":           servicePort,
+			"ServiceProto":          strings.ToLower(serviceProto),
+			"PathPatterns":          pathPatterns,
+			"HostPatterns":          service.HostPatterns,
+			"ImageUrl":              workflow.serviceImage,
+			"ServiceHealthEndpoint": serviceHealthEndpoint,
+			"ServiceHealthProto":    strings.ToUpper(serviceProto),
+			"Revision":              workflow.codeRevision,
+			"MuVersion":             common.GetVersion(),
+			"EnvVariables":          service.Environment,
+		}
+
+		if stackParams["DatabaseName"] != "" {
+			templateData["DatabaseSecretName"] = fmt.Sprintf("%s-database", workflow.serviceName)
+		}
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)
 	}
 }
 
@@ -410,7 +494,7 @@ func (workflow *serviceWorkflow) serviceCreateSchedules(namespace string, servic
 				Type:        common.StackTypeSchedule,
 			})
 
-			err = stackUpserter.UpsertStack(scheduleStackName, "schedule.yml", service, params, tags, "", workflow.cloudFormationRoleArn)
+			err = stackUpserter.UpsertStack(scheduleStackName, common.TemplateSchedule, service, params, tags, "", workflow.cloudFormationRoleArn)
 			if err != nil {
 				return err
 			}

@@ -63,11 +63,12 @@ func DecorateTemplate(extMgr StackTemplateDecorator,
 	stackName string) AssetOption {
 	return func(assetName string, asset string) (string, error) {
 		assetBuf := bytes.NewBufferString(asset)
-		if _, err := extMgr.DecorateStackTemplate(assetName, stackName, assetBuf); err != nil {
+		newBuf, err := extMgr.DecorateStackTemplate(assetName, stackName, assetBuf)
+		if err != nil {
 			return "", err
 		}
 		templateBodyBytes := new(bytes.Buffer)
-		if _, err := templateBodyBytes.ReadFrom(assetBuf); err != nil {
+		if _, err := templateBodyBytes.ReadFrom(newBuf); err != nil {
 			return "", err
 		}
 		return templateBodyBytes.String(), nil

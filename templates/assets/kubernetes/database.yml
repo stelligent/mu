@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Namespace }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
+
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: {{ .ServiceName }}-database
+  namespace: {{ .Namespace }}
+  annotations:
+    mu/type: service
+    mu/service: {{ .ServiceName }}
+    mu/revision: {{ .Revision }}
+    mu/version: {{ .MuVersion }}
+data:
+  name: {{ .DatabaseName }}
+  address: {{ .DatabaseEndpointAddress }}
+  port: {{ .DatabaseEndpointPort }}
+  username: {{ .DatabaseMasterUsername }}
+  password: {{ .DatabaseMasterPassword }}

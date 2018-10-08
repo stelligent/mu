@@ -5,28 +5,49 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/stelligent/mu/common"
 )
 
+var ecsImageOwner = "amazon"
 var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+var eksImageOwner = "602401143452"
+var eksImagePattern = "amazon-eks-node-v*"
+var ec2ImageOwner = "amazon"
 var ec2ImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
 // NewEnvironmentUpserter create a new workflow for upserting an environment
 func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
-	ecsStackParams := make(map[string]string)
+	envStackParams := make(map[string]string)
 	elbStackParams := make(map[string]string)
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
+	serviceName := ctx.Config.Service.Name
+	if serviceName == "" {
+		serviceName = ctx.Config.Repo.Name
+	}
+
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
 		workflow.environmentNormalizer(),
-		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, ecsStackParams),
-		workflow.environmentVpcUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentElbUpserter(ctx.Config.Namespace, ecsStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentUpserter(ctx.Config.Namespace, ecsStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		workflow.environmentRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, envStackParams),
+		workflow.environmentVpcUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isKubernetesProvider(),
+			newPipelineExecutor(
+				workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager),
+				workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+				workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider),
+				workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace, serviceName, ctx.Region, ctx.AccountID, ctx.Partition),
+				workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace, ctx.Region, ctx.AccountID, ctx.Partition),
+			),
+			newPipelineExecutor(
+				workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+				workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
+			),
+		),
 	)
 }
 
@@ -45,7 +66,7 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 }
 
 func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
-	ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder,
+	envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder,
 	stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, azCounter common.AZCounter) Executor {
 	return func() error {
 		environment := workflow.environment
@@ -62,7 +83,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		} else if environment.VpcTarget.VpcID != "" {
 			log.Debugf("VpcTarget exists, so we will upsert the VPC stack that references the VPC attributes")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeTarget, environment.Name)
-			vpcTemplateName = "vpc-target.yml"
+			vpcTemplateName = common.TemplateVPCTarget
 
 			// target VPC referenced from config
 			vpcStackParams["VpcId"] = environment.VpcTarget.VpcID
@@ -71,7 +92,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		} else {
 			log.Debugf("No VpcTarget, so we will upsert the VPC stack that manages the VPC")
 			vpcStackName = common.CreateStackName(namespace, common.StackTypeVpc, environment.Name)
-			vpcTemplateName = "vpc.yml"
+			vpcTemplateName = common.TemplateVPC
 
 			common.NewMapElementIfNotEmpty(vpcStackParams, "InstanceTenancy", string(environment.Cluster.InstanceTenancy))
 
@@ -80,13 +101,17 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 
 			if environment.Cluster.KeyName != "" {
 				vpcStackParams["BastionKeyName"] = environment.Cluster.KeyName
-				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImagePattern)
+				vpcStackParams["BastionImageId"], err = imageFinder.FindLatestImageID(ec2ImageOwner, ec2ImagePattern)
 				if err != nil {
 					return err
 				}
 			}
 
 			vpcStackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
+
+			if environment.Provider == common.EnvProviderEks || environment.Provider == common.EnvProviderEksFargate {
+				vpcStackParams["EKSClusterName"] = common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+			}
 		}
 
 		azCount, err := azCounter.CountAZs()
@@ -125,8 +150,8 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 			}
 		}
 
-		ecsStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
-		ecsStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
+		envStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
+		envStackParams["InstanceSubnetIds"] = fmt.Sprintf("%s-InstanceSubnetIds", vpcStackName)
 
 		elbStackParams["VpcId"] = fmt.Sprintf("%s-VpcId", vpcStackName)
 		elbStackParams["ElbSubnetIds"] = fmt.Sprintf("%s-ElbSubnetIds", vpcStackName)
@@ -135,7 +160,7 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 	}
 }
 
-func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, ecsStackParams map[string]string) Executor {
+func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, envStackParams map[string]string) Executor {
 	return func() error {
 		err := rolesetUpserter.UpsertCommonRoleset()
 		if err != nil {
@@ -159,13 +184,17 @@ func (workflow *environmentWorkflow) environmentRolesetUpserter(rolesetUpserter 
 			return err
 		}
 
-		ecsStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
+		envStackParams["EC2InstanceProfileArn"] = environmentRoleset["EC2InstanceProfileArn"]
+		if workflow.environment.Provider == common.EnvProviderEks {
+			envStackParams["EksServiceRoleArn"] = environmentRoleset["EksServiceRoleArn"]
+		}
+		workflow.ec2RoleArn = environmentRoleset["EC2RoleArn"]
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ecsStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, envStackParams map[string]string, elbStackParams map[string]string, imageFinder common.ImageFinder, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		environment := workflow.environment
 		envStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environment.Name)
@@ -205,7 +234,7 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			Repo:        workflow.repoName,
 		})
 
-		err := stackUpserter.UpsertStack(envStackName, "elb.yml", environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		err := stackUpserter.UpsertStack(envStackName, common.TemplateELB, environment, stackParams, tags, "", workflow.cloudFormationRoleArn)
 		if err != nil {
 			return err
 		}
@@ -219,13 +248,13 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, ec
 			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 		}
 
-		ecsStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
+		envStackParams["ElbSecurityGroup"] = stack.Outputs["ElbInstanceSecurityGroup"]
 
 		return nil
 	}
 }
 
-func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsStackParams map[string]string,
+func (workflow *environmentWorkflow) environmentUpserter(namespace string, envStackParams map[string]string,
 	imageFinder common.ImageFinder, stackUpserter common.StackUpserter,
 	stackWaiter common.StackWaiter) Executor {
 	return func() error {
@@ -234,24 +263,41 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		environment := workflow.environment
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
 
-		stackParams := ecsStackParams
+		stackParams := envStackParams
 
 		var templateName string
 		var imagePattern string
+		var imageOwner string
 		envMapping := map[common.EnvProvider]map[string]string{
 			common.EnvProviderEcs: map[string]string{
-				"templateName": "env-ecs.yml",
+				"templateName": common.TemplateEnvECS,
 				"imagePattern": ecsImagePattern,
+				"imageOwner":   ecsImageOwner,
 				"launchType":   "EC2"},
 			common.EnvProviderEcsFargate: map[string]string{
-				"templateName": "env-ecs.yml",
+				"templateName": common.TemplateEnvECS,
 				"imagePattern": ecsImagePattern,
+				"imageOwner":   ecsImageOwner,
 				"launchType":   "FARGATE"},
+			common.EnvProviderEks: map[string]string{
+				"templateName": common.TemplateEnvEKS,
+				"imagePattern": eksImagePattern,
+				"imageOwner":   eksImageOwner,
+				"launchType":   "EC2"},
+			/*
+				common.EnvProviderEksFargate: map[string]string{
+				    "templateName": common.TemplateEnvEKS,
+					"imagePattern": eksImagePattern,
+					"imageOwner": eksImageOwner,
+					"launchType":   "FARGATE"},
+			*/
 			common.EnvProviderEc2: map[string]string{
-				"templateName": "env-ec2.yml",
-				"imagePattern": ec2ImagePattern}}
+				"templateName": common.TemplateEnvEC2,
+				"imagePattern": ec2ImagePattern,
+				"imageOwner":   ec2ImageOwner}}
 		templateName = envMapping[environment.Provider]["templateName"]
 		imagePattern = envMapping[environment.Provider]["imagePattern"]
+		imageOwner = envMapping[environment.Provider]["imageOwner"]
 		common.NewMapElementIfNotEmpty(stackParams, "LaunchType", envMapping[environment.Provider]["launchType"])
 
 		log.Noticef("Upserting environment '%s' ...", environment.Name)
@@ -265,7 +311,7 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 
 		if environment.Cluster.ImageID == "" {
 			var err error
-			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imagePattern)
+			stackParams["ImageId"], err = imageFinder.FindLatestImageID(imageOwner, imagePattern)
 			if err != nil {
 				return err
 			}
@@ -306,5 +352,87 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, ecsSt
 		}
 
 		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace string, envStackParams map[string]string, stackWaiter common.StackWaiter, stackUpserter common.StackUpserter) Executor {
+	return func() error {
+		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		envStack := stackWaiter.AwaitFinalStatus(envStackName)
+
+		if envStack == nil || envStack.Status == cloudformation.StackStatusRollbackComplete {
+			log.Debugf("Attempting to bootstrap stack '%s'", envStackName)
+
+			stackParams := make(map[string]string)
+			stackParams["VpcId"] = envStackParams["VpcId"]
+			stackParams["InstanceSubnetIds"] = envStackParams["InstanceSubnetIds"]
+			stackParams["EksServiceRoleArn"] = envStackParams["EksServiceRoleArn"]
+
+			tags := createTagMap(&EnvironmentTags{
+				Environment: workflow.environment.Name,
+				Type:        string(common.StackTypeEnv),
+				Provider:    string(workflow.environment.Provider),
+				Revision:    workflow.codeRevision,
+				Repo:        workflow.repoName,
+			})
+
+			err := stackUpserter.UpsertStack(envStackName, common.TemplateEnvEKSBootstrap, workflow.environment, stackParams, tags, "", "")
+			if err != nil {
+				return err
+			}
+			log.Debugf("Waiting for stack '%s' to complete", envStackName)
+			stack := stackWaiter.AwaitFinalStatus(envStackName)
+
+			if stack == nil {
+				return fmt.Errorf("Unable to create stack %s", envStackName)
+			}
+			if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+				return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+			}
+		} else {
+			log.Debugf("Stack '%s' has already been bootstrapped", envStackName)
+		}
+		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namespace string, serviceName string, region string, accountID string, partition string) Executor {
+	return func() error {
+
+		templateData := map[string]string{
+			"EC2RoleArn":  workflow.ec2RoleArn,
+			"AccountId":   accountID,
+			"MuNamespace": namespace,
+			"ServiceName": serviceName,
+			"Region":      region,
+			"Partition":   partition,
+		}
+
+		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		log.Noticef("Upserting kubernetes cluster '%s' ...", clusterName)
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sCluster, templateData)
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namespace string, region string, accountID string, partition string) Executor {
+	return func() error {
+
+		var elbCertArn string
+		if workflow.environment.Loadbalancer.Certificate != "" {
+			partition := partition
+			region := region
+			accountID := accountID
+			elbCertArn = fmt.Sprintf("arn:%s:acm:%s:%s:certificate/%s", partition, region, accountID, workflow.environment.Loadbalancer.Certificate)
+		}
+		templateData := map[string]interface{}{
+			"Namespace":  "mu-ingress",
+			"ElbCertArn": elbCertArn,
+		}
+
+		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
+		log.Noticef("Upserting kubernetes ingress in cluster '%s' ...", clusterName)
+
+		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sIngress, templateData)
 	}
 }

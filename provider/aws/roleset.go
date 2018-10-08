@@ -49,7 +49,8 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentRoleset(environmentName strin
 
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
-			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.EcsInstance)
+			overrideRole(roleset, "EC2InstanceProfileArn", e.Roles.Instance)
+			overrideRole(roleset, "EksServiceRoleArn", e.Roles.EksService)
 			break
 		}
 	}
@@ -99,7 +100,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		"Namespace": rolesetMgr.context.Config.Namespace,
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "common-iam.yml", nil, stackParams, stackTags, "", "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, common.TemplateCommonIAM, nil, stackParams, stackTags, "", "")
 	if err != nil {
 		// ignore error if stack is in progress already
 		if !strings.Contains(err.Error(), "_IN_PROGRESS state and can not be updated") {
@@ -155,7 +156,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 		"Provider":        string(environment.Provider),
 	}
 
-	err := rolesetMgr.context.StackManager.UpsertStack(stackName, "env-iam.yml", environment, stackParams, stackTags, "", "")
+	err := rolesetMgr.context.StackManager.UpsertStack(stackName, common.TemplateEnvIAM, environment, stackParams, stackTags, "", "")
 	if err != nil {
 		return err
 	}
@@ -221,7 +222,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		return err
 	}
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "service-iam.yml", rolesetMgr.context.Config.Service, stackParams, stackTags, policy, "")
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, common.TemplateServiceIAM, rolesetMgr.context.Config.Service, stackParams, stackTags, policy, "")
 	if err != nil {
 		return err
 	}
@@ -292,7 +293,7 @@ func (rolesetMgr *iamRolesetManager) UpsertPipelineRoleset(serviceName string, p
 		return err
 	}
 
-	err = rolesetMgr.context.StackManager.UpsertStack(stackName, "pipeline-iam.yml", rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, policy, "")
+	err = rolesetMgr.context.StackManager.UpsertStack(stackName, common.TemplatePipelineIAM, rolesetMgr.context.Config.Service.Pipeline, stackParams, stackTags, policy, "")
 	if err != nil {
 		return err
 	}

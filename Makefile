@@ -59,7 +59,7 @@ nag:
 	@gem list -i cfn-nag --silent || sudo gem install cfn-nag
 
 	@mkdir -p .cfn_nag
-	@grep -l AWSTemplateFormatVersion: templates/assets/*.yml | while read -r line; do \
+	@grep -l AWSTemplateFormatVersion: templates/assets/cloudformation/*.yml | while read -r line; do \
 		filename=`basename $$line` ;\
 		grep -v '{{' $$line > .cfn_nag/$$filename ;\
 		output=`cfn_nag_scan --input-path .cfn_nag/$$filename 2>&1` ;\
@@ -190,6 +190,7 @@ clean:
 	rm -rf vendor
 	rm -rf .cfn_nag
 	rm -rf dist
+	rm -f templates/*-packr.go
 
 all: clean deps test build
 

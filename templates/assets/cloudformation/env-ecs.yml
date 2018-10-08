@@ -1,0 +1,457 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU environment containing an ECS cluster and instances for running containers
+Parameters:
+  EC2InstanceProfileArn:
+    Type: String
+    Description: ARN of instance profile for EC2 instance to assume
+  InstanceType:
+    Type: String
+    Description: Instance type to use.
+    Default: t3.micro
+  MinSize:
+    Type: Number
+    Default: '1'
+    Description: Minimum number of instances that can be launched in your ECS cluster
+  DesiredCapacity:
+    Type: Number
+    Default: '1'
+    Description: Number of instances to launch in your ECS cluster
+  MaxSize:
+    Type: Number
+    Default: '2'
+    Description: Maximum number of instances that can be launched in your ECS cluster
+  KeyName:
+    Type: String
+    Description: KeyName to associate with worker instances.  Leave blank to disable SSH access.
+    Default: ''
+  SshAllow:
+    Description: Subnet from which to allow SSH access.
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: 'must be a valid CIDR block: x.x.x.x/x.'
+  TargetCPUReservation:
+    Description: Target CPU reservation % for autoscaling
+    Type: Number
+    Default: '75'
+  TargetMemoryReservation:
+    Description: Target Memory reservation % for autoscaling
+    Type: Number
+    Default: '75'
+  ImageId:
+    Description: ECS AMI to launch
+    Type: String
+    Default: ''
+  ImageOsType:
+    Description: OS Type for ECS AMI
+    Type: String
+    Default: 'amazon'
+    AllowedValues:
+    - 'amazon'
+    - 'centos7'
+    - 'windows'
+  InstanceSubnetIds:
+    Type: String
+    Description: Name of the value to import for the ecs subnet ids
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId
+  HttpProxy:
+    Type: String
+    Description: Proxy to use from ECS cluster instances (host:port)
+    Default: ''
+  ElbSecurityGroup:
+    Type: String
+    Description: The security group to add to the ECS instance for ELB access
+  LaunchType:
+    Type: String
+    Description: Launch type for services
+    Default: EC2
+    AllowedValues:
+    - EC2
+    - FARGATE
+  ExtraUserData:
+    Type: String
+    Description: Additional user data script
+    Default: ''
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Instance Configuration"
+        Parameters:
+          - InstanceType
+          - KeyName
+          - SshAllow
+      - Label:
+          default: "Auto Scaling Configuration"
+        Parameters:
+          - DesiredCapacity
+          - MaxSize
+    ParameterLabels:
+      InstanceType:
+        default: "Instance type to launch?"
+      KeyName:
+        default: "Key to grant SSH access (blank for none)?"
+      SshAllow:
+        default: "CIDR block to grant SSH access?"
+      DesiredCapacity:
+        default: "Desired ECS cluster instance count?"
+      MaxSize:
+        default: "Maximum ECS cluster instance count?"
+Conditions:
+  HasKeyName:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref KeyName
+        - ''
+  HasLaunchTypeEC2:
+    "Fn::Equals":
+      - !Ref LaunchType
+      - 'EC2'
+
+Resources:
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub ${VpcId}
+      GroupDescription: Microservice Host Security Group
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SshAllow
+  Host2HostRuleIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      SourceSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  Host2InternetEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: 'tcp'
+      FromPort: '0'
+      ToPort: '65535'
+      CidrIp: '0.0.0.0/0'
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  Host2HostRuleEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '0'
+      ToPort: '65535'
+      DestinationSecurityGroupId: !GetAtt InstanceSecurityGroup.GroupId
+      GroupId: !GetAtt InstanceSecurityGroup.GroupId
+  EcsAutoScalingGroup:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+    - ClusterLogGroup
+    - Host2InternetEgress
+    Properties:
+      VPCZoneIdentifier:
+        Fn::Split:
+        - ","
+        - Fn::ImportValue: !Sub ${InstanceSubnetIds}
+      LaunchConfigurationName: !Ref ContainerInstances
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+        PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '1'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'true'
+  CPUReservationPolicy:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref EcsCluster
+          MetricName: CPUReservation
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetCPUReservation
+  MemoryReservationPolicy:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref EcsAutoScalingGroup
+      Cooldown: 300
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value: !Ref EcsCluster
+          MetricName: MemoryReservation
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetMemoryReservation
+  InventoryAssociation:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::SSM::Association
+    Properties:
+      AssociationName: 'Inventory-Association'
+      Name: 'AWS-GatherSoftwareInventory'
+      ScheduleExpression: 'rate(1 day)'
+      Parameters:
+        applications: 
+        - Enabled
+        awsComponents:
+        - Enabled
+        customInventory:
+        - Enabled
+        instanceDetailedInformation:
+        - Enabled
+        networkConfig:
+        - Enabled
+        services:
+        - Enabled
+        windowsRoles:
+        - Enabled
+        windowsUpdates:
+        - Enabled
+      Targets:
+      - Key: tag:aws:autoscaling:groupName	
+        Values: [!Ref EcsAutoScalingGroup]
+  ContainerInstances:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          amazon:
+            - commonLinux
+            - amazonLinux
+          centos7:
+            - commonLinux
+        amazonLinux:
+          packages:
+            yum:
+              awslogs: []
+              jq: []
+              aws-cli: []
+          files:
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+          commands:
+            01_configure_ssm_agent:
+              command: !Sub |
+                #!/bin/bash
+                sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/awslogs/awslogs.conf"
+                - "/etc/awslogs/etc/proxy.conf"
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        commonLinux:
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: '000400'
+              owner: root
+              group: root
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region}
+                runas=root
+            "/etc/awslogs/etc/proxy.conf":
+              content: !Sub |
+                HTTP_PROXY=http://${HttpProxy}/
+                HTTPS_PROXY=http://${HttpProxy}/
+            "/etc/awslogs/awscli.conf":
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+            "/etc/awslogs/awslogs.conf":
+              content: !Sub |
+                [general]
+                state_file = /var/lib/awslogs/agent-state
+
+                [dmesg]
+                file = /var/log/dmesg
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/dmesg/{instance_id}
+
+                [messages]
+                file = /var/log/messages
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/messages/{instance_id}
+                datetime_format = %b %d %H:%M:%S
+
+                [docker]
+                file = /var/log/docker
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/docker/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%S.%f
+
+                [ecs]
+                file = /var/log/ecs/*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/ecs/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                [cloud-init]
+                file = /var/log/cloud-init*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/cloud-init/{instance_id}
+                datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                [cfn-init]
+                file = /var/log/cfn-init*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/cfn-init/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+
+                [ssm]
+                file = /var/log/amazon/ssm/*
+                log_group_name = ${AWS::StackName}
+                log_stream_name = instance/ssm/{instance_id}
+                datetime_format = %Y-%m-%d %H:%M:%S
+
+          commands:
+            01_add_instance_to_cluster:
+              command: !Sub |
+                #!/bin/bash
+                echo ECS_CLUSTER=${EcsCluster}  >> /etc/ecs/ecs.config
+    Properties:
+      ImageId: !Ref ImageId
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      - !Ref ElbSecurityGroup
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref EC2InstanceProfileArn
+      KeyName:
+        Fn::If:
+          - HasKeyName
+          - !Ref KeyName
+          - !Ref "AWS::NoValue"
+      UserData:
+        Fn::Base64: !Sub |
+          Content-Type: multipart/mixed; boundary="==BOUNDARY=="
+          MIME-Version: 1.0
+
+          --==BOUNDARY==
+          Content-Type: text/text/x-shellscript; charset="us-ascii"
+
+          #!/bin/bash -xe
+
+          CFN_PROXY_ARGS=""
+          if [[ ! -z "${HttpProxy}" ]]; then
+            echo "Configuring HTTP_PROXY=${HttpProxy}"
+
+            # Set Yum HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_yum_http_proxy ]; then
+              echo "proxy=http://${HttpProxy}" >> /etc/yum.conf
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_yum_http_proxy
+            fi
+
+            # Set Docker HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_docker_http_proxy ]; then
+              echo "export HTTP_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              echo "export HTTPS_PROXY=http://${HttpProxy}/" >> /etc/sysconfig/docker
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_docker_http_proxy
+
+              service docker restart
+            fi
+
+            # Set ECS agent HTTP proxy
+            if [ ! -f /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy ]; then
+              echo "HTTP_PROXY=${HttpProxy}" >> /etc/ecs/ecs.config
+              echo "NO_PROXY=169.254.169.254,169.254.170.2,/var/run/docker.sock" >> /etc/ecs/ecs.config
+              echo "$$: $(date +%s.%N | cut -b1-13)" > /var/lib/cloud/instance/sem/config_ecs-agent_http_proxy
+            fi
+
+            CFN_PROXY_ARGS="--http-proxy http://${HttpProxy} --https-proxy http://${HttpProxy}"
+          fi
+
+          ${ExtraUserData}
+
+          yum install -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region} $CFN_PROXY_ARGS
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region} $CFN_PROXY_ARGS
+
+          --==BOUNDARY==
+  ClusterLogGroup:
+    Condition: HasLaunchTypeEC2
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Ref AWS::StackName
+Outputs:
+  InstanceSubnetIds:
+    Value:
+      Fn::ImportValue: !Sub ${InstanceSubnetIds}
+    Description: Subnet Ids for the ECS cluster
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSubnetIds
+  VpcId:
+    Value:
+      Fn::ImportValue: !Sub ${VpcId}
+    Description: Vpc Id for the environment
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+  EcsCluster:
+    Value: !Ref EcsCluster
+    Description: Name of the ECS cluster.
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsCluster
+  InstanceSecurityGroup:
+    Value: !Ref InstanceSecurityGroup
+    Description: Security Group ID for the microservice instances
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceSecurityGroup
+  LaunchType:
+    Value: !Ref LaunchType
+    Description: Launch type for services
+    Export:
+      Name: !Sub ${AWS::StackName}-LaunchType
+

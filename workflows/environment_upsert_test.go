@@ -67,7 +67,7 @@ func (m *mockedStackManagerForUpsert) UpsertStack(stackName string, templateName
 	args := m.Called(stackName, stackParameters)
 	return args.Error(0)
 }
-func (m *mockedStackManagerForUpsert) FindLatestImageID(pattern string) (string, error) {
+func (m *mockedStackManagerForUpsert) FindLatestImageID(owner string, pattern string) (string, error) {
 	args := m.Called()
 	return args.String(0), args.Error(1)
 }

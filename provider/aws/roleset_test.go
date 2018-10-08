@@ -107,8 +107,8 @@ func TestIamRolesetManager_GetEnvironmentRoleset(t *testing.T) {
 			Name: "env2",
 		},
 	}
-	i.context.Config.Environments[0].Roles.EcsInstance = "bar1"
-	i.context.Config.Environments[1].Roles.EcsInstance = "bar2"
+	i.context.Config.Environments[0].Roles.Instance = "bar1"
+	i.context.Config.Environments[1].Roles.Instance = "bar2"
 
 	roleset, err = i.GetEnvironmentRoleset("env1")
 	assert.Nil(err)

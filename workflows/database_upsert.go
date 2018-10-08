@@ -136,7 +136,7 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 			return err
 		}
 
-		err = stackUpserter.UpsertStack(dbStackName, "database.yml", service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
+		err = stackUpserter.UpsertStack(dbStackName, common.TemplateDatabase, service, stackParams, tags, policy, workflow.cloudFormationRoleArn)
 
 		if err != nil {
 			return err

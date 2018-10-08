@@ -19,6 +19,8 @@ Parameters:
       - "ecs"
       - "ecs-fargate"
       - "ec2"
+      - "eks"
+      - "eks-fargate"
   CodeDeployBucket:
     Type: String
     Description: Name of bucket to use for the CodeDeployBucket artifacts
@@ -35,6 +37,14 @@ Conditions:
       - "Fn::Equals":
         - !Ref Provider
         - 'ecs-fargate'
+  IsEksService:
+    "Fn::Or":
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'eks'
+      - "Fn::Equals":
+        - !Ref Provider
+        - 'eks-fargate'
 Resources:
   DatabaseKey:
     Type: AWS::KMS::Key
@@ -92,6 +102,10 @@ Resources:
               - Fn::If:
                 - IsEcsService
                 - !GetAtt EcsTaskRole.Arn
+                - !Ref AWS::NoValue
+              - Fn::If:
+                - IsEksService
+                - !GetAtt EksPodRole.Arn
                 - !Ref AWS::NoValue
             Action:
               - kms:GenerateDataKey
@@ -328,6 +342,37 @@ Resources:
               ArnEquals:
                 "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
       - PolicyName: task-execution
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            Resource: '*'
+
+  EksPodRole:
+    Type: AWS::IAM::Role
+    Condition: IsEksService
+    Properties:
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-pod-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: pod-execution
         PolicyDocument:
           Statement:
           - Effect: Allow

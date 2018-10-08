@@ -1,0 +1,9 @@
+version: 0.1
+
+phases:
+  build:
+    commands:
+      - . ./mu-env.sh && curl -s ${BASE_URL} | grep 'ok'
+artifacts:
+  files:
+    - mu.yml

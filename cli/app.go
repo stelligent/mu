@@ -138,7 +138,7 @@ func NewApp() *cli.App {
 		cli.StringFlag{
 			Name:  "dryrun-output, O",
 			Usage: "output directory for dryrun",
-			Value: fmt.Sprintf("%s/mu-cloudformation", os.TempDir()),
+			Value: fmt.Sprintf("%s/mu-dryrun", os.TempDir()),
 		},
 		cli.BoolFlag{
 			Name:  "disable-iam, I",

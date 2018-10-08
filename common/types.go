@@ -8,23 +8,27 @@ import (
 
 // Context defines the context object passed around
 type Context struct {
-	Config               Config
-	StackManager         StackManager
-	ClusterManager       ClusterManager
-	InstanceManager      InstanceManager
-	ElbManager           ElbManager
-	RdsManager           RdsManager
-	ParamManager         ParamManager
-	LocalPipelineManager PipelineManager // instance that ignores region/profile/role
-	PipelineManager      PipelineManager
-	LogsManager          LogsManager
-	DockerManager        DockerManager
-	DockerOut            io.Writer
-	TaskManager          TaskManager
-	ArtifactManager      ArtifactManager
-	SubscriptionManager  SubscriptionManager
-	RolesetManager       RolesetManager
-	ExtensionsManager    ExtensionsManager
+	Config                            Config
+	AccountID                         string
+	Partition                         string
+	Region                            string
+	StackManager                      StackManager
+	ClusterManager                    ClusterManager
+	InstanceManager                   InstanceManager
+	ElbManager                        ElbManager
+	RdsManager                        RdsManager
+	ParamManager                      ParamManager
+	LocalPipelineManager              PipelineManager // instance that ignores region/profile/role
+	PipelineManager                   PipelineManager
+	LogsManager                       LogsManager
+	DockerManager                     DockerManager
+	DockerOut                         io.Writer
+	KubernetesResourceManagerProvider KubernetesResourceManagerProvider
+	TaskManager                       TaskManager
+	ArtifactManager                   ArtifactManager
+	SubscriptionManager               SubscriptionManager
+	RolesetManager                    RolesetManager
+	ExtensionsManager                 ExtensionsManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -107,7 +111,8 @@ type VpcTarget struct {
 
 // EnvironmentRoles defines the structure of the yml file for environment roles
 type EnvironmentRoles struct {
-	EcsInstance string `yaml:"ecsInstance,omitempty" validate:"validateRoleARN"`
+	Instance   string `yaml:"instance,omitempty" validate:"validateRoleARN"`
+	EksService string `yaml:"eksService,omitempty" validate:"validateRoleARN"`
 }
 
 // Service defines the structure of the yml file for a service
@@ -333,27 +338,34 @@ const (
 	StackTypeBucket                 = "bucket"
 )
 
-// List of valid Policy files
+// List of valid template files
 const (
-	TemplatePolicyDefault  string = "policies/default.json"
-	TemplatePolicyAllowAll        = "policies/allow-all.json"
-	TemplateApp                   = "app.yml"
-	TemplateBucket                = "bucket.yml"
-	TemplateBuildspec             = "buildspec.yml"
-	TemplateCommonIAM             = "common-iam.yml"
-	TemplateDatabase              = "database.yml"
-	TemplateELB                   = "elb.yml"
-	TemplateEnvEC2                = "env-ec2.yml"
-	TemplateEnvECS                = "env-ecs.yml"
-	TemplatePipelineIAM           = "pipeline-iam.yml"
-	TemplatePipeline              = "pipeline.yml"
-	TemplateRepo                  = "repo.yml"
-	TemplateSchedule              = "schedule.yml"
-	TemplateServiceEC2            = "service-ec2.yml"
-	TemplateServiceECS            = "service-ecs.yml"
-	TemplateServiceIAM            = "service-iam.yml"
-	TemplateVCPTarget             = "vpc-target.yml"
-	TemplateVPC                   = "vpc.yml"
+	TemplatePolicyDefault   string = "policies/default.json"
+	TemplatePolicyAllowAll         = "policies/allow-all.json"
+	TemplateBuildspec              = "codebuild/buildspec.yml"
+	TemplateApp                    = "cloudformation/app.yml"
+	TemplateBucket                 = "cloudformation/bucket.yml"
+	TemplateCommonIAM              = "cloudformation/common-iam.yml"
+	TemplateDatabase               = "cloudformation/database.yml"
+	TemplateELB                    = "cloudformation/elb.yml"
+	TemplateEnvEC2                 = "cloudformation/env-ec2.yml"
+	TemplateEnvECS                 = "cloudformation/env-ecs.yml"
+	TemplateEnvEKS                 = "cloudformation/env-eks.yml"
+	TemplateEnvEKSBootstrap        = "cloudformation/env-eks-bootstrap.yml"
+	TemplateEnvIAM                 = "cloudformation/env-iam.yml"
+	TemplatePipelineIAM            = "cloudformation/pipeline-iam.yml"
+	TemplatePipeline               = "cloudformation/pipeline.yml"
+	TemplateRepo                   = "cloudformation/repo.yml"
+	TemplateSchedule               = "cloudformation/schedule.yml"
+	TemplateServiceEC2             = "cloudformation/service-ec2.yml"
+	TemplateServiceECS             = "cloudformation/service-ecs.yml"
+	TemplateServiceIAM             = "cloudformation/service-iam.yml"
+	TemplateVPCTarget              = "cloudformation/vpc-target.yml"
+	TemplateVPC                    = "cloudformation/vpc.yml"
+	TemplateK8sCluster             = "kubernetes/cluster.yml"
+	TemplateK8sDeployment          = "kubernetes/deployment.yml"
+	TemplateK8sDatabase            = "kubernetes/database.yml"
+	TemplateK8sIngress             = "kubernetes/ingress.yml"
 )
 
 // DeploymentStrategy describes supported deployment strategies
@@ -374,6 +386,8 @@ const (
 	EnvProviderEcs        EnvProvider = "ecs"
 	EnvProviderEcsFargate             = "ecs-fargate"
 	EnvProviderEc2                    = "ec2"
+	EnvProviderEks                    = "eks"
+	EnvProviderEksFargate             = "eks-fargate"
 )
 
 // InstanceTenancy describes supported tenancy options for EC2
@@ -476,6 +490,12 @@ func StringValue(v *string) string {
 		return *v
 	}
 	return ""
+}
+
+// StringRef returns the string pointer to the string passed in or
+// "" if the pointer is nil.
+func StringRef(v string) *string {
+	return &v
 }
 
 // BoolValue returns the value of the bool pointer passed in or
