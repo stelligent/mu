@@ -215,13 +215,13 @@ endif
 	@git tag -a -m "releasing $(NEW_VERSION)" $(NEW_VERSION)
 	@git push origin $(NEW_VERSION)
 
-promote-dev:
+promote-develop:
 ifneq ($(shell git status -s),)
 	@echo "Unable to promote a dirty workspace"
 	@exit 1
 endif
 	@echo "=== creating tag '$(TAG_VERSION)' ==="
 	@git tag --force -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
-	@git push origin $(TAG_VERSION)
+	@git push --force origin $(TAG_VERSION)
 
 .PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token
