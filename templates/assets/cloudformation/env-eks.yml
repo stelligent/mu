@@ -11,7 +11,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: Instance type to use.
-    Default: t3.medium
+    Default: t2.medium
   BootstrapArguments:
     Description: Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami
     Default: ""

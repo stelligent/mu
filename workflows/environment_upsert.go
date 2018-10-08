@@ -25,6 +25,11 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
+	serviceName := ctx.Config.Service.Name
+	if serviceName == "" {
+		serviceName = ctx.Config.Repo.Name
+	}
+
 	return newPipelineExecutor(
 		workflow.environmentFinder(&ctx.Config, environmentName),
 		workflow.environmentNormalizer(),
@@ -35,8 +40,8 @@ func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executo
 				workflow.environmentKubernetesBootstrapper(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager),
 				workflow.environmentUpserter(ctx.Config.Namespace, envStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
 				workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider),
-				workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace),
-				workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace),
+				workflow.environmentKubernetesClusterUpserter(ctx.Config.Namespace, serviceName, ctx.Region, ctx.AccountID, ctx.Partition),
+				workflow.environmentKubernetesIngressUpserter(ctx.Config.Namespace, ctx.Region, ctx.AccountID, ctx.Partition),
 			),
 			newPipelineExecutor(
 				workflow.environmentElbUpserter(ctx.Config.Namespace, envStackParams, elbStackParams, ctx.StackManager, ctx.StackManager, ctx.StackManager),
@@ -391,11 +396,16 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namespace string) Executor {
+func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namespace string, serviceName string, region string, accountID string, partition string) Executor {
 	return func() error {
 
 		templateData := map[string]string{
-			"EC2RoleArn": workflow.ec2RoleArn,
+			"EC2RoleArn":  workflow.ec2RoleArn,
+			"AccountId":   accountID,
+			"MuNamespace": namespace,
+			"ServiceName": serviceName,
+			"Region":      region,
+			"Partition":   partition,
 		}
 
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
@@ -405,15 +415,14 @@ func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namesp
 	}
 }
 
-func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namespace string) Executor {
+func (workflow *environmentWorkflow) environmentKubernetesIngressUpserter(namespace string, region string, accountID string, partition string) Executor {
 	return func() error {
 
 		var elbCertArn string
 		if workflow.environment.Loadbalancer.Certificate != "" {
-			// TODO: load these vals
-			partition := ""
-			region := ""
-			accountID := ""
+			partition := partition
+			region := region
+			accountID := accountID
 			elbCertArn = fmt.Sprintf("arn:%s:acm:%s:%s:certificate/%s", partition, region, accountID, workflow.environment.Loadbalancer.Certificate)
 		}
 		templateData := map[string]interface{}{

@@ -24,3 +24,13 @@ service:
       environment: e2e-eks-dev
     production:
       disabled: true
+
+## The resources can be customized below
+templates:
+  mu-environment-e2e-eks-dev-ConfigMap-aws-auth:   
+    data:
+      mapUsers: |
+        - userarn: arn:aws:iam::884669789531:user/casey.lee
+          username: casey-lee
+          groups:
+          - system:masters

@@ -66,6 +66,8 @@ spec:
         - name: {{$name}}
           value: {{$value}}
         {{end}}
+        - name: _SERVICE_DISCOVERY_NAME
+          value: {{ .Namespace }}.svc.cluster.local
         ports:
         - containerPort: {{ .ServicePort }}
         readinessProbe:
@@ -92,9 +94,9 @@ kind: Service
 apiVersion: v1
 metadata:
   namespace: {{ .Namespace }}
-  name: {{ .ServiceName }}-service
+  name: {{ .ServiceName }}
   labels:
-    app.kubernetes.io/name: {{ .ServiceName }}-service
+    app.kubernetes.io/name: {{ .ServiceName }}
     app.kubernetes.io/part-of: {{ .ServiceName }}
   annotations:
     mu/type: service
@@ -131,7 +133,7 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: {{ $.ServiceName}}-service
+          serviceName: {{ $.ServiceName}}
           servicePort: {{ $.ServicePort }}
         path: /
   {{end}}
@@ -139,7 +141,7 @@ spec:
   - http:
       paths:
       - backend:
-          serviceName: {{ $.ServiceName}}-service
+          serviceName: {{ $.ServiceName}}
           servicePort: {{ $.ServicePort }}
         path: "{{.}}" 
   {{end}}

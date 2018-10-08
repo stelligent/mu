@@ -9,6 +9,9 @@ import (
 // Context defines the context object passed around
 type Context struct {
 	Config                            Config
+	AccountID                         string
+	Partition                         string
+	Region                            string
 	StackManager                      StackManager
 	ClusterManager                    ClusterManager
 	InstanceManager                   InstanceManager

@@ -5,8 +5,11 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/aws/aws-sdk-go/service/sts"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stelligent/mu/common"
 )
@@ -37,6 +40,17 @@ func setupSessOptions(region string,
 
 func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath string, skipVersionCheck bool, allowDataLoss bool) error {
 	var err error
+
+	ctx.Region = aws.StringValue(sess.Config.Region)
+	if partition, ok := endpoints.PartitionForRegion(endpoints.DefaultPartitions(), ctx.Region); ok {
+		ctx.Partition = partition.ID()
+	}
+	callerIdentity, err := sts.New(sess).GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		return err
+	}
+	ctx.AccountID = aws.StringValue(callerIdentity.Account)
+
 	// initialize StackManager
 	ctx.StackManager, err = newStackManager(sess, ctx.ExtensionsManager, dryrunPath, skipVersionCheck, allowDataLoss)
 	if err != nil {
