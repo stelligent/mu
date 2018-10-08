@@ -5,7 +5,7 @@ SNAPSHOT_SUFFIX := develop
 
 ###
 SRC_FILES = $(foreach pkg, $(SRC_PACKAGES), ./$(pkg)/...) .
-BRANCH := $(or $(CIRCLE_BRANCH),$(shell git rev-parse --abbrev-ref HEAD))
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 LATEST_VERSION := $(shell git tag -l --sort=creatordate | grep "^v[0-9]*.[0-9]*.[0-9]*$$" | tail -1 | cut -c 2-)
 ifeq "$(shell git tag -l v$(LATEST_VERSION) --points-at HEAD)" "v$(LATEST_VERSION)"
 ### latest tag points to current commit, this is a release build
@@ -15,7 +15,7 @@ else
 MAJOR_VERSION := $(word 1, $(subst ., ,$(LATEST_VERSION)))
 MINOR_VERSION := $(word 2, $(subst ., ,$(LATEST_VERSION)))
 PATCH_VERSION := $(word 3, $(subst ., ,$(LATEST_VERSION)))
-VERSION ?= $(MAJOR_VERSION).$(MINOR_VERSION).$(shell echo $$(( $(PATCH_VERSION) + 1)) )-$(if $(findstring master, $(BRANCH)),$(SNAPSHOT_SUFFIX),$(BRANCH))
+VERSION ?= $(MAJOR_VERSION).$(MINOR_VERSION).$(shell echo $$(( $(PATCH_VERSION) + 1)) )-$(SNAPSHOT_SUFFIX)
 endif
 IS_SNAPSHOT = $(if $(findstring -, $(VERSION)),true,false)
 TAG_VERSION = v$(VERSION)
