@@ -206,7 +206,7 @@ Resources:
   Node2NodeRuleEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      IpProtocol: tcp
+      IpProtocol: '-1'
       FromPort: '0'
       ToPort: '65535'
       SourceSecurityGroupId: !Ref NodeSecurityGroup
