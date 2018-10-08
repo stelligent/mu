@@ -111,6 +111,8 @@ spec:
   - name: {{ .ServiceProto }}
     port: {{ .ServicePort }}
     targetPort: {{ .ServicePort }}
+
+{{if or .HostPatterns .PathPatterns}}
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -145,3 +147,4 @@ spec:
           servicePort: {{ $.ServicePort }}
         path: "{{.}}" 
   {{end}}
+{{end}}
