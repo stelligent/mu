@@ -30,7 +30,7 @@ export PATH := $(GOPATH)/bin:$(PATH)
 default: all
 
 info:
-	@echo "VERSION:$(VERSION) IS_SNAPSHOT:$(IS_SNAPSHOT) BRANCH:$(BRANCH)"
+	@echo "VERSION:$(VERSION) IS_SNAPSHOT:$(IS_SNAPSHOT) BRANCH:$(BRANCH) LATEST_VERSION:$(LATEST_VERSION)"
 
 deps:
 	@echo "=== dependencies ==="
