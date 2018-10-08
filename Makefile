@@ -132,22 +132,24 @@ ifndef GITHUB_TOKEN
 	@exit 1
 endif
 
-tag_release:
-ifeq ($(IS_SNAPSHOT),true)
-	@echo "=== creating tag '$(TAG_VERSION)' ==="
-	@git tag --force -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
-endif
 
 changelog: check_github_token
 	@echo "=== generating changelog ==="
 	@rm -f CHANGELOG.md
 	@go get github.com/Songmu/ghch/cmd/ghch
+ifeq ($(IS_SNAPSHOT),true)
+	@ghch --format=markdown -w
+else
 	@ghch --format=markdown --latest -w
+endif
 
-github_release: check_github_token gen tag_release changelog
+github_release: check_github_token gen changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
 	@go get github.com/goreleaser/goreleaser
 	@goreleaser --rm-dist --release-notes CHANGELOG.md
+ifeq ($(IS_SNAPSHOT),true)
+	@github-release edit -u stelligent -r mu -t v$(LATEST_VERSION) -p
+endif
 
 formula:
 	rm -rf homebrew-tap
@@ -212,5 +214,10 @@ endif
 	$(eval NEW_VERSION := $(word 1,$(subst -, , $(TAG_VERSION))))
 	@git tag -a -m "releasing $(NEW_VERSION)" $(NEW_VERSION)
 	@git push origin $(NEW_VERSION)
+
+promote-dev:
+	@echo "=== creating tag '$(TAG_VERSION)' ==="
+	@git tag --force -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
+	@git push origin $(TAG_VERSION)
 
 .PHONY: default all lint test e2e build deps gen clean release install keypair stage promote formula github_release changelog tag_release check_github_token

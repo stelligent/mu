@@ -92,6 +92,6 @@ workflows:
             - cfn-nag
           filters:
             tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+(-develop)?$/
             branches:
               ignore: /.*/
