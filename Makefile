@@ -146,6 +146,9 @@ endif
 github_release: check_github_token gen changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
 	@go get github.com/goreleaser/goreleaser
+ifeq ($(IS_SNAPSHOT),true)
+	@github-release delete -u stelligent -r mu -t v$(LATEST_VERSION) || echo "already deleted"
+endif
 	@goreleaser --rm-dist --release-notes CHANGELOG.md
 ifeq ($(IS_SNAPSHOT),true)
 	@github-release edit -u stelligent -r mu -t v$(LATEST_VERSION) -p
