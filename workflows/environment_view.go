@@ -141,7 +141,8 @@ func (workflow *environmentWorkflow) environmentEksNodeLoader(instances *[]*inst
 	return func() error {
 		nodes, err := workflow.kubernetesResourceManager.ListResources("v1", "Node", "")
 		if err != nil {
-			return err
+			log.Warningf("Unable to list nodes: %v", err)
+			return nil
 		}
 
 		for _, node := range nodes.Items {

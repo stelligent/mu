@@ -53,7 +53,26 @@ type Config struct {
 	Roles      struct {
 		CloudFormation string `yaml:"cloudFormation,omitempty" validate:"validateRoleARN"`
 	} `yaml:"roles,omitempty"`
+	RBAC []RoleBinding `yaml:"rbac,omitempty"`
 }
+
+// RoleBinding defines how to map k8s roles to subjects
+type RoleBinding struct {
+	Role         RBACRole `yaml:"role,omitempty"`
+	Environments []string `yaml:"environments,omitempty"`
+	Users        []string `yaml:"users,omitempty"`
+	Services     []string `yaml:"services,omitempty"`
+}
+
+// RBACRole describes possible rbac roles
+type RBACRole string
+
+// List of valid stack types
+const (
+	RBACRoleAdmin  RBACRole = "admin"
+	RBACRoleView            = "view"
+	RBACRoleDeploy          = "deploy"
+)
 
 // Extension defines the structure of the yml file for an extension
 type Extension struct {

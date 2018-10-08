@@ -38,3 +38,26 @@ templates:
 ## example of replacing entire spec files via extentions
 extensions:
   - url: custom-ingress
+
+
+## Configure EKS RBAC 
+rbac:
+
+  ## Give the `alice` IAM user full admin access to all environments
+  - role: admin
+    users:
+    - alice
+
+  ## Give the `bob` IAM user read-only access to all environments
+  - role: view
+    users:
+    - bob
+
+  ## Give the `foo`, `bar` and `baz` mu services access to deploy to the `acceptance` environment
+  - role: deploy
+    environments:
+    - acceptance
+    services:
+    - foo
+    - bar
+    - baz

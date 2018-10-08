@@ -14,6 +14,13 @@ type environmentWorkflow struct {
 	cloudFormationRoleArn     string
 	ec2RoleArn                string
 	kubernetesResourceManager common.KubernetesResourceManager
+	rbacUsers                 []*subjectRoleBinding
+	rbacServices              []*subjectRoleBinding
+}
+
+type subjectRoleBinding struct {
+	Name string
+	Role string
 }
 
 func colorizeStackStatus(stackStatus string) string {

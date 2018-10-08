@@ -58,6 +58,40 @@ func (workflow *environmentWorkflow) environmentFinder(config *common.Config, en
 		for _, e := range config.Environments {
 			if strings.EqualFold(e.Name, environmentName) {
 				workflow.environment = &e
+
+				workflow.rbacServices = make([]*subjectRoleBinding, 0)
+				workflow.rbacUsers = make([]*subjectRoleBinding, 0)
+				for _, binding := range config.RBAC {
+					if len(binding.Environments) > 0 {
+						found := false
+						for _, env := range binding.Environments {
+							if env == environmentName {
+								found = true
+								break
+							}
+						}
+
+						if !found {
+							log.Debugf("Skipping binding %v - unable to match env %v", binding, environmentName)
+							continue
+						}
+					}
+
+					for _, service := range binding.Services {
+						log.Debugf("Binding service %s to role %s", service, binding.Role)
+						workflow.rbacServices = append(workflow.rbacServices, &subjectRoleBinding{
+							Name: service,
+							Role: string(binding.Role),
+						})
+					}
+					for _, user := range binding.Users {
+						log.Debugf("Binding user %s to role %s", user, binding.Role)
+						workflow.rbacUsers = append(workflow.rbacUsers, &subjectRoleBinding{
+							Name: user,
+							Role: string(binding.Role),
+						})
+					}
+				}
 				return nil
 			}
 		}
@@ -399,13 +433,16 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namespace string, serviceName string, region string, accountID string, partition string) Executor {
 	return func() error {
 
-		templateData := map[string]string{
-			"EC2RoleArn":  workflow.ec2RoleArn,
-			"AccountId":   accountID,
-			"MuNamespace": namespace,
-			"ServiceName": serviceName,
-			"Region":      region,
-			"Partition":   partition,
+		templateData := map[string]interface{}{
+			"EC2RoleArn":   workflow.ec2RoleArn,
+			"ServiceName":  serviceName,
+			"AWSAccountId": accountID,
+			"MuNamespace":  namespace,
+			"MuVersion":    common.GetVersion(),
+			"AWSRegion":    region,
+			"AWSPartition": partition,
+			"RBACServices": workflow.rbacServices,
+			"RBACUsers":    workflow.rbacUsers,
 		}
 
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)

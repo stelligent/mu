@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: aws-auth
   namespace: kube-system
+  annotations:
+    mu/version: {{ .MuVersion }}
 data:
   mapRoles: |
     - rolearn: {{.EC2RoleArn}}
@@ -10,3 +12,91 @@ data:
       groups:
       - system:bootstrappers
       - system:nodes
+    {{range .RBACServices}}
+    - rolearn: arn:{{$.AWSPartition}}:iam::{{$.AWSAccountId}}:role/{{$.MuNamespace}}-pipeline-{{.Name}}-mu-acpt-{{$.AWSRegion}}
+      username: mu-service-{{.Name}}
+      groups:
+      - mu-view
+    - rolearn: arn:{{$.AWSPartition}}:iam::{{$.AWSAccountId}}:role/{{$.MuNamespace}}-pipeline-{{.Name}}-mu-prod-{{$.AWSRegion}}
+      username: mu-service-{{.Name}}
+      groups:
+      - mu-view
+    {{end}}
+  mapUsers: |
+    {{range .RBACUsers}}
+    - userarn: arn:{{$.AWSPartition}}:iam::{{$.AWSAccountId}}:user/{{.Name}}
+      groups:
+      - mu-{{.Role}}
+    {{end}}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: mu-admin-role-binding
+  annotations:
+    mu/version: {{ .MuVersion }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: Group
+    name: mu-admin
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: mu-view-role-binding
+  annotations:
+    mu/version: {{ .MuVersion }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: Group
+    name: mu-view
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: mu-deploy-role-binding
+  annotations:
+    mu/version: {{ .MuVersion }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+  - kind: Group
+    name: mu-deploy
+
+{{range .RBACServices}}
+{{if eq .Role "deploy"}}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mu-service-{{.Name}}
+  annotations:
+    mu/type: service
+    mu/service: {{ .Name }}
+    mu/version: {{ $.MuVersion }}
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: mu-service-{{.Name}}-{{.Role}}-role-binding
+  namespace: mu-service-{{.Name}}
+  annotations:
+    mu/version: {{ $.MuVersion }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: User
+    name: mu-service-{{.Name}}
+{{end}}
+{{end}}
