@@ -216,6 +216,10 @@ endif
 	@git push origin $(NEW_VERSION)
 
 promote-dev:
+ifneq ($(shell git status -s),)
+	@echo "Unable to promote a dirty workspace"
+	@exit 1
+endif
 	@echo "=== creating tag '$(TAG_VERSION)' ==="
 	@git tag --force -a -m "releasing $(TAG_VERSION)" $(TAG_VERSION)
 	@git push origin $(TAG_VERSION)

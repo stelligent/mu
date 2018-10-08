@@ -26,7 +26,7 @@ Parameters:
     Description: Number of instances to launch in your EKS cluster
   MaxSize:
     Type: Number
-    Default: '2'
+    Default: '3'
     Description: Maximum number of instances that can be launched in your EKS cluster
   KeyName:
     Type: String
