@@ -13,11 +13,22 @@ func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Execu
 	workflow := new(environmentWorkflow)
 
 	return newPipelineExecutor(
+		workflow.environmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, &environmentView{}),
 		workflow.environmentServiceTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager, ctx.RolesetManager),
 		workflow.environmentDbTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager, ctx.StackManager),
-		workflow.environmentEcsTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
-		workflow.environmentRolesetTerminator(ctx.RolesetManager, environmentName),
-		workflow.environmentElbTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(workflow.isKubernetesProvider(),
+			newPipelineExecutor(
+				workflow.connectKubernetes(ctx.Config.Namespace, ctx.KubernetesResourceManagerProvider),
+				workflow.environmentKubernetesIngressTerminator(environmentName),
+				workflow.environmentEcsTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.environmentRolesetTerminator(ctx.RolesetManager, environmentName),
+			),
+			newPipelineExecutor(
+				workflow.environmentEcsTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+				workflow.environmentRolesetTerminator(ctx.RolesetManager, environmentName),
+				workflow.environmentElbTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
+			),
+		),
 		workflow.environmentVpcTerminator(ctx.Config.Namespace, environmentName, ctx.StackManager, ctx.StackManager),
 	)
 }
@@ -103,6 +114,14 @@ func (workflow *environmentWorkflow) environmentRolesetTerminator(rolesetDeleter
 			return err
 		}
 		return nil
+	}
+}
+
+func (workflow *environmentWorkflow) environmentKubernetesIngressTerminator(environmentName string) Executor {
+	return func() error {
+		log.Noticef("Terminating ingress in environment '%s'", environmentName)
+
+		return workflow.kubernetesResourceManager.DeleteResource("v1", "Namespace", "", "mu-ingress")
 	}
 }
 
