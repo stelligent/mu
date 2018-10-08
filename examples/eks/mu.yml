@@ -3,8 +3,6 @@
 environments:
   - name: acceptance
     provider: eks
-    cluster:
-      keyName: mu-key
   - name: production
     provider: eks
 
@@ -37,6 +35,6 @@ templates:
           groups:
           - system:masters
 
-## entire spec files can be replaced with extentions
+## example of replacing entire spec files via extentions
 extensions:
   - url: custom-ingress
