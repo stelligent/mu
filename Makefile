@@ -148,11 +148,11 @@ github_release: check_github_token gen changelog
 	@go get github.com/goreleaser/goreleaser
 ifeq ($(IS_SNAPSHOT),true)
 	@go get github.com/aktau/github-release
-	@github-release delete -u stelligent -r mu -t v$(LATEST_VERSION) || echo "already deleted"
+	@github-release delete -u stelligent -r mu -t $(TAG_VERSION) || echo "already deleted"
 endif
 	@goreleaser --rm-dist --release-notes CHANGELOG.md
 ifeq ($(IS_SNAPSHOT),true)
-	@github-release edit -u stelligent -r mu -t v$(LATEST_VERSION) -p
+	@github-release edit -u stelligent -r mu -t $(TAG_VERSION) -p
 endif
 
 formula:
