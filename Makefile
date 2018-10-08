@@ -157,7 +157,7 @@ ifeq ($(IS_SNAPSHOT),true)
 endif
 	@goreleaser --rm-dist --release-notes CHANGELOG.md
 ifeq ($(IS_SNAPSHOT),true)
-	@github-release edit -u stelligent -r mu -t $(TAG_VERSION) -p
+	@github-release edit -u stelligent -r mu -t $(TAG_VERSION) -p -d - < CHANGELOG.md
 endif
 
 formula:
