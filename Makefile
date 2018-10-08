@@ -138,7 +138,7 @@ changelog: check_github_token
 	@rm -f CHANGELOG.md
 	@go get github.com/Songmu/ghch/cmd/ghch
 ifeq ($(IS_SNAPSHOT),true)
-	@ghch --format=markdown --from=$(LATEST_VERSION) -w
+	@ghch --format=markdown --from=v$(LATEST_VERSION) -w
 else
 	@ghch --format=markdown --latest -w
 endif
