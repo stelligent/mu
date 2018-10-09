@@ -19,10 +19,7 @@ type CliAdditions struct{}
 // Prompt prompts the user to answer a yes/no question
 func (cli *CliAdditions) Prompt(message string, def bool) (bool, error) {
 
-	ui := &input.UI{
-		Writer: os.Stdout,
-		Reader: os.Stdin,
-	}
+	ui := NewUI()
 	defPrompt := "no"
 	if def {
 		defPrompt = "yes"
@@ -46,4 +43,24 @@ func (cli *CliAdditions) Prompt(message string, def bool) (bool, error) {
 		return false, err
 	}
 	return def, err
+}
+
+// GetPasswdPrompt prompts the user to enter a password
+func (cli *CliAdditions) GetPasswdPrompt(message string) (string, error) {
+	ui := NewUI()
+	password, err := ui.Ask(message, &input.Options{
+		Required:    true,
+		Loop:        true,
+		Mask:        true,
+		MaskDefault: true,
+	})
+	return strings.TrimSpace(password), err
+}
+
+// NewUI returns a new input.UI bound to Std(in/out)
+func NewUI() *input.UI {
+	return &input.UI{
+		Writer: os.Stdout,
+		Reader: os.Stdin,
+	}
 }

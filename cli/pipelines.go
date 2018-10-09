@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howeyc/gopass"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
@@ -73,9 +72,10 @@ func newPipelinesUpsertCommand(ctx *common.Context) *cli.Command {
 			workflow := workflows.NewPipelineUpserter(ctx, func(required bool) string {
 				if required && token == "" {
 					fmt.Println("CodePipeline requires a personal access token from GitHub - https://github.com/settings/tokens")
-					byteToken, err := gopass.GetPasswdPrompt("  GitHub token: ", true, os.Stdin, os.Stdout)
-					if err == nil {
-						token = strings.TrimSpace(string(byteToken))
+					cliExtension := new(common.CliAdditions)
+					var err error
+					token, err = cliExtension.GetPasswdPrompt("  GitHub token: ")
+					if err != nil {
 						fmt.Println("")
 					}
 				}

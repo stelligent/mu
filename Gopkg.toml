@@ -72,10 +72,6 @@
   name = "gopkg.in/src-d/go-git.v4"
   version = "4.7.0"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/howeyc/gopass"
-
 [[override]]
   name = "k8s.io/api"
   version = "kubernetes-1.11.2"
