@@ -85,14 +85,6 @@
   version = "v1.15.47"
 
 [[projects]]
-  branch = "master"
-  digest = "1:92d074a2148753d890ddb1d07b35b8471a6d7860863d4bb7864f689d4d86c7de"
-  name = "github.com/bobappleyard/readline"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "7e300e02d38ee8b418c0b4841877f1845d392328"
-
-[[projects]]
   digest = "1:89e98f6335a3ca6d6ae179bb030d7d73326b809c3ba87e9a4b7dffd458ab85d7"
   name = "github.com/briandowns/spinner"
   packages = ["."]
@@ -466,6 +458,14 @@
   pruneopts = "UT"
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1e52cd770971c1f625650971d6c6f1f34669aa314e8dfd246fe3349b70a5304f"
+  name = "github.com/tcnksm/go-input"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "548a7d7a8ee8fcb3d013fae6acf857da56165975"
 
 [[projects]]
   branch = "master"

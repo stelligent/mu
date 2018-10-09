@@ -102,4 +102,4 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/bobappleyard/readline"
+  name = "github.com/tcnksm/go-input"

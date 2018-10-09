@@ -2,10 +2,10 @@ package common
 
 import (
 	"fmt"
-	"io"
+	"os"
 	"strings"
 
-	"github.com/bobappleyard/readline"
+	input "github.com/tcnksm/go-input"
 )
 
 // CliExtension is an interface for defining extended cli actions
@@ -16,34 +16,34 @@ type CliExtension interface {
 // CliAdditions exposes methods to prompt the user for cli input
 type CliAdditions struct{}
 
-// String writes a string to the terminal and returns the input
-func (cli *CliAdditions) String(prompt string) (string, error) {
-	return readline.String(prompt)
-}
-
 // Prompt prompts the user to answer a yes/no question
 func (cli *CliAdditions) Prompt(message string, def bool) (bool, error) {
-	for {
-		defPrompt := "y/N"
-		if def {
-			defPrompt = "Y/n"
-		}
-		line, err := cli.String(fmt.Sprintf("> %s %s: ", message, defPrompt))
-		if err == io.EOF {
-			return def, nil
-		}
-		if err != nil {
-			return false, err
-		}
-		readline.AddHistory(line)
-		if line == "" {
-			return def, nil
-		}
-		if strings.ToLower(line) == "y" {
-			return true, nil
-		}
-		if strings.ToLower(line) == "n" {
-			return false, nil
-		}
+
+	ui := &input.UI{
+		Writer: os.Stdout,
+		Reader: os.Stdin,
 	}
+	defPrompt := "no"
+	if def {
+		defPrompt = "yes"
+	}
+	answer, err := ui.Ask(message, &input.Options{
+		Default:  defPrompt,
+		Required: true,
+		Loop:     true,
+		ValidateFunc: func(s string) error {
+			if s != "y" && s != "n" {
+				return fmt.Errorf("input must be y or n")
+			}
+			return nil
+		},
+	})
+	line := strings.ToLower(answer)
+	if line == "y" {
+		return true, err
+	}
+	if line == "n" {
+		return false, err
+	}
+	return def, err
 }
