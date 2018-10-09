@@ -2,6 +2,8 @@ package workflows
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stelligent/mu/common"
@@ -42,12 +44,20 @@ func (m *mockedParamManager) ParamVersion(name string) (int64, error) {
 	return args.Get(0).(int64), args.Error(1)
 }
 
+type mockedCliExtension struct {
+	mock.Mock
+}
+
+func (m *mockedCliExtension) Prompt(message string, def bool) (bool, error) {
+	args := m.Called(message, def)
+	return args.Bool(0), args.Error(1)
+}
+
 func TestDatabaseUpserter_NoName(t *testing.T) {
 	assert := assert.New(t)
 
 	stackManager := new(mockedStackManagerForService)
 	rdsManager := new(mockedRdsManager)
-	paramManager := new(mockedParamManager)
 
 	config := new(common.Config)
 	config.Service.Name = "foo"
@@ -56,7 +66,7 @@ func TestDatabaseUpserter_NoName(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -78,9 +88,6 @@ func TestDatabaseUpserter(t *testing.T) {
 	rdsManager := new(mockedRdsManager)
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
-	paramManager := new(mockedParamManager)
-	paramManager.On("ParamVersion", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(1), nil)
-
 	config := new(common.Config)
 	config.Service.Name = "foo"
 	config.Service.Database.Name = "foo"
@@ -89,7 +96,7 @@ func TestDatabaseUpserter(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -98,21 +105,10 @@ func TestDatabaseUpserter(t *testing.T) {
 
 	rdsManager.AssertExpectations(t)
 	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
-
-	paramManager.AssertExpectations(t)
-	paramManager.AssertNumberOfCalls(t, "ParamVersion", 1)
-
 }
 
-func TestDatabaseUpserter_NoPass(t *testing.T) {
+func TestDatabaseMasterPassword_NoPassAccept(t *testing.T) {
 	assert := assert.New(t)
-
-	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
-	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
-
-	rdsManager := new(mockedRdsManager)
-	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
 	paramManager := new(mockedParamManager)
 	paramManager.On("ParamVersion", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(0), fmt.Errorf("no password"))
@@ -124,37 +120,64 @@ func TestDatabaseUpserter_NoPass(t *testing.T) {
 
 	params := make(map[string]string)
 
-	workflow := new(databaseWorkflow)
+	mockPrompt := new(mockedCliExtension)
+
+	workflow := &databaseWorkflow{}
+	mockPrompt.On("Prompt", mock.Anything, mock.Anything).Return(true, nil)
+
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseMasterPassword("mu", &config.Service, &params, "dev", paramManager, mockPrompt)()
 	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
-
-	rdsManager.AssertExpectations(t)
-	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
 
 	paramManager.AssertExpectations(t)
 	paramManager.AssertNumberOfCalls(t, "ParamVersion", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 1)
-	assert.Equal(config.Service.Database.DatabaseConfig.MasterPasswordSSMParam, "{{resolve:ssm-secure:mu-database-foo-dev-DatabaseMasterPassword:1}}")
+	assert.Equal(params["DatabaseMasterPassword"], "{{resolve:ssm-secure:mu-database-foo-dev-DatabaseMasterPassword:1}}")
 
 }
 
-func TestDatabaseUpserter_ExistingPass(t *testing.T) {
+func TestDatabaseMasterPassword_NoPassDeny(t *testing.T) {
 	assert := assert.New(t)
+	if os.Getenv("BE_CRASHER") == "1" {
+		paramManager := new(mockedParamManager)
+		paramManager.On("ParamVersion", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(0), fmt.Errorf("no password"))
+		paramManager.On("SetParam", "mu-database-foo-dev-DatabaseMasterPassword", mock.Anything).Return(nil)
 
-	stackManager := new(mockedStackManagerForService)
-	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusCreateComplete, Outputs: map[string]string{"DatabaseIdentifier": "foo"}})
-	stackManager.On("UpsertStack", "mu-database-foo-dev").Return(nil)
+		config := new(common.Config)
+		config.Service.Name = "foo"
+		config.Service.Database.Name = "foo"
 
-	rdsManager := new(mockedRdsManager)
-	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
+		params := make(map[string]string)
+
+		mockPrompt := new(mockedCliExtension)
+
+		workflow := &databaseWorkflow{}
+		mockPrompt.On("Prompt", mock.Anything, mock.Anything).Return(false, nil)
+
+		workflow.serviceName = "foo"
+		err := workflow.databaseMasterPassword("mu", &config.Service, &params, "dev", paramManager, mockPrompt)()
+		assert.Nil(err)
+
+		paramManager.AssertExpectations(t)
+		paramManager.AssertNumberOfCalls(t, "ParamVersion", 1)
+		paramManager.AssertNumberOfCalls(t, "SetParam", 1)
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=TestDatabaseMasterPassword_NoPassDeny")
+	cmd.Env = append(os.Environ(), "BE_CRASHER=1")
+	err := cmd.Run()
+	e, ok := err.(*exec.ExitError)
+	assert.Equal(e.Error(), "exit status 126")
+	assert.Equal(ok, true)
+}
+
+func TestDatabaseMasterPassword_ExistingPass(t *testing.T) {
+	assert := assert.New(t)
 
 	paramManager := new(mockedParamManager)
 	paramManager.On("ParamVersion", "mu-database-foo-dev-DatabaseMasterPassword").Return(int64(2), nil)
+
+	mockPrompt := new(mockedCliExtension)
 
 	config := new(common.Config)
 	config.Service.Name = "foo"
@@ -164,20 +187,13 @@ func TestDatabaseUpserter_ExistingPass(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseMasterPassword("mu", &config.Service, &params, "dev", paramManager, mockPrompt)()
 	assert.Nil(err)
-
-	stackManager.AssertExpectations(t)
-	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
-	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
-
-	rdsManager.AssertExpectations(t)
-	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
 
 	paramManager.AssertExpectations(t)
 	paramManager.AssertNumberOfCalls(t, "ParamVersion", 1)
 	paramManager.AssertNumberOfCalls(t, "SetParam", 0)
-	assert.Equal(config.Service.Database.DatabaseConfig.MasterPasswordSSMParam, "{{resolve:ssm-secure:mu-database-foo-dev-DatabaseMasterPassword:2}}")
+	assert.Equal(params["DatabaseMasterPassword"], "{{resolve:ssm-secure:mu-database-foo-dev-DatabaseMasterPassword:2}}")
 
 }
 
@@ -211,7 +227,7 @@ func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {
 	rdsManager := new(mockedRdsManager)
 	rdsManager.On("SetIamAuthentication", mock.Anything).Return(nil)
 
-	paramManager := new(mockedParamManager)
+	// paramManager := new(mockedParamManager)
 
 	config := new(common.Config)
 	config.Service.Name = "foo"
@@ -222,7 +238,7 @@ func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {
 
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
-	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager, paramManager)()
+	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)
@@ -231,5 +247,5 @@ func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {
 
 	rdsManager.AssertExpectations(t)
 	rdsManager.AssertNumberOfCalls(t, "SetIamAuthentication", 1)
-	assert.Equal(config.Service.Database.MasterPasswordSSMParam, "{{resolve:ssm-secure:testDbPass:1}}")
+	// assert.Equal(config.Service.Database.MasterPasswordSSMParam, "{{resolve:ssm-secure:testDbPass:1}}")
 }

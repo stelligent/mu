@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/howeyc/gopass"
 	"github.com/stelligent/mu/common"
 	"github.com/stelligent/mu/workflows"
 	"github.com/urfave/cli"
@@ -117,10 +115,9 @@ func newDatabaseSetPasswordCommand(ctx *common.Context) *cli.Command {
 				cli.ShowCommandHelp(c, "database")
 				return errors.New("environment must be provided")
 			}
-			var newPassword string
-			byteToken, err := gopass.GetPasswdPrompt("  Database password: ", true, os.Stdin, os.Stdout)
-			if err == nil {
-				newPassword = strings.TrimSpace(string(byteToken))
+			cliExtension := new(common.CliAdditions)
+			newPassword, err := cliExtension.GetPasswdPrompt("  Database password: ")
+			if err != nil {
 				fmt.Println("")
 			}
 			serviceName := c.Args().Get(1)

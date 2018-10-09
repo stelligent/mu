@@ -3,6 +3,7 @@ package workflows
 import (
 	"crypto/rand"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -17,13 +18,15 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 	workflow.codeRevision = ctx.Config.Repo.Revision
 	workflow.repoName = ctx.Config.Repo.Slug
 
+	cliExtension := new(common.CliAdditions)
 	ecsImportParams := make(map[string]string)
 
 	return newPipelineExecutor(
 		workflow.databaseInput(ctx, "", environmentName),
 		workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
 		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
-		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager, ctx.ParamManager),
+		workflow.databaseMasterPassword(ctx.Config.Namespace, &ctx.Config.Service, &ecsImportParams, environmentName, ctx.ParamManager, cliExtension),
+		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager),
 	)
 }
 
@@ -74,7 +77,47 @@ func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common
 	}
 }
 
-func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter, paramManager common.ParamManager) Executor {
+// Fetch password parameter if needed
+func (workflow *databaseWorkflow) databaseMasterPassword(namespace string,
+	service *common.Service, params *map[string]string, environmentName string,
+	paramManager common.ParamManager, cliExtension common.CliExtension) Executor {
+	return func() error {
+
+		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
+		masterPasswordSSMParam := service.Database.MasterPasswordSSMParam
+		//DatabaseMasterPassword:
+		if masterPasswordSSMParam == "" {
+			dbPassSSMParam := fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
+			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
+			if err != nil {
+				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
+				answer, err := cliExtension.Prompt("Error retrieving DatabaseMasterPassword. Set a new DatabaseMasterPassword", false)
+				if err != nil {
+					log.Errorf("Error with command input: %s", err)
+					os.Exit(1)
+				}
+				if !answer {
+					os.Exit(126)
+				}
+			}
+			if dbPassVersion == 0 {
+				dbPass := randomPassword(32)
+				err = paramManager.SetParam(dbPassSSMParam, dbPass, workflow.databaseKeyArn)
+				if err != nil {
+					return err
+				}
+				dbPassVersion = 1
+			}
+			masterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", dbPassSSMParam, dbPassVersion)
+		} else {
+			masterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s}}", masterPasswordSSMParam)
+		}
+		(*params)["DatabaseMasterPassword"] = masterPasswordSSMParam
+		return nil
+	}
+}
+
+func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, rdsSetter common.RdsIamAuthenticationSetter) Executor {
 	return func() error {
 
 		if service.Database.Name == "" {
@@ -102,26 +145,6 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		stackParams["DatabaseMasterUsername"] = "admin"
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseMasterUsername", dbConfig.MasterUsername)
 
-		//DatabaseMasterPassword:
-		if service.Database.MasterPasswordSSMParam == "" {
-			dbPassSSMParam := fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
-			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
-			if err != nil {
-				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
-			}
-			if dbPassVersion == 0 {
-				dbPass := randomPassword(32)
-				err = paramManager.SetParam(dbPassSSMParam, dbPass, workflow.databaseKeyArn)
-				if err != nil {
-					return err
-				}
-				dbPassVersion = 1
-			}
-			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", dbPassSSMParam, dbPassVersion)
-		} else {
-			service.Database.MasterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s}}", service.Database.MasterPasswordSSMParam)
-		}
-		stackParams["DatabaseMasterPassword"] = service.Database.MasterPasswordSSMParam
 		stackParams["DatabaseKeyArn"] = workflow.databaseKeyArn
 
 		tags := createTagMap(&DatabaseTags{
