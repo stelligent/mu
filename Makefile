@@ -51,7 +51,7 @@ lint: fmt
 	@echo "=== linting ==="
 	@go vet $(SRC_FILES)
 
-	@go get "github.com/golang/lint/golint"
+	@go get -u golang.org/x/lint/golint
 	@echo $(SRC_FILES) | xargs -n1 golint -set_exit_status
 
 gen:
