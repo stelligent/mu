@@ -16,8 +16,16 @@ var eksImagePattern = "amazon-eks-node-v*"
 var ec2ImageOwner = "amazon"
 var ec2ImagePattern = "amzn-ami-hvm-*-x86_64-gp2"
 
-// NewEnvironmentUpserter create a new workflow for upserting an environment
-func NewEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
+// NewEnvironmentsUpserter create a new workflow for upserting n environments
+func NewEnvironmentsUpserter(ctx *common.Context, environmentNames []string) Executor {
+	envWorkflows := make([]Executor, len(environmentNames))
+	for i, environmentName := range environmentNames {
+		envWorkflows[i] = newEnvironmentUpserter(ctx, environmentName)
+	}
+	return newParallelExecutor(envWorkflows...)
+}
+
+func newEnvironmentUpserter(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
 	envStackParams := make(map[string]string)

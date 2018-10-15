@@ -46,3 +46,25 @@ func newConditionalExecutor(conditional Conditional, trueExecutor Executor, fals
 		return nil
 	}
 }
+
+func executeWithChan(executor Executor, errChan chan error) {
+	errChan <- executor()
+}
+
+func newParallelExecutor(executors ...Executor) Executor {
+	return func() error {
+		errChan := make(chan error)
+
+		for _, executor := range executors {
+			go executeWithChan(executor, errChan)
+		}
+
+		for i := 0; i < len(executors); i++ {
+			err := <-errChan
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}

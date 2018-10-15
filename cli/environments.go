@@ -35,14 +35,33 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 		Aliases:   []string{UpsertAlias},
 		Usage:     UpsertUsage,
 		ArgsUsage: EnvArgUsage,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "all, A",
+				Usage: "Upsert all environments defined in the config file",
+			},
+		},
 		Action: func(c *cli.Context) error {
-			environmentName := c.Args().First()
-			if len(environmentName) == Zero {
-				cli.ShowCommandHelp(c, UpsertCmd)
-				return errors.New(NoEnvValidation)
+			var environmentNames []string
+			if c.Bool("all") {
+				if c.NArg() != 0 {
+					cli.ShowCommandHelp(c, UpsertCmd)
+					return errors.New(AllEnvValidation)
+				}
+
+				environmentNames = make([]string, 0)
+				for _, environment := range ctx.Config.Environments {
+					environmentNames = append(environmentNames, environment.Name)
+				}
+			} else {
+				if c.NArg() == 0 {
+					cli.ShowCommandHelp(c, UpsertCmd)
+					return errors.New(NoEnvValidation)
+				}
+				environmentNames = c.Args()
 			}
 
-			workflow := workflows.NewEnvironmentUpserter(ctx, environmentName)
+			workflow := workflows.NewEnvironmentsUpserter(ctx, environmentNames)
 			return workflow()
 		},
 	}

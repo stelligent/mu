@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/op/go-logging"
 	"time"
+
+	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("cli")
@@ -47,7 +48,7 @@ const (
 	EnvCmd                     = "environment"
 	EnvAlias                   = "env"
 	EnvUsage                   = "options for managing environments"
-	EnvArgUsage                = "<environment>"
+	EnvArgUsage                = "<environments...>"
 	Tag                        = "tag"
 	BatchSize                  = "batch-size"
 	Provider                   = "provider"
@@ -103,7 +104,8 @@ const (
 	Zero               = 0
 	Space              = " "
 	Spaces             = "   "
-	NoEnvValidation    = "environment must be provided"
+	NoEnvValidation    = "1 environment must be provided"
+	AllEnvValidation   = "environment must NOT be provided"
 	NoCmdValidation    = "command must be provided"
 	EmptyCmdValidation = "command must not be an empty string"
 )

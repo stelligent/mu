@@ -327,8 +327,17 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 
 	if stack == nil || stack.Status == "" {
 		// Stack should be created
-		return createStack(stackName, stackParameters, parameters,
+		err := createStack(stackName, stackParameters, parameters,
 			roleArn, stackTags, tags, aws.String(templateBody), templateBodyBytes, policy, cfnMgr)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); !ok || awsErr.Code() != "AlreadyExistsException" {
+				return err
+			}
+			log.Debugf("Stack '%s' already existed, trying update instead.", stackName)
+			stack = cfnMgr.AwaitFinalStatus(stackName)
+		} else {
+			return nil
+		}
 	}
 	// else, stack should be updated
 	return updateStack(stackName, stackParameters, parameters,

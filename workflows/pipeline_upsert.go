@@ -128,69 +128,66 @@ func (workflow *pipelineWorkflow) pipelineToken(namespace string, tokenProvider 
 
 func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, params map[string]string) Executor {
 	return func() error {
-		err := rolesetUpserter.UpsertCommonRoleset()
-		if err != nil {
-			return err
-		}
-
-		rolesetCount := 0
-		errChan := make(chan error)
+		environments := make([]string, 0)
 
 		if !workflow.pipelineConfig.Acceptance.Disabled {
 			envName := workflow.pipelineConfig.Acceptance.Environment
 			if envName == "" {
-				envName = "acceptance"
+				environments = append(environments, "acceptance")
+			} else {
+				environments = append(environments, envName)
 			}
-			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, workflow.databaseName, errChan)
-			rolesetCount++
 		}
 
 		if !workflow.pipelineConfig.Production.Disabled {
 			envName := workflow.pipelineConfig.Production.Environment
 			if envName == "" {
-				envName = "production"
+				environments = append(environments, "production")
+			} else {
+				environments = append(environments, envName)
 			}
-			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, workflow.databaseName, errChan)
-			rolesetCount++
 		}
 
-		for i := 0; i < rolesetCount; i++ {
-			err := <-errChan
+		rolesetExecutors := make([]Executor, 0)
+
+		// add executors for environment and service rolesets
+		for _, envName := range environments {
+			rolesetExecutors = append(rolesetExecutors, func() error {
+				return rolesetUpserter.UpsertEnvironmentRoleset(envName)
+			})
+
+			rolesetExecutors = append(rolesetExecutors, func() error {
+				return rolesetUpserter.UpsertServiceRoleset(envName, workflow.serviceName, workflow.codeDeployBucket, workflow.databaseName)
+			})
+		}
+
+		rolesetExecutors = append(rolesetExecutors, func() error {
+			err := rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], workflow.codeDeployBucket)
 			if err != nil {
 				return err
 			}
-		}
 
-		err = rolesetUpserter.UpsertPipelineRoleset(workflow.serviceName, params["PipelineBucket"], workflow.codeDeployBucket)
-		if err != nil {
-			return err
-		}
-
-		pipelineRoleset, err := rolesetGetter.GetPipelineRoleset(workflow.serviceName)
-		if err != nil {
-			return err
-		}
-
-		for roleType, roleArn := range pipelineRoleset {
-			if roleArn != "" {
-				params[roleType] = roleArn
+			pipelineRoleset, err := rolesetGetter.GetPipelineRoleset(workflow.serviceName)
+			if err != nil {
+				return err
 			}
-		}
 
-		return nil
+			for roleType, roleArn := range pipelineRoleset {
+				if roleArn != "" {
+					params[roleType] = roleArn
+				}
+			}
+
+			return nil
+		})
+
+		executor := newPipelineExecutor(
+			rolesetUpserter.UpsertCommonRoleset,
+			newParallelExecutor(rolesetExecutors...),
+		)
+
+		return executor()
 	}
-}
-
-func updateEnvRoleset(rolesetUpserter common.RolesetUpserter, envName string, serviceName string, codeDeployBucket string, databaseName string, errChan chan error) {
-	err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
-	if err != nil {
-		errChan <- err
-		return
-	}
-
-	err = rolesetUpserter.UpsertServiceRoleset(envName, serviceName, codeDeployBucket, databaseName)
-	errChan <- err
-	return
 }
 
 func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter, params map[string]string) Executor {

@@ -46,7 +46,7 @@ func TestNewEnvironmentUpserter(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
 	ctx.Config.Namespace = "mu"
-	upserter := NewEnvironmentUpserter(ctx, "foo")
+	upserter := NewEnvironmentsUpserter(ctx, []string{"foo"})
 	assert.NotNil(upserter)
 }
 
