@@ -300,7 +300,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_ManagedEnv(t *testing.T) {
 	stackManagerMock.On("UpsertStack", "mu-iam-service-sv1-env1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-service-sv1-env1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
 
-	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket")
+	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket", "")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
@@ -331,7 +331,7 @@ func TestIamRolesetManager_UpsertServiceRoleset_SharedEnv(t *testing.T) {
 	}, nil)
 	stackManagerMock.On("UpsertStack", "mu-iam-service-sv1-env1").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-service-sv1-env1").Return(&common.Stack{Status: "CREATE_COMPLETE"})
-	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket")
+	err := i.UpsertServiceRoleset("env1", "sv1", "foo-bucket", "")
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 2)

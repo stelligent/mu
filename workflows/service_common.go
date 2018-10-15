@@ -24,6 +24,7 @@ type serviceWorkflow struct {
 	appName                       string
 	appRevisionBucket             string
 	appRevisionKey                string
+	databaseName                  string
 	cloudFormationRoleArn         string
 	microserviceTaskDefinitionArn string
 	ecsEventsRoleArn              string
@@ -48,6 +49,7 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 		}
 		workflow.appRevisionKey = fmt.Sprintf("%s/%s.zip", workflow.serviceName, workflow.serviceTag)
 
+		workflow.databaseName = ctx.Config.Service.Database.Name
 		workflow.codeRevision = ctx.Config.Repo.Revision
 		workflow.repoName = ctx.Config.Repo.Slug
 		workflow.priority = ctx.Config.Service.Priority

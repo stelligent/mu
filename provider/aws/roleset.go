@@ -173,7 +173,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string) error {
+func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string, databaseName string) error {
 	if rolesetMgr.context.Config.DisableIAM {
 		log.Infof("Skipping upsert of service IAM roles.")
 		return nil
@@ -215,6 +215,7 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"ServiceName":      serviceName,
 		"Provider":         envProvider,
 		"CodeDeployBucket": codeDeployBucket,
+		"DatabaseName":     databaseName,
 	}
 
 	policy, err := templates.GetAsset(common.TemplatePolicyDefault)

@@ -24,6 +24,10 @@ Parameters:
   CodeDeployBucket:
     Type: String
     Description: Name of bucket to use for the CodeDeployBucket artifacts
+  DatabaseName:
+    Type: String
+    Description: Name of database
+    Default: ""
 Conditions:
   IsEc2Service:
     "Fn::Equals":
@@ -45,8 +49,14 @@ Conditions:
       - "Fn::Equals":
         - !Ref Provider
         - 'eks-fargate'
+  HasDatabase:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref DatabaseName
+        - ''
 Resources:
   DatabaseKey:
+    Condition: HasDatabase
     Type: AWS::KMS::Key
     Properties:
       Description: !Sub Service key for ${Namespace}-service-${ServiceName}-${EnvironmentName}
@@ -126,6 +136,7 @@ Resources:
               Bool:
                 kms:GrantIsForAWSResource: false
   DatabaseKeyAlias:
+    Condition: HasDatabase
     Type: AWS::KMS::Alias
     Properties:
       AliasName: !Sub alias/${Namespace}-service-${ServiceName}-${EnvironmentName}
@@ -391,7 +402,11 @@ Resources:
 Outputs:
   DatabaseKeyArn:
     Description: KMS key for RDS Databases
-    Value: !GetAtt DatabaseKey.Arn
+    Value: 
+      Fn::If:
+      - HasDatabase
+      - !GetAtt DatabaseKey.Arn
+      - ''
   EC2InstanceProfileArn:
     Description: Instance profile for EC2 instances
     Value:

@@ -7,6 +7,7 @@ import (
 
 type pipelineWorkflow struct {
 	serviceName      string
+	databaseName     string
 	muFile           string
 	pipelineConfig   *common.Pipeline
 	codeRevision     string
@@ -45,6 +46,7 @@ func (workflow *pipelineWorkflow) serviceFinder(serviceName string, ctx *common.
 		}
 
 		workflow.pipelineConfig = &ctx.Config.Service.Pipeline
+		workflow.databaseName = ctx.Config.Service.Database.Name
 		workflow.codeRevision = ctx.Config.Repo.Revision
 		workflow.codeBranch = ctx.Config.Repo.Branch
 		workflow.muFile = ctx.Config.RelMuFile

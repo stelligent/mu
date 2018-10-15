@@ -7,7 +7,7 @@ type Roleset map[string]string
 type RolesetUpserter interface {
 	UpsertCommonRoleset() error
 	UpsertEnvironmentRoleset(environmentName string) error
-	UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string) error
+	UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string, databaseName string) error
 	UpsertPipelineRoleset(serviceName string, pipelineBucket string, codeDeployBucket string) error
 }
 

@@ -104,7 +104,7 @@ func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.R
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 
-		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket)
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket, workflow.databaseName)
 		if err != nil {
 			return err
 		}

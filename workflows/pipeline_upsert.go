@@ -141,7 +141,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 			if envName == "" {
 				envName = "acceptance"
 			}
-			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, errChan)
+			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, workflow.databaseName, errChan)
 			rolesetCount++
 		}
 
@@ -150,7 +150,7 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 			if envName == "" {
 				envName = "production"
 			}
-			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, errChan)
+			go updateEnvRoleset(rolesetUpserter, envName, workflow.serviceName, workflow.codeDeployBucket, workflow.databaseName, errChan)
 			rolesetCount++
 		}
 
@@ -181,14 +181,14 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 	}
 }
 
-func updateEnvRoleset(rolesetUpserter common.RolesetUpserter, envName string, serviceName string, codeDeployBucket string, errChan chan error) {
+func updateEnvRoleset(rolesetUpserter common.RolesetUpserter, envName string, serviceName string, codeDeployBucket string, databaseName string, errChan chan error) {
 	err := rolesetUpserter.UpsertEnvironmentRoleset(envName)
 	if err != nil {
 		errChan <- err
 		return
 	}
 
-	err = rolesetUpserter.UpsertServiceRoleset(envName, serviceName, codeDeployBucket)
+	err = rolesetUpserter.UpsertServiceRoleset(envName, serviceName, codeDeployBucket, databaseName)
 	errChan <- err
 	return
 }

@@ -10,6 +10,7 @@ type databaseWorkflow struct {
 	serviceName           string
 	codeRevision          string
 	appRevisionBucket     string
+	databaseName          string
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
@@ -29,6 +30,7 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 		}
 
 		workflow.appRevisionBucket = ctx.Config.Service.Pipeline.Build.Bucket
+		workflow.databaseName = ctx.Config.Service.Database.Name
 
 		return nil
 	}

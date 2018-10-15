@@ -204,7 +204,9 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 	rolesetManager.On("UpsertCommonRoleset").Return(nil)
 	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
 	rolesetManager.On("UpsertServiceRoleset", "", "", "").Return(nil)
-	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{}, nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{
+		"DatabaseKeyArn": "foobarbaz",
+	}, nil)
 
 	workflow := new(databaseWorkflow)
 	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager, "")()
@@ -215,6 +217,19 @@ func TestNewDatabaseUpserter_databaseRolesetUpserter(t *testing.T) {
 	rolesetManager.AssertNumberOfCalls(t, "UpsertCommonRoleset", 1)
 	rolesetManager.AssertNumberOfCalls(t, "GetCommonRoleset", 1)
 
+}
+func TestNewDatabaseUpserter_databaseRolesetUpserterMissingKmsArn(t *testing.T) {
+	assert := assert.New(t)
+	rolesetManager := new(mockedRolesetManagerForService)
+
+	rolesetManager.On("UpsertCommonRoleset").Return(nil)
+	rolesetManager.On("GetCommonRoleset").Return(common.Roleset{"CloudFormationRoleArn": "bar"}, nil)
+	rolesetManager.On("UpsertServiceRoleset", "", "", "").Return(nil)
+	rolesetManager.On("GetServiceRoleset").Return(common.Roleset{}, nil)
+
+	workflow := new(databaseWorkflow)
+	err := workflow.databaseRolesetUpserter(rolesetManager, rolesetManager, "")()
+	assert.NotNil(err)
 }
 
 func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {

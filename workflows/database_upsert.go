@@ -62,7 +62,7 @@ func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common
 
 		workflow.cloudFormationRoleArn = commonRoleset["CloudFormationRoleArn"]
 
-		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket)
+		err = rolesetUpserter.UpsertServiceRoleset(environmentName, workflow.serviceName, workflow.appRevisionBucket, workflow.databaseName)
 		if err != nil {
 			return err
 		}
@@ -72,6 +72,9 @@ func (workflow *databaseWorkflow) databaseRolesetUpserter(rolesetUpserter common
 			return err
 		}
 		workflow.databaseKeyArn = serviceRoleset["DatabaseKeyArn"]
+		if workflow.databaseKeyArn == "" {
+			return fmt.Errorf("Missing `DatabaseKeyArn`...maybe you need to run `mu pipeline up` again to add the KMS key to the IAM stack?")
+		}
 
 		return nil
 	}
