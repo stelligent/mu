@@ -7,8 +7,16 @@ import (
 	"github.com/stelligent/mu/common"
 )
 
-// NewEnvironmentTerminator create a new workflow for terminating an environment
-func NewEnvironmentTerminator(ctx *common.Context, environmentName string) Executor {
+// NewEnvironmentsTerminator create a new workflow for terminating an environment
+func NewEnvironmentsTerminator(ctx *common.Context, environmentNames []string) Executor {
+	envWorkflows := make([]Executor, len(environmentNames))
+	for i, environmentName := range environmentNames {
+		envWorkflows[i] = newEnvironmentTerminator(ctx, environmentName)
+	}
+	return newParallelExecutor(envWorkflows...)
+}
+
+func newEnvironmentTerminator(ctx *common.Context, environmentName string) Executor {
 
 	workflow := new(environmentWorkflow)
 

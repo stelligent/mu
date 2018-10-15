@@ -151,7 +151,8 @@ func (workflow *pipelineWorkflow) pipelineRolesetUpserter(rolesetUpserter common
 		rolesetExecutors := make([]Executor, 0)
 
 		// add executors for environment and service rolesets
-		for _, envName := range environments {
+		for i := range environments {
+			envName := environments[i]
 			rolesetExecutors = append(rolesetExecutors, func() error {
 				return rolesetUpserter.UpsertEnvironmentRoleset(envName)
 			})

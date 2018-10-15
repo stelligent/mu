@@ -12,7 +12,7 @@ func TestNewEnvironmentTerminator(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
 	ctx.Config.Namespace = "mu"
-	terminator := NewEnvironmentTerminator(ctx, "foo")
+	terminator := newEnvironmentTerminator(ctx, "foo")
 	assert.NotNil(terminator)
 }
 

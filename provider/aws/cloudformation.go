@@ -174,6 +174,7 @@ func createStack(stackName string, stackParameters []*cloudformation.Parameter,
 		return err
 	}
 	log.Debug("  Stack exists.")
+	cfnMgr.logInfo("  Created stack '%s'", stackName)
 	return nil
 }
 
@@ -213,20 +214,26 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			if awsErr.Code() == "ValidationError" && awsErr.Message() == "No updates are to be performed." {
-				pauseSpinner := cfnMgr.spinnerRefCnt > 0
-				if pauseSpinner {
-					cfnMgr.stopSpinner()
-				}
-				log.Infof("  No changes for stack '%s'", stackName)
-				if pauseSpinner {
-					cfnMgr.startSpinner()
-				}
+				cfnMgr.logInfo("  No changes for stack '%s'", stackName)
 				return nil
 			}
 		}
 		return err
+	} else {
+		cfnMgr.logInfo("  Updated stack '%s'", stackName)
 	}
 	return nil
+}
+
+func (cfnMgr *cloudformationStackManager) logInfo(format string, args ...interface{}) {
+	pauseSpinner := cfnMgr.spinnerRefCnt > 0
+	if pauseSpinner {
+		cfnMgr.stopSpinner()
+	}
+	log.Infof(format, args...)
+	if pauseSpinner {
+		cfnMgr.startSpinner()
+	}
 }
 
 func checkVersion(cfnMgr *cloudformationStackManager, stack *common.Stack, stackName string) error {

@@ -37,7 +37,7 @@ func TestNewEnvironmentsUpsertCommand(t *testing.T) {
 	assertion.Equal(UpsertCmd, command.Name, NameMessage)
 	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
 	assertion.Equal(UpsertAlias, command.Aliases[SingleAliasIndex], AliasMessage)
-	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(EnvsArgUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 
 	args := []string{UpsertCmd}
@@ -88,7 +88,7 @@ func TestNewEnvironmentsTerminateCommand(t *testing.T) {
 	assertion.Equal(TerminateCmd, command.Name, NameMessage)
 	assertion.Equal(EnvAliasCount, len(command.Aliases), AliasLenMessage)
 	assertion.Equal(TerminateAlias, command.Aliases[SingleAliasIndex], AliasMessage)
-	assertion.Equal(EnvArgUsage, command.ArgsUsage, ArgsUsageMessage)
+	assertion.Equal(EnvsArgUsage, command.ArgsUsage, ArgsUsageMessage)
 	assertion.NotNil(command.Action)
 }
 

@@ -109,11 +109,14 @@ func validatePipeline(ctx *common.Context) error {
 	}
 
 	// - env term
+	envNames := make([]string, 0)
 	for _, env := range ctx.Config.Environments {
-		err = workflows.NewEnvironmentTerminator(ctx, env.Name)()
-		if err != nil {
-			fmt.Printf("Error on cleanup env '%s': %v", env.Name, err)
-		}
+		envNames = append(envNames, env.Name)
+	}
+
+	err = workflows.NewEnvironmentsTerminator(ctx, envNames)()
+	if err != nil {
+		fmt.Printf("Error on cleanup envs: %v", err)
 	}
 
 	return nil

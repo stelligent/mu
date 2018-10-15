@@ -48,7 +48,8 @@ const (
 	EnvCmd                     = "environment"
 	EnvAlias                   = "env"
 	EnvUsage                   = "options for managing environments"
-	EnvArgUsage                = "<environments...>"
+	EnvArgUsage                = "<environment>"
+	EnvsArgUsage               = "<environments...>"
 	Tag                        = "tag"
 	BatchSize                  = "batch-size"
 	Provider                   = "provider"
@@ -104,7 +105,7 @@ const (
 	Zero               = 0
 	Space              = " "
 	Spaces             = "   "
-	NoEnvValidation    = "1 environment must be provided"
+	NoEnvValidation    = "environment must be provided"
 	AllEnvValidation   = "environment must NOT be provided"
 	NoCmdValidation    = "command must be provided"
 	EmptyCmdValidation = "command must not be an empty string"

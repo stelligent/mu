@@ -34,7 +34,7 @@ func newEnvironmentsUpsertCommand(ctx *common.Context) *cli.Command {
 		Name:      UpsertCmd,
 		Aliases:   []string{UpsertAlias},
 		Usage:     UpsertUsage,
-		ArgsUsage: EnvArgUsage,
+		ArgsUsage: EnvsArgUsage,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "all, A",
@@ -134,14 +134,13 @@ func newEnvironmentsTerminateCommand(ctx *common.Context) *cli.Command {
 		Name:      TerminateCmd,
 		Aliases:   []string{TerminateAlias},
 		Usage:     TerminateUsage,
-		ArgsUsage: EnvArgUsage,
+		ArgsUsage: EnvsArgUsage,
 		Action: func(c *cli.Context) error {
-			environmentName := c.Args().First()
-			if len(environmentName) == Zero {
+			if c.NArg() == 0 {
 				cli.ShowCommandHelp(c, TerminateCmd)
 				return errors.New(NoEnvValidation)
 			}
-			workflow := workflows.NewEnvironmentTerminator(ctx, environmentName)
+			workflow := workflows.NewEnvironmentsTerminator(ctx, c.Args())
 			return workflow()
 		},
 	}

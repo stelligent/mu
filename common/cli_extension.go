@@ -53,6 +53,7 @@ func (cli *CliAdditions) GetPasswdPrompt(message string) (string, error) {
 		Loop:        true,
 		Mask:        true,
 		MaskDefault: true,
+		HideOrder:   true,
 	})
 	return strings.TrimSpace(password), err
 }

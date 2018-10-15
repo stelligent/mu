@@ -311,6 +311,7 @@ func (workflow *environmentWorkflow) environmentViewerCLI(view *environmentView,
 	return func() error {
 
 		fmt.Fprintf(writer, HeaderValueFormat, Bold(EnvironmentHeader), view.name)
+		fmt.Fprintf(writer, HeaderValueFormat, Bold("Provider"), view.provider)
 		if view.clusterName != "" {
 			fmt.Fprintf(writer, StackFormat, Bold(ClusterStack), view.clusterName, colorizeStackStatus(view.clusterStatus))
 		}
