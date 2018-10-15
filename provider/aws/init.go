@@ -58,7 +58,7 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 	}
 
 	// initialize ClusterManager
-	ctx.ClusterManager, err = newClusterManager(sess)
+	ctx.ClusterManager, err = newClusterManager(sess, dryrunPath != "")
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 	}
 
 	// initialize ArtifactManager
-	ctx.ArtifactManager, err = newArtifactManager(sess)
+	ctx.ArtifactManager, err = newArtifactManager(sess, dryrunPath != "")
 	if err != nil {
 		return err
 	}

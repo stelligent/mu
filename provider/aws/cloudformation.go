@@ -219,9 +219,8 @@ func updateStack(stackName string, stackParameters []*cloudformation.Parameter,
 			}
 		}
 		return err
-	} else {
-		cfnMgr.logInfo("  Updated stack '%s'", stackName)
 	}
+	cfnMgr.logInfo("  Updated stack '%s'", stackName)
 	return nil
 }
 
@@ -278,6 +277,10 @@ func (cfnMgr *cloudformationStackManager) cleanStackIfInRollback(stack *common.S
 		stack = cfnMgr.AwaitFinalStatus(stackName)
 	}
 	return stack, nil
+}
+
+func (cfnMgr *cloudformationStackManager) AllowDataLoss(allow bool) {
+	cfnMgr.allowDataLoss = allow
 }
 
 // SetTerminationProtection to protect stack from deletion

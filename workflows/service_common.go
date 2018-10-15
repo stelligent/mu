@@ -146,12 +146,12 @@ func (workflow *serviceWorkflow) serviceRepoUpserter(namespace string, service *
 		stackParams := make(map[string]string)
 		stackParams["RepoName"] = fmt.Sprintf("%s-%s", namespace, workflow.serviceName)
 
-		tags := createTagMap(&EnvironmentTags{
-			Environment: workflow.serviceName,
-			Type:        string(common.StackTypeRepo),
-			Provider:    "",
-			Revision:    workflow.codeRevision,
-			Repo:        workflow.repoName,
+		tags := createTagMap(&ServiceTags{
+			Service:  workflow.serviceName,
+			Type:     string(common.StackTypeRepo),
+			Provider: "",
+			Revision: workflow.codeRevision,
+			Repo:     workflow.repoName,
 		})
 
 		err := stackUpserter.UpsertStack(ecrStackName, common.TemplateRepo, nil, stackParams, tags, "", "")

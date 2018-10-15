@@ -2,6 +2,8 @@ package aws
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
@@ -9,15 +11,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ecs/ecsiface"
 	"github.com/stelligent/mu/common"
-	"strings"
 )
 
 type ecsClusterManager struct {
 	ecsAPI ecsiface.ECSAPI
 	ecrAPI ecriface.ECRAPI
+	dryrun bool
 }
 
-func newClusterManager(sess *session.Session) (common.ClusterManager, error) {
+func newClusterManager(sess *session.Session, dryrun bool) (common.ClusterManager, error) {
 	log.Debug("Connecting to ECS service")
 	ecsAPI := ecs.New(sess)
 
@@ -27,6 +29,7 @@ func newClusterManager(sess *session.Session) (common.ClusterManager, error) {
 	return &ecsClusterManager{
 		ecsAPI: ecsAPI,
 		ecrAPI: ecrAPI,
+		dryrun: dryrun,
 	}, nil
 }
 
@@ -83,4 +86,19 @@ func (ecsMgr *ecsClusterManager) AuthenticateRepository(repoURL string) (string,
 	}
 
 	return common.Empty, fmt.Errorf("unable to find token for repo url:%s", repoURL)
+}
+
+func (ecsMgr *ecsClusterManager) DeleteRepository(repoName string) error {
+	ecrAPI := ecsMgr.ecrAPI
+
+	if ecsMgr.dryrun {
+		log.Infof("  DRYRUN: Skipping deletion of repository '%s'", repoName)
+		return nil
+	}
+	log.Infof("  Deleting repository '%s'", repoName)
+	ecrAPI.DeleteRepository(&ecr.DeleteRepositoryInput{
+		Force:          aws.Bool(true),
+		RepositoryName: aws.String(repoName),
+	})
+	return nil
 }

@@ -55,4 +55,5 @@ type StackManager interface {
 	StackDeleter
 	ImageFinder
 	AZCounter
+	AllowDataLoss(allow bool)
 }

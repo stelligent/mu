@@ -18,17 +18,19 @@ import (
 )
 
 type s3ArtifactManager struct {
-	s3API s3iface.S3API
-	sess  *session.Session
+	s3API  s3iface.S3API
+	sess   *session.Session
+	dryrun bool
 }
 
-func newArtifactManager(sess *session.Session) (common.ArtifactManager, error) {
+func newArtifactManager(sess *session.Session, dryrun bool) (common.ArtifactManager, error) {
 	log.Debug("Connecting to S3 service")
 	s3API := s3.New(sess)
 
 	return &s3ArtifactManager{
-		s3API: s3API,
-		sess:  sess,
+		s3API:  s3API,
+		sess:   sess,
+		dryrun: dryrun,
 	}, nil
 }
 
@@ -162,4 +164,56 @@ func md5File(path string) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// EmptyBucket to empty bucket
+func (s3Mgr *s3ArtifactManager) EmptyBucket(bucketName string) error {
+	if s3Mgr.dryrun {
+		log.Infof("  DRYRUN: Skipping emptying of bucket '%s'", bucketName)
+		return nil
+	}
+	log.Infof("  Emptying bucket '%s'", bucketName)
+	params := &s3.ListObjectsInput{
+		Bucket: aws.String(bucketName),
+	}
+	for {
+		//Requesting for batch of objects from s3 bucket
+		objects, err := s3Mgr.s3API.ListObjects(params)
+		if err != nil {
+			return err
+		}
+		//Checks if the bucket is already empty
+		if len((*objects).Contents) == 0 {
+			log.Debug("Bucket is already empty")
+			return nil
+		}
+		log.Debug("First object in batch | ", *(objects.Contents[0].Key))
+
+		//creating an array of pointers of ObjectIdentifier
+		objectsToDelete := make([]*s3.ObjectIdentifier, 0, 1000)
+		for _, object := range (*objects).Contents {
+			obj := s3.ObjectIdentifier{
+				Key: object.Key,
+			}
+			objectsToDelete = append(objectsToDelete, &obj)
+		}
+		//Creating JSON payload for bulk delete
+		deleteArray := s3.Delete{Objects: objectsToDelete}
+		deleteParams := &s3.DeleteObjectsInput{
+			Bucket: aws.String(bucketName),
+			Delete: &deleteArray,
+		}
+		//Running the Bulk delete job (limit 1000)
+		_, err = s3Mgr.s3API.DeleteObjects(deleteParams)
+		if err != nil {
+			return err
+		}
+		if *(*objects).IsTruncated { //if there are more objects in the bucket, IsTruncated = true
+			params.Marker = (*deleteParams).Delete.Objects[len((*deleteParams).Delete.Objects)-1].Key
+			log.Debug("Requesting next batch | ", *(params.Marker))
+		} else { //if all objects in the bucket have been cleaned up.
+			break
+		}
+	}
+	return nil
 }

@@ -48,6 +48,8 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(namespace stri
 		if err != nil {
 			return err
 		}
+
+		executors := make([]Executor, 0)
 		for _, stack := range stacks {
 			if stack.Tags["environment"] != environmentName {
 				continue
@@ -57,17 +59,16 @@ func (workflow *environmentWorkflow) environmentServiceTerminator(namespace stri
 				return err
 			}
 
-			rolesetDeleter.DeleteServiceRoleset(environmentName, stack.Tags["service"])
-		}
-		for _, stack := range stacks {
-			if stack.Tags["environment"] != environmentName {
-				continue
-			}
-			log.Infof("   Undeploying service '%s' from environment '%s'", stack.Tags["service"], environmentName)
-			stackWaiter.AwaitFinalStatus(stack.Name)
+			serviceName := stack.Tags["service"]
+			stackName := stack.Name
+			executors = append(executors, func() error {
+				log.Infof("   Undeploying service '%s' from environment '%s'", serviceName, environmentName)
+				stackWaiter.AwaitFinalStatus(stackName)
+				return rolesetDeleter.DeleteServiceRoleset(environmentName, serviceName)
+			})
 		}
 
-		return nil
+		return newParallelExecutor(executors...)()
 	}
 }
 func (workflow *environmentWorkflow) environmentDbTerminator(namespace string, environmentName string, stackLister common.StackLister, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter) Executor {

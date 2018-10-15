@@ -51,6 +51,12 @@ func executeWithChan(executor Executor, errChan chan error) {
 	errChan <- executor()
 }
 
+func newErrorExecutor(err error) Executor {
+	return func() error {
+		return err
+	}
+}
+
 func newParallelExecutor(executors ...Executor) Executor {
 	return func() error {
 		errChan := make(chan error)

@@ -29,17 +29,18 @@ func (cli *CliAdditions) Prompt(message string, def bool) (bool, error) {
 		Required: true,
 		Loop:     true,
 		ValidateFunc: func(s string) error {
-			if s != "y" && s != "n" {
-				return fmt.Errorf("input must be y or n")
+			if s != "yes" && s != "no" {
+				return fmt.Errorf("input must be yes or no")
 			}
 			return nil
 		},
+		HideOrder: true,
 	})
 	line := strings.ToLower(answer)
-	if line == "y" {
+	if line == "yes" {
 		return true, err
 	}
-	if line == "n" {
+	if line == "no" {
 		return false, err
 	}
 	return def, err

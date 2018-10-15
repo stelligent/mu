@@ -15,8 +15,14 @@ type RepositoryAuthenticator interface {
 	AuthenticateRepository(repoURL string) (string, error)
 }
 
+// RepositoryDeleter deletes a repo
+type RepositoryDeleter interface {
+	DeleteRepository(repoName string) error
+}
+
 // ClusterManager composite of all cluster capabilities
 type ClusterManager interface {
 	ClusterInstanceLister
 	RepositoryAuthenticator
+	RepositoryDeleter
 }
