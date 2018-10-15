@@ -10,6 +10,6 @@ import (
 func TestNewServiceViewer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
-	viewer := NewServiceViewer(ctx, "foo", nil)
+	viewer := NewServiceViewer(ctx, "foo", nil, false)
 	assert.NotNil(viewer)
 }

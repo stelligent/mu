@@ -273,6 +273,25 @@ func (cfnMgr *cloudformationStackManager) cleanStackIfInRollback(stack *common.S
 	return stack, nil
 }
 
+// SetTerminationProtection to protect stack from deletion
+func (cfnMgr *cloudformationStackManager) SetTerminationProtection(stackName string, enabled bool) error {
+	stack := cfnMgr.AwaitFinalStatus(stackName)
+	if stack == nil || stack.EnableTerminationProtection == enabled {
+		return nil
+	}
+
+	if enabled == false && !cfnMgr.allowDataLoss {
+		return fmt.Errorf("In order to disable termination protection, you must pass `--allow-data-loss` flag")
+	}
+
+	_, err := cfnMgr.cfnAPI.UpdateTerminationProtection(&cloudformation.UpdateTerminationProtectionInput{
+		StackName:                   aws.String(stackName),
+		EnableTerminationProtection: aws.Bool(enabled),
+	})
+
+	return err
+}
+
 // UpsertStack will create/update the cloudformation stack
 func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, templateName string, templateData interface{}, parameters map[string]string, tags map[string]string, policy string, roleArn string) error {
 	stack := cfnMgr.AwaitFinalStatus(stackName)
@@ -446,6 +465,7 @@ func buildStack(stackDetails *cloudformation.Stack) *common.Stack {
 	stack := new(common.Stack)
 	stack.ID = aws.StringValue(stackDetails.StackId)
 	stack.Name = aws.StringValue(stackDetails.StackName)
+	stack.EnableTerminationProtection = aws.BoolValue(stackDetails.EnableTerminationProtection)
 	stack.Status = aws.StringValue(stackDetails.StackStatus)
 	stack.StatusReason = aws.StringValue(stackDetails.StackStatusReason)
 	if aws.TimeValue(stackDetails.LastUpdatedTime).Unix() > 0 {

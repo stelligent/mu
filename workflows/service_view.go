@@ -10,9 +10,11 @@ import (
 )
 
 // NewServiceViewer create a new workflow for showing an environment
-func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer) Executor {
+func NewServiceViewer(ctx *common.Context, serviceName string, writer io.Writer, showTasks bool) Executor {
 
 	workflow := new(serviceWorkflow)
+
+	// TODO: support `showTasks` by listing each running task and where it is running
 
 	return newPipelineExecutor(
 		workflow.serviceInput(ctx, serviceName),

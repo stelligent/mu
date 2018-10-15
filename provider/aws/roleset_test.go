@@ -37,6 +37,11 @@ func (m *mockedRolesetStackManager) GetStack(stackName string) (*common.Stack, e
 	return args.Get(0).(*common.Stack), args.Error(1)
 }
 
+func (m *mockedRolesetStackManager) SetTerminationProtection(stackName string, enabled bool) error {
+	args := m.Called(stackName, enabled)
+	return args.Error(0)
+}
+
 func TestIamRolesetManager_GetCommonRoleset(t *testing.T) {
 	assert := assert.New(t)
 
@@ -220,11 +225,13 @@ func TestIamRolesetManager_UpsertCommonRoleset(t *testing.T) {
 
 	stackManagerMock.On("UpsertStack", "mu-iam-common").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-common").Return(&common.Stack{Status: "CREATE_COMPLETE"})
+	stackManagerMock.On("SetTerminationProtection", "mu-iam-common", true).Return(nil)
 	i.context.Config.DisableIAM = false
 	err = i.UpsertCommonRoleset()
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "UpsertStack", 1)
+	stackManagerMock.AssertNumberOfCalls(t, "SetTerminationProtection", 1)
 }
 
 func TestIamRolesetManager_UpsertEnvironmentRoleset(t *testing.T) {
@@ -376,11 +383,13 @@ func TestIamRolesetManager_DeleteCommonRoleset(t *testing.T) {
 	}
 	stackManagerMock.On("DeleteStack", "mu-iam-common").Return(nil)
 	stackManagerMock.On("AwaitFinalStatus", "mu-iam-common").Return(nil)
+	stackManagerMock.On("SetTerminationProtection", "mu-iam-common", false).Return(nil)
 	err := i.DeleteCommonRoleset()
 	assert.Nil(err)
 	stackManagerMock.AssertExpectations(t)
 	stackManagerMock.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManagerMock.AssertNumberOfCalls(t, "DeleteStack", 1)
+	stackManagerMock.AssertNumberOfCalls(t, "SetTerminationProtection", 1)
 }
 
 func TestIamRolesetManager_DeleteEnvironmentRoleset(t *testing.T) {

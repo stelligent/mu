@@ -117,7 +117,7 @@ func (rolesetMgr *iamRolesetManager) UpsertCommonRoleset() error {
 		return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
 	}
 
-	return nil
+	return rolesetMgr.context.StackManager.SetTerminationProtection(stackName, true)
 }
 
 func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName string) error {
@@ -316,7 +316,11 @@ func (rolesetMgr *iamRolesetManager) DeleteCommonRoleset() error {
 		return nil
 	}
 	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "common")
-	err := rolesetMgr.context.StackManager.DeleteStack(stackName)
+	err := rolesetMgr.context.StackManager.SetTerminationProtection(stackName, false)
+	if err != nil {
+		return err
+	}
+	err = rolesetMgr.context.StackManager.DeleteStack(stackName)
 	if err != nil {
 		return err
 	}

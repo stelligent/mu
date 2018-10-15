@@ -40,11 +40,16 @@ func newServicesShowCommand(ctx *common.Context) *cli.Command {
 				Name:  "watch, w",
 				Usage: "watch results",
 			},
+			cli.BoolFlag{
+				Name:  "tasks, t",
+				Usage: "show task details",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			service := c.Args().First()
 			watch := c.Bool("watch")
-			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut)
+			tasks := c.Bool("tasks")
+			workflow := workflows.NewServiceViewer(ctx, service, ctx.DockerOut, tasks)
 			for true {
 				if watch {
 					print("\033[H\033[2J")

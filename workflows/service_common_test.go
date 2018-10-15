@@ -123,6 +123,10 @@ func (m *mockedStackManagerForService) DeleteStack(stackName string) error {
 	args := m.Called(stackName)
 	return args.Error(0)
 }
+func (m *mockedStackManagerForService) SetTerminationProtection(stackName string, enabled bool) error {
+	args := m.Called(stackName)
+	return args.Error(0)
+}
 
 func TestServiceRepoUpserter(t *testing.T) {
 	assert := assert.New(t)

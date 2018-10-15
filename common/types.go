@@ -275,14 +275,15 @@ type Pipeline struct {
 
 // Stack summary
 type Stack struct {
-	ID             string
-	Name           string
-	Status         string
-	StatusReason   string
-	LastUpdateTime time.Time
-	Tags           map[string]string
-	Outputs        map[string]string
-	Parameters     map[string]string
+	ID                          string
+	Name                        string
+	EnableTerminationProtection bool
+	Status                      string
+	StatusReason                string
+	LastUpdateTime              time.Time
+	Tags                        map[string]string
+	Outputs                     map[string]string
+	Parameters                  map[string]string
 }
 
 const (
