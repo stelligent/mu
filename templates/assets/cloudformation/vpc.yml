@@ -260,6 +260,7 @@ Resources:
         Value: !Sub ${AWS::StackName}-nat
   NatDefaultRoute:
     Type: AWS::EC2::Route
+    DependsOn: VPCInternetGateway
     Properties:
       RouteTableId: !Ref NatRouteTable
       DestinationCidrBlock: 0.0.0.0/0
