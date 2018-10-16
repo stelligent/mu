@@ -28,8 +28,10 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineToken(ctx.Config.Namespace, tokenProvider, ctx.StackManager, stackParams),
-		workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
-		workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+		newParallelExecutor(
+			workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
+			workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+		),
 		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
 		workflow.pipelineUpserter(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, stackParams),
 		workflow.pipelineNotifyUpserter(ctx.Config.Namespace, &ctx.Config.Service.Pipeline, ctx.SubscriptionManager))

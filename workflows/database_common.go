@@ -35,3 +35,9 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 		return nil
 	}
 }
+
+func (workflow *databaseWorkflow) hasDatabase() Conditional {
+	return func() bool {
+		return workflow.databaseName != ""
+	}
+}

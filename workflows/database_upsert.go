@@ -23,10 +23,14 @@ func NewDatabaseUpserter(ctx *common.Context, environmentName string) Executor {
 
 	return newPipelineExecutor(
 		workflow.databaseInput(ctx, "", environmentName),
-		workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
-		workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
-		workflow.databaseMasterPassword(ctx.Config.Namespace, &ctx.Config.Service, &ecsImportParams, environmentName, ctx.ParamManager, cliExtension),
-		workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager),
+		newConditionalExecutor(workflow.hasDatabase(),
+			newPipelineExecutor(
+				workflow.databaseEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager, ecsImportParams, ctx.ElbManager),
+				workflow.databaseRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
+				workflow.databaseMasterPassword(ctx.Config.Namespace, &ctx.Config.Service, &ecsImportParams, environmentName, ctx.ParamManager, cliExtension),
+				workflow.databaseDeployer(ctx.Config.Namespace, &ctx.Config.Service, ecsImportParams, environmentName, ctx.StackManager, ctx.StackManager, ctx.RdsManager),
+			),
+			nil),
 	)
 }
 
