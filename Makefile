@@ -92,7 +92,7 @@ test: info lint gen cyclo
 ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	@mkdir -p $(CIRCLE_WORKING_DIRECTORY)/test-results/unit
 	@go get "github.com/jstemmer/go-junit-report"
-	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short -v | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
+	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
 	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short -v
 endif
