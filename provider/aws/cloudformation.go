@@ -285,6 +285,10 @@ func (cfnMgr *cloudformationStackManager) AllowDataLoss(allow bool) {
 
 // SetTerminationProtection to protect stack from deletion
 func (cfnMgr *cloudformationStackManager) SetTerminationProtection(stackName string, enabled bool) error {
+	if cfnMgr.dryrunPath != "" {
+		return nil
+	}
+
 	stack := cfnMgr.AwaitFinalStatus(stackName)
 	if stack == nil || stack.EnableTerminationProtection == enabled {
 		return nil

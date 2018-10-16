@@ -24,3 +24,8 @@ service:
       environment: e2e-eks-dev
     production:
       disabled: true
+
+rbac:
+- role: admin
+  user:
+  - casey.lee
