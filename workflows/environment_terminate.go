@@ -130,7 +130,11 @@ func (workflow *environmentWorkflow) environmentKubernetesIngressTerminator(envi
 	return func() error {
 		log.Noticef("Terminating ingress in environment '%s'", environmentName)
 
-		return workflow.kubernetesResourceManager.DeleteResource("v1", "Namespace", "", "mu-ingress")
+		err := workflow.kubernetesResourceManager.DeleteResource("v1", "Namespace", "", "mu-ingress")
+		if err != nil {
+			log.Warningf("Unable to delete namespace 'mu-ingress': %s", err)
+		}
+		return nil
 	}
 }
 
