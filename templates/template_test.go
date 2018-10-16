@@ -77,6 +77,9 @@ func TestNewTemplate_assets(t *testing.T) {
 					if awsErr.Code() == "InvalidClientTokenId" && awsErr.Message() == "The security token included in the request is invalid." {
 						return
 					}
+					if awsErr.Code() == "ValidationError" && awsErr.Message() == "Template format error: Unrecognized resource types: [AWS::EKS::Cluster]" {
+						t.Skip("AWS::EKS::Cluster is not recognized by CloudFormation ValidateTemplate yet")
+					}
 					assert.Fail(awsErr.Code(), awsErr.Message(), templateName)
 				}
 				assert.Fail(err.Error(), templateName)

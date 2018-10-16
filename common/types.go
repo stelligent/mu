@@ -568,7 +568,7 @@ func (w Warning) Error() string {
 // Warningf create a warning
 func Warningf(format string, args ...interface{}) Warning {
 	w := Warning{
-		Message: fmt.Sprintf(format, args),
+		Message: fmt.Sprintf(format, args...),
 	}
 	return w
 }

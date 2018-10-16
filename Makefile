@@ -1,6 +1,6 @@
 ORG := stelligent
 PACKAGE := mu
-SRC_PACKAGES = provider workflows cli common templates e2e 
+SRC_PACKAGES = provider workflows cli common templates e2e
 SNAPSHOT_SUFFIX := develop
 
 ###
@@ -84,8 +84,8 @@ cyclo:
 	@gocyclo -over 12 $(SRC_PACKAGES) || echo "WARNING: cyclomatic complexity is high"
 
 ifdef GEM
-test: nag	
-endif 
+test: nag
+endif
 
 test: info lint gen cyclo
 	@echo "=== testing ==="
@@ -94,14 +94,14 @@ ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	@go get "github.com/jstemmer/go-junit-report"
 	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
-	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
+	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short -v
 endif
 
 
 build: info gen
 	@go get github.com/goreleaser/goreleaser
 	$(eval export SNAPSHOT_VERSION=$(VERSION))
-	@goreleaser --snapshot --rm-dist 
+	@goreleaser --snapshot --rm-dist
 
 install: build
 	@echo "=== installing $(PACKAGE)-$(OS)-$(ARCH) ==="
