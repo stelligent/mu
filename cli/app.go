@@ -68,6 +68,7 @@ func NewApp() *cli.App {
 				return nil
 			}
 		}
+		context.Config.DryRun = c.Bool("dryrun")
 
 		// Allow overriding the `DisableIAM` in config via `--disable-iam` or `-I`
 		if c.Bool("disable-iam") {

@@ -526,7 +526,7 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType,
 
 	var stacks []*common.Stack
 
-	log.Debugf("Searching for stacks of type '%s'", stackType)
+	log.Debugf("Searching for stacks of type '%s' in namespace '%s'", stackType, namespace)
 
 	err := cfnAPI.DescribeStacksPages(params,
 		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
@@ -641,7 +641,11 @@ func (cfnMgr *cloudformationStackManager) DeleteStack(stackName string) error {
 	log.Debugf("Deleting stack named '%s'", stackName)
 
 	_, err := cfnAPI.DeleteStack(params)
-	return err
+	if err != nil {
+		return err
+	}
+	cfnMgr.logInfo("  Deleted stack '%s'", stackName)
+	return nil
 }
 
 func writeTemplateAndConfig(cfnDirectory string, stackName string, templateBodyBytes *bytes.Buffer, parameters map[string]string) error {

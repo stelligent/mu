@@ -33,6 +33,7 @@ type Context struct {
 
 // Config defines the structure of the yml file for the mu config
 type Config struct {
+	DryRun       bool          `yaml:"-"`
 	Namespace    string        `yaml:"namespace,omitempty" validate:"validateAlphaNumericDash"`
 	Environments []Environment `yaml:"environments,omitempty"`
 	Service      Service       `yaml:"service,omitempty"`
@@ -512,8 +513,7 @@ func StringValue(v *string) string {
 	return ""
 }
 
-// StringRef returns the string pointer to the string passed in or
-// "" if the pointer is nil.
+// StringRef returns the string pointer to the string passed in
 func StringRef(v string) *string {
 	return &v
 }
