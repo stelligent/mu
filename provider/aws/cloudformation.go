@@ -348,6 +348,14 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 				return err
 			}
 			log.Debugf("Stack '%s' already existed, trying update instead.", stackName)
+			waitParams := &cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			}
+			log.Debug("  Waiting for stack to exist...")
+			err = cfnMgr.cfnAPI.WaitUntilStackExists(waitParams)
+			if err != nil {
+				return err
+			}
 			stack = cfnMgr.AwaitFinalStatus(stackName)
 		} else {
 			return nil
