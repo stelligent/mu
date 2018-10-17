@@ -7,6 +7,8 @@ builds:
   - darwin
   - linux
   - windows
+  goarch:
+  - amd64
 archive:
   format: binary
   name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
