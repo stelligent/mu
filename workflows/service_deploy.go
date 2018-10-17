@@ -454,7 +454,9 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			"Revision":              workflow.codeRevision,
 			"MuVersion":             common.GetVersion(),
 			"EnvVariables":          service.Environment,
+			"DeploymentStrategy":    service.DeploymentStrategy,
 		}
+		templateData["MinimumHealthyPercent"], templateData["MaximumPercent"] = getMinMaxPercentForStrategy(service.DeploymentStrategy)
 
 		if stackParams["DatabaseName"] != "" {
 			templateData["DatabaseSecretName"] = fmt.Sprintf("%s-database", workflow.serviceName)
