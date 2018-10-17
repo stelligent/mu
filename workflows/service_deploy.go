@@ -454,8 +454,9 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			"Revision":              workflow.codeRevision,
 			"MuVersion":             common.GetVersion(),
 			"EnvVariables":          service.Environment,
-			"DeploymentStrategy":    service.DeploymentStrategy,
+			"DeploymentStrategy":    string(service.DeploymentStrategy),
 		}
+		// see common/types.go DeploymentStrategy types for valid string values
 		templateData["MinimumHealthyPercent"], templateData["MaximumPercent"] = getMinMaxPercentForStrategy(service.DeploymentStrategy)
 
 		if stackParams["DatabaseName"] != "" {
