@@ -195,6 +195,10 @@ func TestServiceEcsDeployer(t *testing.T) {
 
 }
 
+func TestServiceEksDeployer(t *testing.T) {
+	panic("TODO: implement this test")
+}
+
 func stringRef(v string) *string {
 	return &v
 }
