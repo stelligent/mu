@@ -467,6 +467,9 @@ Resources:
       TargetTrackingScalingPolicyConfiguration:
         CustomizedMetricSpecification:
           Dimensions: 
+            - Name: ClusterName
+              Value:
+                Fn::ImportValue: !Ref EcsCluster
             - Name: ServiceName
               Value: !Sub ${EcsService.Name}
           MetricName: CPUUtilization
