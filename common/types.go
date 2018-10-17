@@ -395,8 +395,8 @@ type DeploymentStrategy string
 // List of supported deployment strategies
 const (
 	BlueGreenDeploymentStrategy DeploymentStrategy = "blue_green"
-	RollingDeploymentStrategy                      = "rolling"
-	ReplaceDeploymentStrategy                      = "replace"
+	RollingDeploymentStrategy   DeploymentStrategy = "rolling"
+	ReplaceDeploymentStrategy   DeploymentStrategy = "replace"
 )
 
 // EnvProvider describes supported environment strategies
