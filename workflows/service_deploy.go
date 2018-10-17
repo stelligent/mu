@@ -420,8 +420,6 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 	return func() error {
 		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
 
-		resolveServiceEnvironment(service, environmentName)
-
 		servicePort := 8080
 		if service.Port != 0 {
 			servicePort = service.Port
