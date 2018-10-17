@@ -108,8 +108,10 @@ func (workflow *environmentWorkflow) environmentLoader(namespace string, environ
 		view.clusterName = clusterStackName
 		view.clusterStatus = clusterStack.Status
 		view.vpcName = vpcStackName
-		view.vpcStatus = vpcStack.Status
-		view.bastionHost = vpcStack.Outputs[BastionHostKey]
+		if vpcStack != nil {
+			view.vpcStatus = vpcStack.Status
+			view.bastionHost = vpcStack.Outputs[BastionHostKey]
+		}
 
 		if lbStack != nil {
 			view.baseURL = lbStack.Outputs[BaseURLValueKey]
