@@ -416,6 +416,8 @@ func (workflow *serviceWorkflow) serviceEksDBSecret(namespace string, service *c
 	}
 }
 
+// serviceEksDeployer accepts a service and its information and upserts a kubernetes Pod file to
+// a k8s cluster
 func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string) Executor {
 	return func() error {
 		log.Noticef("Deploying service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)

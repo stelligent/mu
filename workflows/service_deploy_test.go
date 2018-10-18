@@ -196,6 +196,7 @@ func TestServiceEcsDeployer(t *testing.T) {
 
 }
 
+// mockKubernetesResourceManager mocks common/kubernetes.go:KubernetesResourceManager
 type mockKubernetesResourceManager struct {
 	mock.Mock
 }
@@ -219,6 +220,9 @@ func (m *mockKubernetesResourceManager) DeleteResource(apiVersion string, kind s
 	return args.Error(0)
 }
 
+// TestServiceEksDeployer tests that serviceWorkflow.serviceEksDeployer
+// calls the kubernetesResourceManager.UpsertResources method once. It
+// does not test the output of that call.
 func TestServiceEksDeployer(t *testing.T) {
 	assert := assert.New(t)
 
@@ -238,7 +242,6 @@ func TestServiceEksDeployer(t *testing.T) {
 	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
 	workflow.kubernetesResourceManager = kubernetesResourceManager
-	// err := workflow.serviceEcsDeployer("mu", &config.Service, params, "dev", stackManager, stackManager)()
 	err := workflow.serviceEksDeployer("mu", &config.Service, params, "dev")()
 	assert.Nil(err)
 
