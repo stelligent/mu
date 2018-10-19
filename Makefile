@@ -129,6 +129,21 @@ e2e: gen stage keypair
 	@echo "=== e2e testing ==="
 	@MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
 
+e2e_basic: gen stage keypair
+	@echo "=== e2e-basic testing ==="
+	@INCLUDE_TESTS=e2e-basic MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
+
+e2e_ec2: gen stage keypair
+	@echo "=== e2e-ec2 testing ==="
+	@INCLUDE_TESTS=e2e-ec2 MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
+
+e2e_eks: gen stage keypair
+	@echo "=== e2e-eks testing ==="
+	@INCLUDE_TESTS=e2e-eks MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
+
+e2e_fargate: gen stage keypair
+	@echo "=== e2e-fargate testing ==="
+	@INCLUDE_TESTS=e2e-fargate MU_VERSION=$(VERSION) MU_BASEURL=https://mu-staging-$$(aws sts get-caller-identity --output text --query 'Account').s3.amazonaws.com go test -v ./e2e -timeout 60m
 
 check_github_token:
 ifndef GITHUB_TOKEN
