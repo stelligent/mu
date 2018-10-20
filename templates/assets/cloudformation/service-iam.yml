@@ -309,7 +309,14 @@ Resources:
             Condition:
               ArnEquals:
                 "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
-
+          - Effect: Allow
+            Action: 
+            - iam:PassRole 
+            Resource: "*"
+            Condition:
+              StringLike: 
+                "iam:PassedToService": ecs-tasks.amazonaws.com
+                
   EcsServiceRole:
     Type: AWS::IAM::Role
     Condition: IsEcsService
