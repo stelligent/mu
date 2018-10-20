@@ -312,7 +312,7 @@ Resources:
           - Effect: Allow
             Action: 
             - iam:PassRole 
-            Resource: "*"
+            Resource: !GetAtt EcsTaskRole.Arn
             Condition:
               StringLike: 
                 "iam:PassedToService": ecs-tasks.amazonaws.com
