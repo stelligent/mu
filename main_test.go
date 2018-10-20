@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/stelligent/mu/cli"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMainMethod(t *testing.T) {
 	var badArgs []string
 	os.Args = badArgs
 	assert.Panics(t, main)
-	os.Args = []string{cli.EnvCmd}
+	os.Args = []string{"mu", "-v"}
 	assert.NotPanics(t, main)
 }

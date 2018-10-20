@@ -75,7 +75,13 @@ func TestNewTemplate_assets(t *testing.T) {
 			if err != nil {
 				if awsErr, ok := err.(awserr.Error); ok {
 					if awsErr.Code() == "InvalidClientTokenId" && awsErr.Message() == "The security token included in the request is invalid." {
-						return
+						t.Skip("Invalid AWS client token id to run CFN template validation")
+					}
+					if awsErr.Code() == "NoCredentialProviders" {
+						t.Skip("No valid AWS credential provider to run CFN template validation")
+					}
+					if awsErr.Code() == "MissingRegion" {
+						t.Skip("No valid AWS region to run CFN template validation")
 					}
 					if awsErr.Code() == "ValidationError" && awsErr.Message() == "Template format error: Unrecognized resource types: [AWS::EKS::Cluster]" {
 						t.Skip("AWS::EKS::Cluster is not recognized by CloudFormation ValidateTemplate yet")

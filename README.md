@@ -64,7 +64,7 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 ## Building from source
 
 * Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
-* Install Go tools 1.7+ - (https://golang.org/doc/install)
+* Install Go tools 1.10+ - (https://golang.org/doc/install)
 * Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
 * Go to src `cd $GOPATH/src/github.com/stelligent/mu`
 * Build with `make`
