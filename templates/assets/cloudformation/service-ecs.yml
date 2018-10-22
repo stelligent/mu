@@ -157,6 +157,13 @@ Parameters:
   ServiceDiscoveryName:
     Type: String
     Description: Name of the value to import for the service discovery namespace name
+  AssignPublicIp:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Whether to assign a public IP to the service, this is only applicable to awsvpc networked tasks
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -225,6 +232,11 @@ Conditions:
       - "Fn::Equals":
         - !Ref TaskCpu
         - ''
+
+  IsAssignPublicIpEnabled:
+    "Fn::Equals":
+      - !Ref AssignPublicIp
+      - 'true'
 Resources:
   EcsServiceName:
     Type: AWS::ServiceDiscovery::Service
@@ -268,6 +280,11 @@ Resources:
                 Fn::Split:
                 - ","
                 - Fn::ImportValue: !Sub ${ServiceSubnetIds}
+              AssignPublicIp:
+                Fn::If:
+                  - IsAssignPublicIpEnabled
+                  - 'ENABLED'
+                  - 'DISABLED'
           - !Ref AWS::NoValue
       LoadBalancers:
         - Fn::If:
