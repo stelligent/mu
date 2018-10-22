@@ -191,6 +191,8 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			params["Links"] = strings.Join(service.Links, ",")
 		}
 
+		params["AssignPublicIp"] = strconv.FormatBool(service.AssignPublicIP)
+
 		// force 'awsvpc' network mode for ecs-fargate
 		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
 			params["TaskNetworkMode"] = common.NetworkModeAwsVpc
