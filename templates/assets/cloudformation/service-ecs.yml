@@ -283,8 +283,8 @@ Resources:
               AssignPublicIp:
                 Fn::If:
                   - IsAssignPublicIpEnabled
-                  - 'ENABLED'
-                  - 'DISABLED'
+                  - ENABLED
+                  - DISABLED
           - !Ref AWS::NoValue
       LoadBalancers:
         - Fn::If:
