@@ -323,6 +323,9 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	// load the template
 	templateBody, err := templates.GetAsset(templateName, templates.ExecuteTemplate(templateData),
 		templates.DecorateTemplate(cfnMgr.extensionsManager, stackName))
+	if err != nil {
+		return err
+	}
 	templateBodyBytes := bytes.NewBufferString(templateBody)
 
 	// stack parameters

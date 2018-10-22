@@ -240,7 +240,8 @@ Resources:
         - Enabled
       Targets:
       - Key: tag:aws:autoscaling:groupName	
-        Values: [!Ref EcsAutoScalingGroup]
+        Values: 
+          - !Ref EcsAutoScalingGroup
   ContainerInstances:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::LaunchConfiguration
