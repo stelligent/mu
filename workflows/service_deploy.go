@@ -286,11 +286,13 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if workflow.lbStack != nil {
 			if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
 				params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
-				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+				if workflow.priority < 1 {
+					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+				}
 			}
 			if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
 				params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
-				if nextAvailablePriority == 0 {
+				if workflow.priority < 1 && nextAvailablePriority == 0 {
 					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
 				}
 			}
