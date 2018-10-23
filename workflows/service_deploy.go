@@ -156,6 +156,37 @@ func getMinMaxPercentForStrategy(deploymentStrategy common.DeploymentStrategy) (
 	return minHealthyPercent, maxPercent
 }
 
+// getMaxUnavilableAndSurgeForKubernetesStrategy returns the k8s deployment
+// maxUnavailable and maxSurge values for deployment strategies blue/green and
+// rolling. For more information,
+// see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-update-deployment.
+//
+// See common/types.go:type DeploymentStrategy string definition for valid values of
+// deploymentStrategy.
+//
+// maxUnavailable defines the percentage of pods that can be taken out of service.
+// maxSurge defines the percentage of extra pods allowed.
+func getMaxUnavilableAndSurgePercentForKubernetesStrategy(
+	deploymentStrategy common.DeploymentStrategy) (
+	maxUnavailable string, maxSurge string) {
+
+	switch deploymentStrategy {
+	case common.BlueGreenDeploymentStrategy:
+		maxUnavailable = "0"
+		maxSurge = "100"
+	case common.RollingDeploymentStrategy:
+		maxUnavailable = "50"
+		maxSurge = "0"
+	case common.ReplaceDeploymentStrategy: // not actually used but left for illustration
+		maxUnavailable = "100"
+		maxSurge = "0"
+	default:
+		maxUnavailable = "0"
+		maxSurge = "100"
+	}
+	return maxUnavailable, maxSurge
+}
+
 func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 
@@ -459,7 +490,7 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 			"DeploymentStrategy":    string(service.DeploymentStrategy),
 		}
 		// see common/types.go DeploymentStrategy types for valid string values
-		templateData["MinimumHealthyPercent"], templateData["MaximumPercent"] = getMinMaxPercentForStrategy(service.DeploymentStrategy)
+		templateData["MaxUnavailable"], templateData["MaxSurge"] = getMaxUnavilableAndSurgePercentForKubernetesStrategy(service.DeploymentStrategy)
 
 		if stackParams["DatabaseName"] != "" {
 			templateData["DatabaseSecretName"] = fmt.Sprintf("%s-database", workflow.serviceName)

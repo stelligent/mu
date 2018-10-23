@@ -32,8 +32,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: {{ .MinimumHealthyPercent }}%
-      maxSurge: {{ .MaximumPercent }}%
+      maxUnavailable: {{ .MaxUnavailable }}%
+      maxSurge: {{ .MaxSurge }}%
   {{ end }}
   template:
     metadata:
