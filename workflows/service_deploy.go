@@ -309,6 +309,8 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostListenerRulePriority"] = strconv.Itoa(nextAvailablePriority + 1)
 		}
 
+		params["Namespace"] = namespace
+		params["EnvironmentName"] = environmentName
 		params["ServiceName"] = workflow.serviceName
 		common.NewMapElementIfNotZero(params, "ServicePort", service.Port)
 		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", string(service.Protocol))
