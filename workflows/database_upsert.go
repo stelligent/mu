@@ -139,6 +139,8 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		dbConfig := service.Database.GetDatabaseConfig(environmentName)
 
 		stackParams["DatabaseName"] = dbConfig.Name
+		stackParams["Namespace"] = namespace
+		stackParams["EnvironmentName"] = environmentName
 
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngine", dbConfig.Engine)
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseEngineMode", dbConfig.EngineMode)
