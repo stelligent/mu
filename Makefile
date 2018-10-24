@@ -61,7 +61,7 @@ gen:
 
 nag:
 	@echo "=== cfn_nag ==="
-	@gem list -i cfn-nag --silent || sudo gem install cfn-nag
+	@gem list -i cfn-nag --silent || gem install cfn-nag || gem install cfn-nag --user-install
 
 	@mkdir -p .cfn_nag
 	@grep -l AWSTemplateFormatVersion: templates/assets/cloudformation/*.yml | while read -r line; do \

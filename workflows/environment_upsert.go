@@ -165,6 +165,9 @@ func (workflow *environmentWorkflow) environmentVpcUpserter(namespace string,
 		}
 		vpcStackParams["AZCount"] = strconv.Itoa(azCount)
 
+		vpcStackParams["Namespace"] = namespace
+		vpcStackParams["EnvironmentName"] = environment.Name
+
 		if vpcTemplateName != "" {
 			log.Noticef("Upserting VPC environment '%s' ...", environment.Name)
 
@@ -244,6 +247,8 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 		log.Noticef("Upserting ELB environment '%s' ...", environment.Name)
 
 		stackParams := elbStackParams
+		stackParams["Namespace"] = namespace
+		stackParams["EnvironmentName"] = environment.Name
 
 		if environment.Loadbalancer.Certificate != "" {
 			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
@@ -306,6 +311,8 @@ func (workflow *environmentWorkflow) environmentUpserter(namespace string, envSt
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environment.Name)
 
 		stackParams := envStackParams
+		stackParams["Namespace"] = namespace
+		stackParams["EnvironmentName"] = environment.Name
 
 		var templateName string
 		var imagePattern string
@@ -409,6 +416,8 @@ func (workflow *environmentWorkflow) environmentKubernetesBootstrapper(namespace
 			stackParams["VpcId"] = envStackParams["VpcId"]
 			stackParams["InstanceSubnetIds"] = envStackParams["InstanceSubnetIds"]
 			stackParams["EksServiceRoleArn"] = envStackParams["EksServiceRoleArn"]
+			stackParams["Namespace"] = namespace
+			stackParams["EnvironmentName"] = workflow.environment.Name
 
 			tags := createTagMap(&EnvironmentTags{
 				Environment: workflow.environment.Name,
