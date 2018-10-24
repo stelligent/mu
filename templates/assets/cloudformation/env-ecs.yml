@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU environment containing an ECS cluster and instances for running containers
 Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
   EC2InstanceProfileArn:
     Type: String
     Description: ARN of instance profile for EC2 instance to assume
@@ -240,7 +246,8 @@ Resources:
         - Enabled
       Targets:
       - Key: tag:aws:autoscaling:groupName	
-        Values: [!Ref EcsAutoScalingGroup]
+        Values: 
+          - !Ref EcsAutoScalingGroup
   ContainerInstances:
     Condition: HasLaunchTypeEC2
     Type: AWS::AutoScaling::LaunchConfiguration

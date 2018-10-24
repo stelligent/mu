@@ -68,6 +68,26 @@ func getMaxPriority(elbRuleLister common.ElbRuleLister, listenerArn string) int 
 	return maxPriority
 }
 
+func checkPriorityNotInUse(elbRuleLister common.ElbRuleLister, listenerArn string, priorities []int) error {
+	rules, err := elbRuleLister.ListRules(listenerArn)
+	if err != nil {
+		return fmt.Errorf("Error checking priorities for listener '%s': %v", listenerArn, err)
+	}
+	res := []string{}
+	for _, rule := range rules {
+		priority, _ := strconv.Atoi(common.StringValue(rule.Priority))
+		for _, p := range priorities {
+			if priority == p {
+				res = append(res, strconv.Itoa(p))
+			}
+		}
+	}
+	if len(res) > 0 {
+		return fmt.Errorf("ELB priority already in use: %s\nChange or remove the priority definition in mu.yml", strings.Join(res, ","))
+	}
+	return nil
+}
+
 func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, environmentName string, stackWaiter common.StackWaiter) Executor {
 	return func() error {
 		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
@@ -222,6 +242,8 @@ func (workflow *serviceWorkflow) serviceApplyEcsParams(service *common.Service, 
 			params["Links"] = strings.Join(service.Links, ",")
 		}
 
+		params["AssignPublicIp"] = strconv.FormatBool(service.AssignPublicIP)
+
 		// force 'awsvpc' network mode for ecs-fargate
 		if strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEcsFargate)) {
 			params["TaskNetworkMode"] = common.NetworkModeAwsVpc
@@ -295,11 +317,13 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		if workflow.lbStack != nil {
 			if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
 				params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
-				nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+				if workflow.priority < 1 {
+					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"])
+				}
 			}
 			if workflow.lbStack.Outputs["ElbHttpsListenerArn"] != "" {
 				params["ElbHttpsListenerArn"] = fmt.Sprintf("%s-ElbHttpsListenerArn", workflow.lbStack.Name)
-				if nextAvailablePriority == 0 {
+				if workflow.priority < 1 && nextAvailablePriority == 0 {
 					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
 				}
 			}
@@ -326,6 +350,12 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 
 		if workflow.priority > 0 {
+			// make sure manually specified priority is not already in use
+			err := checkPriorityNotInUse(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"], []int{workflow.priority, workflow.priority + 1})
+			if err != nil {
+				return err
+			}
+
 			params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
 			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
 		} else if svcStack != nil && svcStack.Status != "ROLLBACK_COMPLETE" {
@@ -338,6 +368,8 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 			params["HostListenerRulePriority"] = strconv.Itoa(nextAvailablePriority + 1)
 		}
 
+		params["Namespace"] = namespace
+		params["EnvironmentName"] = environmentName
 		params["ServiceName"] = workflow.serviceName
 		common.NewMapElementIfNotZero(params, "ServicePort", service.Port)
 		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", string(service.Protocol))

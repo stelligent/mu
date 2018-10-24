@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU service in a specific environment containing an ALB target group with ECS service and task definition
 Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
   EcsServiceRoleArn:
     Type: String
     Description: ARN of IAM role for ECS service to assume
@@ -157,6 +163,13 @@ Parameters:
   ServiceDiscoveryName:
     Type: String
     Description: Name of the value to import for the service discovery namespace name
+  AssignPublicIp:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Whether to assign a public IP to the service, this is only applicable to awsvpc networked tasks
 Conditions:
   HasPathPattern:
     "Fn::Not":
@@ -225,6 +238,11 @@ Conditions:
       - "Fn::Equals":
         - !Ref TaskCpu
         - ''
+
+  IsAssignPublicIpEnabled:
+    "Fn::Equals":
+      - !Ref AssignPublicIp
+      - 'true'
 Resources:
   EcsServiceName:
     Type: AWS::ServiceDiscovery::Service
@@ -268,6 +286,11 @@ Resources:
                 Fn::Split:
                 - ","
                 - Fn::ImportValue: !Sub ${ServiceSubnetIds}
+              AssignPublicIp:
+                Fn::If:
+                  - IsAssignPublicIpEnabled
+                  - ENABLED
+                  - DISABLED
           - !Ref AWS::NoValue
       LoadBalancers:
         - Fn::If:

@@ -2,6 +2,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: MU VPC targeting an existing VPC and subnets that are not managed by mu
 Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
   VpcId:
     Description: VPC to target
     Type: String
