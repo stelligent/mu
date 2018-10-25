@@ -348,7 +348,7 @@ Resources:
                             "log_group_name": "${AWS::StackName}",
                             "log_stream_name": "instance/docker/{instance_id}",
                             "timezone": "UTC",
-                            "timestamp_format": "%Y-%m-%dT%H:%M:%S."
+                            "timestamp_format": "%Y-%m-%dT%H:%M:%S"
                           },
                           {
                             "file_path": "/var/log/ecs/*",
