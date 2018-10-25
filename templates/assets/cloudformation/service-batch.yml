@@ -1,0 +1,60 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: MU AWS Batch job definition
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
+  ServiceName:
+    Type: String
+    Description: Name of service used for resource namespace
+  ServiceVCpu:
+    Type: String
+    Description: VCPUs to reserve for container
+    Default: '2'
+  ServiceMemory:
+    Type: String
+    Description: Memory to allocate to container (in MiB)
+    Default: '300'
+  ImageUrl:
+    Type: String
+    Description: Docker Image URL (or name, like 'amazonlinux')
+  BatchJobRoleArn:
+    Type: String
+    Description: IAM Role assumed by AWS Batch job (ecs task)
+  RetryAttemps:
+    Type: String
+    Description: Number of retry attempts
+    Default: '1'
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId (not used for Batch)
+  
+Resources:
+
+  BatchJob:
+    Type: 'AWS::Batch::JobDefinition'
+    Properties:
+      JobDefinitionName: !Sub ${Namespace}-batch-${ServiceName}-${EnvironmentName}
+      Type: container
+      Parameters:
+        referenceFile: s3://path/to/a/reffile
+        targetFile: s3://path/to/a/targetfile
+        otherParams: 'params'
+      ContainerProperties:
+        Image: !Ref ImageUrl
+        Vcpus: !Ref ServiceVCpu
+        Memory: !Ref ServiceMemory
+        JobRoleArn: !Ref BatchJobRoleArn
+        Command:
+          - command-from-config
+      RetryStrategy:
+        Attempts: !Ref RetryAttemps
+
+
+Outputs:
+  BatchJobDefinitionArn:
+    Value: !Ref BatchJob  

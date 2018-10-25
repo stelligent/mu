@@ -21,6 +21,7 @@ Parameters:
       - "ec2"
       - "eks"
       - "eks-fargate"
+      - "batch"
   CodeDeployBucket:
     Type: String
     Description: Name of bucket to use for the CodeDeployBucket artifacts
@@ -49,6 +50,10 @@ Conditions:
       - "Fn::Equals":
         - !Ref Provider
         - 'eks-fargate'
+  IsBatchService:
+    "Fn::Equals":
+      - !Ref Provider
+      - 'batch'
   HasDatabase:
     "Fn::Not":
       - "Fn::Equals":
@@ -405,6 +410,47 @@ Resources:
             - logs:DescribeLogGroups
             - logs:DescribeLogStreams
             Resource: '*'
+            
+  BatchTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IsBatchService
+    Properties:
+      RoleName: !Sub ${Namespace}-batch-${ServiceName}-${EnvironmentName}-task-${AWS::Region}
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: ecs-task
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:DescribeTasks
+            Resource: "*"
+            Condition:
+              ArnEquals:
+                "ecs:cluster": !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Namespace}-environment-${EnvironmentName}
+      - PolicyName: task-execution
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            Resource: '*'
 
 Outputs:
   DatabaseKeyArn:
@@ -455,4 +501,11 @@ Outputs:
       Fn::If:
       - IsEcsService
       - !GetAtt ApplicationAutoScalingRole.Arn
+      - ''
+  BatchJobRoleArn:
+    Description: Role assummed by AWS Batch job container
+    Value:
+      Fn::If:
+      - IsBatchService
+      - !GetAtt BatchTaskRole.Arn
       - ''

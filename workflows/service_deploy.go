@@ -49,6 +49,13 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 				workflow.serviceEksDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName),
 				// TODO - placeholder for doing serviceCreateSchedules for EKS, leaving out-of-scope
 			), nil),
+		newConditionalExecutor(workflow.isBatchProvider(),
+			newPipelineExecutor(
+				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
+				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				workflow.serviceApplyBatchParams(&ctx.Config.Service, stackParams, ctx.RolesetManager),
+				workflow.serviceBatchDeployer(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.StackManager),
+			), nil),
 	)
 }
 
@@ -90,17 +97,32 @@ func checkPriorityNotInUse(elbRuleLister common.ElbRuleLister, listenerArn strin
 
 func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, environmentName string, stackWaiter common.StackWaiter) Executor {
 	return func() error {
+
 		lbStackName := common.CreateStackName(namespace, common.StackTypeLoadBalancer, environmentName)
 		workflow.lbStack = stackWaiter.AwaitFinalStatus(lbStackName)
 
 		envStackName := common.CreateStackName(namespace, common.StackTypeEnv, environmentName)
 		workflow.envStack = stackWaiter.AwaitFinalStatus(envStackName)
 
+		// batch job definition can be deployed without a real environment, creating fake env (if needed) and overriding provider to 'batch'
+		if workflow.providerOverride == common.EnvProviderBatch {
+			workflow.createFakeBatchEnvironment(envStackName, namespace, environmentName)
+		}
+
 		if workflow.envStack == nil {
 			return fmt.Errorf("Unable to find stack '%s' for environment '%s'", envStackName, environmentName)
 		}
 
-		if workflow.isEcsProvider()() {
+		// // disable LB for Batch deployments
+		if workflow.isBatchProvider()() {
+			workflow.lbDisabled = true
+		}
+
+		if workflow.lbStack == nil && workflow.lbDisabled != true {
+			return fmt.Errorf("Unable to find loadbalancer '%s' for environment '%s'", lbStackName, environmentName)
+		}
+
+		if workflow.isEcsProvider()() || workflow.isBatchProvider()() {
 			workflow.artifactProvider = common.ArtifactProviderEcr
 		} else {
 			workflow.artifactProvider = common.ArtifactProviderS3
@@ -108,6 +130,18 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, envi
 
 		return nil
 	}
+}
+
+func (workflow *serviceWorkflow) createFakeBatchEnvironment(envStackName string, namespace string, environmentName string) {
+	if workflow.envStack == nil {
+		outputs := make(map[string]string)
+		outputs["ElbHttpListenerArn"] = "foo"
+		outputs["ElbHttpsListenerArn"] = "foo"
+		tags := make(map[string]string)
+		workflow.envStack = &common.Stack{Name: envStackName, Status: common.StackStatusCreateComplete, Outputs: outputs, Tags: tags}
+	}
+	workflow.envStack.Tags["provider"] = common.EnvProviderBatch
+	workflow.envStack.Tags["environment"] = environmentName
 }
 
 func (workflow *serviceWorkflow) serviceRolesetUpserter(rolesetUpserter common.RolesetUpserter, rolesetGetter common.RolesetGetter, environmentName string) Executor {
@@ -307,11 +341,44 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 	}
 }
 
+func (workflow *serviceWorkflow) serviceApplyBatchParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
+	return func() error {
+		// ...
+		params["ImageUrl"] = workflow.serviceImage
+
+		cpu := common.CPUMemorySupport[0]
+		if service.CPU != 0 {
+			params["ServiceVCpu"] = strconv.Itoa(service.CPU)
+			cpu = matchRequestedCPU(service.CPU, cpu)
+		}
+
+		memory := cpu.Memory[0]
+		if service.Memory != 0 {
+			params["ServiceMemory"] = strconv.Itoa(service.Memory)
+			memory = matchRequestedMemory(service.Memory, cpu, memory)
+		}
+
+		serviceRoleset, err := rolesetGetter.GetServiceRoleset(workflow.envStack.Tags["environment"], workflow.serviceName)
+		if err != nil {
+			return err
+		}
+
+		params["BatchJobRoleArn"] = serviceRoleset["BatchJobRoleArn"]
+
+		return nil
+	}
+}
+
 func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, service *common.Service,
 	params map[string]string, environmentName string, stackWaiter common.StackWaiter,
 	elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
 	return func() error {
+		//if !workflow.isBatchProvider()() {
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
+		//}
+
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
+		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 
 		nextAvailablePriority := 0
 		if workflow.lbStack != nil {
@@ -326,6 +393,26 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 				if workflow.priority < 1 && nextAvailablePriority == 0 {
 					nextAvailablePriority = 1 + getMaxPriority(elbRuleLister, workflow.lbStack.Outputs["ElbHttpsListenerArn"])
 				}
+			}
+
+			// assign priority
+			if workflow.priority > 0 {
+				// make sure manually specified priority is not already in use
+				err := checkPriorityNotInUse(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"], []int{workflow.priority, workflow.priority + 1})
+				if err != nil {
+					return err
+				}
+
+				params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
+				params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
+			} else if svcStack != nil && svcStack.Status != "ROLLBACK_COMPLETE" {
+				// no value in config, and this is an update...use prior value
+				params["PathListenerRulePriority"] = ""
+				params["HostListenerRulePriority"] = ""
+			} else {
+				// no value in config, and this is a create...use next available
+				params["PathListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
+				params["HostListenerRulePriority"] = strconv.Itoa(nextAvailablePriority + 1)
 			}
 		}
 
@@ -344,28 +431,6 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 				log.Warningf("Unable to get db password: %s", err)
 			}
 			params["DatabaseMasterPassword"] = dbPass
-		}
-
-		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
-		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
-
-		if workflow.priority > 0 {
-			// make sure manually specified priority is not already in use
-			err := checkPriorityNotInUse(elbRuleLister, workflow.lbStack.Outputs["ElbHttpListenerArn"], []int{workflow.priority, workflow.priority + 1})
-			if err != nil {
-				return err
-			}
-
-			params["PathListenerRulePriority"] = strconv.Itoa(workflow.priority)
-			params["HostListenerRulePriority"] = strconv.Itoa(workflow.priority + 1)
-		} else if svcStack != nil && svcStack.Status != "ROLLBACK_COMPLETE" {
-			// no value in config, and this is an update...use prior value
-			params["PathListenerRulePriority"] = ""
-			params["HostListenerRulePriority"] = ""
-		} else {
-			// no value in config, and this is a create...use next available
-			params["PathListenerRulePriority"] = strconv.Itoa(nextAvailablePriority)
-			params["HostListenerRulePriority"] = strconv.Itoa(nextAvailablePriority + 1)
 		}
 
 		params["Namespace"] = namespace
@@ -529,6 +594,41 @@ func (workflow *serviceWorkflow) serviceEksDeployer(namespace string, service *c
 		}
 
 		return workflow.kubernetesResourceManager.UpsertResources(common.TemplateK8sDeployment, templateData)
+	}
+}
+
+func (workflow *serviceWorkflow) serviceBatchDeployer(namespace string, service *common.Service, stackParams map[string]string, environmentName string, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
+	return func() error {
+		log.Noticef("Deploying batch service '%s' to '%s' from '%s'", workflow.serviceName, environmentName, workflow.serviceImage)
+
+		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
+
+		resolveServiceEnvironment(service, environmentName)
+
+		tags := createTagMap(&ServiceTags{
+			Service:     workflow.serviceName,
+			Environment: environmentName,
+			Type:        common.StackTypeService,
+			Provider:    workflow.envStack.Outputs["provider"],
+			Revision:    workflow.codeRevision,
+			Repo:        workflow.repoName,
+		})
+
+		err := stackUpserter.UpsertStack(svcStackName, common.TemplateServiceBatch, service, stackParams, tags, "", workflow.cloudFormationRoleArn)
+		if err != nil {
+			return err
+		}
+		log.Debugf("Waiting for stack '%s' to complete", svcStackName)
+		stack := stackWaiter.AwaitFinalStatus(svcStackName)
+		if stack == nil {
+			return fmt.Errorf("Unable to create stack %s", svcStackName)
+		}
+		if strings.HasSuffix(stack.Status, "ROLLBACK_COMPLETE") || !strings.HasSuffix(stack.Status, "_COMPLETE") {
+			return fmt.Errorf("Ended in failed status %s %s", stack.Status, stack.StatusReason)
+		}
+		//workflow.batchJobDefinitionArn = stack.Outputs["BatchJobDefinitionArn"]
+
+		return nil
 	}
 }
 
