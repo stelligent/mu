@@ -118,9 +118,10 @@ func (workflow *serviceWorkflow) serviceEnvironmentLoader(namespace string, envi
 			workflow.lbDisabled = true
 		}
 
-		if workflow.lbStack == nil && workflow.lbDisabled != true {
-			return fmt.Errorf("Unable to find loadbalancer '%s' for environment '%s'", lbStackName, environmentName)
-		}
+		// this check is not needed (?)
+		// if workflow.lbStack == nil && workflow.lbDisabled != true {
+		// 	return fmt.Errorf("Unable to find loadbalancer '%s' for environment '%s'", lbStackName, environmentName)
+		// }
 
 		if workflow.isEcsProvider()() || workflow.isBatchProvider()() {
 			workflow.artifactProvider = common.ArtifactProviderEcr

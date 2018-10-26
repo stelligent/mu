@@ -57,7 +57,7 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 		workflow.priority = ctx.Config.Service.Priority
 
 		// allow to override provider (i.e. deploy batch job definition)
-		// todo: validate for valid values
+		// todo: validate values
 		workflow.providerOverride = ctx.Config.Service.ProviderOverride
 		workflow.lbDisabled = false
 
