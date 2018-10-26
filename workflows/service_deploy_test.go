@@ -6,14 +6,15 @@ import (
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestNewServiceDeployer(t *testing.T) {
 	assert := assert.New(t)
 	ctx := common.NewContext()
 	ctx.Config.Namespace = "mu"
-	deploye := NewServiceDeployer(ctx, "dev", "foo")
-	assert.NotNil(deploye)
+	deployer := NewServiceDeployer(ctx, "dev", "foo")
+	assert.NotNil(deployer)
 }
 
 type mockedElbManager struct {
@@ -193,6 +194,59 @@ func TestServiceEcsDeployer(t *testing.T) {
 	stackManager.AssertNumberOfCalls(t, "AwaitFinalStatus", 1)
 	stackManager.AssertNumberOfCalls(t, "UpsertStack", 1)
 
+}
+
+// mockKubernetesResourceManager mocks common/kubernetes.go:KubernetesResourceManager
+type mockKubernetesResourceManager struct {
+	mock.Mock
+}
+
+func (m *mockKubernetesResourceManager) UpsertResources(templateName string, templateData interface{}) error {
+	args := m.Called(templateName)
+	return args.Error(0)
+}
+
+func (m *mockKubernetesResourceManager) ListResources(apiVersion string, kind string, namespace string) (*unstructured.UnstructuredList, error) {
+	args := m.Called(apiVersion)
+	stack := args.Get(0)
+	if stack == nil {
+		return nil, args.Error(0)
+	}
+	return stack.(*unstructured.UnstructuredList), args.Error(0)
+}
+
+func (m *mockKubernetesResourceManager) DeleteResource(apiVersion string, kind string, namespace string, name string) error {
+	args := m.Called(apiVersion)
+	return args.Error(0)
+}
+
+// TestServiceEksDeployer tests that serviceWorkflow.serviceEksDeployer
+// calls the kubernetesResourceManager.UpsertResources method once. It
+// does not test the output of that call.
+func TestServiceEksDeployer(t *testing.T) {
+	assert := assert.New(t)
+
+	// from workflows/service_common_test.go
+	kubernetesResourceManager := new(mockKubernetesResourceManager)
+	kubernetesResourceManager.On("UpsertResources", "kubernetes/deployment.yml").Return(nil)
+
+	config := new(common.Config)
+	config.Service.Name = "foo"
+
+	params := make(map[string]string)
+
+	workflow := new(serviceWorkflow)
+	workflow.serviceName = "foo"
+	outputs := make(map[string]string)
+	outputs["provider"] = "eks"
+	workflow.envStack = &common.Stack{Name: "mu-environment-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.lbStack = &common.Stack{Name: "mu-loadbalancer-dev", Status: common.StackStatusCreateComplete, Outputs: outputs}
+	workflow.kubernetesResourceManager = kubernetesResourceManager
+	err := workflow.serviceEksDeployer("mu", &config.Service, params, "dev")()
+	assert.Nil(err)
+
+	kubernetesResourceManager.AssertExpectations(t)
+	kubernetesResourceManager.AssertNumberOfCalls(t, "UpsertResources", 1)
 }
 
 func stringRef(v string) *string {

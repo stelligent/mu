@@ -35,6 +35,9 @@ import (
 
 var contexts []*common.Context
 
+// TestMain accepts a type *testing.M to override the primary main function to allow
+// custom setup and tear down code. Eventually, m.Run() is called to invoke all
+// tests of the general syntax (func Test*).
 func TestMain(m *testing.M) {
 	sessOptions := session.Options{SharedConfigState: session.SharedConfigEnable}
 	sess, err := session.NewSessionWithOptions(sessOptions)
@@ -60,11 +63,18 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 		retCode = 1
 	} else {
+		// this invokes all func Test* functions in this file
 		retCode = m.Run()
 	}
 
-	teardownContexts(sess)
-	os.RemoveAll(dir)
+	if retCode == 0 {
+		fmt.Println("E2E test succeeded, cleaning up resources")
+		teardownContexts(sess)
+		os.RemoveAll(dir)
+	} else {
+		fmt.Println("E2E tests encountered an error, skipping cleaning up to allow debugging")
+	}
+
 	os.Exit(retCode)
 }
 

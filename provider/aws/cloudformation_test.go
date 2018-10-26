@@ -152,7 +152,7 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "", "")
+	err := stackManager.UpsertStack("foo", "cloudformation/bucket.yml", nil, nil, nil, "", "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -186,7 +186,7 @@ func TestStack_UpsertStack_Update(t *testing.T) {
 		cfnAPI:            cfn,
 		extensionsManager: extMgr,
 	}
-	err := stackManager.UpsertStack("foo", "bucket.yml", nil, nil, nil, "", "")
+	err := stackManager.UpsertStack("foo", "cloudformation/bucket.yml", nil, nil, nil, "", "")
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
@@ -411,7 +411,7 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 	cfn := mockBasicCfnAPI(true)
 	extMgr := mockNilExtensionManager()
 
-	templateName := "bucket.yml"
+	templateName := "cloudformation/bucket.yml"
 	var templateData interface{}
 	stackName := "foo"
 
@@ -442,7 +442,7 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 	cfn := mockBasicCfnAPI(true)
 	extMgr := mockNilExtensionManager()
 
-	templateName := "bucket.yml"
+	templateName := "cloudformation/bucket.yml"
 	var templateData interface{}
 	stackName := "foo"
 
@@ -474,7 +474,7 @@ func TestStack_UpsertStack_UpdatePolicy(t *testing.T) {
 	cfn := mockBasicCfnAPI(false)
 	extMgr := mockNilExtensionManager()
 
-	templateName := "bucket.yml"
+	templateName := "cloudformation/bucket.yml"
 	var templateData interface{}
 	stackName := "foo"
 
@@ -506,7 +506,7 @@ func TestStack_UpsertStack_UpdatePolicyAllowDataLoss(t *testing.T) {
 	cfn := mockBasicCfnAPI(false)
 	extMgr := mockNilExtensionManager()
 
-	templateName := "bucket.yml"
+	templateName := "cloudformation/bucket.yml"
 	var templateData interface{}
 	stackName := "foo"
 
