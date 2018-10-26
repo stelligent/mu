@@ -1,5 +1,3 @@
----
-
 environments:
   - name: e2e-eks-dev
     provider: eks
@@ -26,6 +24,6 @@ service:
       disabled: true
 
 rbac:
-- role: admin
-  user:
-  - casey.lee
+  - role: admin
+    users:
+      - casey.lee

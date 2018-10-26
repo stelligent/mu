@@ -25,6 +25,16 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ .ServiceName }}-deployment
       app.kubernetes.io/part-of: {{ .ServiceName }}
+  {{ if eq .DeploymentStrategy "replace" }} # see common/types.go DeploymentStrategy types for valid string values
+  strategy:
+    type: Recreate
+  {{ else }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .MaxUnavailable }}%
+      maxSurge: {{ .MaxSurge }}%
+  {{ end }}
   template:
     metadata:
       labels:
@@ -145,6 +155,6 @@ spec:
       - backend:
           serviceName: {{ $.ServiceName}}
           servicePort: {{ $.ServicePort }}
-        path: "{{.}}" 
+        path: "{{.}}"
   {{end}}
 {{end}}
