@@ -345,6 +345,9 @@ func (workflow *serviceWorkflow) serviceApplyEc2Params(params map[string]string,
 func (workflow *serviceWorkflow) serviceApplyBatchParams(service *common.Service, params map[string]string, rolesetGetter common.RolesetGetter) Executor {
 	return func() error {
 		// ...
+		// Environment, Parameters, Command are handled by go templating engine within service-batch.yml
+		common.NewMapElementIfNotZero(params, "Timeout", service.Timeout)
+		common.NewMapElementIfNotZero(params, "RetryAttempts", service.RetryAttempts)
 		params["ImageUrl"] = workflow.serviceImage
 
 		cpu := common.CPUMemorySupport[0]

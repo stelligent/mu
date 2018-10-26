@@ -18,21 +18,37 @@ Parameters:
   ServiceMemory:
     Type: String
     Description: Memory to allocate to container (in MiB)
-    Default: '300'
+    Default: '512'
   ImageUrl:
     Type: String
     Description: Docker Image URL (or name, like 'amazonlinux')
   BatchJobRoleArn:
     Type: String
     Description: IAM Role assumed by AWS Batch job (ecs task)
-  RetryAttemps:
+  RetryAttempts:
     Type: String
     Description: Number of retry attempts
-    Default: '1'
+    Default: ''
+  Timeout:
+    Type: String
+    Description: Job timeout in seconds. Job is terminated after timing out
+    Default: ''
   VpcId:
     Type: String
     Description: Name of the value to import for the VpcId (not used for Batch)
   
+Conditions:
+  HasRetryAttempts:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref RetryAttempts
+        - ''
+  HasTimeout:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref Timeout
+        - ''
+        
 Resources:
 
   BatchJob:
@@ -40,19 +56,42 @@ Resources:
     Properties:
       JobDefinitionName: !Sub ${Namespace}-batch-${ServiceName}-${EnvironmentName}
       Type: container
-      Parameters:
-        referenceFile: s3://path/to/a/reffile
-        targetFile: s3://path/to/a/targetfile
-        otherParams: 'params'
+      Parameters: 
+      {{with .Parameters}}
+        {{range $key, $val := .}}
+        {{$key}}: !Sub {{$val}}
+        {{end}}
+      {{end}}
       ContainerProperties:
         Image: !Ref ImageUrl
         Vcpus: !Ref ServiceVCpu
         Memory: !Ref ServiceMemory
         JobRoleArn: !Ref BatchJobRoleArn
-        Command:
-          - command-from-config
+        Command: 
+        {{with .Command}}
+          {{range $key, $val := .}}
+          - {{$val}}
+          {{end}}
+        {{end}}
+        Environment:
+        {{with .Environment}}
+          {{range $key, $val := .}}
+          - Name: {{$key}}
+            Value: !Sub {{$val}}
+          {{end}}
+        {{end}}
       RetryStrategy:
-        Attempts: !Ref RetryAttemps
+        Attempts: 
+          Fn::If:
+          - HasRetryAttempts
+          - !Ref RetryAttempts
+          - !Ref AWS::NoValue
+      Timeout:
+        AttemptDurationSeconds: 
+          Fn::If:
+          - HasTimeout
+          - !Ref Timeout
+          - !Ref AWS::NoValue
 
 
 Outputs:

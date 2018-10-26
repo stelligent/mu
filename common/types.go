@@ -162,7 +162,14 @@ type Service struct {
 	Schedule             []Schedule             `yaml:"schedules,omitempty"`
 	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty" validate:"max=100"`
 	DiscoveryTTL         string                 `yaml:"discoveryTTL,omitempty"`
-	Roles                struct {
+
+	// Batch
+	Parameters    map[string]interface{} `yaml:"parameters,omitempty"`
+	Command       []string               `yaml:"command,omitempty"`
+	Timeout       int                    `yaml:"timeout,omitempty"`
+	RetryAttempts int                    `yaml:"retryAttempts,omitempty"`
+
+	Roles struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty" validate:"validateRoleARN"`
 		CodeDeploy             string `yaml:"codeDeploy,omitempty" validate:"validateRoleARN"`
 		EcsEvents              string `yaml:"ecsEvents,omitempty" validate:"validateRoleARN"`
