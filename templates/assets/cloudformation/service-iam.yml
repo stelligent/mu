@@ -415,7 +415,7 @@ Resources:
     Type: AWS::IAM::Role
     Condition: IsBatchService
     Properties:
-      RoleName: !Sub ${Namespace}-batch-${ServiceName}-${EnvironmentName}-task-${AWS::Region}
+      RoleName: !Sub ${Namespace}-service-${ServiceName}-${EnvironmentName}-batchjob-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
         - Effect: Allow

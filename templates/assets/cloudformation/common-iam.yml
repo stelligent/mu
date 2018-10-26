@@ -384,6 +384,21 @@ Resources:
               StringLike:
                 iam:AWSServiceName: rds.amazonaws.com
             Effect: Allow
+      - PolicyName: aws-batch-jobs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - batch:RegisterJobDefinition
+            - batch:DeregisterJobDefinition
+            - batch:DescribeJobDefinitions
+            Resource: '*'
+            Effect: Allow
+          - Action:
+            - iam:PassRole
+            Resource:
+            - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${Namespace}-service-*-batchjob-${AWS::Region}
+            Effect: Allow
 Outputs:
   CloudFormationRoleArn:
     Description: Role assummed by CloudFormation

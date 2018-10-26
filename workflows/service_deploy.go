@@ -373,15 +373,13 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 	params map[string]string, environmentName string, stackWaiter common.StackWaiter,
 	elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
 	return func() error {
-		//if !workflow.isBatchProvider()() {
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
-		//}
 
 		svcStackName := common.CreateStackName(namespace, common.StackTypeService, workflow.serviceName, environmentName)
 		svcStack := stackWaiter.AwaitFinalStatus(svcStackName)
 
 		nextAvailablePriority := 0
-		if workflow.lbStack != nil {
+		if workflow.lbStack != nil && workflow.lbDisabled != true {
 			if workflow.lbStack.Outputs["ElbHttpListenerArn"] != "" {
 				params["ElbHttpListenerArn"] = fmt.Sprintf("%s-ElbHttpListenerArn", workflow.lbStack.Name)
 				if workflow.priority < 1 {
