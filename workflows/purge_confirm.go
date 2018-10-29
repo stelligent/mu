@@ -19,6 +19,8 @@ func NewPurge(ctx *common.Context) Executor {
 
 	return newPipelineExecutor(
 		ctx.RolesetManager.UpsertCommonRoleset,
+		workflow.newStackStream(common.StackTypeProduct).foreach(workflow.terminateProduct, workflow.deleteStack),
+		workflow.newStackStream(common.StackTypePortfolio).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypePipeline).foreach(workflow.terminatePipeline),
 		workflow.newStackStream(common.StackTypeEnv).foreach(workflow.terminateEnvironment),
 		workflow.newStackStream(common.StackTypeSchedule).foreach(workflow.deleteStack),
@@ -30,6 +32,8 @@ func NewPurge(ctx *common.Context) Executor {
 		workflow.newStackStream(common.StackTypeTarget).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeRepo).foreach(workflow.cleanupRepo, workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeApp).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypeProduct).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypePortfolio).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeBucket).foreach(workflow.cleanupBucket, workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeIam).filter(excludeStackName(iamCommonStackName)).foreach(workflow.deleteStack),
 		workflow.terminateCommonRoleset(),

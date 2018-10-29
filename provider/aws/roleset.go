@@ -173,12 +173,7 @@ func (rolesetMgr *iamRolesetManager) UpsertEnvironmentRoleset(environmentName st
 	return nil
 }
 
-func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string, databaseName string) error {
-	if rolesetMgr.context.Config.DisableIAM {
-		log.Infof("Skipping upsert of service IAM roles.")
-		return nil
-	}
-	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "service", serviceName, environmentName)
+func (rolesetMgr *iamRolesetManager) GetEnvironmentProvider(environmentName string) (string, error) {
 	envProvider := ""
 	for _, e := range rolesetMgr.context.Config.Environments {
 		if strings.EqualFold(e.Name, environmentName) {
@@ -195,9 +190,22 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		envStackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeEnv, environmentName)
 		envStack := rolesetMgr.context.StackManager.AwaitFinalStatus(envStackName)
 		if envStack == nil {
-			return fmt.Errorf("unable to find environment stack named '%s'", envStackName)
+			return "", fmt.Errorf("unable to find environment stack named '%s'", envStackName)
 		}
 		envProvider = envStack.Tags["provider"]
+	}
+	return envProvider, nil
+}
+
+func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string, serviceName string, codeDeployBucket string, databaseName string) error {
+	if rolesetMgr.context.Config.DisableIAM {
+		log.Infof("Skipping upsert of service IAM roles.")
+		return nil
+	}
+	stackName := common.CreateStackName(rolesetMgr.context.Config.Namespace, common.StackTypeIam, "service", serviceName, environmentName)
+	envProvider, err := rolesetMgr.GetEnvironmentProvider(environmentName)
+	if err != nil {
+		return err
 	}
 
 	stackTags := map[string]string{

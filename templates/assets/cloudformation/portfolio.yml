@@ -1,0 +1,35 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service catalog portfolio
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  PrincipalARN:
+    Type: String
+    Description: ARN of principal to grant access to portfolio
+    Default: ""
+Conditions:
+  HasPrincipalARN:
+    Fn::Not:
+    - Fn::Equals:
+      - !Ref PrincipalARN
+      - ""
+Resources:
+  CatalogPortfolio:
+    Type: AWS::ServiceCatalog::Portfolio
+    Properties:
+      ProviderName: Stelligent
+      DisplayName: !Ref Namespace
+      Description: "https://github.com/stelligent/mu"
+  CatalogPrincipalAssociation:
+    Condition: HasPrincipalARN
+    Type: AWS::ServiceCatalog::PortfolioPrincipalAssociation
+    Properties:
+      PortfolioId: !Ref CatalogPortfolio
+      PrincipalType: IAM
+      PrincipalARN: !Ref PrincipalARN
+Outputs:
+  PortfolioId:
+    Description: ID of Portfolio
+    Value: !Ref CatalogPortfolio

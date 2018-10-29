@@ -106,13 +106,19 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 	}
 
 	// initialize ArtifactManager
-	ctx.ArtifactManager, err = newArtifactManager(sess, dryrunPath != "")
+	ctx.ArtifactManager, err = newArtifactManager(sess, dryrunPath)
 	if err != nil {
 		return err
 	}
 
 	// initialize SubscriptionManager
 	ctx.SubscriptionManager, err = newSnsManager(sess)
+	if err != nil {
+		return err
+	}
+
+	// initialize CatalogManager
+	ctx.CatalogManager, err = newCatalogManager(sess, dryrunPath != "")
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -58,8 +59,20 @@ func TestNewTemplate_assets(t *testing.T) {
 			continue
 		}
 
-		templateBody, err := GetAsset(templateName, ExecuteTemplate(nil))
+		var templateData interface{}
+		if templateName == "cloudformation/artifact-pipeline.yml" {
+			tdMap := make(map[string]string)
+			tdMap["SourceProvider"] = "GitHub"
+			tdMap["EnableAcptStage"] = "true"
+			tdMap["EnableProdStage"] = "true"
+			templateData = tdMap
+		}
 
+		templateBody, err := GetAsset(templateName, ExecuteTemplate(templateData))
+
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
 		assert.Nil(err, templateName)
 		assert.NotNil(templateBody, templateName)
 

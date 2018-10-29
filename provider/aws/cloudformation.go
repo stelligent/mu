@@ -461,8 +461,15 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 
 		//cfnMgr.stopSpinner()
 		if err != nil || resp == nil || len(resp.Stacks) != 1 {
-			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
+			// check for stack by a different name (e.g. service catalog)
+			stack, err := cfnMgr.GetStack(stackName)
+			if err == nil && stack != nil {
+				stackName = stack.Name
+				params.StackName = aws.String(stackName)
+				continue
+			}
 
+			log.Debugf("  Stack doesn't exist ... stack=%s", stackName)
 			if cfnMgr.dryrunPath != "" {
 				stack := &common.Stack{
 					Name:           stackName,
@@ -479,6 +486,7 @@ func (cfnMgr *cloudformationStackManager) AwaitFinalStatus(stackName string) *co
 				log.Debugf("  DRYRUN: Unable to find stack '%s'...returning stub", stackName)
 				return stack
 			}
+
 			return nil
 		}
 
@@ -549,7 +557,8 @@ func (cfnMgr *cloudformationStackManager) ListStacks(stackType common.StackType,
 				stack := buildStack(stackDetails)
 				expectedStackPrefix := fmt.Sprintf("%s-%s", namespace, stackType)
 
-				if stack.Tags["type"] == string(stackType) && strings.HasPrefix(stack.Name, expectedStackPrefix) {
+				if stack.Tags["type"] == string(stackType) &&
+					(strings.HasPrefix(stack.Name, expectedStackPrefix) || strings.HasPrefix(stack.Tags["name"], expectedStackPrefix)) {
 					stacks = append(stacks, stack)
 				}
 			}
@@ -571,12 +580,34 @@ func (cfnMgr *cloudformationStackManager) GetStack(stackName string) (*common.St
 
 	log.Debugf("Searching for stack named '%s'", stackName)
 
-	resp, err := cfnAPI.DescribeStacks(params)
-	if err != nil {
-		return nil, err
-	}
-	stack := buildStack(resp.Stacks[0])
+	var stack *common.Stack
 
+	resp, err := cfnAPI.DescribeStacks(params)
+	if err == nil {
+		stack = buildStack(resp.Stacks[0])
+	} else {
+		// try finding stack by stack tag 'mu:name'
+		err2 := cfnAPI.DescribeStacksPages(&cloudformation.DescribeStacksInput{},
+			func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+				for _, stackDetails := range page.Stacks {
+					if cloudformation.StackStatusDeleteComplete == aws.StringValue(stackDetails.StackStatus) {
+						continue
+					}
+
+					stack = buildStack(stackDetails)
+					if stack.Tags["name"] == stackName {
+						err = nil
+						return false
+					}
+				}
+
+				return true
+			})
+		if err2 != nil {
+			return nil, err2
+		}
+		return stack, err
+	}
 	return stack, nil
 }
 
