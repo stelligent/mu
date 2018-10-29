@@ -1,0 +1,54 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service catalog product
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  PortfolioId:
+    Type: String
+    Description: Id of Portfolio
+  ProductName:
+    Type: String
+    Description: Name of product
+  ProductDescription:
+    Type: String
+    Description: Description of product
+  ProductDefaultVersionName:
+    Type: String
+    Description: Default version name of product
+  ProductDefaultVersionURL:
+    Type: String
+    Description: Default version URL of product
+  CatalogRoleARN:
+    Type: String
+    Description: Role ARN for service catalog to use
+Resources:
+  CatalogProduct:
+    Type: AWS::ServiceCatalog::CloudFormationProduct
+    Properties:
+      Owner: !Sub "namespace:${Namespace}"
+      Distributor: Stelligent
+      Description: !Ref ProductDescription
+      SupportUrl: "https://github.com/stelligent/mu"
+      Name: !Ref ProductName
+      ProvisioningArtifactParameters: 
+        - Name: !Ref ProductDefaultVersionName
+          Info: 
+            LoadTemplateFromURL: !Ref ProductDefaultVersionURL
+  CatalogProductAssociation:
+    Type: AWS::ServiceCatalog::PortfolioProductAssociation
+    Properties:
+      PortfolioId: !Ref PortfolioId
+      ProductId: !Ref CatalogProduct
+  CatalogLaunchRole:
+    DependsOn: CatalogProductAssociation
+    Type: AWS::ServiceCatalog::LaunchRoleConstraint
+    Properties:
+      PortfolioId: !Ref PortfolioId
+      ProductId: !Ref CatalogProduct
+      RoleArn: !Ref CatalogRoleARN
+Outputs:
+  ProductId:
+    Description: ID of Product
+    Value: !Ref CatalogProduct

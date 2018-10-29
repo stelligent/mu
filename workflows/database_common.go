@@ -14,6 +14,7 @@ type databaseWorkflow struct {
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
+	ssmParamName          string
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {
@@ -31,6 +32,10 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 
 		workflow.appRevisionBucket = ctx.Config.Service.Pipeline.Build.Bucket
 		workflow.databaseName = ctx.Config.Service.Database.Name
+		workflow.ssmParamName = ctx.Config.Service.Database.MasterPasswordSSMParam
+		if workflow.ssmParamName == "" {
+			workflow.ssmParamName = "DatabaseMasterPassword"
+		}
 
 		return nil
 	}

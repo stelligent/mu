@@ -19,23 +19,30 @@ func NewPurge(ctx *common.Context) Executor {
 
 	return newPipelineExecutor(
 		ctx.RolesetManager.UpsertCommonRoleset,
+		workflow.newStackStream(common.StackTypeProduct).foreach(workflow.terminateProduct, workflow.deleteStack),
+		workflow.newStackStream(common.StackTypePortfolio).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypePipeline).foreach(workflow.terminatePipeline),
 		workflow.newStackStream(common.StackTypeEnv).foreach(workflow.terminateEnvironment),
 		workflow.newStackStream(common.StackTypeSchedule).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeService).foreach(workflow.deleteStack),
-		workflow.newStackStream(common.StackTypeDatabase).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypeDatabase).foreach(workflow.terminateDatabase),
 		workflow.newStackStream(common.StackTypeLoadBalancer).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeEnv).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeVpc).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeTarget).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeRepo).foreach(workflow.cleanupRepo, workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeApp).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypeProduct).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypePortfolio).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeBucket).foreach(workflow.cleanupBucket, workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeIam).filter(excludeStackName(iamCommonStackName)).foreach(workflow.deleteStack),
 		workflow.terminateCommonRoleset(),
 	)
 }
 
+func (workflow *purgeWorkflow) terminateDatabase(stack *common.Stack) Executor {
+	return NewDatabaseTerminator(workflow.context, stack.Tags["service"], stack.Tags["environment"])
+}
 func (workflow *purgeWorkflow) terminatePipeline(stack *common.Stack) Executor {
 	return NewPipelineTerminator(workflow.context, stack.Tags["service"])
 }

@@ -142,6 +142,11 @@ type PipelineTags struct {
 	Repo     string `tag:"repo"`
 }
 
+// CatalogTags used to set defaults
+type CatalogTags struct {
+	Type string `tag:"type"`
+}
+
 // DatabaseTags used to set defaults
 type DatabaseTags struct {
 	Environment string `tag:"environment"`

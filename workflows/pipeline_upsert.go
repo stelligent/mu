@@ -28,14 +28,26 @@ func NewPipelineUpserter(ctx *common.Context, tokenProvider func(bool) string) E
 	return newPipelineExecutor(
 		workflow.serviceFinder("", ctx),
 		workflow.pipelineToken(ctx.Config.Namespace, tokenProvider, ctx.StackManager, stackParams),
-		newParallelExecutor(
-			workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
-			workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+		newConditionalExecutor(
+			workflow.isFromCatalog(&ctx.Config.Service.Pipeline),
+			workflow.pipelineCatalogUpserter(ctx.Config.Namespace, &ctx.Config.Service.Pipeline, stackParams, ctx.CatalogManager, ctx.StackManager),
+			newPipelineExecutor(
+				newParallelExecutor(
+					workflow.pipelineBucket(ctx.Config.Namespace, stackParams, ctx.StackManager, ctx.StackManager),
+					workflow.codedeployBucket(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
+				),
+				workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
+				workflow.pipelineUpserter(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, stackParams),
+			),
 		),
-		workflow.pipelineRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, stackParams),
-		workflow.pipelineUpserter(ctx.Config.Namespace, ctx.StackManager, ctx.StackManager, stackParams),
 		workflow.pipelineNotifyUpserter(ctx.Config.Namespace, &ctx.Config.Service.Pipeline, ctx.SubscriptionManager))
 
+}
+
+func (workflow *pipelineWorkflow) isFromCatalog(pipeline *common.Pipeline) Conditional {
+	return func() bool {
+		return pipeline.Catalog.Name != "" && pipeline.Catalog.Version != ""
+	}
 }
 
 func (workflow *pipelineWorkflow) codedeployBucket(namespace string, service *common.Service, stackUpserter common.StackUpserter, stackWaiter common.StackWaiter) Executor {
@@ -199,7 +211,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 
 		log.Noticef("Upserting Pipeline for service '%s' ...", workflow.serviceName)
 
-		pipelineParams, err := PipelineParams(workflow, namespace, params)
+		err := PipelineParams(workflow.pipelineConfig, namespace, workflow.serviceName, workflow.codeBranch, workflow.muFile, params)
 		if err != nil {
 			return err
 		}
@@ -211,7 +223,7 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 			Repo:     workflow.repoName,
 		})
 
-		err = stackUpserter.UpsertStack(pipelineStackName, common.TemplatePipeline, nil, pipelineParams, tags, "", "")
+		err = stackUpserter.UpsertStack(pipelineStackName, common.TemplatePipeline, nil, params, tags, "", "")
 		if err != nil {
 			return err
 		}
@@ -231,54 +243,74 @@ func (workflow *pipelineWorkflow) pipelineUpserter(namespace string, stackUpsert
 	}
 }
 
-// PipelineParams creates a map of params to send to the CFN pipeline template
-func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[string]string) (map[string]string, error) {
+func (workflow *pipelineWorkflow) pipelineCatalogUpserter(namespace string, pipeline *common.Pipeline, params map[string]string, catalogProvisioner common.CatalogProvisioner, stackGetter common.StackGetter) Executor {
+	return func() error {
+		stackName := common.CreateStackName(namespace, common.StackTypeProduct, pipeline.Catalog.Name)
+		stack, err := stackGetter.GetStack(stackName)
+		if err != nil {
+			return err
+		}
 
-	pipelineParams := params
+		productParams := make(map[string]string)
+		productParams["ServiceName"] = workflow.serviceName
+		if pipeline.Source.Branch == "" {
+			productParams["SourceBranch"] = "master"
+		} else {
+			productParams["SourceBranch"] = pipeline.Source.Branch
+		}
+		productParams["SourceRepo"] = pipeline.Source.Repo
+		productParams["GitHubToken"] = params["GitHubToken"]
 
-	pipelineParams["Namespace"] = namespace
-	pipelineParams["ServiceName"] = workflow.serviceName
-	pipelineParams["MuFile"] = workflow.muFile
-	pipelineParams["SourceProvider"] = workflow.pipelineConfig.Source.Provider
-	pipelineParams["SourceRepo"] = workflow.pipelineConfig.Source.Repo
+		return catalogProvisioner.UpsertProvisionedProduct(stack.Outputs["ProductId"], pipeline.Catalog.Version, fmt.Sprintf("%s-%s", namespace, workflow.serviceName), productParams)
+	}
+}
 
-	common.NewMapElementIfNotEmpty(pipelineParams, "SourceBranch", workflow.codeBranch)
+// PipelineParams adds params to send to the CFN pipeline template
+func PipelineParams(pipelineConfig *common.Pipeline, namespace string, serviceName string, codeBranch string, muFile string, params map[string]string) error {
 
-	if workflow.pipelineConfig.Source.Provider == "S3" {
-		repoParts := strings.Split(workflow.pipelineConfig.Source.Repo, "/")
-		pipelineParams["SourceBucket"] = repoParts[0]
-		pipelineParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+	params["Namespace"] = namespace
+	params["ServiceName"] = serviceName
+	params["MuFile"] = muFile
+	params["SourceProvider"] = pipelineConfig.Source.Provider
+	params["SourceRepo"] = pipelineConfig.Source.Repo
+
+	common.NewMapElementIfNotEmpty(params, "SourceBranch", codeBranch)
+
+	if pipelineConfig.Source.Provider == "S3" {
+		repoParts := strings.Split(pipelineConfig.Source.Repo, "/")
+		params["SourceBucket"] = repoParts[0]
+		params["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
 	}
 
-	common.NewMapElementIfNotEmpty(pipelineParams, "BuildType", string(workflow.pipelineConfig.Build.Type))
-	common.NewMapElementIfNotEmpty(pipelineParams, "BuildComputeType", string(workflow.pipelineConfig.Build.ComputeType))
-	common.NewMapElementIfNotEmpty(pipelineParams, "BuildImage", workflow.pipelineConfig.Build.Image)
-	common.NewMapElementIfNotEmpty(pipelineParams, "PipelineBuildTimeout", workflow.pipelineConfig.Build.BuildTimeout)
-	common.NewMapElementIfNotEmpty(pipelineParams, "TestType", string(workflow.pipelineConfig.Acceptance.Type))
-	common.NewMapElementIfNotEmpty(pipelineParams, "TestComputeType", string(workflow.pipelineConfig.Acceptance.ComputeType))
-	common.NewMapElementIfNotEmpty(pipelineParams, "TestImage", workflow.pipelineConfig.Acceptance.Image)
-	common.NewMapElementIfNotEmpty(pipelineParams, "AcptEnv", workflow.pipelineConfig.Acceptance.Environment)
-	common.NewMapElementIfNotEmpty(pipelineParams, "PipelineBuildAcceptanceTimeout", workflow.pipelineConfig.Acceptance.BuildTimeout)
-	common.NewMapElementIfNotEmpty(pipelineParams, "ProdEnv", workflow.pipelineConfig.Production.Environment)
-	common.NewMapElementIfNotEmpty(pipelineParams, "PipelineBuildProductionTimeout", workflow.pipelineConfig.Production.BuildTimeout)
-	common.NewMapElementIfNotEmpty(pipelineParams, "MuDownloadBaseurl", workflow.pipelineConfig.MuBaseurl)
+	common.NewMapElementIfNotEmpty(params, "BuildType", string(pipelineConfig.Build.Type))
+	common.NewMapElementIfNotEmpty(params, "BuildComputeType", string(pipelineConfig.Build.ComputeType))
+	common.NewMapElementIfNotEmpty(params, "BuildImage", pipelineConfig.Build.Image)
+	common.NewMapElementIfNotEmpty(params, "PipelineBuildTimeout", pipelineConfig.Build.BuildTimeout)
+	common.NewMapElementIfNotEmpty(params, "TestType", string(pipelineConfig.Acceptance.Type))
+	common.NewMapElementIfNotEmpty(params, "TestComputeType", string(pipelineConfig.Acceptance.ComputeType))
+	common.NewMapElementIfNotEmpty(params, "TestImage", pipelineConfig.Acceptance.Image)
+	common.NewMapElementIfNotEmpty(params, "AcptEnv", pipelineConfig.Acceptance.Environment)
+	common.NewMapElementIfNotEmpty(params, "PipelineBuildAcceptanceTimeout", pipelineConfig.Acceptance.BuildTimeout)
+	common.NewMapElementIfNotEmpty(params, "ProdEnv", pipelineConfig.Production.Environment)
+	common.NewMapElementIfNotEmpty(params, "PipelineBuildProductionTimeout", pipelineConfig.Production.BuildTimeout)
+	common.NewMapElementIfNotEmpty(params, "MuDownloadBaseurl", pipelineConfig.MuBaseurl)
 
-	pipelineParams["EnableBuildStage"] = strconv.FormatBool(!workflow.pipelineConfig.Build.Disabled)
-	pipelineParams["EnableAcptStage"] = strconv.FormatBool(!workflow.pipelineConfig.Acceptance.Disabled)
-	pipelineParams["EnableProdStage"] = strconv.FormatBool(!workflow.pipelineConfig.Production.Disabled)
+	params["EnableBuildStage"] = strconv.FormatBool(!pipelineConfig.Build.Disabled)
+	params["EnableAcptStage"] = strconv.FormatBool(!pipelineConfig.Acceptance.Disabled)
+	params["EnableProdStage"] = strconv.FormatBool(!pipelineConfig.Production.Disabled)
 
 	// get default buildspec
 	buildspec, err := templates.GetAsset(common.TemplateBuildspec,
 		templates.ExecuteTemplate(nil))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	newlineRegexp := regexp.MustCompile(`\r?\n`)
 	buildspecString := newlineRegexp.ReplaceAllString(buildspec, "\\n")
 
 	params["DefaultBuildspec"] = buildspecString
 
-	version := workflow.pipelineConfig.MuVersion
+	version := pipelineConfig.MuVersion
 	if version == "" {
 		version = common.GetVersion()
 		if version == "0.0.0-local" {
@@ -289,7 +321,7 @@ func PipelineParams(workflow *pipelineWorkflow, namespace string, params map[str
 		params["MuDownloadVersion"] = version
 	}
 
-	return pipelineParams, nil
+	return nil
 }
 
 func (workflow *pipelineWorkflow) pipelineNotifyUpserter(namespace string, pipeline *common.Pipeline, subManager common.SubscriptionManager) Executor {
