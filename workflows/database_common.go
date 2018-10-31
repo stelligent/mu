@@ -15,11 +15,8 @@ type databaseWorkflow struct {
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
-<<<<<<< HEAD
-=======
 	ssmParamName          string
 	ssmParamIsManaged     bool
->>>>>>> fix 345 - delete SSM param when deleting db stack
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {
