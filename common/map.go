@@ -234,3 +234,12 @@ func MapGetString(v interface{}, path ...interface{}) string {
 	}
 	return s
 }
+
+// MapClone returns a map copy
+func MapClone(m map[string]string) map[string]string {
+	rtn := make(map[string]string)
+	for k, v := range m {
+		rtn[k] = v
+	}
+	return rtn
+}

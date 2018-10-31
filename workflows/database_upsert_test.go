@@ -39,6 +39,10 @@ func (m *mockedParamManager) SetParam(name string, value string, kmsKey string) 
 	args := m.Called(name)
 	return args.Error(0)
 }
+func (m *mockedParamManager) DeleteParam(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
 func (m *mockedParamManager) ParamVersion(name string) (int64, error) {
 	args := m.Called(name)
 	return args.Get(0).(int64), args.Error(1)
@@ -122,7 +126,10 @@ func TestDatabaseMasterPassword_NoPassAccept(t *testing.T) {
 
 	mockPrompt := new(mockedCliExtension)
 
-	workflow := &databaseWorkflow{}
+	workflow := &databaseWorkflow{
+		ssmParamName:      "mu-database-foo-dev-DatabaseMasterPassword",
+		ssmParamIsManaged: true,
+	}
 	mockPrompt.On("Prompt", mock.Anything, mock.Anything).Return(true, nil)
 
 	workflow.serviceName = "foo"
@@ -151,7 +158,10 @@ func TestDatabaseMasterPassword_NoPassDeny(t *testing.T) {
 
 		mockPrompt := new(mockedCliExtension)
 
-		workflow := &databaseWorkflow{}
+		workflow := &databaseWorkflow{
+			ssmParamName:      "mu-database-foo-dev-DatabaseMasterPassword",
+			ssmParamIsManaged: true,
+		}
 		mockPrompt.On("Prompt", mock.Anything, mock.Anything).Return(false, nil)
 
 		workflow.serviceName = "foo"
@@ -185,7 +195,10 @@ func TestDatabaseMasterPassword_ExistingPass(t *testing.T) {
 
 	params := make(map[string]string)
 
-	workflow := new(databaseWorkflow)
+	workflow := &databaseWorkflow{
+		ssmParamName:      "mu-database-foo-dev-DatabaseMasterPassword",
+		ssmParamIsManaged: true,
+	}
 	workflow.serviceName = "foo"
 	err := workflow.databaseMasterPassword("mu", &config.Service, &params, "dev", paramManager, mockPrompt)()
 	assert.Nil(err)
@@ -252,6 +265,7 @@ func TestDatabaseUpserter_UserDefinedSSMParam(t *testing.T) {
 	params := make(map[string]string)
 
 	workflow := new(databaseWorkflow)
+	workflow.ssmParamName = config.Service.Database.MasterPasswordSSMParam
 	workflow.serviceName = "foo"
 	err := workflow.databaseDeployer("mu", &config.Service, params, "dev", stackManager, stackManager, rdsManager)()
 	assert.Nil(err)

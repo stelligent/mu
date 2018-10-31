@@ -11,7 +11,7 @@ import (
 func newPurgeCommand(ctx *common.Context) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "purge",
-		Usage: "purge",
+		Usage: "purge all resources for a namespace",
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "confirm",

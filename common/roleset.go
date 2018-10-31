@@ -15,6 +15,7 @@ type RolesetUpserter interface {
 type RolesetGetter interface {
 	GetCommonRoleset() (Roleset, error)
 	GetEnvironmentRoleset(environmentName string) (Roleset, error)
+	GetEnvironmentProvider(environmentName string) (string, error)
 	GetServiceRoleset(environmentName string, serviceName string) (Roleset, error)
 	GetPipelineRoleset(serviceName string) (Roleset, error)
 }
