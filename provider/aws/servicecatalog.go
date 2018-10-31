@@ -177,7 +177,7 @@ func (scManager *serviceCatalogManager) TerminateProvisionedProducts(productID s
 				continue
 			}
 
-			log.Infof("  Deleting provisionedProduct '%s'", provisionedProduct.Id)
+			log.Infof("  Deleting provisionedProduct '%s'", aws.StringValue(provisionedProduct.Id))
 			stackID := aws.StringValue(provisionedProduct.PhysicalId)
 
 			_, err = scManager.scAPI.TerminateProvisionedProduct(&servicecatalog.TerminateProvisionedProductInput{
@@ -187,6 +187,8 @@ func (scManager *serviceCatalogManager) TerminateProvisionedProducts(productID s
 			if err != nil {
 				return false
 			}
+
+			time.Sleep(time.Second * 5)
 
 			log.Infof("  Deleting stack '%s'", stackID)
 			scManager.stackManager.AwaitFinalStatus(strings.Split(stackID, "/")[1])
