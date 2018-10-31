@@ -5,6 +5,11 @@ type ParamSetter interface {
 	SetParam(name string, value string, kmsKey string) error
 }
 
+// ParamDeleter for deleting parameters
+type ParamDeleter interface {
+	DeleteParam(name string) error
+}
+
 // ParamGetter for getting parameters
 type ParamGetter interface {
 	GetParam(name string) (string, error)
@@ -14,5 +19,6 @@ type ParamGetter interface {
 type ParamManager interface {
 	ParamGetter
 	ParamSetter
+	ParamDeleter
 	ParamVersion(name string) (int64, error)
 }

@@ -44,9 +44,11 @@ Parameters:
   AcptCloudFormationRoleArn:
     Type: String
     Description: Name of role to pass to CloudFormation in ACPT
+    Default: ""
   ProdCloudFormationRoleArn:
     Type: String
     Description: Name of role to pass to CloudFormation in PROD
+    Default: ""
   EnableBuildStage:
     Type: String
     Description: Enable build stage
