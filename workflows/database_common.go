@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/stelligent/mu/common"
 )
@@ -14,6 +15,11 @@ type databaseWorkflow struct {
 	repoName              string
 	cloudFormationRoleArn string
 	databaseKeyArn        string
+<<<<<<< HEAD
+=======
+	ssmParamName          string
+	ssmParamIsManaged     bool
+>>>>>>> fix 345 - delete SSM param when deleting db stack
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {
@@ -31,6 +37,12 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 
 		workflow.appRevisionBucket = ctx.Config.Service.Pipeline.Build.Bucket
 		workflow.databaseName = ctx.Config.Service.Database.Name
+		workflow.ssmParamName = ctx.Config.Service.Database.MasterPasswordSSMParam
+		if workflow.ssmParamName == "" {
+			dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
+			workflow.ssmParamName = fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
+			workflow.ssmParamIsManaged = true
+		}
 
 		return nil
 	}
