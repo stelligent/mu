@@ -347,7 +347,10 @@ func (workflow *catalogWorkflow) uploadCommonTemplates(version string, extension
 		}
 
 		destURI := fmt.Sprintf("s3://%s/%s/%s", workflow.catalogBucketName, version, path.Base(tn))
-		return artifactCreator.CreateArtifact(strings.NewReader(templateBody), destURI, workflow.kmsKeyID)
+		err = artifactCreator.CreateArtifact(strings.NewReader(templateBody), destURI, workflow.kmsKeyID)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

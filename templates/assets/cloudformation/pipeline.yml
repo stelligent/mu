@@ -611,7 +611,7 @@ Resources:
             pipeline: "$.detail.pipeline"
 Outputs:
   CodePipelineUrl:
-    Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+    Value: !Sub https://console.aws.amazon.com/codesuite/codepipeline/pipelines/${Pipeline}/view?region=${AWS::Region}
     Description: CodePipeline URL
   PipelineName:
     Value: !Sub ${Pipeline}
