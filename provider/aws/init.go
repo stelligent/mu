@@ -82,7 +82,7 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 	}
 
 	// initialize ParamManager
-	ctx.ParamManager, err = newParamManager(sess)
+	ctx.ParamManager, err = newParamManager(sess, dryrunPath != "")
 	if err != nil {
 		return err
 	}

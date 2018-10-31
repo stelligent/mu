@@ -25,7 +25,7 @@ func NewPurge(ctx *common.Context) Executor {
 		workflow.newStackStream(common.StackTypeEnv).foreach(workflow.terminateEnvironment),
 		workflow.newStackStream(common.StackTypeSchedule).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeService).foreach(workflow.deleteStack),
-		workflow.newStackStream(common.StackTypeDatabase).foreach(workflow.deleteStack),
+		workflow.newStackStream(common.StackTypeDatabase).foreach(workflow.terminateDatabase),
 		workflow.newStackStream(common.StackTypeLoadBalancer).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeEnv).foreach(workflow.deleteStack),
 		workflow.newStackStream(common.StackTypeVpc).foreach(workflow.deleteStack),
@@ -40,6 +40,9 @@ func NewPurge(ctx *common.Context) Executor {
 	)
 }
 
+func (workflow *purgeWorkflow) terminateDatabase(stack *common.Stack) Executor {
+	return NewDatabaseTerminator(workflow.context, stack.Tags["service"], stack.Tags["environment"])
+}
 func (workflow *purgeWorkflow) terminatePipeline(stack *common.Stack) Executor {
 	return NewPipelineTerminator(workflow.context, stack.Tags["service"])
 }
