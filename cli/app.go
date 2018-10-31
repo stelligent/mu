@@ -22,11 +22,12 @@ func NewApp() *cli.App {
 
 	app.Commands = []cli.Command{
 		*newInitCommand(context),
+		*newValidateCommand(context),
 		*newEnvironmentsCommand(context),
 		*newServicesCommand(context),
-		*newPipelinesCommand(context),
 		*newDatabasesCommand(context),
-		*newValidateCommand(context),
+		*newPipelinesCommand(context),
+		*newCatalogCommand(context),
 		*newPurgeCommand(context),
 	}
 

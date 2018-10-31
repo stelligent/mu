@@ -136,6 +136,8 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 
 	cfn := new(mockedCloudFormation)
 	cfn.On("DescribeStacks").Return(&cloudformation.DescribeStacksOutput{}, errors.New("stack not found"))
+	cfn.On("DescribeStacksPages", mock.AnythingOfType("*cloudformation.DescribeStacksInput"), mock.AnythingOfType("func(*cloudformation.DescribeStacksOutput, bool) bool")).
+		Return(nil)
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
 			return true
@@ -156,7 +158,7 @@ func TestStack_UpsertStack_Create(t *testing.T) {
 
 	assert.Nil(err)
 	cfn.AssertExpectations(t)
-	cfn.AssertNumberOfCalls(t, "DescribeStacks", 1)
+	cfn.AssertNumberOfCalls(t, "DescribeStacks", 2)
 	cfn.AssertNumberOfCalls(t, "WaitUntilStackExists", 1)
 	cfn.AssertNumberOfCalls(t, "CreateStack", 1)
 }
@@ -417,6 +419,8 @@ func TestStack_UpsertStack_CreatePolicy(t *testing.T) {
 
 	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
+	cfn.On("DescribeStacksPages", mock.AnythingOfType("*cloudformation.DescribeStacksInput"), mock.AnythingOfType("func(*cloudformation.DescribeStacksOutput, bool) bool")).
+		Return(nil)
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
 			return *params.StackPolicyBody == policy
@@ -448,6 +452,8 @@ func TestStack_UpsertStack_CreatePolicyAllowDataLoss(t *testing.T) {
 
 	policy, _ := templates.GetAsset(common.TemplatePolicyDefault)
 
+	cfn.On("DescribeStacksPages", mock.AnythingOfType("*cloudformation.DescribeStacksInput"), mock.AnythingOfType("func(*cloudformation.DescribeStacksOutput, bool) bool")).
+		Return(nil)
 	cfn.On("CreateStack", mock.MatchedBy(
 		func(params *cloudformation.CreateStackInput) bool {
 			return *params.StackPolicyBody == policy
