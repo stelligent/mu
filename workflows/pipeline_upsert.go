@@ -252,11 +252,7 @@ func (workflow *pipelineWorkflow) pipelineCatalogUpserter(namespace string, pipe
 
 		productParams := make(map[string]string)
 		productParams["ServiceName"] = workflow.serviceName
-		if pipeline.Source.Branch == "" {
-			productParams["SourceBranch"] = "master"
-		} else {
-			productParams["SourceBranch"] = pipeline.Source.Branch
-		}
+		productParams["SourceBranch"] = workflow.codeBranch
 		productParams["SourceRepo"] = pipeline.Source.Repo
 		productParams["GitHubToken"] = params["GitHubToken"]
 
