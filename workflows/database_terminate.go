@@ -20,7 +20,7 @@ func NewDatabaseTerminator(ctx *common.Context, serviceName string, environmentN
 
 func (workflow *databaseWorkflow) databaseTerminator(namespace string, environmentName string, stackDeleter common.StackDeleter, stackWaiter common.StackWaiter, paramDeleter common.ParamDeleter) Executor {
 	return func() error {
-		log.Noticef("Undeploying service '%s' from '%s'", workflow.serviceName, environmentName)
+		log.Noticef("Deleting database '%s' from '%s'", workflow.serviceName, environmentName)
 		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
 		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
 		if dbStack != nil {
@@ -36,6 +36,7 @@ func (workflow *databaseWorkflow) databaseTerminator(namespace string, environme
 			log.Info("  Stack is already deleted.")
 		}
 
-		return paramDeleter.DeleteParam(fmt.Sprintf("%s-%s", dbStackName, workflow.ssmParamName))
+		paramDeleter.DeleteParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+		return nil
 	}
 }

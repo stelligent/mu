@@ -90,12 +90,9 @@ func (workflow *databaseWorkflow) databaseMasterPassword(namespace string,
 	paramManager common.ParamManager, cliExtension common.CliExtension) Executor {
 	return func() error {
 
-		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
-		masterPasswordSSMParam := service.Database.MasterPasswordSSMParam
 		//DatabaseMasterPassword:
-		if masterPasswordSSMParam == "" {
-			dbPassSSMParam := fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
-			dbPassVersion, err := paramManager.ParamVersion(dbPassSSMParam)
+		if workflow.ssmParamIsManaged {
+			dbPassVersion, err := paramManager.ParamVersion(workflow.ssmParamName)
 			if err != nil {
 				log.Warningf("Error with ParamVersion for DatabaseMasterPassword, assuming empty: %s", err)
 				answer, err := cliExtension.Prompt("Error retrieving DatabaseMasterPassword. Set a new DatabaseMasterPassword", false)
@@ -109,17 +106,16 @@ func (workflow *databaseWorkflow) databaseMasterPassword(namespace string,
 			}
 			if dbPassVersion == 0 {
 				dbPass := randomPassword(32)
-				err = paramManager.SetParam(dbPassSSMParam, dbPass, workflow.databaseKeyArn)
+				err = paramManager.SetParam(workflow.ssmParamName, dbPass, workflow.databaseKeyArn)
 				if err != nil {
 					return err
 				}
 				dbPassVersion = 1
 			}
-			masterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", dbPassSSMParam, dbPassVersion)
+			(*params)["DatabaseMasterPassword"] = fmt.Sprintf("{{resolve:ssm-secure:%s:%d}}", workflow.ssmParamName, dbPassVersion)
 		} else {
-			masterPasswordSSMParam = fmt.Sprintf("{{resolve:ssm-secure:%s}}", masterPasswordSSMParam)
+			(*params)["DatabaseMasterPassword"] = fmt.Sprintf("{{resolve:ssm-secure:%s}}", workflow.ssmParamName)
 		}
-		(*params)["DatabaseMasterPassword"] = masterPasswordSSMParam
 		return nil
 	}
 }

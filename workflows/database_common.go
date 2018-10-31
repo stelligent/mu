@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/stelligent/mu/common"
 )
@@ -15,6 +16,7 @@ type databaseWorkflow struct {
 	cloudFormationRoleArn string
 	databaseKeyArn        string
 	ssmParamName          string
+	ssmParamIsManaged     bool
 }
 
 func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName string, environmentName string) Executor {
@@ -34,7 +36,9 @@ func (workflow *databaseWorkflow) databaseInput(ctx *common.Context, serviceName
 		workflow.databaseName = ctx.Config.Service.Database.Name
 		workflow.ssmParamName = ctx.Config.Service.Database.MasterPasswordSSMParam
 		if workflow.ssmParamName == "" {
-			workflow.ssmParamName = "DatabaseMasterPassword"
+			dbStackName := common.CreateStackName(ctx.Config.Namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
+			workflow.ssmParamName = fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword")
+			workflow.ssmParamIsManaged = true
 		}
 
 		return nil
