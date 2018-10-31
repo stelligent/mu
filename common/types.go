@@ -29,6 +29,7 @@ type Context struct {
 	SubscriptionManager               SubscriptionManager
 	RolesetManager                    RolesetManager
 	ExtensionsManager                 ExtensionsManager
+	CatalogManager                    CatalogManager
 }
 
 // Config defines the structure of the yml file for the mu config
@@ -54,7 +55,18 @@ type Config struct {
 	Roles      struct {
 		CloudFormation string `yaml:"cloudFormation,omitempty" validate:"validateRoleARN"`
 	} `yaml:"roles,omitempty"`
-	RBAC []RoleBinding `yaml:"rbac,omitempty"`
+	RBAC    []RoleBinding `yaml:"rbac,omitempty"`
+	Catalog Catalog       `yaml:"catalog,omitempty"`
+}
+
+// Catalog of pipeline templates
+type Catalog struct {
+	IAMUsers  []string `yaml:"iamUsers,omitempty"`
+	Pipelines []struct {
+		Name        string              `yaml:"name,omitempty" validate:"validateAlphaNumericDash"`
+		Description string              `yaml:"description,omitempty"`
+		Versions    map[string]Pipeline `yaml:"versions,omitempty"`
+	} `yaml:"pipelines,omitempty"`
 }
 
 // RoleBinding defines how to map k8s roles to subjects
@@ -239,6 +251,10 @@ type Schedule struct {
 
 // Pipeline definition
 type Pipeline struct {
+	Catalog struct {
+		Name    string `yaml:"name,omitempty"`
+		Version string `yaml:"version,omitempty"`
+	} `yaml:"catalog,omitempty"`
 	Source struct {
 		Provider string `yaml:"provider,omitempty"`
 		Repo     string `yaml:"repo,omitempty"`
@@ -367,38 +383,44 @@ const (
 	StackTypeDatabase               = "database"
 	StackTypeSchedule               = "schedule"
 	StackTypeBucket                 = "bucket"
+	StackTypePortfolio              = "portfolio"
+	StackTypeProduct                = "product"
 )
 
 // List of valid template files
 const (
-	TemplatePolicyDefault   string = "policies/default.json"
-	TemplatePolicyAllowAll         = "policies/allow-all.json"
-	TemplateBuildspec              = "codebuild/buildspec.yml"
-	TemplateApp                    = "cloudformation/app.yml"
-	TemplateBucket                 = "cloudformation/bucket.yml"
-	TemplateCommonIAM              = "cloudformation/common-iam.yml"
-	TemplateDatabase               = "cloudformation/database.yml"
-	TemplateELB                    = "cloudformation/elb.yml"
-	TemplateEnvEC2                 = "cloudformation/env-ec2.yml"
-	TemplateEnvECS                 = "cloudformation/env-ecs.yml"
-	TemplateEnvEKS                 = "cloudformation/env-eks.yml"
-	TemplateEnvEKSBootstrap        = "cloudformation/env-eks-bootstrap.yml"
-	TemplateEnvBatch               = "cloudformation/env-batch.yml"
-	TemplateEnvIAM                 = "cloudformation/env-iam.yml"
-	TemplatePipelineIAM            = "cloudformation/pipeline-iam.yml"
-	TemplatePipeline               = "cloudformation/pipeline.yml"
-	TemplateRepo                   = "cloudformation/repo.yml"
-	TemplateSchedule               = "cloudformation/schedule.yml"
-	TemplateServiceEC2             = "cloudformation/service-ec2.yml"
-	TemplateServiceECS             = "cloudformation/service-ecs.yml"
-	TemplateServiceBatch           = "cloudformation/service-batch.yml"
-	TemplateServiceIAM             = "cloudformation/service-iam.yml"
-	TemplateVPCTarget              = "cloudformation/vpc-target.yml"
-	TemplateVPC                    = "cloudformation/vpc.yml"
-	TemplateK8sCluster             = "kubernetes/cluster.yml"
-	TemplateK8sDeployment          = "kubernetes/deployment.yml"
-	TemplateK8sDatabase            = "kubernetes/database.yml"
-	TemplateK8sIngress             = "kubernetes/ingress.yml"
+	TemplatePolicyDefault    string = "policies/default.json"
+	TemplatePolicyAllowAll          = "policies/allow-all.json"
+	TemplateBuildspec               = "codebuild/buildspec.yml"
+	TemplateApp                     = "cloudformation/app.yml"
+	TemplateBucket                  = "cloudformation/bucket.yml"
+	TemplatePortfolio               = "cloudformation/portfolio.yml"
+	TemplatePortfolioIAM            = "cloudformation/portfolio-iam.yml"
+	TemplateProduct                 = "cloudformation/product.yml"
+	TemplateCommonIAM               = "cloudformation/common-iam.yml"
+	TemplateDatabase                = "cloudformation/database.yml"
+	TemplateELB                     = "cloudformation/elb.yml"
+	TemplateEnvEC2                  = "cloudformation/env-ec2.yml"
+	TemplateEnvECS                  = "cloudformation/env-ecs.yml"
+	TemplateEnvEKS                  = "cloudformation/env-eks.yml"
+	TemplateEnvEKSBootstrap         = "cloudformation/env-eks-bootstrap.yml"
+	TemplateEnvBatch                = "cloudformation/env-batch.yml"
+	TemplateEnvIAM                  = "cloudformation/env-iam.yml"
+	TemplatePipelineIAM             = "cloudformation/pipeline-iam.yml"
+	TemplatePipeline                = "cloudformation/pipeline.yml"
+	TemplateRepo                    = "cloudformation/repo.yml"
+	TemplateSchedule                = "cloudformation/schedule.yml"
+	TemplateServiceEC2              = "cloudformation/service-ec2.yml"
+	TemplateServiceECS              = "cloudformation/service-ecs.yml"
+	TemplateServiceBatch            = "cloudformation/service-batch.yml"
+	TemplateServiceIAM              = "cloudformation/service-iam.yml"
+	TemplateVPCTarget               = "cloudformation/vpc-target.yml"
+	TemplateVPC                     = "cloudformation/vpc.yml"
+	TemplateK8sCluster              = "kubernetes/cluster.yml"
+	TemplateK8sDeployment           = "kubernetes/deployment.yml"
+	TemplateK8sDatabase             = "kubernetes/database.yml"
+	TemplateK8sIngress              = "kubernetes/ingress.yml"
+	TemplateArtifactPipeline        = "cloudformation/artifact-pipeline.yml"
 )
 
 // DeploymentStrategy describes supported deployment strategies

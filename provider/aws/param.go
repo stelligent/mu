@@ -10,13 +10,15 @@ import (
 
 type paramManager struct {
 	ssmAPI ssmiface.SSMAPI
+	dryrun bool
 }
 
-func newParamManager(sess *session.Session) (common.ParamManager, error) {
+func newParamManager(sess *session.Session, dryrun bool) (common.ParamManager, error) {
 	log.Debug("Connecting to SSM service")
 	ssmAPI := ssm.New(sess)
 
 	return &paramManager{
+		dryrun: dryrun,
 		ssmAPI: ssmAPI,
 	}, nil
 }
@@ -24,6 +26,10 @@ func newParamManager(sess *session.Session) (common.ParamManager, error) {
 // SetParam set the value of a parameter
 func (paramMgr *paramManager) SetParam(name string, value string, kmsKey string) error {
 	ssmAPI := paramMgr.ssmAPI
+
+	if paramMgr.dryrun {
+		return nil
+	}
 
 	log.Debug("Setting param '%s' to '%s'", name, value)
 
@@ -42,6 +48,25 @@ func (paramMgr *paramManager) SetParam(name string, value string, kmsKey string)
 	}
 
 	return nil
+}
+
+// DeleteParam set the value of a parameter
+func (paramMgr *paramManager) DeleteParam(name string) error {
+	ssmAPI := paramMgr.ssmAPI
+
+	if paramMgr.dryrun {
+		return nil
+	}
+
+	log.Debug("Deleting param '%s'", name)
+
+	input := &ssm.DeleteParameterInput{
+		Name: aws.String(name),
+	}
+
+	_, err := ssmAPI.DeleteParameter(input)
+
+	return err
 }
 
 // GetParam get the value of a parameter

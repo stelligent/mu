@@ -44,3 +44,7 @@ Outputs:
     Value: !Ref Bucket
     Export:
       Name: !Sub ${Namespace}-bucket-${BucketPrefix}
+  BucketURL:
+    Description: URL of the bucket
+    Value: !Sub "https://s3.${AWS::Region}.${AWS::URLSuffix}/${Bucket}"
+

@@ -1,0 +1,44 @@
+---
+
+environments:
+  - name: acpt-fargate
+    provider: ecs-fargate
+  - name: prod-fargate
+    provider: ecs-fargate
+
+catalog:
+  iamUsers:
+  - casey.lee
+
+  pipelines:
+  - name: basic-pipeline
+    description: Basic pipeline with no acceptance environment
+    versions:
+      v2: 
+        source:
+          provider: GitHub
+        acceptance:
+          disabled: true
+        production:
+          environment: prod-fargate
+      v1: 
+        muVersion: 1.5.3
+        source:
+          provider: GitHub
+        acceptance:
+          disabled: true
+        production:
+          environment: prod-fargate
+
+  - name: spring-boot-pipeline
+    description: Spring Boot pipeline 
+    versions:
+      v1:
+        source:
+          provider: GitHub
+        build:
+          image: aws/codebuild/java:openjdk-8
+        acceptance:
+          environment: acpt-fargate
+        production:
+          environment: prod-fargate
