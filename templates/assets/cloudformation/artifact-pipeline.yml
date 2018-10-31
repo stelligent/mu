@@ -148,9 +148,9 @@ Resources:
         {{if .TestImage -}}
         TestImage: {{ .TestImage }}
         {{- end}}
-        DefaultBuildspec: "{{ .DefaultBuildspec }}"
         MuDownloadVersion: "{{ .MuDownloadVersion }}"
-        MuFile: "mu.yml"
+        MuFilename: "{{ .MuFilename }}"
+        MuBasedir: "{{ .MuBasedir }}"
         CodePipelineKeyArn: !GetAtt PipelineRoleset.Outputs.CodePipelineKeyArn
         CodePipelineRoleArn: !GetAtt PipelineRoleset.Outputs.CodePipelineRoleArn 
         CodeBuildCIRoleArn: !GetAtt PipelineRoleset.Outputs.CodeBuildCIRoleArn 

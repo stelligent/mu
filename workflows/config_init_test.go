@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/stelligent/mu/common"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stelligent/mu/common"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 func TestNewConfigInitializer(t *testing.T) {
@@ -39,7 +40,7 @@ func TestNewConfigInitializer_FileExists(t *testing.T) {
 	}
 
 	err = workflow.configInitialize(config, false, 80, false)()
-	assert.NotNil(err)
+	assert.Nil(err)
 
 	err = workflow.configInitialize(config, false, 3000, true)()
 	assert.Nil(err)

@@ -86,12 +86,13 @@ Parameters:
     Type: String
     Default: "mu-linux-amd64"
     Description: The name of the mu file to download to install
-  DefaultBuildspec:
-    Type: String
-    Description: The default buildspec to use
-  MuFile:
+  MuBasedir:
     Type: String
     Description: Path to mu.yml, relative to GitHubRepo
+    Default: "."
+  MuFilename:
+    Type: String
+    Description: Name of mu config file
     Default: "mu.yml"
   AcptEnv:
     Type: String
@@ -225,6 +226,7 @@ Resources:
         Image: !Sub ${BuildImage}
       Source:
         Type: CODEPIPELINE
+        BuildSpec: !Sub ${MuBasedir}/buildspec.yml
       TimeoutInMinutes: 30
   CodeBuildImage:
     Type: AWS::CodeBuild::Project
@@ -257,10 +259,11 @@ Resources:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} svc push -k ${CodePipelineKeyArn}
+                - mu -c ${MuBasedir}/${MuFilename} init
+                - mu -c ${MuBasedir}/${MuFilename} svc push -k ${CodePipelineKeyArn}
           artifacts:
             files:
-              - ${MuFile}
+              - ${MuBasedir}/${MuFilename}
       TimeoutInMinutes: !Ref PipelineBuildTimeout
   DeployAcceptance:
     Type: AWS::CodeBuild::Project
@@ -286,20 +289,17 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.2
-          env:
-            variables:
-              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} 
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} 
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
-                - mu -c ${MuFile} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f shell > mu-env.sh
-                - mv buildspec-test.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
+                - mu -c ${MuBasedir}/${MuFilename} init
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuAcptRoleArn} --disable-iam env up ${AcptEnv} 
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuAcptRoleArn} --disable-iam db up ${AcptEnv} 
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuAcptRoleArn} --disable-iam svc deploy ${AcptEnv}
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f json > env.json
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuAcptRoleArn} env show ${AcptEnv} -f shell > mu-env.sh
           artifacts:
             files:
               - '**/*'
@@ -323,6 +323,7 @@ Resources:
         Image: !Sub ${TestImage}
       Source:
         Type: CODEPIPELINE
+        BuildSpec: !Sub ${MuBasedir}/buildspec-test.yml
       TimeoutInMinutes: !Ref PipelineBuildAcceptanceTimeout
   DeployProduction:
     Type: AWS::CodeBuild::Project
@@ -348,20 +349,17 @@ Resources:
         Type: CODEPIPELINE
         BuildSpec: !Sub |
           version: 0.2
-          env:
-            variables:
-              DEFAULT_BUILDSPEC: "${DefaultBuildspec}"
           phases:
             build:
               commands:
                 - curl -sL ${MuDownloadBaseurl}/v${MuDownloadVersion}/${MuDownloadFile} -o /usr/bin/mu
                 - chmod +rx /usr/bin/mu
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} 
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} 
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
-                - mu -c ${MuFile} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f shell > mu-env.sh
-                - mv buildspec-prod.yml buildspec.yml || echo "$DEFAULT_BUILDSPEC" > buildspec.yml
+                - mu -c ${MuBasedir}/${MuFilename} init
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuProdRoleArn} --disable-iam env up ${ProdEnv} 
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuProdRoleArn} --disable-iam db up ${ProdEnv} 
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuProdRoleArn} --disable-iam svc deploy ${ProdEnv}
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f json > env.json
+                - mu -c ${MuBasedir}/${MuFilename} --assume-role ${MuProdRoleArn} env show ${ProdEnv} -f shell > mu-env.sh
           artifacts:
             files:
               - '**/*'
@@ -382,6 +380,7 @@ Resources:
         Image: !Sub ${TestImage}
       Source:
         Type: CODEPIPELINE
+        BuildSpec: !Sub ${MuBasedir}/buildspec-prod.yml
       TimeoutInMinutes: !Ref PipelineBuildProductionTimeout
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
