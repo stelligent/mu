@@ -5,5 +5,5 @@ service:
   environment:
     DB_TYPE: mysql                  # Define an environment variable for all environments by have a string for value
     DB_URL:                         # Define an different value per environment by have a map for value
-        dev:  10.0.0.1:3306
-        prod: 10.0.100.5:3306
+        acceptance:  10.0.0.1:3306
+        production: 10.0.100.5:3306
