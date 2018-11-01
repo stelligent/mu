@@ -439,7 +439,7 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		params["EnvironmentName"] = environmentName
 		params["ServiceName"] = workflow.serviceName
 		common.NewMapElementIfNotZero(params, "ServicePort", service.Port)
-		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", string(service.Protocol))
+		common.NewMapElementIfNotEmpty(params, "ServiceProtocol", strings.ToUpper(string(service.Protocol)))
 		common.NewMapElementIfNotEmpty(params, "ServiceHealthEndpoint", service.HealthEndpoint)
 		common.NewMapElementIfNotZero(params, "ServiceDesiredCount", service.DesiredCount)
 		common.NewMapElementIfNotZero(params, "ServiceMinSize", service.MinSize)
