@@ -136,6 +136,15 @@ Resources:
         Value: !Ref AWS::StackName
       SecurityGroups:
       - !Ref ElbSG
+      {{if .Loadbalancer.Attributes}}
+      LoadBalancerAttributes:
+      {{with .Loadbalancer.Attributes}}
+        {{range $key, $val := .}}
+      - Key: {{$key}}
+        Value: !Sub {{$val}}
+        {{end}}
+      {{end}}
+      {{end}}
   ElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
