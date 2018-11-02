@@ -118,7 +118,7 @@ func initializeManagers(sess *session.Session, ctx *common.Context, dryrunPath s
 	}
 
 	// initialize CatalogManager
-	ctx.CatalogManager, err = newCatalogManager(sess, dryrunPath != "")
+	ctx.CatalogManager, err = newCatalogManager(sess, dryrunPath != "", ctx.StackManager)
 	if err != nil {
 		return err
 	}
