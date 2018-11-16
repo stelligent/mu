@@ -138,14 +138,14 @@ Resources:
       EngineMode: !Ref DatabaseEngineMode
       KmsKeyId: !Ref DatabaseKeyArn
       StorageEncrypted: true
-      ScalingConfiguration: 
+      ScalingConfiguration:
         Fn::If:
         - IsServerless
         - MaxCapacity: !Ref ScalingMaxCapacity
           MinCapacity: !Ref ScalingMinCapacity
           SecondsUntilAutoPause: !Ref SecondsUntilAutoPause
-          AutoPause: 
-            Fn::If: 
+          AutoPause:
+            Fn::If:
             - IsServerlessAutoPause
             - 'true'
             - 'false'
