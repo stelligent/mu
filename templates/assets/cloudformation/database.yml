@@ -149,7 +149,7 @@ Resources:
             - IsServerlessAutoPause
             - 'true'
             - 'false'
-        - AWS::NoValue
+        - !Ref AWS::NoValue
       MasterUsername: !Ref DatabaseMasterUsername
       MasterUserPassword: !Ref DatabaseMasterPassword
       Tags:
