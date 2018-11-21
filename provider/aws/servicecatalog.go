@@ -3,39 +3,34 @@ package aws
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
-
-	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/servicecatalog"
 	"github.com/aws/aws-sdk-go/service/servicecatalog/servicecatalogiface"
 	"github.com/stelligent/mu/common"
 )
 
 type serviceCatalogManager struct {
-	dryrun bool
-	scAPI  servicecatalogiface.ServiceCatalogAPI
-	cfnAPI cloudformationiface.CloudFormationAPI
+	dryrun       bool
+	scAPI        servicecatalogiface.ServiceCatalogAPI
+	stackManager common.StackManager
 }
 
 // newCatalogManager creates a new CatalogManager backed by service catalog
-func newCatalogManager(sess *session.Session, dryrun bool) (common.CatalogManager, error) {
+func newCatalogManager(sess *session.Session, dryrun bool, stackManager common.StackManager) (common.CatalogManager, error) {
 	if dryrun {
 		log.Debugf("Running in DRYRUN mode")
 	}
 	log.Debug("Connecting to Service Catalog service")
 	scAPI := servicecatalog.New(sess)
 
-	log.Debug("Connecting to CloudFormation service")
-	cfnAPI := cloudformation.New(sess)
-
 	return &serviceCatalogManager{
-		dryrun: dryrun,
-		scAPI:  scAPI,
-		cfnAPI: cfnAPI,
+		dryrun:       dryrun,
+		scAPI:        scAPI,
+		stackManager: stackManager,
 	}, nil
 
 }
@@ -76,14 +71,19 @@ func (scManager *serviceCatalogManager) createProvisionedProduct(productID strin
 		ProvisioningParameters: provisioningParameters,
 		ProvisionToken:         aws.String(strconv.FormatInt(time.Now().Unix(), 16)),
 	})
+	if err != nil {
+		return err
+	}
 
+	time.Sleep(time.Second * 5)
 	stackID, err := scManager.GetStackID(aws.StringValue(ppOut.RecordDetail.RecordId))
 	if err != nil {
 		return err
 	}
 
 	log.Infof("  Creating stack '%s'", stackID)
-	return scManager.cfnAPI.WaitUntilStackCreateComplete(&cloudformation.DescribeStacksInput{StackName: aws.String(stackID)})
+	scManager.stackManager.AwaitFinalStatus(strings.Split(stackID, "/")[1])
+	return nil
 }
 
 func (scManager *serviceCatalogManager) updateProvisionedProduct(productID string, artifactID string, name string, params map[string]string) error {
@@ -112,14 +112,19 @@ func (scManager *serviceCatalogManager) updateProvisionedProduct(productID strin
 		ProvisioningParameters: provisioningParameters,
 		UpdateToken:            aws.String(strconv.FormatInt(time.Now().Unix(), 16)),
 	})
+	if err != nil {
+		return err
+	}
 
+	time.Sleep(time.Second * 5)
 	stackID, err := scManager.GetStackID(aws.StringValue(ppOut.RecordDetail.RecordId))
 	if err != nil {
 		return err
 	}
 
 	log.Infof("  Updating stack '%s'", stackID)
-	return scManager.cfnAPI.WaitUntilStackUpdateComplete(&cloudformation.DescribeStacksInput{StackName: aws.String(stackID)})
+	scManager.stackManager.AwaitFinalStatus(strings.Split(stackID, "/")[1])
+	return nil
 }
 
 func (scManager *serviceCatalogManager) UpsertProvisionedProduct(productID string, version string, name string, params map[string]string) error {
@@ -152,13 +157,13 @@ func (scManager *serviceCatalogManager) UpsertProvisionedProduct(productID strin
 		},
 	})
 
-	if len(provisionedProducts.ProvisionedProducts) == 0 {
-		scManager.createProvisionedProduct(productID, artifactID, name, params)
-	} else {
-		scManager.updateProvisionedProduct(productID, artifactID, name, params)
+	for _, provisionedProduct := range provisionedProducts.ProvisionedProducts {
+		if name == aws.StringValue(provisionedProduct.Name) {
+			return scManager.updateProvisionedProduct(productID, artifactID, name, params)
+		}
 	}
 
-	return nil
+	return scManager.createProvisionedProduct(productID, artifactID, name, params)
 }
 
 func (scManager *serviceCatalogManager) TerminateProvisionedProducts(productID string) error {
@@ -178,7 +183,7 @@ func (scManager *serviceCatalogManager) TerminateProvisionedProducts(productID s
 				continue
 			}
 
-			log.Infof("  Deleting provisionedProduct '%s'", provisionedProduct.Id)
+			log.Infof("  Deleting provisionedProduct '%s'", aws.StringValue(provisionedProduct.Id))
 			stackID := aws.StringValue(provisionedProduct.PhysicalId)
 
 			_, err = scManager.scAPI.TerminateProvisionedProduct(&servicecatalog.TerminateProvisionedProductInput{
@@ -189,21 +194,10 @@ func (scManager *serviceCatalogManager) TerminateProvisionedProducts(productID s
 				return false
 			}
 
-			/*
-				params := &cloudformation.DeleteStackInput{StackName: aws.String(stackID)}
-
-				_, err = scManager.cfnAPI.DeleteStack(params)
-				if err != nil {
-					return false
-				}
-			*/
+			time.Sleep(time.Second * 5)
 
 			log.Infof("  Deleting stack '%s'", stackID)
-			err = scManager.cfnAPI.WaitUntilStackDeleteComplete(&cloudformation.DescribeStacksInput{StackName: aws.String(stackID)})
-			if err != nil {
-				return false
-			}
-
+			scManager.stackManager.AwaitFinalStatus(strings.Split(stackID, "/")[1])
 		}
 		return true
 	})

@@ -143,8 +143,8 @@ func (workflow *databaseWorkflow) databaseDeployer(namespace string, service *co
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseInstanceClass", dbConfig.InstanceClass)
 		common.NewMapElementIfNotEmpty(stackParams, "DatabaseStorage", dbConfig.AllocatedStorage)
 
-		common.NewMapElementIfNotEmpty(stackParams, "ScalingMinSize", dbConfig.MinSize)
-		common.NewMapElementIfNotEmpty(stackParams, "ScalingMaxSize", dbConfig.MaxSize)
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMinCapacity", dbConfig.MinSize)
+		common.NewMapElementIfNotEmpty(stackParams, "ScalingMaxCapacity", dbConfig.MaxSize)
 		common.NewMapElementIfNotEmpty(stackParams, "SecondsUntilAutoPause", dbConfig.SecondsUntilAutoPause)
 
 		stackParams["DatabaseMasterUsername"] = "admin"

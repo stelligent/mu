@@ -2,12 +2,11 @@ package workflows
 
 import (
 	"fmt"
-	"regexp"
+	"path"
 	"strconv"
 	"strings"
 
 	"github.com/stelligent/mu/common"
-	"github.com/stelligent/mu/templates"
 )
 
 // NewPipelineUpserter create a new workflow for upserting a pipeline
@@ -253,11 +252,7 @@ func (workflow *pipelineWorkflow) pipelineCatalogUpserter(namespace string, pipe
 
 		productParams := make(map[string]string)
 		productParams["ServiceName"] = workflow.serviceName
-		if pipeline.Source.Branch == "" {
-			productParams["SourceBranch"] = "master"
-		} else {
-			productParams["SourceBranch"] = pipeline.Source.Branch
-		}
+		productParams["SourceBranch"] = workflow.codeBranch
 		productParams["SourceRepo"] = pipeline.Source.Repo
 		productParams["GitHubToken"] = params["GitHubToken"]
 
@@ -270,7 +265,8 @@ func PipelineParams(pipelineConfig *common.Pipeline, namespace string, serviceNa
 
 	params["Namespace"] = namespace
 	params["ServiceName"] = serviceName
-	params["MuFile"] = muFile
+	params["MuFilename"] = path.Base(muFile)
+	params["MuBasedir"] = path.Dir(muFile)
 	params["SourceProvider"] = pipelineConfig.Source.Provider
 	params["SourceRepo"] = pipelineConfig.Source.Repo
 
@@ -298,17 +294,6 @@ func PipelineParams(pipelineConfig *common.Pipeline, namespace string, serviceNa
 	params["EnableBuildStage"] = strconv.FormatBool(!pipelineConfig.Build.Disabled)
 	params["EnableAcptStage"] = strconv.FormatBool(!pipelineConfig.Acceptance.Disabled)
 	params["EnableProdStage"] = strconv.FormatBool(!pipelineConfig.Production.Disabled)
-
-	// get default buildspec
-	buildspec, err := templates.GetAsset(common.TemplateBuildspec,
-		templates.ExecuteTemplate(nil))
-	if err != nil {
-		return err
-	}
-	newlineRegexp := regexp.MustCompile(`\r?\n`)
-	buildspecString := newlineRegexp.ReplaceAllString(buildspec, "\\n")
-
-	params["DefaultBuildspec"] = buildspecString
 
 	version := pipelineConfig.MuVersion
 	if version == "" {

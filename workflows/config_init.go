@@ -34,25 +34,9 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			return fmt.Errorf("Unable to determine git repo to use for the pipeline.  Have you initialized your repo and pushed yet? %s", config.Repo.Slug)
 		}
 
-		// unless force is set, don't overwrite...make sure files don't exist
-		if forceOverwrite == false {
-			log.Debugf("Checking for existing config file at %s/mu.yml", basedir)
-			if _, err := os.Stat(fmt.Sprintf("%s/mu.yml", basedir)); err == nil {
-				return fmt.Errorf("Config file already exists - '%s/mu.yml'.  Use --force to overwrite", basedir)
-			}
-
-			log.Debugf("Checking for existing buildspec file at %s/buildspec.yml", basedir)
-			if _, err := os.Stat(fmt.Sprintf("%s/buildspec.yml", basedir)); err == nil {
-				return fmt.Errorf("buildspec file already exists - '%s/buildspec.yml'.  Use --force to overwrite", basedir)
-			}
-		}
-
 		// write config
 		config.Service.Port = listenPort
-		//config.Service.Name = config.Repo.Name
 		config.Service.PathPatterns = []string{"/*"}
-		config.Service.Pipeline.Source.Repo = config.Repo.Slug
-		config.Service.Pipeline.Source.Provider = config.Repo.Provider
 
 		if createEnvironment && len(config.Environments) == 0 {
 			config.Environments = append(config.Environments,
@@ -69,11 +53,15 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 			return err
 		}
 
-		log.Noticef("Writing config to '%s/mu.yml'", basedir)
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/mu.yml", basedir), configBytes, 0600)
-		if err != nil {
-			return err
+		// unless force is set, don't overwrite...make sure files don't exist
+		if _, err := os.Stat(fmt.Sprintf("%s/mu.yml", basedir)); !forceOverwrite && err == nil {
+			log.Infof("Config file already exists - '%s/mu.yml'.  Use --force to overwrite", basedir)
+		} else {
+			log.Noticef("Writing config to '%s/mu.yml'", basedir)
+			err = ioutil.WriteFile(fmt.Sprintf("%s/mu.yml", basedir), configBytes, 0600)
+			if err != nil {
+				return err
+			}
 		}
 
 		// write buildspec
@@ -84,11 +72,20 @@ func (workflow *configWorkflow) configInitialize(config *common.Config, createEn
 		}
 		buildspecBytes := []byte(buildspec)
 
-		log.Noticef("Writing buildspec to '%s/buildspec.yml'", basedir)
+		for _, path := range []string{
+			"buildspec.yml", "buildspec-test.yml", "buildspec-prod.yml",
+		} {
+			abspath := fmt.Sprintf("%s/%s", basedir, path)
+			if _, err := os.Stat(abspath); !forceOverwrite && err == nil {
+				log.Infof("buildspec file already exists - '%s'.  Use --force to overwrite", abspath)
+				continue
+			}
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/buildspec.yml", basedir), buildspecBytes, 0600)
-		if err != nil {
-			return err
+			log.Noticef("Writing buildspec to '%s'", abspath)
+			err = ioutil.WriteFile(fmt.Sprintf("%s", abspath), buildspecBytes, 0600)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

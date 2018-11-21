@@ -14,8 +14,7 @@ catalog:
   - name: basic-pipeline
     description: Basic pipeline with no acceptance environment
     versions:
-      v4: 
-        muVersion: 1.5.3
+      v2: 
         source:
           provider: GitHub
         acceptance:
@@ -23,6 +22,7 @@ catalog:
         production:
           environment: prod-fargate
       v1: 
+        muVersion: 1.5.3
         source:
           provider: GitHub
         acceptance:
