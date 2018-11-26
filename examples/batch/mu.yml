@@ -1,0 +1,49 @@
+## See https://github.com/stelligent/mu/wiki/Services
+service:
+  name: batch-sample
+  
+  # deployed as AWS Batch job
+  provider: batch
+  
+  # The relative path to the Dockerfile to build images (default: Dockerfile)
+  dockerfile: Dockerfile
+  
+  # The number of VCPUs to allocate to job (default: 2)  
+  # Each vCPU is equivalent to 1,024 CPU shares.
+  cpu: 1                             
+  
+  # The hard limit (in MiB) of memory to present to the container. If your container attempts to exceed the memory specified here, the container is killed.
+  # Read this: https://docs.aws.amazon.com/batch/latest/userguide/memory-management.html
+  memory: 128                       
+  
+  # The time duration in seconds (measured from the job attempt's startedAt timestamp) 
+  # after which AWS Batch terminates your jobs if they have not finished. 
+  # If a job is terminated due to a timeout, it is not retried. 
+  timeout: 0
+  retryAttempts: 1
+  
+  # our docker file already has a defined entry point script, these params
+  # will be appended to it
+  command:
+    - '--some-flag'
+    - Ref::param1
+    
+  # Default parameters
+  # Parameter values replace the placeholders in the command, i.e. Ref::paramname.
+  # Usually final parameter values are specified on job submit
+  parameters:
+    param1: "Sample text passed to the batch job"
+
+  ### Environment variables exposed to the containers
+  environment:
+
+    #### Define this for each environment if you want APP_DEBUG=true
+    APP_DEBUG:
+      dev: 'true'
+      prod: 'false'
+      
+    APP_ENV:
+      dev: dev
+      prod: production
+
+ 
