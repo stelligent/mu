@@ -83,6 +83,9 @@ Resources:
             - servicecatalog:ListLaunchPaths
             - servicecatalog:ProvisionProduct
             - servicecatalog:SearchProducts
+            - servicecatalog:ListProvisioningArtifacts
+            - servicecatalog:DescribeRecord
+            - servicecatalog:SearchProvisionedProducts
             Resource: "*"
           - Effect: Allow
             Action: 

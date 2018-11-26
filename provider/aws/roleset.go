@@ -229,7 +229,10 @@ func (rolesetMgr *iamRolesetManager) UpsertServiceRoleset(environmentName string
 		"ServiceName":      serviceName,
 		"Provider":         envProvider,
 		"CodeDeployBucket": codeDeployBucket,
-		"DatabaseName":     databaseName,
+	}
+
+	if databaseName != "" {
+		stackParams["DatabaseName"] = databaseName
 	}
 
 	policy, err := templates.GetAsset(common.TemplatePolicyDefault)

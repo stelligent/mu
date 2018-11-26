@@ -71,6 +71,9 @@ func (scManager *serviceCatalogManager) createProvisionedProduct(productID strin
 		ProvisioningParameters: provisioningParameters,
 		ProvisionToken:         aws.String(strconv.FormatInt(time.Now().Unix(), 16)),
 	})
+	if err != nil {
+		return err
+	}
 
 	time.Sleep(time.Second * 5)
 	stackID, err := scManager.GetStackID(aws.StringValue(ppOut.RecordDetail.RecordId))
@@ -109,6 +112,9 @@ func (scManager *serviceCatalogManager) updateProvisionedProduct(productID strin
 		ProvisioningParameters: provisioningParameters,
 		UpdateToken:            aws.String(strconv.FormatInt(time.Now().Unix(), 16)),
 	})
+	if err != nil {
+		return err
+	}
 
 	time.Sleep(time.Second * 5)
 	stackID, err := scManager.GetStackID(aws.StringValue(ppOut.RecordDetail.RecordId))
