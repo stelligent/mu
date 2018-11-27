@@ -22,7 +22,8 @@ func NewServiceDeployer(ctx *common.Context, environmentName string, tag string)
 	return newPipelineExecutor(
 		workflow.serviceLoader(ctx, tag, ""),
 		workflow.serviceEnvironmentLoader(ctx.Config.Namespace, environmentName, ctx.StackManager),
-		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager, ctx.ParamManager),
+		workflow.serviceApplyCommonParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ElbManager),
+		workflow.serviceDbParams(ctx.Config.Namespace, &ctx.Config.Service, stackParams, environmentName, ctx.StackManager, ctx.ParamManager),
 		newConditionalExecutor(workflow.isEcsProvider(),
 			newPipelineExecutor(
 				workflow.serviceRolesetUpserter(ctx.RolesetManager, ctx.RolesetManager, environmentName),
@@ -373,9 +374,33 @@ func (workflow *serviceWorkflow) serviceApplyBatchParams(service *common.Service
 	}
 }
 
+func (workflow *serviceWorkflow) serviceDbParams(namespace string, service *common.Service,
+	params map[string]string, environmentName string, stackWaiter common.StackWaiter,
+	paramGetter common.ParamGetter) Executor {
+	return func() error {
+
+		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
+		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
+		if dbStack != nil {
+			params["DatabaseName"] = dbStack.Outputs["DatabaseName"]
+			params["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
+			params["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
+			params["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
+
+			dbPass, err := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
+			if err != nil {
+				log.Warningf("Unable to get db password: %s", err)
+			}
+			params["DatabaseMasterPassword"] = dbPass
+		}
+
+		return nil
+	}
+}
+
 func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, service *common.Service,
 	params map[string]string, environmentName string, stackWaiter common.StackWaiter,
-	elbRuleLister common.ElbRuleLister, paramGetter common.ParamGetter) Executor {
+	elbRuleLister common.ElbRuleLister) Executor {
 	return func() error {
 		params["VpcId"] = fmt.Sprintf("%s-VpcId", workflow.envStack.Name)
 
@@ -419,21 +444,6 @@ func (workflow *serviceWorkflow) serviceApplyCommonParams(namespace string, serv
 		}
 
 		common.NewMapElementIfNotZero(params, "TargetCPUUtilization", service.TargetCPUUtilization)
-
-		dbStackName := common.CreateStackName(namespace, common.StackTypeDatabase, workflow.serviceName, environmentName)
-		dbStack := stackWaiter.AwaitFinalStatus(dbStackName)
-		if dbStack != nil {
-			params["DatabaseName"] = dbStack.Outputs["DatabaseName"]
-			params["DatabaseEndpointAddress"] = dbStack.Outputs["DatabaseEndpointAddress"]
-			params["DatabaseEndpointPort"] = dbStack.Outputs["DatabaseEndpointPort"]
-			params["DatabaseMasterUsername"] = dbStack.Outputs["DatabaseMasterUsername"]
-
-			dbPass, err := paramGetter.GetParam(fmt.Sprintf("%s-%s", dbStackName, "DatabaseMasterPassword"))
-			if err != nil {
-				log.Warningf("Unable to get db password: %s", err)
-			}
-			params["DatabaseMasterPassword"] = dbPass
-		}
 
 		params["Namespace"] = namespace
 		params["EnvironmentName"] = environmentName

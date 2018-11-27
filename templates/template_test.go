@@ -68,6 +68,19 @@ func TestNewTemplate_assets(t *testing.T) {
 			templateData = tdMap
 		}
 
+		if templateName == "cloudformation/service-batch.yml" {
+			params := make(map[string]string)
+			params["testparam"] = "test"
+			env := make(map[string]string)
+			env["ENVVAR"] = "test"
+			command := []string{"test"}
+			tdMap := make(map[string]interface{})
+			tdMap["Parameters"] = params
+			tdMap["Command"] = command
+			tdMap["Environment"] = env
+			templateData = tdMap
+		}
+
 		templateBody, err := GetAsset(templateName, ExecuteTemplate(templateData))
 
 		if err != nil {
