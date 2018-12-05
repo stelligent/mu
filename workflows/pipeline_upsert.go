@@ -254,7 +254,7 @@ func (workflow *pipelineWorkflow) pipelineCatalogUpserter(namespace string, pipe
 		productParams["ServiceName"] = workflow.serviceName
 		productParams["SourceBranch"] = workflow.codeBranch
 		productParams["SourceRepo"] = pipeline.Source.Repo
-		productParams["GitHubToken"] = params["GitHubToken"]
+		//productParams["GitHubToken"] = params["GitHubToken"]
 
 		return catalogProvisioner.UpsertProvisionedProduct(stack.Outputs["ProductId"], pipeline.Catalog.Version, fmt.Sprintf("%s-%s", namespace, workflow.serviceName), productParams)
 	}

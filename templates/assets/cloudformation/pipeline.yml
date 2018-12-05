@@ -428,8 +428,12 @@ Resources:
                     - HasGitHubToken
                     - !Ref GitHubToken
                     - !Ref AWS::NoValue
-              - RepositoryName: !Ref SourceRepo
-                BranchName: !Ref SourceBranch
+              -
+                Fn::If:
+                - IsCodeCommit
+                - RepositoryName: !Ref SourceRepo
+                  BranchName: !Ref SourceBranch
+                - !Ref AWS::NoValue
           RunOrder: 10
       - Fn::If:
         - IsBuildEnabled
