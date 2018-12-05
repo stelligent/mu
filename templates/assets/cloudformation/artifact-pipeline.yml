@@ -11,6 +11,16 @@ Parameters:
   SourceBranch:
     Type: String
     Description: Branch to trigger pipeline
+  {{if eq .SourceProvider "S3" -}}
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
+  {{- end}}
   {{if eq .SourceProvider "GitHub" -}}
   GitHubToken:
     NoEcho: true
@@ -90,6 +100,10 @@ Resources:
         CodeDeployBucket: {{ .CodeDeployBucket }}
         SourceProvider: {{ .SourceProvider }}
         SourceRepo: !Ref SourceRepo
+        {{if eq .SourceProvider "S3" -}}
+        SourceBucket: !Ref SourceBucket
+        SourceObjectKey: !Ref SourceObjectKey
+        {{- end}}
         {{if eq .EnableAcptStage "true" -}}
         AcptEnv: {{ .AcptEnv }}
         {{- end}}
@@ -103,7 +117,7 @@ Resources:
         AcptCloudFormationRoleArn: {{ .AcptCloudFormationRoleArn }}
         {{- end}}
         {{if eq .EnableProdStage "true" -}}
-	      ProdCloudFormationRoleArn: {{ .ProdCloudFormationRoleArn }}
+        ProdCloudFormationRoleArn: {{ .ProdCloudFormationRoleArn }}
         {{- end}}
       Tags:
         - Key: mu:name
@@ -130,6 +144,10 @@ Resources:
         SourceProvider: {{ .SourceProvider }}
         SourceRepo: !Ref SourceRepo
         SourceBranch: !Ref SourceBranch
+        {{if eq .SourceProvider "S3" -}}
+        SourceBucket: !Ref SourceBucket
+        SourceObjectKey: !Ref SourceObjectKey
+        {{- end}}
         {{if eq .SourceProvider "GitHub" -}}
         GitHubToken: !Ref GitHubToken
         {{- end}}
