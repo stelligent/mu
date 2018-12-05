@@ -408,10 +408,14 @@ Resources:
                 Owner: ThirdParty
                 Version: '1'
                 Provider: GitHub
-              - Category: Source
-                Owner: AWS
-                Version: '1'
-                Provider: CodeCommit
+              -
+                Fn::If:
+                - IsCodeCommit
+                - Category: Source
+                  Owner: AWS
+                  Version: '1'
+                  Provider: CodeCommit
+                - !Ref AWS::NoValue
           Configuration:
             Fn::If:
             - IsS3
