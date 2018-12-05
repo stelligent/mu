@@ -1,0 +1,12 @@
+*.iml
+.idea
+.vscode
+.cfn_nag
+dist/
+vendor/
+*~
+homebrew-tap/
+*-packr.go
+CHANGELOG.md
+wiki
+Dockerfile
