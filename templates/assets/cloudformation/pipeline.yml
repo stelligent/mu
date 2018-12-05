@@ -408,14 +408,10 @@ Resources:
                 Owner: ThirdParty
                 Version: '1'
                 Provider: GitHub
-              -
-                Fn::If:
-                - IsCodeCommit
-                - Category: Source
-                  Owner: AWS
-                  Version: '1'
-                  Provider: CodeCommit
-                - !Ref AWS::NoValue
+              - Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
           Configuration:
             Fn::If:
             - IsS3
@@ -432,12 +428,8 @@ Resources:
                     - HasGitHubToken
                     - !Ref GitHubToken
                     - !Ref AWS::NoValue
-              -
-                Fn::If:
-                - IsCodeCommit
-                - RepositoryName: !Ref SourceRepo
-                  BranchName: !Ref SourceBranch
-                - !Ref AWS::NoValue
+              - RepositoryName: !Ref SourceRepo
+                BranchName: !Ref SourceBranch
           RunOrder: 10
       - Fn::If:
         - IsBuildEnabled
