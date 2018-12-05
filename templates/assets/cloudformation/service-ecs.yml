@@ -137,6 +137,13 @@ Parameters:
       - host
       - bridge
     Description: Network mode for tasks
+  PrivilegedMode:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false 
+    Description: Container privileged mode
   Links:
     Description: Links to other docker containers
     Type: CommaDelimitedList
@@ -238,7 +245,6 @@ Conditions:
       - "Fn::Equals":
         - !Ref TaskCpu
         - ''
-
   IsAssignPublicIpEnabled:
     "Fn::Equals":
       - !Ref AssignPublicIp
@@ -379,6 +385,7 @@ Resources:
             awslogs-group: !Ref AWS::StackName
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: container
+        Privileged: !Ref PrivilegedMode
         PortMappings:
         - HostPort:
             Fn::If:
