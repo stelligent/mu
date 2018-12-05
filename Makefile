@@ -211,6 +211,9 @@ endif
 
 release: info github_release formula
 
+image:
+	docker build -t stelligent/mu:$(VERSION) .
+
 clean:
 	@echo "=== cleaning ==="
 	rm -rf vendor
