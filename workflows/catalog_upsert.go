@@ -275,6 +275,12 @@ func (workflow *catalogWorkflow) catalogProductVersions(namespace string, catalo
 					return err
 				}
 
+				if pipelineTemplate.Source.Provider == "S3" {
+					repoParts := strings.Split(pipelineTemplate.Source.Repo, "/")
+					templateData["SourceBucket"] = repoParts[0]
+					templateData["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+				}
+
 				if !pipelineTemplate.Acceptance.Disabled {
 					templateData["AcptEnv"] = pipelineTemplate.Acceptance.Environment
 					if templateData["AcptEnv"] == "" {
