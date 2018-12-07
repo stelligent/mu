@@ -36,6 +36,14 @@ Parameters:
     Type: String
     Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
     Default: ''
+  ElbAccessLogsS3BucketName:
+    Type: String
+    Description: The name of the S3 bucket to write ELB access logs into.
+    Default: ''
+  ElbAccessLogsS3Prefix:
+    Type: String
+    Description: The prefix to append to the names of log objects written to bucket.
+    Default: 'access-logs'
 Conditions:
   HasElbDomainName:
     "Fn::Not":
@@ -61,7 +69,75 @@ Conditions:
     "Fn::Equals":
       - !Ref ElbInternal
       - 'true'
+  ShouldCreateElbAccessLogsS3Bucket:
+    "Fn::Equals":
+      - ""
+      - !Ref ElbAccessLogsS3BucketName
+Mappings:
+  Regions:
+    us-east-1:
+      ElbAccountId: "127311923021"
+    us-east-2:
+      ElbAccountId: "033677994240"
+    us-west-1:
+      ElbAccountId: "027434742980"
+    us-west-2:
+      ElbAccountId: "797873946194"
+    ca-central-1:
+      ElbAccountId: "985666609251"
+    eu-central-1:
+      ElbAccountId: "054676820928"
+    eu-west-1:
+      ElbAccountId: "156460612806"
+    eu-west-2:
+      ElbAccountId: "652711504416"
+    eu-west-3:
+      ElbAccountId: "009996457667"
+    ap-northeast-1:
+      ElbAccountId: "582318560864"
+    ap-northeast-2:
+      ElbAccountId: "600734575887"
+    ap-northeast-3:
+      ElbAccountId: "383597477331"
+    ap-southeast-1:
+      ElbAccountId: "114774131450"
+    ap-southeast-2:
+      ElbAccountId: "783225319266"
+    ap-south-1:
+      ElbAccountId: "718504428378"
+    sa-east-1:
+      ElbAccountId: "507241528517"
+    us-gov-west-1:
+      ElbAccountId: "048591011584"
+    cn-north-1:
+      ElbAccountId: "638102146993"
+    cn-northwest-1:
+      ElbAccountId: "037604701340"
 Resources:
+  ElbAccessLogsS3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: ShouldCreateElbAccessLogsS3Bucket
+    Properties:
+      BucketName:
+        !Sub "${Namespace}-alb-${AWS::Region}-${AWS::AccountId}-${EnvironmentName}-access-logs"
+  ElbAccessLogsS3BucketPolicy:
+    Condition: ShouldCreateElbAccessLogsS3Bucket
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ElbAccessLogsS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: ElbAccessLogPolicy
+        Statement:
+          - Sid: AllowPutObject
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Sub:
+                  - "arn:${AWS::Partition}:iam::${ElbAccountId}:root"
+                  - ElbAccountId: !FindInMap [Regions, !Ref "AWS::Region", ElbAccountId]
+            Action: s3:PutObject
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${Namespace}-alb-${AWS::Region}-${AWS::AccountId}-${EnvironmentName}-access-logs/${ElbAccessLogsS3Prefix}/AWSLogs/${AWS::AccountId}/*"
   ServiceDiscoveryNamespace:
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
     Properties:
@@ -125,6 +201,9 @@ Resources:
       GroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    {{ if not .Loadbalancer.AccessLogs.S3BucketName }}
+    DependsOn: ElbAccessLogsS3BucketPolicy
+    {{ end }}
     Properties:
       Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
       Subnets:
@@ -136,6 +215,17 @@ Resources:
         Value: !Ref AWS::StackName
       SecurityGroups:
       - !Ref ElbSG
+      LoadBalancerAttributes:
+      - Key: access_logs.s3.enabled
+        Value: "true"
+      - Key: access_logs.s3.bucket
+        Value:
+          !If
+            - ShouldCreateElbAccessLogsS3Bucket
+            - !Sub "${Namespace}-alb-${AWS::Region}-${AWS::AccountId}-${EnvironmentName}-access-logs"
+            - !Ref ElbAccessLogsS3BucketName
+      - Key: access_logs.s3.prefix
+        Value: !Ref ElbAccessLogsS3Prefix
   ElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:

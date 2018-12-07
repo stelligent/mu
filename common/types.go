@@ -113,6 +113,10 @@ type Loadbalancer struct {
 	Name        string `yaml:"name,omitempty"  validate:"validateLeadingAlphaNumericDash=32"`
 	Certificate string `yaml:"certificate,omitempty"`
 	Internal    bool   `yaml:"internal,omitempty"`
+	AccessLogs  struct {
+		S3BucketName string `yaml:"s3BucketName,omitempty"`
+		S3Prefix     string `yaml:"s3Prefix,omitempty"`
+	} `yaml:"accessLogs,omitempty"`
 }
 
 // Cluster defines the scructure of the yml file for a cluster of EC2 instance AWS::AutoScaling::LaunchConfiguration
