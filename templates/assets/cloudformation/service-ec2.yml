@@ -505,8 +505,15 @@ Resources:
     Condition: HasElbHttpPathListener
     Properties:
       Actions:
-      - Type: forward
-        TargetGroupArn: !Ref ElbTargetGroup
+        - Fn::If:
+            - HasElbHttpsPathListener
+            - Type: redirect
+              RedirectConfig:
+                Port: "443"
+                Protocol: HTTPS
+                StatusCode: HTTP_301
+            - Type: forward
+              TargetGroupArn: !Ref ElbTargetGroup
       Conditions:
       - Field: path-pattern
         Values: !Ref PathPattern
@@ -531,8 +538,15 @@ Resources:
     Condition: HasElbHttpHostListener
     Properties:
       Actions:
-      - Type: forward
-        TargetGroupArn: !Ref ElbTargetGroup
+        - Fn::If:
+            - HasElbHttpsHostListener
+            - Type: redirect
+              RedirectConfig:
+                Port: "443"
+                Protocol: HTTPS
+                StatusCode: HTTP_301
+            - Type: forward
+              TargetGroupArn: !Ref ElbTargetGroup
       Conditions:
       - Field: host-header
         Values: !Ref HostPattern
