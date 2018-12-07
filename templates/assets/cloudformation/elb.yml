@@ -137,7 +137,7 @@ Resources:
                   - "arn:${AWS::Partition}:iam::${ElbAccountId}:root"
                   - ElbAccountId: !FindInMap [Regions, !Ref "AWS::Region", ElbAccountId]
             Action: s3:PutObject
-            Resource: !Sub "arn:${AWS::Partition}:s3:::${Namespace}-alb-${AWS::Region}-${AWS::AccountId}-${EnvironmentName}-access-logs/${ElbAccessLogsS3Prefix}/AWSLogs/${AWS::AccountId}/*"
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${ElbAccessLogsS3Bucket}/${ElbAccessLogsS3Prefix}/AWSLogs/${AWS::AccountId}/*"
   ServiceDiscoveryNamespace:
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
     Properties:
@@ -201,9 +201,6 @@ Resources:
       GroupId: !GetAtt ElbInstanceSecurityGroup.GroupId
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    {{ if not .Loadbalancer.AccessLogs.S3BucketName }}
-    DependsOn: ElbAccessLogsS3BucketPolicy
-    {{ end }}
     Properties:
       Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
       Subnets:
@@ -222,7 +219,9 @@ Resources:
         Value:
           !If
             - ShouldCreateElbAccessLogsS3Bucket
-            - !Sub "${Namespace}-alb-${AWS::Region}-${AWS::AccountId}-${EnvironmentName}-access-logs"
+            - Fn::Select:
+                - 0
+                - [!Ref ElbAccessLogsS3Bucket, !Ref ElbAccessLogsS3BucketPolicy]
             - !Ref ElbAccessLogsS3BucketName
       - Key: access_logs.s3.prefix
         Value: !Ref ElbAccessLogsS3Prefix
