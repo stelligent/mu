@@ -517,7 +517,7 @@ Resources:
                 Fn::ImportValue: !Ref EcsCluster
             - Name: ServiceName
               Value: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
-MetricName: CPUUtilization
+          MetricName: CPUUtilization
           Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetCPUUtilization
