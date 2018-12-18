@@ -273,6 +273,7 @@ Resources:
     DependsOn:
     - ServiceLogGroup
     Properties:
+      ServiceName: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
       Cluster:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
@@ -496,7 +497,7 @@ Resources:
       MinCapacity: !Ref ServiceMinSize
       ResourceId:
         Fn::Sub:
-          - service/${EcsClusterName}/${EcsService.Name}
+          - service/${EcsClusterName}/${Namespace}-${ServiceName}-${EnvironmentName}
           - EcsClusterName:
               Fn::ImportValue: !Ref EcsCluster
       RoleARN: !Ref ApplicationAutoScalingRoleArn
@@ -515,8 +516,8 @@ Resources:
               Value:
                 Fn::ImportValue: !Ref EcsCluster
             - Name: ServiceName
-              Value: !Sub ${EcsService.Name}
-          MetricName: CPUUtilization
+              Value: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
+MetricName: CPUUtilization
           Namespace: AWS/ECS
           Statistic: Average
         TargetValue: !Ref TargetCPUUtilization
