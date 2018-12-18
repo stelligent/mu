@@ -490,37 +490,39 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
-  # CPUUtilizationPolicyTarget:
-  #   Type: AWS::ApplicationAutoScaling::ScalableTarget
-  #   Properties:
-  #     MaxCapacity: !Ref ServiceMaxSize
-  #     MinCapacity: !Ref ServiceMinSize
-  #     ResourceId:
-  #       Fn::Sub:
-  #         - service/${EcsClusterName}/${Namespace}-${ServiceName}-${EnvironmentName}
-  #         - EcsClusterName:
-  #             Fn::ImportValue: !Ref EcsCluster
-  #     RoleARN: !Ref ApplicationAutoScalingRoleArn
-  #     ScalableDimension: ecs:service:DesiredCount
-  #     ServiceNamespace: ecs
-  # CPUUtilizationPolicy:
-  #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
-  #   Properties:
-  #     PolicyType: TargetTrackingScaling
-  #     PolicyName: !Sub ${AWS::StackName}-cpu-utilization
-  #     ScalingTargetId: !Ref CPUUtilizationPolicyTarget
-  #     TargetTrackingScalingPolicyConfiguration:
-  #       CustomizedMetricSpecification:
-  #         Dimensions: 
-  #           - Name: ClusterName
-  #             Value:
-  #               Fn::ImportValue: !Ref EcsCluster
-  #           - Name: ServiceName
-  #             Value: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
-  #         MetricName: CPUUtilization
-  #         Namespace: AWS/ECS
-  #         Statistic: Average
-  #       TargetValue: !Ref TargetCPUUtilization
+  CPUUtilizationPolicyTarget:
+    DependsOn:
+    - EcsService
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref ServiceMaxSize
+      MinCapacity: !Ref ServiceMinSize
+      ResourceId:
+        Fn::Sub:
+          - service/${EcsClusterName}/${Namespace}-${ServiceName}-${EnvironmentName}
+          - EcsClusterName:
+              Fn::ImportValue: !Ref EcsCluster
+      RoleARN: !Ref ApplicationAutoScalingRoleArn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  CPUUtilizationPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyType: TargetTrackingScaling
+      PolicyName: !Sub ${AWS::StackName}-cpu-utilization
+      ScalingTargetId: !Ref CPUUtilizationPolicyTarget
+      TargetTrackingScalingPolicyConfiguration:
+        CustomizedMetricSpecification:
+          Dimensions: 
+            - Name: ClusterName
+              Value:
+                Fn::ImportValue: !Ref EcsCluster
+            - Name: ServiceName
+              Value: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
+          MetricName: CPUUtilization
+          Namespace: AWS/ECS
+          Statistic: Average
+        TargetValue: !Ref TargetCPUUtilization
 Outputs:
   MicroserviceTaskDefinitionArn:
     Description: Microservice TaskDefinition
