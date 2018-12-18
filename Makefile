@@ -56,8 +56,8 @@ lint: fmt
 
 gen:
 	@echo "=== generating ==="
-	go get "github.com/gobuffalo/packr/..."
-	go generate $(SRC_FILES)
+	@go get "github.com/gobuffalo/packr/packr"
+	@go generate $(SRC_FILES)
 
 nag:
 	@echo "=== cfn_nag ==="
