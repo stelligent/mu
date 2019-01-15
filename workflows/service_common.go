@@ -279,10 +279,10 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 		var authConfigs2 map[string]types.AuthConfig
 		authConfigs2 = make(map[string]types.AuthConfig)
 
-		authConfigs2["ecr"] = types.AuthConfig{
+		authConfigs2[strings.Split(workflow.serviceImage, ":")[0]] = types.AuthConfig{
 			Username:      authParts[0],
 			Password:      authParts[1],
-			ServerAddress: fmt.Sprintf("https://%s", workflow.serviceImage),
+			ServerAddress: fmt.Sprintf("https://%s", strings.Split(workflow.serviceImage, ":")[0]),
 		}
 
 		workflow.registryAuthConfig = authConfigs2
