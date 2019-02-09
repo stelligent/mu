@@ -1,9 +1,10 @@
 package workflows
 
 import (
+	"testing"
+
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewDatabaseTerminator(t *testing.T) {
@@ -19,11 +20,14 @@ func TestDatabaseTerminate(t *testing.T) {
 	workflow := new(databaseWorkflow)
 	workflow.serviceName = "foo"
 
+	paramManager := new(mockedParamManager)
+	paramManager.On("DeleteParam", "mu-database-foo-dev-DatabaseMasterPassword").Return(nil)
+
 	stackManager := new(mockedStackManagerForService)
 	stackManager.On("AwaitFinalStatus", "mu-database-foo-dev").Return(&common.Stack{Status: common.StackStatusDeleteComplete})
 	stackManager.On("DeleteStack", "mu-database-foo-dev").Return(nil)
 
-	err := workflow.databaseTerminator("mu", "dev", stackManager, stackManager)()
+	err := workflow.databaseTerminator("mu", "dev", stackManager, stackManager, paramManager)()
 	assert.Nil(err)
 
 	stackManager.AssertExpectations(t)

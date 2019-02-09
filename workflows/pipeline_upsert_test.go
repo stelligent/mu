@@ -141,7 +141,8 @@ service:
 	workflow.serviceName = "my-service"
 	workflow.pipelineConfig = &ctx.Config.Service.Pipeline
 
-	params, err2 := PipelineParams(workflow, "mu", make(map[string]string))
+	params := make(map[string]string)
+	err2 := PipelineParams(workflow.pipelineConfig, "mu", workflow.serviceName, workflow.codeBranch, workflow.muFile, params)
 	assert.Nil(err2)
 	assert.Equal(params["PipelineBuildAcceptanceTimeout"], "15")
 	assert.Equal(params["PipelineBuildTimeout"], "25")

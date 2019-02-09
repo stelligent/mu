@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -18,19 +19,19 @@ import (
 )
 
 type s3ArtifactManager struct {
-	s3API  s3iface.S3API
-	sess   *session.Session
-	dryrun bool
+	s3API      s3iface.S3API
+	sess       *session.Session
+	dryrunPath string
 }
 
-func newArtifactManager(sess *session.Session, dryrun bool) (common.ArtifactManager, error) {
+func newArtifactManager(sess *session.Session, dryrunPath string) (common.ArtifactManager, error) {
 	log.Debug("Connecting to S3 service")
 	s3API := s3.New(sess)
 
 	return &s3ArtifactManager{
-		s3API:  s3API,
-		sess:   sess,
-		dryrun: dryrun,
+		s3API:      s3API,
+		sess:       sess,
+		dryrunPath: dryrunPath,
 	}, nil
 }
 
@@ -49,12 +50,34 @@ func (s3Mgr *s3ArtifactManager) CreateArtifact(body io.ReadSeeker, destURL strin
 	// start from the begining
 	body.Seek(0, 0)
 
+	if s3Mgr.dryrunPath != "" {
+		err := os.MkdirAll(s3Mgr.dryrunPath, 0700)
+		if err != nil {
+			return err
+		}
+		artifactFile := fmt.Sprintf("%s/%s-%s", s3Mgr.dryrunPath, s3URL.Host, path.Base(s3URL.Path))
+		f, err := os.OpenFile(artifactFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(f, body)
+		if err != nil {
+			return err
+		}
+
+		log.Infof("  DRYRUN: Skipping PUT of artifact '%s'. Written to '%s'", destURL, artifactFile)
+		return nil
+	}
+
 	params := &s3.PutObjectInput{
-		Bucket:               aws.String(s3URL.Host),
-		Key:                  aws.String(s3URL.Path),
-		SSEKMSKeyId:          aws.String(kmsKey),
-		ServerSideEncryption: aws.String("aws:kms"),
-		Body:                 body,
+		Bucket: aws.String(s3URL.Host),
+		Key:    aws.String(s3URL.Path),
+		Body:   body,
+	}
+
+	if kmsKey != "" {
+		params.SSEKMSKeyId = aws.String(kmsKey)
+		params.ServerSideEncryption = aws.String("aws:kms")
 	}
 
 	log.Debugf("Creating artifact at '%s'", destURL)
@@ -168,7 +191,7 @@ func md5File(path string) (string, error) {
 
 // EmptyBucket to empty bucket
 func (s3Mgr *s3ArtifactManager) EmptyBucket(bucketName string) error {
-	if s3Mgr.dryrun {
+	if s3Mgr.dryrunPath != "" {
 		log.Infof("  DRYRUN: Skipping emptying of bucket '%s'", bucketName)
 		return nil
 	}

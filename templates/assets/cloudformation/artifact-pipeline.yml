@@ -1,0 +1,209 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU master stack for pipeline and IAM resources
+Parameters:
+  ServiceName:
+    Type: String
+    Description: Name of service 
+  SourceRepo:
+    Type: String
+    Description: {{.SourceProvider}} repository
+  SourceBranch:
+    Type: String
+    Description: Branch to trigger pipeline
+  {{if eq .SourceProvider "S3" -}}
+  SourceBucket:
+    Type: String
+    Description: Source Bucket
+    Default: ""
+  SourceObjectKey:
+    Type: String
+    Description: Source Object Key
+    Default: ""
+  {{- end}}
+  {{if eq .SourceProvider "GitHub" -}}
+  GitHubToken:
+    NoEcho: true
+    Type: String
+    Default: ""
+    Description: Secret. It might look something like 9b189a1654643522561f7b3ebd44a1531a4287af OAuthToken with access to Repo. Go to https://github.com/settings/tokens
+  {{- end}}
+Resources:
+  {{if eq .EnableAcptStage "true" -}}
+  AcceptanceServiceRoleset: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Namespace: {{ .Namespace }}
+        EnvironmentName: {{ .AcptEnv }}
+        Provider: {{ .AcptEnvProvider }}
+        ServiceName: !Ref ServiceName
+        CodeDeployBucket: {{ .CodeDeployBucket }}
+      Tags:
+        - Key: mu:name
+          Value: !Sub "{{ .Namespace }}-iam-service-${ServiceName}-{{ .AcptEnv }}"
+        - Key: mu:environment
+        - Key: mu:type
+          Value: iam
+        - Key: mu:environment
+          Value: {{ .AcptEnv }}
+        - Key: mu:provider
+          Value: {{ .AcptEnvProvider }}
+        - Key: mu:service
+          Value: !Ref ServiceName
+        - Key: mu:revision
+          Value: {{ .RepoVersion }}
+        - Key: mu:repo
+          Value: {{ .RepoName }}
+        - Key: mu:version
+          Value: {{ .MuVersion }}
+      TemplateURL: 
+        Fn::Sub: "https://s3.${AWS::Region}.${AWS::URLSuffix}/{{ .CatalogBucket }}/{{ .ProductVersion }}/service-iam.yml"
+  {{- end}}
+  {{if eq .EnableProdStage "true" -}}
+  ProductionServiceRoleset: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Namespace: {{ .Namespace }}
+        EnvironmentName: {{ .ProdEnv }}
+        Provider: {{ .ProdEnvProvider }}
+        ServiceName: !Ref ServiceName
+        CodeDeployBucket: {{ .CodeDeployBucket }}
+      Tags:
+        - Key: mu:name
+          Value: !Sub "{{ .Namespace }}-iam-service-${ServiceName}-{{ .ProdEnv }}"
+        - Key: mu:type
+          Value: iam
+        - Key: mu:environment
+          Value: {{ .ProdEnv }}
+        - Key: mu:provider
+          Value: {{ .ProdEnvProvider }}
+        - Key: mu:service
+          Value: !Ref ServiceName
+        - Key: mu:revision
+          Value: {{ .RepoVersion }}
+        - Key: mu:repo
+          Value: {{ .RepoName }}
+        - Key: mu:version
+          Value: {{ .MuVersion }}
+      TemplateURL: 
+        Fn::Sub: "https://s3.${AWS::Region}.${AWS::URLSuffix}/{{ .CatalogBucket }}/{{ .ProductVersion }}/service-iam.yml"
+  {{- end}}
+  PipelineRoleset: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Namespace: {{ .Namespace }}
+        ServiceName: !Ref ServiceName
+        PipelineBucket: {{ .PipelineBucket }}
+        CodeDeployBucket: {{ .CodeDeployBucket }}
+        SourceProvider: {{ .SourceProvider }}
+        SourceRepo: !Ref SourceRepo
+        {{if eq .SourceProvider "S3" -}}
+        SourceBucket: !Ref SourceBucket
+        SourceObjectKey: !Ref SourceObjectKey
+        {{- end}}
+        {{if eq .EnableAcptStage "true" -}}
+        AcptEnv: {{ .AcptEnv }}
+        {{- end}}
+        {{if eq .EnableProdStage "true" -}}
+        ProdEnv: {{ .ProdEnv }}
+        {{- end}}
+        EnableBuildStage: {{ .EnableBuildStage }}
+        EnableAcptStage: {{ .EnableAcptStage }}
+        EnableProdStage: {{ .EnableProdStage }}
+        {{if eq .EnableAcptStage "true" -}}
+        AcptCloudFormationRoleArn: {{ .AcptCloudFormationRoleArn }}
+        {{- end}}
+        {{if eq .EnableProdStage "true" -}}
+        ProdCloudFormationRoleArn: {{ .ProdCloudFormationRoleArn }}
+        {{- end}}
+      Tags:
+        - Key: mu:name
+          Value: !Sub "{{ .Namespace }}-iam-pipeline-${ServiceName}"
+        - Key: mu:type
+          Value: iam
+        - Key: mu:service
+          Value: !Ref ServiceName
+        - Key: mu:revision
+          Value: {{ .RepoVersion }}
+        - Key: mu:repo
+          Value: {{ .RepoName }}
+        - Key: mu:version
+          Value: {{ .MuVersion }}
+      TemplateURL: 
+        Fn::Sub: "https://s3.${AWS::Region}.${AWS::URLSuffix}/{{ .CatalogBucket }}/{{ .ProductVersion }}/pipeline-iam.yml"
+  Pipeline: 
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Namespace: {{ .Namespace }}
+        ServiceName: !Ref ServiceName
+        PipelineBucket: {{ .PipelineBucket }}
+        SourceProvider: {{ .SourceProvider }}
+        SourceRepo: !Ref SourceRepo
+        SourceBranch: !Ref SourceBranch
+        {{if eq .SourceProvider "S3" -}}
+        SourceBucket: !Ref SourceBucket
+        SourceObjectKey: !Ref SourceObjectKey
+        {{- end}}
+        {{if eq .SourceProvider "GitHub" -}}
+        GitHubToken: !Ref GitHubToken
+        {{- end}}
+        {{if eq .EnableAcptStage "true" -}}
+        AcptEnv: {{ .AcptEnv }}
+        {{- end}}
+        {{if eq .EnableProdStage "true" -}}
+        ProdEnv: {{ .ProdEnv }}
+        {{- end}}
+        EnableBuildStage: {{ .EnableBuildStage }}
+        EnableAcptStage: {{ .EnableAcptStage }}
+        EnableProdStage: {{ .EnableProdStage }}
+        {{if .BuildImage -}}
+        BuildImage: {{ .BuildImage }}
+        {{- end}}
+        {{if .TestImage -}}
+        TestImage: {{ .TestImage }}
+        {{- end}}
+        MuDownloadVersion: "{{ .MuDownloadVersion }}"
+        MuFilename: "{{ .MuFilename }}"
+        MuBasedir: "{{ .MuBasedir }}"
+        CodePipelineKeyArn: !GetAtt PipelineRoleset.Outputs.CodePipelineKeyArn
+        CodePipelineRoleArn: !GetAtt PipelineRoleset.Outputs.CodePipelineRoleArn 
+        CodeBuildCIRoleArn: !GetAtt PipelineRoleset.Outputs.CodeBuildCIRoleArn 
+        CodeBuildCDAcptRoleArn: !GetAtt PipelineRoleset.Outputs.CodeBuildCDAcptRoleArn 
+        CodeBuildCDProdRoleArn: !GetAtt PipelineRoleset.Outputs.CodeBuildCDProdRoleArn 
+        MuAcptRoleArn: !GetAtt PipelineRoleset.Outputs.MuAcptRoleArn 
+        MuProdRoleArn: !GetAtt PipelineRoleset.Outputs.MuProdRoleArn 
+        {{if .PipelineBuildTimeout -}}
+        PipelineBuildTimeout: {{ .PipelineBuildTimeout }}
+        {{- end}}
+        {{if .PipelineBuildAcceptanceTimeout -}}
+        PipelineBuildAcceptanceTimeout: {{ .PipelineBuildAcceptanceTimeout }}
+        {{- end}}
+        {{if .PipelineBuildProductionTimeout -}}
+        PipelineBuildProductionTimeout: {{ .PipelineBuildProductionTimeout }}
+        {{- end}}
+      Tags:
+        - Key: mu:name
+          Value: !Sub "{{ .Namespace }}-pipeline-${ServiceName}"
+        - Key: mu:type
+          Value: pipeline
+        - Key: mu:service
+          Value: !Ref ServiceName
+        - Key: mu:revision
+          Value: {{ .RepoVersion }}
+        - Key: mu:repo
+          Value: {{ .RepoName }}
+        - Key: mu:version
+          Value: {{ .MuVersion }}
+      TemplateURL: 
+        Fn::Sub: "https://s3.${AWS::Region}.${AWS::URLSuffix}/{{ .CatalogBucket }}/{{ .ProductVersion }}/pipeline.yml"
+Outputs:
+  CodePipelineUrl:
+    Value: !GetAtt Pipeline.Outputs.CodePipelineUrl
+    Description: CodePipeline URL
+  PipelineNotificationTopicArn:
+    Value: !GetAtt Pipeline.Outputs.PipelineNotificationTopicArn
+    Description: SNS Topic for pipeline notifications

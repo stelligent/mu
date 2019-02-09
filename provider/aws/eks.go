@@ -63,10 +63,31 @@ func newEksKubernetesResourceManagerProvider(sess *session.Session, extensionsMa
 	}, nil
 }
 
+func dryRunRestConfig() dynamic.Interface {
+	restConfig, _ := dynamic.NewForConfig(&rest.Config{
+		Host: "",
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData:   []byte(""),
+			Insecure: false,
+		},
+		BearerToken: "",
+	})
+	return restConfig
+}
+
 // GetResourceManager get a connection to eks cluster
 func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(name string) (common.KubernetesResourceManager, error) {
 	eksAPI := eksMgrProvider.eksAPI
 	stsAPI := eksMgrProvider.stsAPI
+
+	if eksMgrProvider.dryrunPath != "" {
+		return &eksKubernetesResourceManager{
+			name:              name,
+			client:            dryRunRestConfig(),
+			dryrunPath:        eksMgrProvider.dryrunPath,
+			extensionsManager: eksMgrProvider.extensionsManager,
+		}, nil
+	}
 
 	resp, err := eksAPI.DescribeCluster(&eks.DescribeClusterInput{
 		Name: aws.String(name),
@@ -116,6 +137,10 @@ func (eksMgrProvider *eksKubernetesResourceManagerProvider) GetResourceManager(n
 // UpsertResources for create/update of resources in k8s cluster
 func (eksMgr *eksKubernetesResourceManager) UpsertResources(templateName string,
 	templateData interface{}) error {
+
+	if eksMgr.dryrunPath != "" {
+		return nil
+	}
 
 	// apply new values
 	templateBody, err := templates.GetAsset(templateName,

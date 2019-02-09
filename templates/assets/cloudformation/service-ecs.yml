@@ -137,6 +137,13 @@ Parameters:
       - host
       - bridge
     Description: Network mode for tasks
+  PrivilegedMode:
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false 
+    Description: Container privileged mode
   Links:
     Description: Links to other docker containers
     Type: CommaDelimitedList
@@ -238,7 +245,6 @@ Conditions:
       - "Fn::Equals":
         - !Ref TaskCpu
         - ''
-
   IsAssignPublicIpEnabled:
     "Fn::Equals":
       - !Ref AssignPublicIp
@@ -267,6 +273,7 @@ Resources:
     DependsOn:
     - ServiceLogGroup
     Properties:
+      ServiceName: !Sub "${Namespace}-${ServiceName}-${EnvironmentName}"
       Cluster:
         Fn::ImportValue: !Sub ${EcsCluster}
       DesiredCount: !Ref ServiceDesiredCount
@@ -379,6 +386,7 @@ Resources:
             awslogs-group: !Ref AWS::StackName
             awslogs-region: !Ref AWS::Region
             awslogs-stream-prefix: container
+        Privileged: !Ref PrivilegedMode
         PortMappings:
         - HostPort:
             Fn::If:
@@ -394,8 +402,15 @@ Resources:
     Condition: HasElbHttpPathListener
     Properties:
       Actions:
-      - Type: forward
-        TargetGroupArn: !Ref ElbTargetGroup
+        - Fn::If:
+            - HasElbHttpsPathListener
+            - Type: redirect
+              RedirectConfig:
+                Port: "443"
+                Protocol: HTTPS
+                StatusCode: HTTP_301
+            - Type: forward
+              TargetGroupArn: !Ref ElbTargetGroup
       Conditions:
       - Field: path-pattern
         Values: !Ref PathPattern
@@ -420,8 +435,15 @@ Resources:
     Condition: HasElbHttpHostListener
     Properties:
       Actions:
-      - Type: forward
-        TargetGroupArn: !Ref ElbTargetGroup
+        - Fn::If:
+            - HasElbHttpsHostListener
+            - Type: redirect
+              RedirectConfig:
+                Port: "443"
+                Protocol: HTTPS
+                StatusCode: HTTP_301
+            - Type: forward
+              TargetGroupArn: !Ref ElbTargetGroup
       Conditions:
       - Field: host-header
         Values: !Ref HostPattern
@@ -469,13 +491,15 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
   CPUUtilizationPolicyTarget:
+    DependsOn:
+    - EcsService
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: !Ref ServiceMaxSize
       MinCapacity: !Ref ServiceMinSize
       ResourceId:
         Fn::Sub:
-          - service/${EcsClusterName}/${EcsService.Name}
+          - service/${EcsClusterName}/${Namespace}-${ServiceName}-${EnvironmentName}
           - EcsClusterName:
               Fn::ImportValue: !Ref EcsCluster
       RoleARN: !Ref ApplicationAutoScalingRoleArn
@@ -494,7 +518,7 @@ Resources:
               Value:
                 Fn::ImportValue: !Ref EcsCluster
             - Name: ServiceName
-              Value: !Sub ${EcsService.Name}
+              Value: !Sub ${Namespace}-${ServiceName}-${EnvironmentName}
           MetricName: CPUUtilization
           Namespace: AWS/ECS
           Statistic: Average

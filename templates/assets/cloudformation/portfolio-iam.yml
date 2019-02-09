@@ -1,0 +1,159 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MU service catalog IAM resources
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  IAMUserNames:
+    Type: CommaDelimitedList
+    Description: IAM name of users to allow to 
+    Default: ""
+Conditions:
+  HasIAMGroup:
+    Fn::Not:
+    - Fn::Equals:
+      - Fn::Join: 
+        - ","
+        - !Ref IAMUserNames
+      - ""
+Resources:
+  CatalogKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub Service Catalog key for ${Namespace}-catalog
+      Enabled: true
+      EnableKeyRotation: false
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS:
+              - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:*'
+            Resource: '*'
+          - Effect: "Allow"
+            Principal:
+              AWS: '*'
+            Action:
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlaintext
+              - kms:Encrypt
+              - kms:ReEncryptFrom
+              - kms:ReEncryptTo
+              - kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "s3.${AWS::Region}.amazonaws.com"
+                'kms:CallerAccount': !Sub ${AWS::AccountId}
+          - Effect: "Deny"
+            Principal: '*'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: false
+  CatalogKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub alias/${Namespace}-catalog
+      TargetKeyId: !Ref CatalogKey
+  CatalogGroup:
+    Condition: HasIAMGroup
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub "${Namespace}-${AWS::Region}-CatalogUsers"
+      Policies:
+      - PolicyName: service-catalog
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - cloudformation:GetTemplateSummary
+            - servicecatalog:DescribeProduct
+            - servicecatalog:DescribeProductView
+            - servicecatalog:DescribeProvisioningParameters
+            - servicecatalog:ListLaunchPaths
+            - servicecatalog:ProvisionProduct
+            - servicecatalog:SearchProducts
+            - servicecatalog:ListProvisioningArtifacts
+            - servicecatalog:DescribeRecord
+            - servicecatalog:SearchProvisionedProducts
+            Resource: "*"
+          - Effect: Allow
+            Action: 
+            - servicecatalog:DescribeProvisionedProduct
+            - servicecatalog:DescribeRecord
+            - servicecatalog:ListRecordHistory
+            - servicecatalog:ScanProvisionedProducts
+            - servicecatalog:TerminateProvisionedProduct
+            - servicecatalog:UpdateProvisionedProduct
+            - servicecatalog:SearchProvisionedProducts
+            - servicecatalog:CreateProvisionedProductPlan
+            - servicecatalog:DescribeProvisionedProductPlan
+            - servicecatalog:ExecuteProvisionedProductPlan
+            - servicecatalog:DeleteProvisionedProductPlan
+            - servicecatalog:ListProvisionedProductPlans
+            - servicecatalog:ListServiceActionsForProvisioningArtifact
+            - servicecatalog:ExecuteProvisionedProductServiceAction
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "servicecatalog:userLevel": "self"
+  CatalogRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F3 
+            reason: Allowed for service catalog
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: 
+            Service: servicecatalog.amazonaws.com
+          Action: sts:AssumeRole
+      RoleName: !Sub "${Namespace}-${AWS::Region}-ServiceCatalog"
+      Policies:
+      - PolicyName: launch-constraint
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - catalog-user:*
+            - cloudformation:*
+            - s3:*
+            - iam:*
+            - kms:*
+            - codepipeline:*
+            - codebuild:*
+            - events:*
+            - sns:*
+            Resource: "*"
+  CatalogGroupUsers:
+    Condition: HasIAMGroup
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: !Ref CatalogGroup
+      Users: !Ref IAMUserNames
+Outputs:
+  CatalogGroupARN:
+    Condition: HasIAMGroup
+    Description: ARN of group
+    Value: !GetAtt CatalogGroup.Arn
+  CatalogRoleARN:
+    Description: ARN of service catalog launch role
+    Value: !GetAtt CatalogRole.Arn
+  KmsKeyId:
+    Description: ID of KMS Key for service catalog
+    Value: !Ref CatalogKey

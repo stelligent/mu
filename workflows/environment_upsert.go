@@ -273,6 +273,14 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 
 		stackParams["ElbInternal"] = strconv.FormatBool(environment.Loadbalancer.Internal)
 
+		if environment.Loadbalancer.AccessLogs.S3BucketName != "" {
+			stackParams["ElbAccessLogsS3BucketName"] = environment.Loadbalancer.AccessLogs.S3BucketName
+		}
+
+		if environment.Loadbalancer.AccessLogs.S3Prefix != "" {
+			stackParams["ElbAccessLogsS3Prefix"] = environment.Loadbalancer.AccessLogs.S3Prefix
+		}
+
 		tags := createTagMap(&EnvironmentTags{
 			Environment: environment.Name,
 			Type:        string(common.StackTypeLoadBalancer),
