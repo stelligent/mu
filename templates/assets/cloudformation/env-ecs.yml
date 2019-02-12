@@ -264,13 +264,6 @@ Resources:
             yum:
               jq: []
               awscli: []
-          # files:
-          #   "/etc/awslogs/awscli.conf":
-          #     content: !Sub |
-          #       [plugins]
-          #       cwlogs = cwlogs
-          #       [default]
-          #       region = ${AWS::Region}
           commands:
             01_configure_ssm_agent:
               command: !Sub |
