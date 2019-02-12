@@ -342,17 +342,39 @@ func TestBuildParameters(t *testing.T) {
 
 	paramMap := make(map[string]string)
 
-	parameters := buildStackParameters(paramMap)
+	parameters := buildStackParameters(paramMap, nil)
 	assert.Equal(0, len(parameters))
 
 	paramMap["p1"] = "value 1"
 	paramMap["p2"] = "value 2"
-	parameters = buildStackParameters(paramMap)
+	parameters = buildStackParameters(paramMap, nil)
 	assert.Equal(2, len(parameters))
 	assert.Contains(*parameters[0].ParameterKey, "p")
 	assert.Contains(*parameters[0].ParameterValue, "value")
 	assert.Contains(*parameters[1].ParameterKey, "p")
 	assert.Contains(*parameters[1].ParameterValue, "value")
+
+	stackParameters := make([]*cloudformation.Parameter, 0, len(parameters))
+	stackParameters = append(stackParameters,
+		&cloudformation.Parameter{
+			ParameterKey:   aws.String("ExistingParam"),
+			ParameterValue: aws.String("ExistingValue"),
+		})
+
+	stackDetails := cloudformation.Stack{
+		StackName:    aws.String("mu-environment-dev"),
+		CreationTime: aws.Time(time.Now()),
+		Tags:         []*cloudformation.Tag{},
+		StackStatus:  aws.String("CREATE_COMPLETE"),
+		Parameters:   stackParameters,
+	}
+
+	stack := buildStack(&stackDetails)
+	paramMap["ExistingParam"] = "" // should have UsePreviousValue==true
+	paramMap["NewParam"] = ""      // should have UsePreviousValue==false
+	parameters = buildStackParameters(paramMap, stack)
+	assert.Equal(*parameters[2].UsePreviousValue, true)
+	assert.Equal(*parameters[3].UsePreviousValue, false)
 }
 
 func TestTagParameters(t *testing.T) {

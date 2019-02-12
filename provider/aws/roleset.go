@@ -68,6 +68,7 @@ func (rolesetMgr *iamRolesetManager) GetServiceRoleset(environmentName string, s
 	overrideRole(roleset, "EcsServiceRoleArn", rolesetMgr.context.Config.Service.Roles.EcsService)
 	overrideRole(roleset, "EcsTaskRoleArn", rolesetMgr.context.Config.Service.Roles.EcsTask)
 	overrideRole(roleset, "ApplicationAutoScalingRoleArn", rolesetMgr.context.Config.Service.Roles.ApplicationAutoScaling)
+	overrideRole(roleset, "BatchJobRoleArn", rolesetMgr.context.Config.Service.Roles.BatchJobRole)
 	return roleset, nil
 }
 
@@ -184,6 +185,11 @@ func (rolesetMgr *iamRolesetManager) GetEnvironmentProvider(environmentName stri
 			}
 			break
 		}
+	}
+	// allow to override provider (batch job definition can be deployed without environment)
+	if rolesetMgr.context.Config.Service.ProviderOverride != "" {
+		// todo: validate values
+		envProvider = rolesetMgr.context.Config.Service.ProviderOverride
 	}
 	if envProvider == "" {
 		log.Debugf("unable to find environment named '%s' in configuration...checking for existing stack", environmentName)

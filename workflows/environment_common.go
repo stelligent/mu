@@ -57,6 +57,12 @@ func (workflow *environmentWorkflow) isEc2Provider() Conditional {
 	}
 }
 
+func (workflow *environmentWorkflow) isBatchProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.environment.Provider), string(common.EnvProviderBatch))
+	}
+}
+
 func (workflow *environmentWorkflow) connectKubernetes(muNamespace string, provider common.KubernetesResourceManagerProvider) Executor {
 	return func() error {
 		clusterName := common.CreateStackName(muNamespace, common.StackTypeEnv, workflow.environment.Name)

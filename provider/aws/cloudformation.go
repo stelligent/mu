@@ -65,14 +65,22 @@ func newStackManager(sess *session.Session, extensionsManager common.ExtensionsM
 
 }
 
-func buildStackParameters(parameters map[string]string) []*cloudformation.Parameter {
+func buildStackParameters(parameters map[string]string, stack *common.Stack) []*cloudformation.Parameter {
+
 	stackParameters := make([]*cloudformation.Parameter, 0, len(parameters))
 	for key, value := range parameters {
+		// Stack exists, check if parameter exists. Needed to avoid:
+		// ValidationError: Invalid input for parameter key DatabaseName. Cannot specify usePreviousValue as true for a parameter key not in the previous template
+		usePrevVal := true
+		if stack != nil && stack.Status != "" {
+			_, usePrevVal = stack.Parameters[key]
+		}
+
 		stackParameters = append(stackParameters,
 			&cloudformation.Parameter{
 				ParameterKey:     aws.String(key),
 				ParameterValue:   aws.String(value),
-				UsePreviousValue: aws.Bool(value == ""),
+				UsePreviousValue: aws.Bool(value == "" && usePrevVal),
 			})
 	}
 	return stackParameters
@@ -333,7 +341,7 @@ func (cfnMgr *cloudformationStackManager) UpsertStack(stackName string, template
 	if err != nil {
 		return err
 	}
-	stackParameters := buildStackParameters(parameters)
+	stackParameters := buildStackParameters(parameters, stack)
 
 	// stack tags
 	tags, err = cfnMgr.extensionsManager.DecorateStackTags(stackName, tags)

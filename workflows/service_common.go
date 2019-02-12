@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 )
@@ -13,11 +14,13 @@ import (
 type serviceWorkflow struct {
 	envStack                      *common.Stack
 	lbStack                       *common.Stack
+	lbDisabled                    bool
 	artifactProvider              common.ArtifactProvider
 	serviceName                   string
 	serviceTag                    string
 	serviceImage                  string
 	registryAuth                  string
+	registryAuthConfig            map[string]types.AuthConfig
 	priority                      int
 	codeRevision                  string
 	repoName                      string
@@ -29,6 +32,7 @@ type serviceWorkflow struct {
 	microserviceTaskDefinitionArn string
 	ecsEventsRoleArn              string
 	kubernetesResourceManager     common.KubernetesResourceManager
+	providerOverride              string
 }
 
 // Find a service in config, by name and set the reference
@@ -53,6 +57,11 @@ func (workflow *serviceWorkflow) serviceLoader(ctx *common.Context, tag string, 
 		workflow.codeRevision = ctx.Config.Repo.Revision
 		workflow.repoName = ctx.Config.Repo.Slug
 		workflow.priority = ctx.Config.Service.Priority
+
+		// allow to override provider (i.e. deploy batch job definition)
+		// todo: validate values
+		workflow.providerOverride = ctx.Config.Service.ProviderOverride
+		workflow.lbDisabled = false
 
 		if provider == "" {
 			dockerfile := ctx.Config.Service.Dockerfile
@@ -112,6 +121,12 @@ func (workflow *serviceWorkflow) isFargateProvider() Conditional {
 func (workflow *serviceWorkflow) isEc2Provider() Conditional {
 	return func() bool {
 		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderEc2))
+	}
+}
+
+func (workflow *serviceWorkflow) isBatchProvider() Conditional {
+	return func() bool {
+		return strings.EqualFold(string(workflow.envStack.Tags["provider"]), string(common.EnvProviderBatch))
 	}
 }
 
@@ -259,6 +274,19 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 		authParts := strings.Split(string(data), ":")
 
 		workflow.registryAuth = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("{\"username\":\"%s\", \"password\":\"%s\"}", authParts[0], authParts[1])))
+
+		// ImageBuild pull auth
+		var authConfigs2 map[string]types.AuthConfig
+		authConfigs2 = make(map[string]types.AuthConfig)
+
+		authConfigs2[strings.Split(workflow.serviceImage, ":")[0]] = types.AuthConfig{
+			Username:      authParts[0],
+			Password:      authParts[1],
+			ServerAddress: fmt.Sprintf("https://%s", strings.Split(workflow.serviceImage, ":")[0]),
+		}
+
+		workflow.registryAuthConfig = authConfigs2
+
 		return nil
 	}
 }

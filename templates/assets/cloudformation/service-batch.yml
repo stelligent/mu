@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: MU AWS Batch job definition
+Parameters:
+  Namespace:
+    Type: String
+    Description: Namespace for stack prefixes
+  EnvironmentName:
+    Type: String
+    Description: Name of environment used for resource namespace
+  ServiceName:
+    Type: String
+    Description: Name of service used for resource namespace
+  ServiceVCpu:
+    Type: String
+    Description: VCPUs to reserve for container
+    Default: '2'
+  ServiceMemory:
+    Type: String
+    Description: Memory to allocate to container (in MiB)
+    Default: '512'
+  ImageUrl:
+    Type: String
+    Description: Docker Image URL (or name, like 'amazonlinux')
+  BatchJobRoleArn:
+    Type: String
+    Description: IAM Role assumed by AWS Batch job (ecs task)
+  RetryAttempts:
+    Type: String
+    Description: Number of retry attempts
+    Default: ''
+  Timeout:
+    Type: String
+    Description: Job timeout in seconds. Job is terminated after timing out
+    Default: ''
+  VpcId:
+    Type: String
+    Description: Name of the value to import for the VpcId (not used for Batch)
+  
+Conditions:
+  HasRetryAttempts:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref RetryAttempts
+        - ''
+  HasTimeout:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref Timeout
+        - ''
+        
+Resources:
+
+  BatchJob:
+    Type: 'AWS::Batch::JobDefinition'
+    Properties:
+      JobDefinitionName: !Sub ${Namespace}-batch-${ServiceName}-${EnvironmentName}
+      Type: container
+      Parameters: 
+      {{with .Parameters}}
+        {{range $key, $val := .}}
+        {{$key}}: !Sub {{$val}}
+        {{end}}
+      {{end}}
+      ContainerProperties:
+        Image: !Ref ImageUrl
+        Vcpus: !Ref ServiceVCpu
+        Memory: !Ref ServiceMemory
+        JobRoleArn: !Ref BatchJobRoleArn
+        Command: 
+        {{with .Command}}
+          {{range $key, $val := .}}
+          - {{$val}}
+          {{end}}
+        {{end}}
+        Environment:
+        {{with .Environment}}
+          {{range $key, $val := .}}
+          - Name: {{$key}}
+            Value: !Sub {{$val}}
+          {{end}}
+        {{end}}
+      RetryStrategy:
+        Attempts: 
+          Fn::If:
+          - HasRetryAttempts
+          - !Ref RetryAttempts
+          - !Ref AWS::NoValue
+      Timeout:
+        AttemptDurationSeconds: 
+          Fn::If:
+          - HasTimeout
+          - !Ref Timeout
+          - !Ref AWS::NoValue
+
+
+Outputs:
+  BatchJobDefinitionArn:
+    Value: !Ref BatchJob  

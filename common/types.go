@@ -173,17 +173,26 @@ type Service struct {
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
 	Priority             int                    `yaml:"priority,omitempty" validate:"max=50000"`
 	Pipeline             Pipeline               `yaml:"pipeline,omitempty"`
+	ProviderOverride     string                 `yaml:"provider,omitempty"`
 	Database             Database               `yaml:"database,omitempty"`
 	Schedule             []Schedule             `yaml:"schedules,omitempty"`
 	TargetCPUUtilization int                    `yaml:"targetCPUUtilization,omitempty" validate:"max=100"`
 	DiscoveryTTL         string                 `yaml:"discoveryTTL,omitempty"`
-	Roles                struct {
+
+	// Batch
+	Parameters    map[string]interface{} `yaml:"parameters,omitempty"`
+	Command       []string               `yaml:"command,omitempty"`
+	Timeout       int                    `yaml:"timeout,omitempty"`
+	RetryAttempts int                    `yaml:"retryAttempts,omitempty"`
+
+	Roles struct {
 		Ec2Instance            string `yaml:"ec2Instance,omitempty" validate:"validateRoleARN"`
 		CodeDeploy             string `yaml:"codeDeploy,omitempty" validate:"validateRoleARN"`
 		EcsEvents              string `yaml:"ecsEvents,omitempty" validate:"validateRoleARN"`
 		EcsService             string `yaml:"ecsService,omitempty" validate:"validateRoleARN"`
 		EcsTask                string `yaml:"ecsTask,omitempty" validate:"validateRoleARN"`
 		ApplicationAutoScaling string `yaml:"applicationAutoScaling,omitempty" validate:"validateRoleARN"`
+		BatchJobRole           string `yaml:"batchJobRole,omitempty" validate:"validateRoleARN"`
 	} `yaml:"roles,omitempty"`
 }
 
@@ -399,6 +408,7 @@ const (
 	TemplateEnvECS                  = "cloudformation/env-ecs.yml"
 	TemplateEnvEKS                  = "cloudformation/env-eks.yml"
 	TemplateEnvEKSBootstrap         = "cloudformation/env-eks-bootstrap.yml"
+	TemplateEnvBatch                = "cloudformation/env-batch.yml"
 	TemplateEnvIAM                  = "cloudformation/env-iam.yml"
 	TemplatePipelineIAM             = "cloudformation/pipeline-iam.yml"
 	TemplatePipeline                = "cloudformation/pipeline.yml"
@@ -406,6 +416,7 @@ const (
 	TemplateSchedule                = "cloudformation/schedule.yml"
 	TemplateServiceEC2              = "cloudformation/service-ec2.yml"
 	TemplateServiceECS              = "cloudformation/service-ecs.yml"
+	TemplateServiceBatch            = "cloudformation/service-batch.yml"
 	TemplateServiceIAM              = "cloudformation/service-iam.yml"
 	TemplateVPCTarget               = "cloudformation/vpc-target.yml"
 	TemplateVPC                     = "cloudformation/vpc.yml"
@@ -422,8 +433,8 @@ type DeploymentStrategy string
 // List of supported deployment strategies
 const (
 	BlueGreenDeploymentStrategy DeploymentStrategy = "blue_green"
-	RollingDeploymentStrategy   DeploymentStrategy = "rolling"
-	ReplaceDeploymentStrategy   DeploymentStrategy = "replace"
+	RollingDeploymentStrategy                      = "rolling"
+	ReplaceDeploymentStrategy                      = "replace"
 )
 
 // EnvProvider describes supported environment strategies
@@ -436,6 +447,7 @@ const (
 	EnvProviderEc2                    = "ec2"
 	EnvProviderEks                    = "eks"
 	EnvProviderEksFargate             = "eks-fargate"
+	EnvProviderBatch                  = "batch"
 )
 
 // InstanceTenancy describes supported tenancy options for EC2

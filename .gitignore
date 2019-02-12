@@ -8,3 +8,4 @@ vendor/
 homebrew-tap/
 *-packr.go
 CHANGELOG.md
+*.bak
