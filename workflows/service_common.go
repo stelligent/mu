@@ -263,7 +263,7 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 		workflow.registryAuth = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("{\"username\":\"%s\", \"password\":\"%s\"}", authParts[0], authParts[1])))
 
 		// ImageBuild pull auth
-		var authConfigs2 map[string]types.AuthConfig = make(map[string]types.AuthConfig)
+		var authConfigs2 = make(map[string]types.AuthConfig)
 		var serviceImagePart = strings.Split(workflow.serviceImage, ":")[0]
 
 		authConfigs2[serviceImagePart] = types.AuthConfig{
