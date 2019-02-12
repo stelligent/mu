@@ -264,7 +264,7 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 
 		// ImageBuild pull auth
 		var authConfigs2 map[string]types.AuthConfig = make(map[string]types.AuthConfig)
-		var serviceImagePart string = strings.Split(workflow.serviceImage, ":")[0]
+		var serviceImagePart = strings.Split(workflow.serviceImage, ":")[0]
 
 		authConfigs2[serviceImagePart] = types.AuthConfig{
 			Username:      authParts[0],
