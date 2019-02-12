@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 	"github.com/stelligent/mu/common"
 )
@@ -18,6 +19,7 @@ type serviceWorkflow struct {
 	serviceTag                    string
 	serviceImage                  string
 	registryAuth                  string
+	registryAuthConfig            map[string]types.AuthConfig
 	priority                      int
 	codeRevision                  string
 	repoName                      string
@@ -259,6 +261,19 @@ func (workflow *serviceWorkflow) serviceRegistryAuthenticator(authenticator comm
 		authParts := strings.Split(string(data), ":")
 
 		workflow.registryAuth = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("{\"username\":\"%s\", \"password\":\"%s\"}", authParts[0], authParts[1])))
+
+		// ImageBuild pull auth
+		var authConfigs2 map[string]types.AuthConfig
+		authConfigs2 = make(map[string]types.AuthConfig)
+
+		authConfigs2[strings.Split(workflow.serviceImage, ":")[0]] = types.AuthConfig{
+			Username:      authParts[0],
+			Password:      authParts[1],
+			ServerAddress: fmt.Sprintf("https://%s", strings.Split(workflow.serviceImage, ":")[0]),
+		}
+
+		workflow.registryAuthConfig = authConfigs2
+
 		return nil
 	}
 }
