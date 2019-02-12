@@ -56,7 +56,7 @@ lint: fmt
 
 gen:
 	@echo "=== generating ==="
-	@go get "github.com/gobuffalo/packr/..."
+	@go get "github.com/gobuffalo/packr/packr"
 	@go generate $(SRC_FILES)
 
 nag:
@@ -210,6 +210,9 @@ endif
 	git -C homebrew-tap push
 
 release: info github_release formula
+
+image:
+	docker build -t stelligent/mu:$(VERSION) .
 
 clean:
 	@echo "=== cleaning ==="

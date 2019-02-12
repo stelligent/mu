@@ -252,9 +252,23 @@ func (workflow *pipelineWorkflow) pipelineCatalogUpserter(namespace string, pipe
 
 		productParams := make(map[string]string)
 		productParams["ServiceName"] = workflow.serviceName
-		productParams["SourceBranch"] = workflow.codeBranch
 		productParams["SourceRepo"] = pipeline.Source.Repo
-		productParams["GitHubToken"] = params["GitHubToken"]
+
+		if workflow.codeBranch != "" {
+			productParams["SourceBranch"] = workflow.codeBranch
+		} else {
+			productParams["SourceBranch"] = pipeline.Source.Branch
+		}
+
+		if pipeline.Source.Provider == "GitHub" {
+			productParams["GitHubToken"] = params["GitHubToken"]
+		}
+
+		if pipeline.Source.Provider == "S3" {
+			repoParts := strings.Split(pipeline.Source.Repo, "/")
+			productParams["SourceBucket"] = repoParts[0]
+			productParams["SourceObjectKey"] = strings.Join(repoParts[1:], "/")
+		}
 
 		return catalogProvisioner.UpsertProvisionedProduct(stack.Outputs["ProductId"], pipeline.Catalog.Version, fmt.Sprintf("%s-%s", namespace, workflow.serviceName), productParams)
 	}
