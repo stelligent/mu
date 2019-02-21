@@ -22,8 +22,8 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, kmsKey s
 		newConditionalExecutor(workflow.isEcrProvider(),
 			newPipelineExecutor(
 				workflow.serviceRepoUpserter(ctx.Config.Namespace, &ctx.Config.Service, ctx.StackManager, ctx.StackManager),
-				workflow.serviceImageBuilder(ctx.DockerManager, &ctx.Config, dockerWriter),
 				workflow.serviceRegistryAuthenticator(ctx.ClusterManager),
+				workflow.serviceImageBuilder(ctx.DockerManager, &ctx.Config, dockerWriter),
 				workflow.serviceImagePusher(ctx.DockerManager, dockerWriter),
 			),
 			newPipelineExecutor(
@@ -36,7 +36,7 @@ func NewServicePusher(ctx *common.Context, tag string, provider string, kmsKey s
 func (workflow *serviceWorkflow) serviceImageBuilder(imageBuilder common.DockerImageBuilder, config *common.Config, dockerWriter io.Writer) Executor {
 	return func() error {
 		log.Noticef("Building service:'%s' as image:%s'", workflow.serviceName, workflow.serviceImage)
-		return imageBuilder.ImageBuild(config.Basedir, workflow.serviceName, config.Service.Dockerfile, []string{workflow.serviceImage}, dockerWriter)
+		return imageBuilder.ImageBuild(config.Basedir, workflow.serviceName, config.Service.Dockerfile, []string{workflow.serviceImage}, workflow.registryAuthConfig, dockerWriter)
 	}
 }
 

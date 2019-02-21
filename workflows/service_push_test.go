@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"github.com/docker/docker/api/types"
 	"github.com/stelligent/mu/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,7 +22,7 @@ type mockServiceBuilder struct {
 	common.DockerImageBuilder
 }
 
-func (m *mockServiceBuilder) ImageBuild(basedir string, serviceName string, dockerfile string, tags []string, dockerWriter io.Writer) error {
+func (m *mockServiceBuilder) ImageBuild(basedir string, serviceName string, dockerfile string, tags []string, registryAuthConfig map[string]types.AuthConfig, dockerWriter io.Writer) error {
 	args := m.Called()
 	return args.Error(0)
 }
