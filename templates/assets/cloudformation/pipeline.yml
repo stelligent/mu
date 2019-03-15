@@ -428,6 +428,11 @@ Resources:
                     - HasGitHubToken
                     - !Ref GitHubToken
                     - !Ref AWS::NoValue
+                PollForSourceChanges:
+                  Fn::If:
+                    - HasGitHubToken
+                    - "false"
+                    - "true"
               - RepositoryName: !Ref SourceRepo
                 BranchName: !Ref SourceBranch
           RunOrder: 10
