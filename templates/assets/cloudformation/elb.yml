@@ -135,7 +135,7 @@ Resources:
               AWS:
                 Fn::Sub:
                   - "arn:${AWS::Partition}:iam::${ElbAccountId}:root"
-                  - ElbAccountId: !FindInMap [Regions, !Ref "AWS::Region", ElbAccountId]
+                  - ElbAccountId: !FindInMap [Regions, Ref: "AWS::Region", ElbAccountId]
             Action: s3:PutObject
             Resource: !Sub "arn:${AWS::Partition}:s3:::${ElbAccessLogsS3Bucket}/${ElbAccessLogsS3Prefix}/AWSLogs/${AWS::AccountId}/*"
   ServiceDiscoveryNamespace:
@@ -219,21 +219,14 @@ Resources:
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName
+      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'mu:bucketpolicy', "Value": {"Ref": "ElbAccessLogsS3BucketPolicy"}}, !Ref 'AWS::NoValue']
       SecurityGroups:
       - !Ref ElbSG
       LoadBalancerAttributes:
-      - Key: access_logs.s3.enabled
-        Value: "true"
-      - Key: access_logs.s3.bucket
-        Value:
-          !If
-            - ShouldCreateElbAccessLogsS3Bucket
-            - Fn::Select:
-                - 0
-                - [!Ref ElbAccessLogsS3Bucket, !Ref ElbAccessLogsS3BucketPolicy]
-            - !Ref ElbAccessLogsS3BucketName
-      - Key: access_logs.s3.prefix
-        Value: !Ref ElbAccessLogsS3Prefix
+      - Key: 'access_logs.s3.enabled'
+        Value: !If [ShouldCreateElbAccessLogsS3Bucket, 'true', 'false']
+      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'access_logs.s3.prefix', "Value": {"Ref": "ElbAccessLogsS3Prefix"}}, !Ref 'AWS::NoValue']
+      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'access_logs.s3.bucket', "Value": {"Ref": "ElbAccessLogsS3Bucket"}}, !Ref 'AWS::NoValue']
   ElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
