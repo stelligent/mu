@@ -158,15 +158,24 @@ Resources:
       VpcId:
         Fn::ImportValue: !Sub ${VpcId}
       GroupDescription: ELB Security Group
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: '443'
-        ToPort: '443'
-        CidrIp: 0.0.0.0/0
+  Host2ELB80RuleIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      CidrIp: 0.0.0.0/0
+      GroupId: 
+        Ref: ElbSG
+  Host2ELB443RuleIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: '443'
+      ToPort: '443'
+      CidrIp: 0.0.0.0/0
+      GroupId: 
+        Ref: ElbSG
   ELB2HostRuleIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
