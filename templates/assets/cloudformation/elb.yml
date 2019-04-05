@@ -211,7 +211,11 @@ Resources:
   Elb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: !If [ IsElbInternal, "internal", "internet-facing" ]
+      Scheme:
+        Fn::If:
+        - IsElbInternal
+        - internal
+        - internet-facing
       Subnets:
         Fn::Split:
         - ","
@@ -219,14 +223,33 @@ Resources:
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName
-      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'mu:bucketpolicy', "Value": {"Ref": "ElbAccessLogsS3BucketPolicy"}}, !Ref 'AWS::NoValue']
+      - Fn::If:
+        - ShouldCreateElbAccessLogsS3Bucket
+        - Key: mu:bucketpolicy
+          Value:
+            Ref: ElbAccessLogsS3BucketPolicy
+        - Ref: AWS::NoValue
       SecurityGroups:
       - !Ref ElbSG
       LoadBalancerAttributes:
-      - Key: 'access_logs.s3.enabled'
-        Value: !If [ShouldCreateElbAccessLogsS3Bucket, 'true', 'false']
-      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'access_logs.s3.prefix', "Value": {"Ref": "ElbAccessLogsS3Prefix"}}, !Ref 'AWS::NoValue']
-      - !If [ShouldCreateElbAccessLogsS3Bucket, {"Key": 'access_logs.s3.bucket', "Value": {"Ref": "ElbAccessLogsS3Bucket"}}, !Ref 'AWS::NoValue']
+      - Key: access_logs.s3.enabled
+        Value:
+          Fn::If:
+          - ShouldCreateElbAccessLogsS3Bucket
+          - "true"
+          - "false"
+      - Fn::If:
+        - ShouldCreateElbAccessLogsS3Bucket
+        - Key: access_logs.s3.prefix
+          Value:
+            Ref: ElbAccessLogsS3Prefix
+        - Ref: 'AWS::NoValue'
+      - Fn::If:
+        - ShouldCreateElbAccessLogsS3Bucket
+        - Key: access_logs.s3.bucket
+          Value:
+            Ref: ElbAccessLogsS3Bucket
+        - Ref: 'AWS::NoValue'
   ElbHttpListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
