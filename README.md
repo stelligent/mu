@@ -24,6 +24,11 @@ Install latest version to /usr/local/bin (or for additional options, see [wiki](
 ```bash
 curl -s https://getmu.io/install.sh | sudo sh
 ```
+Verify installation
+```bash
+mu -v
+mu version 1.5.10
+```
 
 Assuming your project already has a Dockerfile, you can initialize your mu.yml file with: `mu init`.  More details available in the [quickstart](https://github.com/stelligent/mu/wiki/Quickstart).
 
