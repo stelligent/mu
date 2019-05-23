@@ -16,11 +16,18 @@ type environmentWorkflow struct {
 	kubernetesResourceManager common.KubernetesResourceManager
 	rbacUsers                 []*subjectRoleBinding
 	rbacServices              []*subjectRoleBinding
+	hpaConfig                 []*hpaSpecs
 }
 
 type subjectRoleBinding struct {
 	Name string
 	Role string
+}
+
+type hpaSpecs struct {
+	MinReplicas        string
+	MaxReplicas        string
+	AverageUtilization string
 }
 
 func colorizeStackStatus(stackStatus string) string {
