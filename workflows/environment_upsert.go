@@ -468,6 +468,7 @@ func (workflow *environmentWorkflow) environmentKubernetesClusterUpserter(namesp
 			"AWSPartition": partition,
 			"RBACServices": workflow.rbacServices,
 			"RBACUsers":    workflow.rbacUsers,
+			"HPAConfig":    workflow.hpaConfig,
 		}
 
 		clusterName := common.CreateStackName(namespace, common.StackTypeEnv, workflow.environment.Name)
