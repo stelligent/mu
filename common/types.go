@@ -57,6 +57,7 @@ type Config struct {
 	} `yaml:"roles,omitempty"`
 	RBAC    []RoleBinding `yaml:"rbac,omitempty"`
 	Catalog Catalog       `yaml:"catalog,omitempty"`
+	HPA     HPA           `yaml:"hpa,omitempty"`
 }
 
 // Catalog of pipeline templates
@@ -67,6 +68,15 @@ type Catalog struct {
 		Description string              `yaml:"description,omitempty"`
 		Versions    map[string]Pipeline `yaml:"versions,omitempty"`
 	} `yaml:"pipelines,omitempty"`
+}
+
+// HPA definition for k8s cluster
+type HPA struct {
+	Spec struct {
+		MinReplicas        string `yaml:"minReplicas,omitempty"`
+		MaxReplicas        string `yaml:"maxReplicas,omitempty"`
+		AverageUtilization string `yaml:"averageUtilization,omitempty"`
+	} `yaml:"spec,omitempty"`
 }
 
 // RoleBinding defines how to map k8s roles to subjects
@@ -413,6 +423,7 @@ const (
 	TemplateK8sDeployment           = "kubernetes/deployment.yml"
 	TemplateK8sDatabase             = "kubernetes/database.yml"
 	TemplateK8sIngress              = "kubernetes/ingress.yml"
+	TemplateK8sHpa                  = "kubernetes/hpa.yml"
 	TemplateArtifactPipeline        = "cloudformation/artifact-pipeline.yml"
 )
 
