@@ -373,6 +373,9 @@ Resources:
             - logs:PutLogEvents
             - logs:DescribeLogGroups
             - logs:DescribeLogStreams
+            - ssm:GetParameters
+            - secretsmanager:GetSecretValue
+            - kms:Decrypt
             Resource: '*'
 
   EksPodRole:

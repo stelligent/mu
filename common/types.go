@@ -169,6 +169,7 @@ type Service struct {
 	AssignPublicIP       bool                   `yaml:"assignPublicIp,omitempty"`
 	Links                []string               `yaml:"links,omitempty"`
 	Environment          map[string]interface{} `yaml:"environment,omitempty"`
+	Secrets              map[string]interface{} `yaml:"secrets,omitempty"`
 	PathPatterns         []string               `yaml:"pathPatterns,omitempty"`
 	HostPatterns         []string               `yaml:"hostPatterns,omitempty"`
 	Priority             int                    `yaml:"priority,omitempty" validate:"max=50000"`
