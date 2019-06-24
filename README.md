@@ -19,6 +19,8 @@ Watch the 90 second demo below to see mu in action!
 ![Demo](https://github.com/stelligent/mu/wiki/quickstart/mu-quickstart.gif)
 
 # Get Started!
+Requires [AWS Credentials](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) are configured locally (or you are using something like [aws-vault](https://github.com/99designs/aws-vault)).
+
 Install latest version to /usr/local/bin (or for additional options, see [wiki](https://github.com/stelligent/mu/wiki/Installation)):
 
 ```bash
