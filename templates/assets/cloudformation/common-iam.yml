@@ -353,7 +353,7 @@ Resources:
             - rds:DeleteOptionGroup
             - rds:AddTagsToResource
             - rds:ListTagsToResource
-            - rds:RemoveTagsToResource
+            - rds:RemoveTagsFromResource
             - rds:AuthorizeDBSecurityGroupIngress
             - rds:RevokeDBSecurityGroupIngress
             Resource: '*'
