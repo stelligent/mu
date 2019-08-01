@@ -116,7 +116,7 @@ Resources:
     Properties:
       Description: !Sub Pipeline key for ${Namespace}-pipeline-${ServiceName}
       Enabled: true
-      EnableKeyRotation: false
+      EnableKeyRotation: true
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
