@@ -27,8 +27,8 @@ jobs:
     docker:
       - image: circleci/golang:1.10
     steps:
-      - checkout
       - run: curl -sL https://git.io/goreleaser | bash
+      #- checkout
 
   unit-test:
     executor: golang-executor
