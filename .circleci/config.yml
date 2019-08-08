@@ -16,10 +16,10 @@ jobs:
     executor: ruby-executor
     steps:
       - checkout
-      - run-git:
+      - run:
           name: git-version
           command: git version
-      - run-nag:
+      - run:
           name: cfn-nag
           command: make nag
 
