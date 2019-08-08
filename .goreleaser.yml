@@ -9,9 +9,10 @@ builds:
   - windows
   goarch:
   - amd64
-archive:
-  format: binary
-  name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+archives:
+  - id: archive
+    format: binary
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
