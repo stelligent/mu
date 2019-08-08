@@ -94,14 +94,15 @@ ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	@go get "github.com/jstemmer/go-junit-report"
 	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
-	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
+	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 
 build: info gen
-	@go get github.com/goreleaser/goreleaser
 	$(eval export SNAPSHOT_VERSION=$(VERSION))
-	@goreleaser --snapshot --rm-dist
+	@which goreleaser || (echo "ERROR: install gorelease from here: https://goreleaser.com/install/" && exit 1)
+	goreleaser check
+	goreleaser --snapshot --rm-dist
 
 install: build
 	@echo "=== installing $(PACKAGE)-$(OS)-$(ARCH) ==="
@@ -165,7 +166,8 @@ endif
 
 github_release: check_github_token gen changelog
 	@echo "=== generating github release '$(TAG_VERSION)' ==="
-	@go get github.com/goreleaser/goreleaser
+	@go get github.com/github/goreleaser
+	@which goreleaser || (echo "ERROR: install gorelease from here: https://goreleaser.com/install/" && exit 1)
 ifeq ($(IS_SNAPSHOT),true)
 	@go get github.com/aktau/github-release
 	@github-release delete -u stelligent -r mu -t $(TAG_VERSION) || echo "already deleted"
