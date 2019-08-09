@@ -17,18 +17,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: git-version
-          command: git version
-      - run:
           name: cfn-nag
           command: make nag
-
-  goreleaser:
-    docker:
-      - image: circleci/golang:1.10
-    steps:
-      - run: curl -sL https://git.io/goreleaser | bash
-      #- checkout
 
   unit-test:
     executor: golang-executor
@@ -96,13 +86,8 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - goreleaser:
-          filters:
-            tags:
-              only: /.*/
       - release:
           requires:
-            - goreleaser
             - unit-test
             - cfn-nag
           filters:
