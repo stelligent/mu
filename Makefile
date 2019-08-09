@@ -94,7 +94,7 @@ ifneq ($(CIRCLE_WORKING_DIRECTORY),)
 	@go get "github.com/jstemmer/go-junit-report"
 	@bash -co pipefail 'go test -v -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short | go-junit-report > $(CIRCLE_WORKING_DIRECTORY)/test-results/unit/report.xml'
 else
-	go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
+	@go test -cover $(filter-out ./e2e/..., $(SRC_FILES)) -short
 endif
 
 
