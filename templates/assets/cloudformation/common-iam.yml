@@ -352,8 +352,8 @@ Resources:
             - rds:DeleteDBSubnetGroup
             - rds:DeleteOptionGroup
             - rds:AddTagsToResource
-            - rds:ListTagsToResource
-            - rds:RemoveTagsToResource
+            - rds:ListTagsForResource
+            - rds:RemoveTagsFromResource
             - rds:AuthorizeDBSecurityGroupIngress
             - rds:RevokeDBSecurityGroupIngress
             Resource: '*'
