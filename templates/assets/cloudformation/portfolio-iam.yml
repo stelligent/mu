@@ -23,7 +23,7 @@ Resources:
     Properties:
       Description: !Sub Service Catalog key for ${Namespace}-catalog
       Enabled: true
-      EnableKeyRotation: false
+      EnableKeyRotation: true
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
@@ -133,7 +133,6 @@ Resources:
             - catalog-user:*
             - cloudformation:*
             - s3:*
-            - iam:*
             - kms:*
             - codepipeline:*
             - codebuild:*

@@ -19,6 +19,8 @@ Watch the 90 second demo below to see mu in action!
 ![Demo](https://github.com/stelligent/mu/wiki/quickstart/mu-quickstart.gif)
 
 # Get Started!
+Requires [AWS Credentials](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) are configured locally (or you are using something like [aws-vault](https://github.com/99designs/aws-vault)).
+
 Install latest version to /usr/local/bin (or for additional options, see [wiki](https://github.com/stelligent/mu/wiki/Installation)):
 
 ```bash
@@ -72,6 +74,7 @@ Want to contribute to Mu?  Awesome!  Check out the [contributing guidelines](CON
 
 * Ensure [AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) is configured with an access key, secret access key, and region.
 * Install Go tools 1.10+ - (https://golang.org/doc/install)
+* If you will be publishing a new release to GitHub, you must install the [goreleaser](https://goreleaser.com/install) binary for your workstation's OS.
 * Clone this repo `git clone git@github.com:stelligent/mu.git $GOPATH/src/github.com/stelligent/mu`
 * Go to src `cd $GOPATH/src/github.com/stelligent/mu`
 * Build with `make`

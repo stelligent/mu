@@ -61,7 +61,7 @@ Resources:
     Properties:
       Description: !Sub Service key for ${Namespace}-service-${ServiceName}-${EnvironmentName}
       Enabled: true
-      EnableKeyRotation: false
+      EnableKeyRotation: true
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
