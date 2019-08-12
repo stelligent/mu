@@ -352,7 +352,7 @@ Resources:
             - rds:DeleteDBSubnetGroup
             - rds:DeleteOptionGroup
             - rds:AddTagsToResource
-            - rds:ListTagsFromResource
+            - rds:ListTagsForResource
             - rds:RemoveTagsFromResource
             - rds:AuthorizeDBSecurityGroupIngress
             - rds:RevokeDBSecurityGroupIngress
