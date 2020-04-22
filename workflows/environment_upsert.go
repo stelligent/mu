@@ -251,7 +251,11 @@ func (workflow *environmentWorkflow) environmentElbUpserter(namespace string, en
 		stackParams["EnvironmentName"] = environment.Name
 
 		if environment.Loadbalancer.Certificate != "" {
-			stackParams["ElbCert"] = environment.Loadbalancer.Certificate
+			if strings.HasPrefix(environment.Loadbalancer.Certificate, "arn:") {
+				stackParams["ElbCertArn"] = environment.Loadbalancer.Certificate
+			} else {
+				stackParams["ElbCert"] = environment.Loadbalancer.Certificate
+			}
 		}
 
 		if environment.Loadbalancer.HostedZone != "" {

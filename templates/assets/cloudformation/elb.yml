@@ -36,6 +36,10 @@ Parameters:
     Type: String
     Description: The identifier for the certificate to use for ELB. Leave blank to disable HTTPS
     Default: ''
+  ElbCertArn:
+    Type: String
+    Description: The ARN of the certificate to use for ELB. Leave blank to disable HTTPS
+    Default: ''    
   ElbAccessLogsS3BucketName:
     Type: String
     Description: The name of the S3 bucket to write ELB access logs into.
@@ -65,6 +69,11 @@ Conditions:
       - "Fn::Equals":
         - !Ref ElbCert
         - ''
+  HasElbCertArn:
+    "Fn::Not":
+      - "Fn::Equals":
+        - !Ref ElbCertArn
+        - ''        
   IsElbInternal:
     "Fn::Equals":
       - !Ref ElbInternal
@@ -268,7 +277,11 @@ Resources:
       - Type: forward
         TargetGroupArn: !Ref ElbDefaultTargetGroup
       Certificates:
-        - CertificateArn: !Sub "arn:${AWS::Partition}:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
+        - CertificateArn:
+          - Fn::If:
+            - HasElbCertArn
+              - !Sub "${ElbCertArn}"
+              - !Sub "arn:${AWS::Partition}:acm:${AWS::Region}:${AWS::AccountId}:certificate/${ElbCert}"
       Port: '443'
       Protocol: HTTPS
       SslPolicy: 'ELBSecurityPolicy-TLS-1-2-2017-01'
