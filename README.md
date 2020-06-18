@@ -1,3 +1,22 @@
+### Deprecation Notice
+
+Mu is no longer being maintained. We appreciate the support and interest over the past few years. This repository will be archived in the future. Releases will remain available for the foreseeable future. If you are starting a new project on AWS and looking for alternatives to Mu...
+
+We recently did a [podcast](https://stelligent.com/2020/05/12/devops-on-aws-radio-mutato-and-open-source-at-stelligent-episode-27/) on [Mutato](https://stelligent.github.io/mutato/#/), Mu, and OSS at Stelligent that may be of interest. 
+
+Non-Stelligent OSS similar to Mu:
+
+ - [ECS CLI v2](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI.html)
+ - [CDK - particulary APP Delivery](https://docs.aws.amazon.com/cdk/api/latest/docs/app-delivery-readme.html)
+ - [AWS SAM](https://aws.amazon.com/serverless/sam/)
+ - [Service Frameworks](https://www.serverless.com/)
+ - [CDK8s](https://github.com/awslabs/cdk8s)
+
+Additionally, check out [RFC 049 of CDK](https://github.com/aws/aws-cdk-rfcs/blob/master/text/0049-continuous-delivery.md). CDK is where a lot of us are banking the future of AWS deployments are.
+
+These alternatives either didn't exist or were in active development when we started Mu. The increased competition, new ideas, and updates to the ecosystem have made the decision easier to discontinue support for Mu.
+
+
 <img src="https://github.com/stelligent/mu/wiki/img/mu.png" width="150">
 <br/>
 
