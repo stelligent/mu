@@ -355,6 +355,15 @@ Resources:
           - !Ref AWS::NoValue
         #DnsSearchDomains:
         #- Fn::ImportValue: !Sub ${ServiceDiscoveryName}
+        {{if .Secrets}}
+        Secrets:
+        {{with .Secrets}}
+          {{range $key, $val := .}}
+          - Name: {{$key}}
+            ValueFrom: !Sub {{$val}}
+          {{end}}
+        {{end}}
+        {{end}}
         Environment:
         {{with .Environment}}
           {{range $key, $val := .}}
