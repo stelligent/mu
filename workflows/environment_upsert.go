@@ -10,7 +10,7 @@ import (
 )
 
 var ecsImageOwner = "amazon"
-var ecsImagePattern = "amzn-ami-*-amazon-ecs-optimized"
+var ecsImagePattern = "amzn2-ami-ecs-hvm-*-x86_64-ebs"
 var eksImageOwner = "602401143452"
 var eksImagePattern = "amazon-eks-node-v*"
 var ec2ImageOwner = "amazon"

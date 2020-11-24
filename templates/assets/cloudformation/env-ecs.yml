@@ -262,29 +262,20 @@ Resources:
         amazonLinux:
           packages:
             yum:
-              awslogs: []
               jq: []
-              aws-cli: []
-          files:
-            "/etc/awslogs/awscli.conf":
-              content: !Sub |
-                [plugins]
-                cwlogs = cwlogs
-                [default]
-                region = ${AWS::Region}
+              awscli: []
           commands:
             01_configure_ssm_agent:
               command: !Sub |
                 #!/bin/bash
                 sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+            02_configure_cloudwatch_agent:
+              command: !Sub |
+                #!/bin/bash
+                sudo yum install -y https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+                sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
           services:
             sysvinit:
-              awslogs:
-                enabled: 'true'
-                ensureRunning: 'true'
-                files:
-                - "/etc/awslogs/awslogs.conf"
-                - "/etc/awslogs/etc/proxy.conf"
               cfn-hup:
                 enabled: 'true'
                 ensureRunning: 'true'
@@ -308,62 +299,79 @@ Resources:
                 path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstances --configsets ${ImageOsType} --region ${AWS::Region}
                 runas=root
-            "/etc/awslogs/etc/proxy.conf":
+            "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json":
               content: !Sub |
-                HTTP_PROXY=http://${HttpProxy}/
-                HTTPS_PROXY=http://${HttpProxy}/
-            "/etc/awslogs/awscli.conf":
-              content: !Sub |
-                [plugins]
-                cwlogs = cwlogs
-                [default]
-                region = ${AWS::Region}
-            "/etc/awslogs/awslogs.conf":
-              content: !Sub |
-                [general]
-                state_file = /var/lib/awslogs/agent-state
-
-                [dmesg]
-                file = /var/log/dmesg
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/dmesg/{instance_id}
-
-                [messages]
-                file = /var/log/messages
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/messages/{instance_id}
-                datetime_format = %b %d %H:%M:%S
-
-                [docker]
-                file = /var/log/docker
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/docker/{instance_id}
-                datetime_format = %Y-%m-%dT%H:%M:%S.%f
-
-                [ecs]
-                file = /var/log/ecs/*
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/ecs/{instance_id}
-                datetime_format = %Y-%m-%dT%H:%M:%SZ
-
-                [cloud-init]
-                file = /var/log/cloud-init*
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/cloud-init/{instance_id}
-                datetime_format = %Y-%m-%dT%H:%M:%SZ
-
-                [cfn-init]
-                file = /var/log/cfn-init*
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/cfn-init/{instance_id}
-                datetime_format = %Y-%m-%d %H:%M:%S
-
-                [ssm]
-                file = /var/log/amazon/ssm/*
-                log_group_name = ${AWS::StackName}
-                log_stream_name = instance/ssm/{instance_id}
-                datetime_format = %Y-%m-%d %H:%M:%S
-
+                {
+                  "agent": {
+                    "metrics_collection_interval": 10,
+                    "region": "${AWS::Region}",
+                    "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log"
+                  },
+                  "logs": {
+                    "logs_collected": {
+                      "files": {
+                        "collect_list": [
+                          {
+                            "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/cloudwatch-agent/{instance_id}",
+                            "timezone": "UTC"
+                          },
+                          {
+                            "file_path": "/var/log/dmesg",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/dmesg/{instance_id}",
+                            "timezone": "UTC"
+                          },
+                          {
+                            "file_path": "/var/log/messages",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/messages/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%b %d %H:%M:%S"
+                          },
+                          {
+                            "file_path": "/var/log/docker",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/docker/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%Y-%m-%dT%H:%M:%S"
+                          },
+                          {
+                            "file_path": "/var/log/ecs/*",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/ecs/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                          },
+                          {
+                            "file_path": "/var/log/cloud-init*",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/cloud-init/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                          },
+                          {
+                            "file_path": "/var/log/cfn-init*",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/cfn-init/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%Y-%m-%d %H:%M:%S"
+                          },
+                          {
+                            "file_path": "/var/log/amazon/ssm/*",
+                            "log_group_name": "${AWS::StackName}",
+                            "log_stream_name": "instance/ssm/{instance_id}",
+                            "timezone": "UTC",
+                            "timestamp_format": "%Y-%m-%d %H:%M:%S"
+                          }
+                        ]
+                      }
+                    },
+                    "log_stream_name": "instance/other/{instance_id}"
+                  }
+                }
+ 
           commands:
             01_add_instance_to_cluster:
               command: !Sub |
